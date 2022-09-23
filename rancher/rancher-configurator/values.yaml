@@ -1,0 +1,6 @@
+# Default values
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+publicName: rancher.local.gd
+tokenString: dummy

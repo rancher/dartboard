@@ -1,0 +1,34 @@
+{{ range $index, $user := (lookup "management.cattle.io/v3" "User" "" "").items }}
+  {{- if eq $user.username "admin" }}
+    {{- $userId := $user.metadata.name -}}
+
+apiVersion: management.cattle.io/v3
+kind: Token
+authProvider: local
+current: false
+description: Rancher API token
+expired: false
+expiresAt: ""
+isDerived: true
+lastUpdateTime: ""
+metadata:
+  generateName: token-
+  labels:
+    authn.management.cattle.io/token-userId: {{ $userId }}
+    cattle.io/creator: norman
+  name: token
+ttl: 0
+token: {{ $.Values.tokenString }}
+userId: {{ $userId }}
+userPrincipal:
+  displayName: Default Admin
+  loginName: admin
+  me: true
+  metadata:
+    creationTimestamp: null
+    name: local://{{ $userId }}
+  principalType: user
+  provider: local
+
+  {{- end }}
+{{- end }}

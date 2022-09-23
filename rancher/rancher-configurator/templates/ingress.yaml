@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+   labels:
+     app: rancher
+   name: rancher-public-name-ingress
+   namespace: cattle-system
+spec:
+ rules:
+ - host: {{ $.Values.publicName }}
+   http:
+     paths:
+     - backend:
+         service:
+           name: rancher
+           port:
+             number: 80
+       pathType: ImplementationSpecific
+ tls:
+ - hosts:
+   - {{ $.Values.publicName }}
+   secretName: tls-rancher-ingress
