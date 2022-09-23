@@ -30,5 +30,5 @@ resource "ssh_resource" "installation" {
 
   commands = [
       "/tmp/install_k3s.sh",
-    ]
+  ]
 }

@@ -53,7 +53,7 @@ resource "local_file" "login_node" {
 }
 
 locals {
-  logins = [for i in range(length(module.nodes.private_names)) : "./config/login_node-${i+1}.sh"]
+  logins = [for i in range(length(module.nodes.private_names)) : "./config/login_node-${i + 1}.sh"]
 }
 
 output "rancher_help" {
