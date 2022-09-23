@@ -1,7 +1,7 @@
 /*
   This module sets up a class B VPC sliced into two subnets, one public and one private.
   The private network has no Internet access.
-  The public network has an Internet Gateway and accepts SSH connections
+  The public network has an Internet Gateway and accepts SSH, https and Kubernetes API connections
 */
 
 resource "aws_vpc" "main" {
