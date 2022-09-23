@@ -1,0 +1,6 @@
+.idea
+.terraform
+terraform.tfstate
+terraform.tfstate.*
+config/*.yaml
+config/*.sh
