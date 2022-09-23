@@ -89,7 +89,7 @@ module "rancher" {
   public_name      = module.bastion.public_name
   private_name     = module.bastion.private_name
   api_token_string = module.secrets.api_token_string
-  chart = local.rancher_chart
+  chart            = local.rancher_chart
 }
 
 
@@ -123,7 +123,7 @@ module "rke2" {
   ssh_bastion_host     = module.bastion.public_name
 
   rke2_version = local.rke2_version
-  max_pods = local.max_pods
+  max_pods     = local.max_pods
 
   client_ca_key          = module.secrets.client_ca_key
   client_ca_cert         = module.secrets.client_ca_cert

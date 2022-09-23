@@ -79,27 +79,35 @@ resource "random_password" "api_token_key" {
 output "client_ca_key" {
   value = tls_private_key.client_ca_key.private_key_pem
 }
+
 output "client_ca_cert" {
 value = tls_self_signed_cert.client_ca_cert.cert_pem
 }
+
 output "server_ca_key" {
 value = tls_private_key.server_ca_key.private_key_pem
 }
+
 output "server_ca_cert" {
 value = tls_self_signed_cert.server_ca_cert.cert_pem
 }
+
 output "request_header_ca_key" {
 value = tls_private_key.request_header_ca_key.private_key_pem
 }
+
 output "request_header_ca_cert" {
 value = tls_self_signed_cert.request_header_ca_cert.cert_pem
 }
+
 output "master_user_cert" {
   value = tls_locally_signed_cert.master_user.cert_pem
 }
+
 output "master_user_key" {
   value = tls_private_key.master_user.private_key_pem
 }
+
 output "cluster_ca_certificate" {
   value = tls_self_signed_cert.server_ca_cert.cert_pem
 }
