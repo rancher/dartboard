@@ -8,7 +8,6 @@ variable "rke2_version" {
   default = "v1.24.4+rke2r1"
 }
 
-
 variable "server_names" {
   description = "List of names of server nodes to deploy"
   type = list(string)
@@ -16,6 +15,12 @@ variable "server_names" {
 
 variable "agent_names" {
   description = "List of names of agent nodes to deploy"
+  type = list(string)
+  default = []
+}
+
+variable "sans" {
+  description = "Additional Subject Alternative Names"
   type = list(string)
   default = []
 }
