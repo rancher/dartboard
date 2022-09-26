@@ -21,7 +21,7 @@ resource "ssh_sensitive_resource" "first_server_installation" {
   file {
     content = templatefile("${path.module}/install_rke2.sh", {
       rke2_version=var.rke2_version,
-      name=local.fist_server_name
+      sans=concat([local.fist_server_name], var.sans)
       type = "server"
       token = null
       server_url = null
@@ -58,7 +58,7 @@ resource "ssh_resource" "additional_server_installation" {
   file {
     content = templatefile("${path.module}/install_rke2.sh", {
       rke2_version=var.rke2_version,
-      name=var.server_names[count.index + 1]
+      sans=[var.server_names[count.index + 1]]
       type = "server"
       token = ssh_sensitive_resource.first_server_installation.result
       server_url = local.server_url
@@ -94,7 +94,7 @@ resource "ssh_resource" "agent_installation" {
   file {
     content = templatefile("${path.module}/install_rke2.sh", {
       rke2_version=var.rke2_version,
-      name=var.agent_names[count.index]
+      sans=[var.agent_names[count.index]]
       type = "agent"
       token = ssh_sensitive_resource.first_server_installation.result
       server_url = local.server_url

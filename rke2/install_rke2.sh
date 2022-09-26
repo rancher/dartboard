@@ -44,7 +44,9 @@ cat >/etc/rancher/rke2/config.yaml <<EOF
 server: ${jsonencode(server_url)}
 token: ${jsonencode(token)}
 tls-san:
-  - ${jsonencode(name)}
+%{ for san in sans ~}
+  - ${jsonencode(san)}
+%{ endfor ~}
 EOF
 
 cat > /etc/rancher/rke2/kubelet-custom.config <<EOF
