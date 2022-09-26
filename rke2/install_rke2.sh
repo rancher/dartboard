@@ -41,10 +41,10 @@ EOF
 
 mkdir -p /etc/rancher/rke2/
 cat >/etc/rancher/rke2/config.yaml <<EOF
-server: ${yamlencode(server_url)}
-token: ${yamlencode(token)}
+server: ${jsonencode(server_url)}
+token: ${jsonencode(token)}
 tls-san:
-  - ${yamlencode(name)}
+  - ${jsonencode(name)}
 EOF
 
 cat > /etc/rancher/rke2/kubelet-custom.config <<EOF
