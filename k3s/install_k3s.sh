@@ -28,7 +28,7 @@ EOF
 mkdir -p /etc/rancher/k3s/
 cat >/etc/rancher/k3s/config.yaml <<EOF
 tls-san:
-  - ${yamlencode(name)}
+  - ${jsonencode(name)}
 EOF
 
 curl -sfL https://get.k3s.io | sh -
