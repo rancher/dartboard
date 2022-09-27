@@ -13,11 +13,6 @@ variable "name" {
   type        = string
 }
 
-variable "quantity" {
-  description = "number of hosts like this one"
-  default     = 1
-}
-
 variable "ami" {
   description = "AMI ID"
 }
