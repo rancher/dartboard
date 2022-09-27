@@ -1,7 +1,6 @@
 resource "aws_instance" "instance" {
   ami                    = var.ami
   instance_type          = var.instance_type
-  count                  = var.quantity
   availability_zone      = var.availability_zone
   key_name               = var.ssh_key_name
   subnet_id              = var.subnet_id
@@ -27,16 +26,15 @@ resource "aws_instance" "instance" {
 
   tags = {
     Project = var.project_name
-    Name = "${var.project_name}-${var.name}${var.quantity > 1 ? "-${count.index + 1}" : ""}"
+    Name = "${var.project_name}-${var.name}"
   }
 }
 
 resource "null_resource" "host_configuration" {
   depends_on = [aws_instance.instance]
-  count      = var.quantity
 
   connection {
-    host        = coalesce(aws_instance.instance[count.index].public_dns, aws_instance.instance[count.index].private_dns)
+    host        = coalesce(aws_instance.instance.public_dns, aws_instance.instance.private_dns)
     private_key = file(var.ssh_private_key_path)
     user        = "root"
 
@@ -53,22 +51,17 @@ resource "null_resource" "host_configuration" {
   }
 }
 
-output "ids" {
-  value = aws_instance.instance[*].id
+
 }
 
-output "private_names" {
-  value = aws_instance.instance[*].private_dns
-}
-
-output "public_names" {
-  value = aws_instance.instance[*].public_dns
+output "id" {
+  value = aws_instance.instance.id
 }
 
 output "private_name" {
-  value = aws_instance.instance[0].private_dns
+  value = aws_instance.instance.private_dns
 }
 
 output "public_name" {
-  value = aws_instance.instance[0].public_dns
+  value = aws_instance.instance.public_dns
 }
