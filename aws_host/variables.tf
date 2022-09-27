@@ -37,6 +37,18 @@ variable "ssh_bastion_host" {
   default = null
 }
 
+variable "ssh_tunnel_local_port" {
+  description = "Opens an SSH tunnel to the first host via the bastion"
+  type = number
+  default = null
+}
+
+variable "ssh_tunnel_remote_port" {
+  description = "Opens an SSH tunnel to the first host via the bastion"
+  type = number
+  default = null
+}
+
 variable "subnet_id" {
   description = "ID of the subnet to connect to"
   type        = string
