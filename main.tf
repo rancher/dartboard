@@ -173,7 +173,7 @@ module "downstream_rke2" {
   ssh_bastion_host     = module.bastion.public_name
   ssh_local_port = local.downstream_local_port
 
-  rke2_version = local.downsteam_rke2_version
+  rke2_version = local.downstream_rke2_version
 
   client_ca_key          = module.secrets.client_ca_key
   client_ca_cert         = module.secrets.client_ca_cert
