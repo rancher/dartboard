@@ -39,8 +39,15 @@ resource "ssh_sensitive_resource" "first_server_installation" {
     permissions = "0700"
   }
 
+  file {
+    content = file("${path.module}/wait_for_k8s.sh")
+    destination = "/root/wait_for_k8s.sh"
+    permissions = "0700"
+  }
+
   commands = [
     "/root/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)",
+    "/root/wait_for_k8s.sh",
     "cat /var/lib/rancher/rke2/server/node-token",
   ]
 }

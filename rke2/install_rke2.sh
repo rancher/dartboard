@@ -66,7 +66,6 @@ cat >>/root/.bash_profile <<EOF
 export PATH=\$PATH:/var/lib/rancher/rke2/bin/
 export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
 EOF
-source /root/.bash_profile
 
 # installation
 export INSTALL_RKE2_VERSION=${rke2_version}
@@ -75,9 +74,3 @@ export INSTALL_RKE2_TYPE=${type}
 curl -sfL https://get.rke2.io | sh -
 systemctl enable rke2-${type}.service
 systemctl restart rke2-${type}.service
-
-while ! kubectl get services
-do
-  echo "Waiting for k8s API to be up..."
-  sleep 3
-done
