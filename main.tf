@@ -121,7 +121,8 @@ provider "helm" {
 }
 
 module "rancher" {
-  depends_on       = [module.upstream_rke2]
+  depends_on       = [module.upstream_rke2, module.upstream_server_nodes]
+  count            = local.upstream_server_count > 0 ? 1 : 0
   source           = "./rancher"
   public_name      = local.upstream_san
   private_name     = module.upstream_server_nodes[0].private_name
