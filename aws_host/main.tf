@@ -1,11 +1,3 @@
-terraform {
-  required_providers {
-    ssh-tunnel = {
-      source = "AndrewChubatiuk/ssh"
-    }
-  }
-}
-
 resource "aws_instance" "instance" {
   ami                    = var.ami
   instance_type          = var.instance_type
@@ -59,7 +51,27 @@ resource "null_resource" "host_configuration" {
   }
 }
 
+resource "local_file" "open_tunnels" {
+  count = length(var.ssh_tunnels) > 0 ? 1 : 0
+  content = templatefile("${path.module}/open-tunnels-to.sh", {
+    ssh_bastion_host = var.ssh_bastion_host,
+    ssh_tunnels = var.ssh_tunnels,
+    private_name = aws_instance.instance.private_dns
+  })
 
+  filename = "${path.module}/../config/open-tunnels-to-${var.name}.sh"
+}
+
+resource "null_resource" "open_tunnels" {
+  count = length(var.ssh_tunnels) > 0 ? 1 : 0
+  depends_on = [null_resource.host_configuration]
+  provisioner "local-exec" {
+    interpreter = ["bash", "-c"]
+    command = local_file.open_tunnels[0].filename
+  }
+  triggers = {
+    always_run = timestamp()
+  }
 }
 
 output "id" {
