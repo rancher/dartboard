@@ -1,7 +1,7 @@
 /*
   This module sets up a class B VPC sliced into two subnets, one public and one private.
   The private network has no Internet access.
-  The public network has an Internet Gateway and accepts SSH, https and Kubernetes API connections
+  The public network has an Internet Gateway and accepts SSH connections
 */
 
 resource "aws_vpc" "main" {
@@ -133,26 +133,12 @@ resource "aws_vpc_dhcp_options_association" "vpc_dhcp_options" {
 
 resource "aws_security_group" "public" {
   name        = "${var.project_name}-public-security-group"
-  description = "Allow inbound connections from the private subnet; allow connections on ports 22 (SSH), 443 (https), 6443 (Kubernetes); allow all outbound connections"
+  description = "Allow inbound connections from the private subnet; allow connections on ports 22 (SSH); allow all outbound connections"
   vpc_id      = local.vpc_id
 
   ingress {
     from_port   = 22
     to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 6443
-    to_port     = 6443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
