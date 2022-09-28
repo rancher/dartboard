@@ -1,35 +1,3 @@
-resource "local_file" "rancher_kubeconfig" {
-  content = yamlencode({
-    apiVersion = "v1"
-    clusters = [{
-      cluster = {
-        certificate-authority-data = base64encode(module.secrets.cluster_ca_certificate)
-        server                     = "https://${module.bastion.public_names[0]}:6443"
-      }
-      name = module.bastion.public_name
-    }]
-    contexts = [{
-      context = {
-        cluster = module.bastion.public_name
-        user : "master-user"
-      }
-      name = module.bastion.public_name
-    }]
-    current-context = module.bastion.public_name
-    kind            = "Config"
-    preferences     = {}
-    users = [{
-      user = {
-        client-certificate-data : base64encode(module.secrets.master_user_cert)
-        client-key-data : base64encode(module.secrets.master_user_key)
-      }
-      name : "master-user"
-    }]
-  })
-
-  filename = "${path.module}/config/rancher.yaml"
-}
-
 resource "local_file" "login_bastion" {
   content = <<-EOT
     #!/bin/sh

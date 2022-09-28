@@ -8,6 +8,11 @@ variable "rke2_version" {
   default = "v1.24.4+rke2r1"
 }
 
+variable "name" {
+  description = "Symbolic name of this cluster"
+  type        = string
+}
+
 variable "server_names" {
   description = "List of names of server nodes to deploy"
   type = list(string)
@@ -32,6 +37,11 @@ variable "ssh_private_key_path" {
 
 variable "ssh_bastion_host" {
   description = "Public name of the SSH bastion host. Leave null for publicly accessible instances"
+  default = null
+}
+
+variable "ssh_local_port" {
+  description = "Local port for the SSH tunnel for the API"
   default = null
 }
 
@@ -62,5 +72,13 @@ variable "request_header_ca_key" {
 }
 variable "request_header_ca_cert" {
   description = "Request header CA certificate"
+  type = string
+}
+variable "master_user_cert" {
+  description = "Master user certificate"
+  type = string
+}
+variable "master_user_key" {
+  description = "Master user key"
   type = string
 }
