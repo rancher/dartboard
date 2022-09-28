@@ -174,6 +174,7 @@ module "downstream_rke2" {
   ssh_local_port       = local.downstream_local_port
 
   rke2_version = local.downstream_rke2_version
+  max_pods     = local.downstream_max_pods
 
   client_ca_key          = module.secrets.client_ca_key
   client_ca_cert         = module.secrets.client_ca_cert
