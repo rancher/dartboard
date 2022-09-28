@@ -6,5 +6,5 @@ resource "local_file" "login_script" {
       root@${aws_instance.instance.private_dns} $@
   EOT
 
-  filename = "${path.module}/../config/ssh-to-${var.name}.sh"
+  filename = "${path.module}/../config/ssh-to-${aws_instance.instance.private_dns}-${var.name}.sh"
 }
