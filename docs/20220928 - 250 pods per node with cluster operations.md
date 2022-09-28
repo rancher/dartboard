@@ -31,9 +31,15 @@ See https://aws.amazon.com/ec2/instance-types/, https://aws.amazon.com/ebs/, htt
 - downstream cluster: RKE2 v1.22.13+rke2r1, 3 server nodes and 4 agent nodes
   - all nodes based on Rocky Linux 8.6
 
-***Important note***: setting the number of pods per node [in the RKE2 configuration file seems broken](https://github.com/rancher/rke2/issues/3378).
-
-In order to conduct the test the number of pods was set via a systemd override on the command line arguments instead as a workaround.
+The number of 250 pods per node is set by:
+- adding a `kubelet-arg: "config=/etc/rancher/rke2/kubelet-custom.config"` line to `/etc/rancher/rke2/config.yaml`
+- creating a `/etc/rancher/rke2/kubelet-custom.config` file with the following content:
+```yaml
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+maxPods: 250
+```
+- restarting the `rke2-server` service
 
 See [the rke2 installation script in this repo](../rke2/install_rke2.sh) for details.
 
