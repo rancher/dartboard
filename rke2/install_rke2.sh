@@ -47,19 +47,13 @@ tls-san:
 %{ for san in sans ~}
   - ${jsonencode(san)}
 %{ endfor ~}
+kubelet-arg: "config=/etc/rancher/rke2/kubelet-custom.config"
 EOF
 
 cat > /etc/rancher/rke2/kubelet-custom.config <<EOF
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 maxPods: ${max_pods}
-EOF
-
-mkdir -p /etc/systemd/system/rke2-${type}.service.d/
-cat >/etc/systemd/system/rke2-${type}.service.d/override.conf <<EOF
-[Service]
-ExecStart=
-ExecStart=/usr/bin/rke2 ${type} --kubelet-arg=config=/etc/rancher/rke2/kubelet-custom.config
 EOF
 
 cat >>/root/.bash_profile <<EOF
