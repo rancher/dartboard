@@ -12,3 +12,11 @@ nohup ssh -o IgnoreUnknown=TerraformCreatedThisTunnel \
   %{ for tunnel in ssh_tunnels }-L ${tunnel[0]}:localhost:${tunnel[1]} %{ endfor }\
   %{ if ssh_bastion_host != null }-o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p root@${ssh_bastion_host}"%{ endif }\
   root@${private_name} >/dev/null 2>&1 &
+
+%{ for tunnel in ssh_tunnels }
+echo "Waiting for tunnel ${tunnel[0]} to be up..."
+while ! curl --insecure --output /dev/null https://localhost:${tunnel[0]}
+do
+  sleep 1
+done
+%{ endfor }
