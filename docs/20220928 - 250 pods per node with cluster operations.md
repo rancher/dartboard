@@ -2,7 +2,7 @@
 
 ## Results
 
-- [results from the 20220923 test were reproduced](./20220923%20-%20250%20pods%20per%20node.md), then;
+- [results from the 20220923 test were reproduced](./20220923%20-%20250%20pods%20per%20node.md), then:
 - 4 worker nodes were added and the number of replicas was scaled up to 2000
   - workload stayed healthy as per above
 - 1 worker node was cordoned, drained and removed via the Rancher UI
@@ -157,8 +157,6 @@ terraform destroy -auto-approve
 ![Rancher UI screenshot](images/20220928-3.png)
 
 ![Rancher UI screenshot](images/20220928-4.png)
-
-![Rancher UI screenshot](images/20220928-5.png)
 
 
 ## Troubleshooting
