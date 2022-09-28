@@ -37,16 +37,10 @@ variable "ssh_bastion_host" {
   default = null
 }
 
-variable "ssh_tunnel_local_port" {
-  description = "Opens an SSH tunnel to the first host via the bastion"
-  type = number
-  default = null
-}
-
-variable "ssh_tunnel_remote_port" {
-  description = "Opens an SSH tunnel to the first host via the bastion"
-  type = number
-  default = null
+variable "ssh_tunnels" {
+  description = "Opens SSH tunnels to this host via the bastion"
+  type = list(list(number))
+  default = []
 }
 
 variable "subnet_id" {
