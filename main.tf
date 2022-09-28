@@ -36,11 +36,14 @@ module "aws_network" {
   project_name      = local.project_name
 }
 
+module "secrets" {
+  source = "./secrets"
+}
+
 module "bastion" {
   depends_on            = [module.aws_network]
   source                = "./aws_host"
   ami                   = local.bastion_ami
-  instance_type         = local.bastion_instance_type
   availability_zone     = local.availability_zone
   project_name          = local.project_name
   name                  = "bastion"
@@ -50,57 +53,32 @@ module "bastion" {
   vpc_security_group_id = module.aws_network.public_security_group_id
 }
 
-module "secrets" {
-  source = "./secrets"
-}
-
-module "k3s" {
-  depends_on           = [module.bastion]
-  source               = "./k3s"
-  project              = local.project_name
-  name                 = module.bastion.public_name
-  ssh_private_key_path = local.ssh_private_key_path
-  k3s_version          = local.k3s_version
-
-  client_ca_key          = module.secrets.client_ca_key
-  client_ca_cert         = module.secrets.client_ca_cert
-  server_ca_key          = module.secrets.server_ca_key
-  server_ca_cert         = module.secrets.server_ca_cert
-  request_header_ca_key  = module.secrets.request_header_ca_key
-  request_header_ca_cert = module.secrets.request_header_ca_cert
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = "https://${module.bastion.public_name}:6443"
-    client_certificate     = module.secrets.master_user_cert
-    client_key             = module.secrets.master_user_key
-    cluster_ca_certificate = module.secrets.cluster_ca_certificate
-  }
-}
-
-module "rancher" {
-  depends_on       = [module.k3s]
-  source           = "./rancher"
-  public_name      = module.bastion.public_name
-  private_name     = module.bastion.private_name
-  api_token_string = module.secrets.api_token_string
-  chart            = local.rancher_chart
-}
-
-
-// Downstream cluster
-
-
-module "nodes" {
+module "upstream_server_nodes" {
   depends_on            = [module.aws_network]
-  quantity              = local.server_nodes + local.agent_nodes
+  count              = local.upstream_server_count
   source                = "./aws_host"
-  ami                   = local.nodes_ami
-  instance_type         = local.nodes_instance_type
+  ami                   = local.upstream_ami
+  instance_type         = local.upstream_instance_type
   availability_zone     = local.availability_zone
   project_name          = local.project_name
-  name                  = "node"
+  name                  = "upstream-server-node-${count.index}"
+  ssh_key_name          = module.aws_shared.key_name
+  ssh_private_key_path  = local.ssh_private_key_path
+  subnet_id             = module.aws_network.private_subnet_id
+  vpc_security_group_id = module.aws_network.private_security_group_id
+  ssh_bastion_host      = module.bastion.public_name
+  ssh_tunnels = count.index == 0 ? [[local.upstream_local_port, 6443], [3000, 443]] : []
+}
+
+module "upstream_agent_nodes" {
+  depends_on            = [module.aws_network]
+  count              = local.upstream_agent_count
+  source                = "./aws_host"
+  ami                   = local.upstream_ami
+  instance_type         = local.upstream_instance_type
+  availability_zone     = local.availability_zone
+  project_name          = local.project_name
+  name                  = "upstream-agent-node-${count.index}"
   ssh_key_name          = module.aws_shared.key_name
   ssh_private_key_path  = local.ssh_private_key_path
   subnet_id             = module.aws_network.private_subnet_id
@@ -108,18 +86,19 @@ module "nodes" {
   ssh_bastion_host      = module.bastion.public_name
 }
 
-module "rke2" {
-  depends_on   = [module.nodes]
+module "upstream_rke2" {
   source       = "./rke2"
   project      = local.project_name
-  server_names = slice(module.nodes.private_names, 0, local.server_nodes)
-  agent_names  = slice(module.nodes.private_names, local.server_nodes, local.server_nodes + local.agent_nodes)
+  name = "upstream"
+  server_names = [for node in module.upstream_server_nodes : node.private_name]
+  agent_names = [for node in module.upstream_agent_nodes : node.private_name]
+  sans = [local.upstream_san]
 
   ssh_private_key_path = local.ssh_private_key_path
   ssh_bastion_host     = module.bastion.public_name
+  ssh_local_port = local.upstream_local_port
 
-  rke2_version = local.rke2_version
-  max_pods     = local.max_pods
+  rke2_version = local.upstream_rke2_version
 
   client_ca_key          = module.secrets.client_ca_key
   client_ca_cert         = module.secrets.client_ca_cert
@@ -127,4 +106,81 @@ module "rke2" {
   server_ca_cert         = module.secrets.server_ca_cert
   request_header_ca_key  = module.secrets.request_header_ca_key
   request_header_ca_cert = module.secrets.request_header_ca_cert
+  master_user_cert       = module.secrets.master_user_cert
+  master_user_key        = module.secrets.master_user_key
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = "https://${local.upstream_san}:6443"
+    client_certificate     = module.secrets.master_user_cert
+    client_key             = module.secrets.master_user_key
+    cluster_ca_certificate = module.secrets.cluster_ca_certificate
+  }
+}
+
+module "rancher" {
+  depends_on       = [module.upstream_rke2]
+  source           = "./rancher"
+  public_name      = local.upstream_san
+  private_name     = module.upstream_server_nodes[0].private_name
+  api_token_string = module.secrets.api_token_string
+  chart            = local.rancher_chart
+}
+
+module "downstream_server_nodes" {
+  depends_on            = [module.aws_network]
+  count              = local.downstream_server_count
+  source                = "./aws_host"
+  ami                   = local.downstream_ami
+  instance_type         = local.downstream_instance_type
+  availability_zone     = local.availability_zone
+  project_name          = local.project_name
+  name                  = "downstream-server-node-${count.index}"
+  ssh_key_name          = module.aws_shared.key_name
+  ssh_private_key_path  = local.ssh_private_key_path
+  subnet_id             = module.aws_network.private_subnet_id
+  vpc_security_group_id = module.aws_network.private_security_group_id
+  ssh_bastion_host      = module.bastion.public_name
+  ssh_tunnels = count.index == 0 ? [[local.downstream_local_port, 6443]] : []
+}
+
+module "downstream_agent_nodes" {
+  depends_on            = [module.aws_network]
+  count              = local.downstream_agent_count
+  source                = "./aws_host"
+  ami                   = local.downstream_ami
+  instance_type         = local.downstream_instance_type
+  availability_zone     = local.availability_zone
+  project_name          = local.project_name
+  name                  = "downstream-agent-node-${count.index}"
+  ssh_key_name          = module.aws_shared.key_name
+  ssh_private_key_path  = local.ssh_private_key_path
+  subnet_id             = module.aws_network.private_subnet_id
+  vpc_security_group_id = module.aws_network.private_security_group_id
+  ssh_bastion_host      = module.bastion.public_name
+}
+
+module "downstream_rke2" {
+  source       = "./rke2"
+  project      = local.project_name
+  name = "downstream"
+  server_names = [for node in module.downstream_server_nodes : node.private_name]
+  agent_names = [for node in module.downstream_agent_nodes : node.private_name]
+  sans = [local.downstream_san]
+
+  ssh_private_key_path = local.ssh_private_key_path
+  ssh_bastion_host     = module.bastion.public_name
+  ssh_local_port = local.downstream_local_port
+
+  rke2_version = local.downsteam_rke2_version
+
+  client_ca_key          = module.secrets.client_ca_key
+  client_ca_cert         = module.secrets.client_ca_cert
+  server_ca_key          = module.secrets.server_ca_key
+  server_ca_cert         = module.secrets.server_ca_cert
+  request_header_ca_key  = module.secrets.request_header_ca_key
+  request_header_ca_cert = module.secrets.request_header_ca_cert
+  master_user_cert       = module.secrets.master_user_cert
+  master_user_key        = module.secrets.master_user_key
 }

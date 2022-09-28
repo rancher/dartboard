@@ -1,22 +1,12 @@
 output "rancher_help" {
   value = <<-EOT
+    UPSTREAM CLUSTER ACCESS:
+      export KUBECONFIG=./config/upstream.yaml
 
-    To reach the Rancher UI use:
+    RANCHER UI:
+      https://${local.upstream_san}:3000
 
-      https://${module.bastion.public_name}
-
-    To reach the bastion host use:
-
-      ./config/login_bastion.sh
-
-    To reach the Rancher cluster API use:
-
-      kubectl --kubeconfig ./config/rancher.yaml
-      helm --kubeconfig ./config/rancher.yaml
-      k9s --kubeconfig ./config/rancher.yaml
-
-    To reach downstream cluster nodes use:
-
-      ${join("\n  ", local.logins)}
-  EOT
+    DOWNSTREAM CLUSTER ACCESS:
+      export KUBECONFIG=./config/downstream.yaml
+ EOT
 }
