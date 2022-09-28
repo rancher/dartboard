@@ -55,7 +55,7 @@ module "bastion" {
 
 module "upstream_server_nodes" {
   depends_on            = [module.aws_network]
-  count              = local.upstream_server_count
+  count                 = local.upstream_server_count
   source                = "./aws_host"
   ami                   = local.upstream_ami
   instance_type         = local.upstream_instance_type
@@ -67,12 +67,12 @@ module "upstream_server_nodes" {
   subnet_id             = module.aws_network.private_subnet_id
   vpc_security_group_id = module.aws_network.private_security_group_id
   ssh_bastion_host      = module.bastion.public_name
-  ssh_tunnels = count.index == 0 ? [[local.upstream_local_port, 6443], [3000, 443]] : []
+  ssh_tunnels           = count.index == 0 ? [[local.upstream_local_port, 6443], [3000, 443]] : []
 }
 
 module "upstream_agent_nodes" {
   depends_on            = [module.aws_network]
-  count              = local.upstream_agent_count
+  count                 = local.upstream_agent_count
   source                = "./aws_host"
   ami                   = local.upstream_ami
   instance_type         = local.upstream_instance_type
@@ -89,14 +89,14 @@ module "upstream_agent_nodes" {
 module "upstream_rke2" {
   source       = "./rke2"
   project      = local.project_name
-  name = "upstream"
+  name         = "upstream"
   server_names = [for node in module.upstream_server_nodes : node.private_name]
-  agent_names = [for node in module.upstream_agent_nodes : node.private_name]
-  sans = [local.upstream_san]
+  agent_names  = [for node in module.upstream_agent_nodes : node.private_name]
+  sans         = [local.upstream_san]
 
   ssh_private_key_path = local.ssh_private_key_path
   ssh_bastion_host     = module.bastion.public_name
-  ssh_local_port = local.upstream_local_port
+  ssh_local_port       = local.upstream_local_port
 
   rke2_version = local.upstream_rke2_version
 
@@ -130,7 +130,7 @@ module "rancher" {
 
 module "downstream_server_nodes" {
   depends_on            = [module.aws_network]
-  count              = local.downstream_server_count
+  count                 = local.downstream_server_count
   source                = "./aws_host"
   ami                   = local.downstream_ami
   instance_type         = local.downstream_instance_type
@@ -142,12 +142,12 @@ module "downstream_server_nodes" {
   subnet_id             = module.aws_network.private_subnet_id
   vpc_security_group_id = module.aws_network.private_security_group_id
   ssh_bastion_host      = module.bastion.public_name
-  ssh_tunnels = count.index == 0 ? [[local.downstream_local_port, 6443]] : []
+  ssh_tunnels           = count.index == 0 ? [[local.downstream_local_port, 6443]] : []
 }
 
 module "downstream_agent_nodes" {
   depends_on            = [module.aws_network]
-  count              = local.downstream_agent_count
+  count                 = local.downstream_agent_count
   source                = "./aws_host"
   ami                   = local.downstream_ami
   instance_type         = local.downstream_instance_type
@@ -164,14 +164,14 @@ module "downstream_agent_nodes" {
 module "downstream_rke2" {
   source       = "./rke2"
   project      = local.project_name
-  name = "downstream"
+  name         = "downstream"
   server_names = [for node in module.downstream_server_nodes : node.private_name]
-  agent_names = [for node in module.downstream_agent_nodes : node.private_name]
-  sans = [local.downstream_san]
+  agent_names  = [for node in module.downstream_agent_nodes : node.private_name]
+  sans         = [local.downstream_san]
 
   ssh_private_key_path = local.ssh_private_key_path
   ssh_bastion_host     = module.bastion.public_name
-  ssh_local_port = local.downstream_local_port
+  ssh_local_port       = local.downstream_local_port
 
   rke2_version = local.downstream_rke2_version
 
