@@ -16,9 +16,6 @@ terraform {
     rancher2 = {
       source = "rancher/rancher2"
     }
-    ssh = {
-      source  = "loafoe/ssh"
-    }
   }
 }
 

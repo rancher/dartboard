@@ -1,27 +1,6 @@
 # This file is maintained automatically by "terraform init".
 # Manual edits may be lost in future updates.
 
-provider "registry.terraform.io/andrewchubatiuk/ssh" {
-  version     = "0.1.5"
-  constraints = "0.1.5"
-  hashes = [
-    "h1:PrCr7S/09KMDqoWkBSntyqN0NiWgBBLcQL5RHbGxCV8=",
-    "zh:2d69dd52edfc5ad4caa38c6672ee4a6dfc98e4302f88dee3860621f8482cc026",
-    "zh:4c1d7e041cb95a3edb798a87a1089e6624728b0f4f5d8d6c4b8669498eb21805",
-    "zh:61acac72978c94ed474a3c38631ab489517e55057fc885ad110dd4c715469abe",
-    "zh:67a9c9a3a4dc0499e56c21068fac8407e037cf7613db5035edee8e09575560ab",
-    "zh:6ef8dbbfe51b991ac146be7fab8b5f598518b678ae7668fd806e99a6eee5ccef",
-    "zh:786a1b353c251e28ef6a7ddbcf925a19bacbfd49df137c0ee15533951f004e02",
-    "zh:7e0c8715e636a989e846e11b7be0032f33c4cc3b91d828801d3c2641e6ba55e7",
-    "zh:a4ddc5c916f97bc21ddb24b0b93d842782a0f51a230fc01a533c3d2e6731cfe4",
-    "zh:cd0ef11ad6204942215a742cb3890b859e276c2ba4aaeed698fdbf7b63062518",
-    "zh:ed8ab60d7ec18a2abe80f53af564f78223278f20a81f436d8458d0c096702c8f",
-    "zh:ee3a463147267374bbe878bc77115a50c9c612c7e50d4a1a777381ce4a1b11f4",
-    "zh:f203ec329432dd362e8f0d388c1abfc5160f99d0cd6f8641102860d39090a350",
-    "zh:f685c94c5145fa9d15eedf6de7a0753ecec78a1c7962c47a19ca1d045f9771e1",
-  ]
-}
-
 provider "registry.terraform.io/hashicorp/aws" {
   version     = "4.31.0"
   constraints = "4.31.0"
