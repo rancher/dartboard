@@ -133,6 +133,13 @@ DOWNSTREAM CLUSTER ACCESS:
 
 ### Upgrading RKE2
 
+Methodology notes:
+ - RKE2 upgrade in the downstream cluster is performed via the [installation script method](https://github.com/rancher/rke2/blob/v1.25.2%2Brke2r1/docs/upgrade/basic_upgrade.md#upgrade-rke2-using-the-installation-script) because it's the only option with imported clusters
+ - the cluster is imported, in turn, because AWS provisioning [is not supported with temporary session tokens at the time of writing](https://github.com/rancher/rancher/issues/15962)
+ - upgrades via installation scripts imply draining nodes that are being upgraded. That in turn implies that the cluster must have sufficient pod capacity overall - considering one node at a time will be drained
+ - at the beginning of this step, there are 2000 workload pods per 10 nodes, averaging 200 per node - draining one node would imply 222 workload pods per node, which could easily exceed the maximum of 50 considering ~34 system pods per node
+ - the number of replicas is thus scaled down to 1000, so that the number of workload pods per node is 111, ~143 considering system pods. The number is still surely higher than the default of 110, which is the objective of this test
+
 - scale the number of replicas down from 2000 to 1000 per instructions in the previous paragraph
     - monitor the "Cluster" -> "Nodes" page. Pod pressure should diminish
 - run `./util/upgrade_downstream_rke.sh`
