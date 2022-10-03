@@ -15,7 +15,7 @@ nohup ssh -o IgnoreUnknown=TerraformCreatedThisTunnel \
 
 %{ for tunnel in ssh_tunnels }
 echo "Waiting for tunnel ${tunnel[0]} to be up..."
-while ! curl --insecure --output /dev/null https://localhost:${tunnel[0]}
+while ! nc -zv localhost ${tunnel[0]}
 do
   sleep 1
 done
