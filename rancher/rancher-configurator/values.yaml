@@ -3,4 +3,3 @@
 # Declare variables to be passed into your templates.
 
 publicName: rancher.local.gd
-tokenString: dummy
