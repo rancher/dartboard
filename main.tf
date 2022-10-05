@@ -98,8 +98,9 @@ module "upstream_rke2" {
   ssh_bastion_host     = module.bastion.public_name
   ssh_local_port       = local.upstream_local_port
 
-  rke2_version = local.upstream_rke2_version
-  max_pods     = local.upstream_max_pods
+  rke2_version        = local.upstream_rke2_version
+  max_pods            = local.upstream_max_pods
+  node_cidr_mask_size = local.upstream_node_cidr_mask_size
 
   client_ca_key          = module.secrets.client_ca_key
   client_ca_cert         = module.secrets.client_ca_cert
@@ -175,8 +176,9 @@ module "downstream_rke2" {
   ssh_bastion_host     = module.bastion.public_name
   ssh_local_port       = local.downstream_local_port
 
-  rke2_version = local.downstream_rke2_version
-  max_pods     = local.downstream_max_pods
+  rke2_version        = local.downstream_rke2_version
+  max_pods            = local.downstream_max_pods
+  node_cidr_mask_size = local.downstream_node_cidr_mask_size
 
   client_ca_key          = module.secrets.client_ca_key
   client_ca_cert         = module.secrets.client_ca_cert
