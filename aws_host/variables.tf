@@ -29,18 +29,18 @@ variable "ssh_key_name" {
 
 variable "ssh_private_key_path" {
   description = "Path of private ssh key used to access the instance"
-  type = string
+  type        = string
 }
 
 variable "ssh_bastion_host" {
   description = "Public name of the SSH bastion host. Leave null for publicly accessible instances"
-  default = null
+  default     = null
 }
 
 variable "ssh_tunnels" {
   description = "Opens SSH tunnels to this host via the bastion"
-  type = list(list(number))
-  default = []
+  type        = list(list(number))
+  default     = []
 }
 
 variable "subnet_id" {
@@ -55,5 +55,5 @@ variable "vpc_security_group_id" {
 
 variable "root_volume_size_gb" {
   description = "Size of the root volume"
-  default = 50
+  default     = 50
 }
