@@ -19,7 +19,7 @@ variable "ami" {
 
 variable "instance_type" {
   description = "EC2 instance type"
-  default = "t2.micro"
+  default     = "t4g.small"
 }
 
 variable "ssh_key_name" {
