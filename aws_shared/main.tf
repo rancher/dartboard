@@ -55,3 +55,11 @@ resource "aws_key_pair" "key_pair" {
 output "key_name" {
   value = aws_key_pair.key_pair.key_name
 }
+
+output "latest_sles_ami" {
+  value = data.aws_ami.sles15sp4
+}
+
+output "latest_rocky_ami" {
+  value = data.aws_ami.rocky8
+}
