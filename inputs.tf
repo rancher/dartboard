@@ -2,7 +2,7 @@ locals {
   region            = "us-east-1"
   availability_zone = "us-east-1a"
 
-  bastion_ami = "ami-0e7690ca6cb45d2c5" // amazon/suse-sles-15-sp4-byos-v20220621-hvm-ssd-x86_64
+  bastion_ami = "ami-0abac89b48b8cc3bb" // amazon/suse-sles-15-sp4-byos-v20220621-hvm-ssd-arm64
 
   upstream_instance_type = "t3.large"
   upstream_ami           = "ami-0746c2106d76fa617" // 792107900819/Rocky-8-ec2-8.6-20220515.0.x86_64

@@ -7,7 +7,7 @@ data "aws_ami" "sles15sp4" {
 
   filter {
     name   = "architecture"
-    values = ["x86_64"]
+    values = ["arm64"]
   }
 
   filter {
