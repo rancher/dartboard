@@ -62,6 +62,11 @@ export PATH=\$PATH:/var/lib/rancher/rke2/bin/
 export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
 EOF
 
+cat >>/root/.bashrc <<EOF
+export PATH=\$PATH:/var/lib/rancher/rke2/bin/
+export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+EOF
+
 # installation
 export INSTALL_RKE2_VERSION=${rke2_version}
 export INSTALL_RKE2_TYPE=${type}
