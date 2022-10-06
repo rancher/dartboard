@@ -55,35 +55,18 @@ variable "node_cidr_mask_size" {
   default     = 24
 }
 
-variable "client_ca_key" {
-  description = "Client CA key"
-  type        = string
-}
-variable "client_ca_cert" {
-  description = "Client CA certificate"
-  type        = string
-}
-variable "server_ca_key" {
-  description = "Server CA key"
-  type        = string
-}
-variable "server_ca_cert" {
-  description = "Server CA certificate"
-  type        = string
-}
-variable "request_header_ca_key" {
-  description = "Request header CA key"
-  type        = string
-}
-variable "request_header_ca_cert" {
-  description = "Request header CA certificate"
-  type        = string
-}
-variable "master_user_cert" {
-  description = "Master user certificate"
-  type        = string
-}
-variable "master_user_key" {
-  description = "Master user key"
-  type        = string
+variable "secret_values" {
+  description = "Value from the secrets module"
+  type = object({
+    client_ca_key          = string
+    client_ca_cert         = string
+    server_ca_key          = string
+    server_ca_cert         = string
+    request_header_ca_key  = string
+    request_header_ca_cert = string
+    master_user_cert       = string
+    master_user_key        = string
+    cluster_ca_certificate = string
+    api_token_string       = string
+  })
 }

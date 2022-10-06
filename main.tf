@@ -36,8 +36,8 @@ module "aws_network" {
   project_name      = local.project_name
 }
 
-module "secrets" {
-  source = "./secrets"
+module "secret" {
+  source = "./secret"
 }
 
 module "bastion" {
@@ -102,22 +102,15 @@ module "upstream_rke2" {
   max_pods            = local.upstream_max_pods
   node_cidr_mask_size = local.upstream_node_cidr_mask_size
 
-  client_ca_key          = module.secrets.client_ca_key
-  client_ca_cert         = module.secrets.client_ca_cert
-  server_ca_key          = module.secrets.server_ca_key
-  server_ca_cert         = module.secrets.server_ca_cert
-  request_header_ca_key  = module.secrets.request_header_ca_key
-  request_header_ca_cert = module.secrets.request_header_ca_cert
-  master_user_cert       = module.secrets.master_user_cert
-  master_user_key        = module.secrets.master_user_key
+  secret_values = module.secret.values
 }
 
 provider "helm" {
   kubernetes {
     host                   = "https://${local.upstream_san}:6443"
-    client_certificate     = module.secrets.master_user_cert
-    client_key             = module.secrets.master_user_key
-    cluster_ca_certificate = module.secrets.cluster_ca_certificate
+    client_certificate     = module.secret.values.master_user_cert
+    client_key             = module.secret.values.master_user_key
+    cluster_ca_certificate = module.secret.values.cluster_ca_certificate
   }
 }
 
@@ -127,7 +120,7 @@ module "rancher" {
   source           = "./rancher"
   public_name      = local.upstream_san
   private_name     = module.upstream_server_nodes[0].private_name
-  api_token_string = module.secrets.api_token_string
+  api_token_string = module.secret.values.api_token_string
   chart            = local.rancher_chart
 }
 
@@ -180,12 +173,5 @@ module "downstream_rke2" {
   max_pods            = local.downstream_max_pods
   node_cidr_mask_size = local.downstream_node_cidr_mask_size
 
-  client_ca_key          = module.secrets.client_ca_key
-  client_ca_cert         = module.secrets.client_ca_cert
-  server_ca_key          = module.secrets.server_ca_key
-  server_ca_cert         = module.secrets.server_ca_cert
-  request_header_ca_key  = module.secrets.request_header_ca_key
-  request_header_ca_cert = module.secrets.request_header_ca_cert
-  master_user_cert       = module.secrets.master_user_cert
-  master_user_key        = module.secrets.master_user_key
+  secret_values = module.secret.values
 }
