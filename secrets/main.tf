@@ -1,5 +1,5 @@
 resource "tls_private_key" "client_ca_key" {
-  algorithm   = "ED25519"
+  algorithm = "ED25519"
 }
 
 resource "tls_self_signed_cert" "client_ca_cert" {
@@ -14,7 +14,7 @@ resource "tls_self_signed_cert" "client_ca_cert" {
 }
 
 resource "tls_private_key" "server_ca_key" {
-  algorithm   = "ED25519"
+  algorithm = "ED25519"
 }
 
 resource "tls_self_signed_cert" "server_ca_cert" {
@@ -29,7 +29,7 @@ resource "tls_self_signed_cert" "server_ca_cert" {
 }
 
 resource "tls_private_key" "request_header_ca_key" {
-  algorithm   = "ED25519"
+  algorithm = "ED25519"
 }
 
 resource "tls_self_signed_cert" "request_header_ca_cert" {
@@ -44,7 +44,7 @@ resource "tls_self_signed_cert" "request_header_ca_cert" {
 }
 
 resource "tls_private_key" "master_user" {
-  algorithm   = "ED25519"
+  algorithm = "ED25519"
 }
 
 resource "tls_cert_request" "master_user" {
@@ -81,23 +81,23 @@ output "client_ca_key" {
 }
 
 output "client_ca_cert" {
-value = tls_self_signed_cert.client_ca_cert.cert_pem
+  value = tls_self_signed_cert.client_ca_cert.cert_pem
 }
 
 output "server_ca_key" {
-value = tls_private_key.server_ca_key.private_key_pem
+  value = tls_private_key.server_ca_key.private_key_pem
 }
 
 output "server_ca_cert" {
-value = tls_self_signed_cert.server_ca_cert.cert_pem
+  value = tls_self_signed_cert.server_ca_cert.cert_pem
 }
 
 output "request_header_ca_key" {
-value = tls_private_key.request_header_ca_key.private_key_pem
+  value = tls_private_key.request_header_ca_key.private_key_pem
 }
 
 output "request_header_ca_cert" {
-value = tls_self_signed_cert.request_header_ca_cert.cert_pem
+  value = tls_self_signed_cert.request_header_ca_cert.cert_pem
 }
 
 output "master_user_cert" {
