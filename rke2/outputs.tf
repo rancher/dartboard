@@ -3,7 +3,7 @@ resource "local_file" "kubeconfig" {
     apiVersion = "v1"
     clusters = [{
       cluster = {
-        certificate-authority-data = base64encode(var.server_ca_cert)
+        certificate-authority-data = base64encode(var.secret_values.server_ca_cert)
         server                     = "https://${var.sans[0]}:${var.ssh_local_port}"
       }
       name = var.sans[0]
@@ -20,8 +20,8 @@ resource "local_file" "kubeconfig" {
     preferences     = {}
     users = [{
       user = {
-        client-certificate-data : base64encode(var.master_user_cert)
-        client-key-data : base64encode(var.master_user_key)
+        client-certificate-data : base64encode(var.secret_values.master_user_cert)
+        client-key-data : base64encode(var.secret_values.master_user_key)
       }
       name : "master-user"
     }]

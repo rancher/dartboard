@@ -76,42 +76,17 @@ resource "random_password" "api_token_key" {
   special = false
 }
 
-output "client_ca_key" {
-  value = tls_private_key.client_ca_key.private_key_pem
-}
-
-output "client_ca_cert" {
-  value = tls_self_signed_cert.client_ca_cert.cert_pem
-}
-
-output "server_ca_key" {
-  value = tls_private_key.server_ca_key.private_key_pem
-}
-
-output "server_ca_cert" {
-  value = tls_self_signed_cert.server_ca_cert.cert_pem
-}
-
-output "request_header_ca_key" {
-  value = tls_private_key.request_header_ca_key.private_key_pem
-}
-
-output "request_header_ca_cert" {
-  value = tls_self_signed_cert.request_header_ca_cert.cert_pem
-}
-
-output "master_user_cert" {
-  value = tls_locally_signed_cert.master_user.cert_pem
-}
-
-output "master_user_key" {
-  value = tls_private_key.master_user.private_key_pem
-}
-
-output "cluster_ca_certificate" {
-  value = tls_self_signed_cert.server_ca_cert.cert_pem
-}
-
-output "api_token_string" {
-  value = random_password.api_token_key.result
+output "values" {
+  value = {
+    client_ca_key          = tls_private_key.client_ca_key.private_key_pem
+    client_ca_cert         = tls_self_signed_cert.client_ca_cert.cert_pem
+    server_ca_key          = tls_private_key.server_ca_key.private_key_pem
+    server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
+    request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
+    request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
+    master_user_cert       = tls_locally_signed_cert.master_user.cert_pem
+    master_user_key        = tls_private_key.master_user.private_key_pem
+    cluster_ca_certificate = tls_self_signed_cert.server_ca_cert.cert_pem
+    api_token_string       = random_password.api_token_key.result
+  }
 }
