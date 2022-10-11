@@ -49,5 +49,5 @@ module "rke2" {
 }
 
 output "first_server_private_name" {
-  value = module.server_nodes[0].private_name
+  value = var.server_count > 0 ? module.server_nodes[0].private_name : null
 }
