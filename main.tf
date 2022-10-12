@@ -81,7 +81,7 @@ provider "helm" {
     host                   = "https://${local.upstream_san}:6443"
     client_certificate     = module.secret.values.master_user_cert
     client_key             = module.secret.values.master_user_key
-    cluster_ca_certificate = module.secret.values.cluster_ca_certificate
+    cluster_ca_certificate = module.secret.values.server_ca_cert
   }
 }
 
