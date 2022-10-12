@@ -7,9 +7,6 @@ terraform {
     tls = {
       source = "hashicorp/tls"
     }
-    random = {
-      source = "hashicorp/random"
-    }
     helm = {
       source = "hashicorp/helm"
     }
@@ -34,10 +31,6 @@ module "aws_network" {
   region            = local.region
   availability_zone = local.availability_zone
   project_name      = local.project_name
-}
-
-module "secret" {
-  source = "./secret"
 }
 
 module "bastion" {
@@ -73,15 +66,11 @@ module "upstream_cluster" {
   max_pods                      = local.upstream_max_pods
   node_cidr_mask_size           = local.upstream_node_cidr_mask_size
   sans                          = [local.upstream_san]
-  secret_values                 = module.secret.values
 }
 
 provider "helm" {
   kubernetes {
-    host                   = "https://${local.upstream_san}:6443"
-    client_certificate     = module.secret.values.master_user_cert
-    client_key             = module.secret.values.master_user_key
-    cluster_ca_certificate = module.secret.values.server_ca_cert
+    config_path = "./config/upstream.yaml"
   }
 }
 
@@ -115,5 +104,4 @@ module "downstream_cluster" {
   max_pods                      = local.downstream_max_pods
   node_cidr_mask_size           = local.downstream_node_cidr_mask_size
   sans                          = [local.downstream_san]
-  secret_values                 = module.secret.values
 }

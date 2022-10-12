@@ -23,12 +23,12 @@ resource "ssh_sensitive_resource" "first_server_installation" {
       server_url   = null
       cluster_init = length(var.server_names) > 1
 
-      client_ca_key          = var.secret_values.client_ca_key
-      client_ca_cert         = var.secret_values.client_ca_cert
-      server_ca_key          = var.secret_values.server_ca_key
-      server_ca_cert         = var.secret_values.server_ca_cert
-      request_header_ca_key  = var.secret_values.request_header_ca_key
-      request_header_ca_cert = var.secret_values.request_header_ca_cert
+      client_ca_key          = tls_private_key.client_ca_key.private_key_pem
+      client_ca_cert         = tls_self_signed_cert.client_ca_cert.cert_pem
+      server_ca_key          = tls_private_key.server_ca_key.private_key_pem
+      server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
+      request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
+      request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
       sleep_time             = 0
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
@@ -69,12 +69,12 @@ resource "ssh_resource" "additional_server_installation" {
       server_url   = "https://${var.server_names[0]}:6443"
       cluster_init = false
 
-      client_ca_key          = var.secret_values.client_ca_key
-      client_ca_cert         = var.secret_values.client_ca_cert
-      server_ca_key          = var.secret_values.server_ca_key
-      server_ca_cert         = var.secret_values.server_ca_cert
-      request_header_ca_key  = var.secret_values.request_header_ca_key
-      request_header_ca_cert = var.secret_values.request_header_ca_cert
+      client_ca_key          = tls_private_key.client_ca_key.private_key_pem
+      client_ca_cert         = tls_self_signed_cert.client_ca_cert.cert_pem
+      server_ca_key          = tls_private_key.server_ca_key.private_key_pem
+      server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
+      request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
+      request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
       sleep_time             = count.index * 60
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
@@ -107,12 +107,12 @@ resource "ssh_resource" "agent_installation" {
       server_url   = "https://${var.server_names[0]}:6443"
       cluster_init = false
 
-      client_ca_key          = var.secret_values.client_ca_key
-      client_ca_cert         = var.secret_values.client_ca_cert
-      server_ca_key          = var.secret_values.server_ca_key
-      server_ca_cert         = var.secret_values.server_ca_cert
-      request_header_ca_key  = var.secret_values.request_header_ca_key
-      request_header_ca_cert = var.secret_values.request_header_ca_cert
+      client_ca_key          = tls_private_key.client_ca_key.private_key_pem
+      client_ca_cert         = tls_self_signed_cert.client_ca_cert.cert_pem
+      server_ca_key          = tls_private_key.server_ca_key.private_key_pem
+      server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
+      request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
+      request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
       sleep_time             = 0
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size

@@ -69,23 +69,3 @@ resource "tls_locally_signed_cert" "master_user" {
     "client_auth"
   ]
 }
-
-
-resource "random_password" "api_token_key" {
-  length  = 64
-  special = false
-}
-
-output "values" {
-  value = {
-    client_ca_key          = tls_private_key.client_ca_key.private_key_pem
-    client_ca_cert         = tls_self_signed_cert.client_ca_cert.cert_pem
-    server_ca_key          = tls_private_key.server_ca_key.private_key_pem
-    server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
-    request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
-    request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
-    master_user_cert       = tls_locally_signed_cert.master_user.cert_pem
-    master_user_key        = tls_private_key.master_user.private_key_pem
-    api_token_string       = random_password.api_token_key.result
-  }
-}

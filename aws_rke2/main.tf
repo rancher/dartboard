@@ -44,8 +44,6 @@ module "rke2" {
   rke2_version        = var.rke2_version
   max_pods            = var.max_pods
   node_cidr_mask_size = var.node_cidr_mask_size
-
-  secret_values = var.secret_values
 }
 
 output "first_server_private_name" {
