@@ -15,8 +15,3 @@ variable "cert_manager_chart" {
 variable "chart" {
   default = "https://releases.rancher.com/server-charts/latest/rancher-2.6.5.tgz"
 }
-
-variable "api_token_string" {
-  description = "Pre-shared API token string to register downstream clusters"
-  type = string
-}
