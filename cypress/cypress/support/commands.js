@@ -14,3 +14,14 @@ Cypress.Commands.add('waitTableLoaded', () => {
     cy.get("tbody", {timeout: 30_000}).should("exist")
     cy.get("tbody td:contains('Loading')", {timeout: 10*1000}).should("not.exist")
 })
+
+Cypress.Commands.add('downstreamClusters', (f) => {
+    cy.task('listDir', "../config").then(files => {
+        files.forEach((file) => {
+            const groups = file.match(/ssh-to-(downstream.+)-server-node-0.*\.sh/)
+            if (groups != null) {
+                f(groups[1], file)
+            }
+        })
+    })
+})
