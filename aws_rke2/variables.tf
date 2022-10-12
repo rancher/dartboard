@@ -89,18 +89,3 @@ variable "node_cidr_mask_size" {
   description = "Size of the CIDR mask for nodes. Increase when increasing max_pods so that 2^(32-node_cidr_max_size) > 2 * max_pods"
   default     = 24
 }
-
-variable "secret_values" {
-  description = "Value from the secrets module"
-  type = object({
-    client_ca_key          = string
-    client_ca_cert         = string
-    server_ca_key          = string
-    server_ca_cert         = string
-    request_header_ca_key  = string
-    request_header_ca_cert = string
-    master_user_cert       = string
-    master_user_key        = string
-    api_token_string       = string
-  })
-}

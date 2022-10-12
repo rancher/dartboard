@@ -1,11 +1,11 @@
 variable "private_name" {
   description = "Name of the Rancher Server (API), as seen from downstream clusters"
-  type = string
+  type        = string
 }
 
 variable "public_name" {
   description = "Name of the Rancher Server (API), as seen from the host running kubectl"
-  type = string
+  type        = string
 }
 
 variable "cert_manager_chart" {
