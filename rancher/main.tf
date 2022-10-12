@@ -55,11 +55,4 @@ resource "helm_release" "rancher_configurator" {
     name  = "publicName"
     value = var.public_name
   }
-
-  set {
-    name  = "tokenString"
-    value = var.api_token_string
-  }
-
-  wait_for_jobs = true
 }
