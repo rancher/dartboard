@@ -1,0 +1,40 @@
+# Global SSH settings
+ssh_key_path: ${jsonencode(ssh_private_key_path)}
+bastion_host:
+  address: ${jsonencode(ssh_bastion_host)}
+  user: root
+
+# Node definitions
+nodes:
+%{ for server_name in server_names ~}
+- address: ${jsonencode(server_name)}
+  user: root
+  role:
+    - controlplane
+    - etcd
+    - worker
+%{ endfor ~}
+%{ for agent_name in agent_names ~}
+- address: ${jsonencode(agent_name)}
+  user: root
+  role:
+    - worker
+%{ endfor }
+
+# Service-specific settings
+services:
+  kube-controller:
+    extra_args:
+      node-cidr-mask-size: ${jsonencode(tostring(node_cidr_mask_size))}
+  kubelet:
+    extra_args:
+      max-pods: ${jsonencode(max_pods)}
+
+# Other settings
+kubernetes_version: ${jsonencode(kubernetes_version)}
+authentication:
+  strategy: x509
+  sans:
+%{ for san in sans ~}
+    - ${jsonencode(san)}
+%{ endfor ~}
