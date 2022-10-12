@@ -86,7 +86,6 @@ output "values" {
     request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
     master_user_cert       = tls_locally_signed_cert.master_user.cert_pem
     master_user_key        = tls_private_key.master_user.private_key_pem
-    cluster_ca_certificate = tls_self_signed_cert.server_ca_cert.cert_pem
     api_token_string       = random_password.api_token_key.result
   }
 }

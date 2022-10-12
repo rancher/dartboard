@@ -66,7 +66,6 @@ variable "secret_values" {
     request_header_ca_cert = string
     master_user_cert       = string
     master_user_key        = string
-    cluster_ca_certificate = string
     api_token_string       = string
   })
 }
