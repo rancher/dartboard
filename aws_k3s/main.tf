@@ -41,7 +41,7 @@ module "k3s" {
   ssh_bastion_host     = var.ssh_bastion_host
   ssh_local_port       = var.k8s_api_ssh_tunnel_local_port
 
-  k3s_version         = var.k3s_version
+  distro_version         = var.distro_version
   max_pods            = var.max_pods
   node_cidr_mask_size = var.node_cidr_mask_size
 }

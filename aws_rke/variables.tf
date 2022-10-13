@@ -75,9 +75,9 @@ variable "sans" {
   default     = []
 }
 
-variable "rke_version" {
-  description = "RKE version, see https://github.com/rancher/rke/releases"
-  default     = "v1.3.15"
+variable "distro_version" {
+  description = "RKE version followed by the Kubernetes version, see https://github.com/rancher/rke/releases"
+  default     = "v1.3.15/rke_darwin-amd64 v1.23.10-rancher1-1"
 }
 
 variable "max_pods" {

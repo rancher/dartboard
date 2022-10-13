@@ -16,7 +16,7 @@ resource "ssh_sensitive_resource" "first_server_installation" {
 
   file {
     content = templatefile("${path.module}/install_k3s.sh", {
-      k3s_version  = var.k3s_version,
+      distro_version  = var.distro_version,
       sans         = concat([var.server_names[0]], var.sans)
       exec         = "server"
       token        = null
@@ -62,7 +62,7 @@ resource "ssh_resource" "additional_server_installation" {
 
   file {
     content = templatefile("${path.module}/install_k3s.sh", {
-      k3s_version  = var.k3s_version,
+      distro_version  = var.distro_version,
       sans         = [var.server_names[count.index + 1]]
       exec         = "server"
       token        = ssh_sensitive_resource.first_server_installation[0].result
@@ -100,7 +100,7 @@ resource "ssh_resource" "agent_installation" {
 
   file {
     content = templatefile("${path.module}/install_k3s.sh", {
-      k3s_version  = var.k3s_version,
+      distro_version  = var.distro_version,
       sans         = [var.agent_names[count.index]]
       exec         = "agent"
       token        = ssh_sensitive_resource.first_server_installation[0].result

@@ -50,7 +50,7 @@ maxPods: ${max_pods}
 EOF
 
 # installation
-export INSTALL_K3S_VERSION=${k3s_version}
+export INSTALL_K3S_VERSION=${distro_version}
 export INSTALL_K3S_EXEC=${exec}
 
 curl -sfL https://get.k3s.io | sh -
