@@ -36,15 +36,3 @@ resource "local_file" "kubeconfig" {
 
   filename = "${path.module}/../config/${var.name}.yaml"
 }
-#
-#output "server_ca_cert" {
-#  value = base64decode(yamldecode(data.local_file.rke_kubeconfig.content)["clusters"][0]["cluster"]["certificate-authority-data"])
-#}
-#
-#output "client_ca_cert" {
-#  value = base64decode(yamldecode(data.local_file.rke_kubeconfig.content)["users"][0]["user"]["client-certificate-data"])
-#}
-#
-#output "client_key" {
-#  value = base64decode(yamldecode(data.local_file.rke_kubeconfig.content)["users"][0]["user"]["client-key-data"])
-#}
