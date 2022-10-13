@@ -68,7 +68,7 @@ export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
 EOF
 
 # installation
-export INSTALL_RKE2_VERSION=${rke2_version}
+export INSTALL_RKE2_VERSION=${distro_version}
 export INSTALL_RKE2_TYPE=${type}
 
 curl -sfL https://get.rke2.io | sh -

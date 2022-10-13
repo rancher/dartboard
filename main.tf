@@ -62,7 +62,7 @@ module "upstream_cluster" {
   vpc_security_group_id         = module.aws_network.private_security_group_id
   k8s_api_ssh_tunnel_local_port = 6443
   additional_ssh_tunnels        = [[3000, 443]]
-  rke2_version                  = local.upstream_rke2_version
+  distro_version                = local.upstream_distro_version
   max_pods                      = local.upstream_max_pods
   node_cidr_mask_size           = local.upstream_node_cidr_mask_size
   sans                          = [local.upstream_san]
@@ -100,7 +100,7 @@ module "downstream_cluster" {
   subnet_id                     = module.aws_network.private_subnet_id
   vpc_security_group_id         = module.aws_network.private_security_group_id
   k8s_api_ssh_tunnel_local_port = 6444 + count.index
-  rke2_version                  = local.downstream_rke2_version
+  distro_version                = local.downstream_distro_version
   max_pods                      = local.downstream_max_pods
   node_cidr_mask_size           = local.downstream_node_cidr_mask_size
   sans                          = [local.downstream_san]

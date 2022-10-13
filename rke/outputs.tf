@@ -1,5 +1,5 @@
 data "local_file" "rke_kubeconfig" {
-  depends_on = [null_resource.rke]
+  depends_on = [null_resource.rke_up_execution]
   count      = length(var.server_names) > 0 ? 1 : 0
   filename   = "${path.module}/../config/rke_config/kube_config_${var.name}.yaml"
 }

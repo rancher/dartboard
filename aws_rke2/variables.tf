@@ -75,7 +75,7 @@ variable "sans" {
   default     = []
 }
 
-variable "rke2_version" {
+variable "distro_version" {
   description = "RKE2 version"
   default     = "v1.24.4+rke2r1"
 }

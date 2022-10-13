@@ -3,19 +3,9 @@ variable "project" {
   default     = "st"
 }
 
-variable "rke_version" {
-  description = "RKE version, see https://github.com/rancher/rke/releases"
-  default     = "v1.3.15"
-}
-
-variable "rke_os_platform" {
-  description = "RKE OS and platform"
-  default     = "darwin-amd64"
-}
-
-variable "kubernetes_version" {
-  description = "Version of the Kubernetes images used by RKE, see https://github.com/rancher/rke/releases"
-  default     = "v1.23.10-rancher1-1"
+variable "distro_version" {
+  description = "RKE version followed by the Kubernetes version, see https://github.com/rancher/rke/releases"
+  default     = "v1.3.15/rke_darwin-amd64 v1.23.10-rancher1-1"
 }
 
 variable "name" {

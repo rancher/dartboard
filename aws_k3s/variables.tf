@@ -75,7 +75,7 @@ variable "sans" {
   default     = []
 }
 
-variable "k3s_version" {
+variable "distro_version" {
   description = "k3s version"
   default     = "v1.23.10+k3s1"
 }
