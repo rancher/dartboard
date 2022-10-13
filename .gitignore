@@ -5,6 +5,7 @@ terraform.tfstate
 terraform.tfstate.*
 config/*.yaml
 config/*.sh
+config/rke*
 nohup.out
 
 cypress/cypress/screenshots
