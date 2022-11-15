@@ -30,7 +30,7 @@ describe('Rancher cluster import functionality', () => {
   })
 
   it('imports clusters', () => {
-    cy.downstreamClusters((name, first_server_ssh_command) => {
+    cy.downstreamClusters((name, kubeconfig) => {
       // HACK: not going back to the home page results in a Javascript error
       cy.visit("/")
       cy.waitTableLoaded()
@@ -45,7 +45,9 @@ describe('Rancher cluster import functionality', () => {
 
       cy.contains('curl --insecure').should('exist').then($e => {
         const registration_command = $e.text()
-        cy.exec(`../config/${first_server_ssh_command} '${registration_command}'`).then((result) => {
+        const groups = registration_command.match(/(\/v3\/import\/.+\.yaml)/)
+        const registration_path = groups[1]
+        cy.exec(`curl --insecure -sfL ${Cypress.config().baseUrl}/${registration_path} | kubectl --kubeconfig=../config/${kubeconfig} apply -f -`).then((result) => {
           cy.log(result.stdout)
 
           cy.visit("/")
