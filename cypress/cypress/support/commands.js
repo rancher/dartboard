@@ -18,7 +18,7 @@ Cypress.Commands.add('waitTableLoaded', () => {
 Cypress.Commands.add('downstreamClusters', (f) => {
     cy.task('listDir', "../config").then(files => {
         files.forEach((file) => {
-            const groups = file.match(/ssh-to-(downstream.+)-server-node-0.*\.sh/)
+            const groups = file.match(/(downstream.+)\.yaml/)
             if (groups != null) {
                 f(groups[1], file)
             }
