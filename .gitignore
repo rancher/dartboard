@@ -1,12 +1,13 @@
 .DS_Store
 .idea
-.terraform
-terraform.tfstate
-terraform.tfstate.*
+
+terraform/.terraform
+terraform/terraform.tfstate
+terraform/terraform.tfstate.*
+terraform/nohup.out
 config/*.yaml
 config/*.sh
 config/rke*
-nohup.out
 
 cypress/cypress/screenshots
 cypress/cypress/videos

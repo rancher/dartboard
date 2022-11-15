@@ -59,7 +59,7 @@ resource "local_file" "open_tunnels" {
     private_name     = aws_instance.instance.private_dns
   })
 
-  filename = "${path.module}/../config/open-tunnels-to-${var.name}.sh"
+  filename = "${path.module}/../../config/open-tunnels-to-${var.name}.sh"
 }
 
 resource "null_resource" "open_tunnels" {
