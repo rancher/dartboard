@@ -27,5 +27,5 @@ resource "local_file" "kubeconfig" {
     }]
   })
 
-  filename = "${path.module}/../config/${var.name}.yaml"
+  filename = "${path.module}/../../config/${var.name}.yaml"
 }

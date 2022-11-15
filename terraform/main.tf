@@ -70,7 +70,7 @@ module "upstream_cluster" {
 
 provider "helm" {
   kubernetes {
-    config_path = "./config/upstream.yaml"
+    config_path = "../config/upstream.yaml"
   }
 }
 
