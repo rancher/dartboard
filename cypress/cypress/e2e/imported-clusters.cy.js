@@ -8,10 +8,8 @@ describe('Rancher cluster import functionality', () => {
   it('deletes any previously created clusters', () => {
     cy.downstreamClusters(name => {
       cy.visit("/")
-      cy.waitTableLoaded()
       cy.get('.menu-icon').click()
       cy.contains('Cluster Management').click()
-      cy.waitTableLoaded()
 
       cy.get("table").then($table => {
         if ($table.text().includes(name)) {
@@ -33,10 +31,8 @@ describe('Rancher cluster import functionality', () => {
     cy.downstreamClusters((name, kubeconfig) => {
       // HACK: not going back to the home page results in a Javascript error
       cy.visit("/")
-      cy.waitTableLoaded()
       cy.get('.menu-icon').click()
       cy.contains('Cluster Management').click()
-      cy.waitTableLoaded()
 
       cy.contains('Import Existing').click()
       cy.contains('Generic').click()
@@ -51,7 +47,6 @@ describe('Rancher cluster import functionality', () => {
           cy.log(result.stdout)
 
           cy.visit("/")
-          cy.waitTableLoaded()
           cy.get(`tr:contains('${name}') .badge-state:contains('Active')`, {timeout: 30 * 60 * 1000}).should("be.visible")
           cy.get(`tr:contains('${name}') .badge-state:contains('Unavailable')`, {timeout: 30 * 60 * 1000}).should("not.exist")
           cy.get(`tr:contains('${name}') .badge-state:contains('Waiting')`, {timeout: 30 * 60 * 1000}).should("not.exist")
