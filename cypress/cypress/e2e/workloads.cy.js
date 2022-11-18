@@ -9,15 +9,9 @@ describe('Rancher workload management', () => {
 
   it('deletes any previously created deployments', () => {
     cy.visit("/")
-    cy.waitTableLoaded()
     cy.contains('test-cluster').click()
-    cy.waitTableLoaded()
-
     cy.contains('Workload').click()
-    cy.waitTableLoaded()
-
     cy.contains('Deployments').click()
-    cy.waitTableLoaded()
 
     cy.get("table").then($table => {
       if ($table.text().includes('nginx')) {
@@ -59,7 +53,6 @@ describe('Rancher workload management', () => {
 
   it('scales a deployment up', () => {
     cy.contains('Deployments').click()
-    cy.waitTableLoaded()
     cy.get("tr:contains('nginx') .icon-actions").click()
     cy.contains('Edit Config').click()
 
@@ -74,12 +67,9 @@ describe('Rancher workload management', () => {
 
   it('drains a worker node', () => {
     cy.visit("/")
-    cy.waitTableLoaded()
     cy.contains('test-cluster').click()
     cy.contains('Cluster Dashboard').should('be.visible')
-    cy.waitTableLoaded()
     cy.contains('Nodes').click()
-    cy.waitTableLoaded()
 
     cy.get("tr:contains('Worker') [role=checkbox]").each(($e, i) => {
       if (i === 0) {
@@ -99,15 +89,9 @@ describe('Rancher workload management', () => {
 
   it('recycles the deployment', () => {
     cy.visit("/")
-    cy.waitTableLoaded()
     cy.contains('test-cluster').click()
-    cy.waitTableLoaded()
-
     cy.contains('Workload').click()
-    cy.waitTableLoaded()
-
     cy.contains('Deployments').click()
-    cy.waitTableLoaded()
 
     cy.get("button:contains('Redeploy')")
     cy.get("tr:contains('nginx') [role=checkbox]").click()
@@ -119,9 +103,7 @@ describe('Rancher workload management', () => {
 
   it('uncordons all nodes', () => {
     cy.contains('Cluster').click()
-    cy.waitTableLoaded()
     cy.contains('Nodes').click()
-    cy.waitTableLoaded()
 
     cy.get("thead tr [role=checkbox]").click()
 
@@ -131,15 +113,9 @@ describe('Rancher workload management', () => {
 
   it('recycles the deployment', () => {
     cy.visit("/")
-    cy.waitTableLoaded()
     cy.contains('test-cluster').click()
-    cy.waitTableLoaded()
-
     cy.contains('Workload').click()
-    cy.waitTableLoaded()
-
     cy.contains('Deployments').click()
-    cy.waitTableLoaded()
 
     cy.get("button:contains('Redeploy')")
     cy.get("tr:contains('nginx') [role=checkbox]").click()
