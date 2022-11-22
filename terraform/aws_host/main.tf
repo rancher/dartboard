@@ -83,5 +83,6 @@ output "private_name" {
 }
 
 output "public_name" {
-  value = aws_instance.instance.public_dns
+  depends_on = [null_resource.host_configuration]
+  value      = aws_instance.instance.public_dns
 }
