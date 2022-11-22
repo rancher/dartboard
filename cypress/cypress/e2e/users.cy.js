@@ -13,8 +13,8 @@ describe('Rancher user management', () => {
       cy.contains('label', 'New Password').next('input').type('adminpassword')
       cy.contains('label', 'Confirm New Password').next('input').type('adminpassword')
 
-      cy.get('#checkbox-telemetry .checkbox-custom').click()
-      cy.get('#checkbox-eula .checkbox-custom').click()
+      cy.get("label[for='checkbox-telemetry'] .checkbox-custom").click()
+      cy.get("label[for='checkbox-eula'] .checkbox-custom").click()
       cy.contains('Continue').click()
 
       cy.contains('Getting Started', {timeout: 10_000}).should('exist')
