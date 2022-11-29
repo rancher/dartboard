@@ -48,7 +48,7 @@ module "bastion" {
 }
 
 module "upstream_cluster" {
-  source                        = "./aws_rke"
+  source                        = "./aws_k3s"
   ami                           = local.upstream_ami
   instance_type                 = local.upstream_instance_type
   availability_zone             = local.availability_zone
@@ -67,6 +67,9 @@ module "upstream_cluster" {
   max_pods                      = local.upstream_max_pods
   node_cidr_mask_size           = local.upstream_node_cidr_mask_size
   sans                          = [local.upstream_san]
+  secondary_subnet_id           = module.aws_network.secondary_private_subnet_id
+  datastore                     = local.upstream_datastore
+  host_configuration_commands   = ["apt update", "apt install -y python3-kubernetes python3-requests"]
 }
 
 provider "helm" {
