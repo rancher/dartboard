@@ -52,5 +52,8 @@ EOF
 # installation
 export INSTALL_K3S_VERSION=${distro_version}
 export INSTALL_K3S_EXEC=${exec}
+%{ if datastore_endpoint != null ~}
+export K3S_DATASTORE_ENDPOINT="${datastore_endpoint}"
+%{ endif ~}
 
 curl -sfL https://get.k3s.io | sh -
