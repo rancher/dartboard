@@ -53,6 +53,11 @@ variable "subnet_id" {
   type        = string
 }
 
+variable "secondary_subnet_id" {
+  description = "ID of the secondary subnet to connect to"
+  type        = string
+}
+
 variable "vpc_security_group_id" {
   description = "ID of the security group to connect to"
   type        = string
@@ -88,6 +93,11 @@ variable "max_pods" {
 variable "node_cidr_mask_size" {
   description = "Size of the CIDR mask for nodes. Increase when increasing max_pods so that 2^(32-node_cidr_max_size) > 2 * max_pods"
   default     = 24
+}
+
+variable "datastore" {
+  description = "Data store to use: mariadb, postgres or leave for a default (sqlite for one-server-node installs, embedded etcd otherwise)"
+  default     = null
 }
 
 variable "host_configuration_commands" {
