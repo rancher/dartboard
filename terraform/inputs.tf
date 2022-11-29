@@ -1,6 +1,7 @@
 locals {
-  region            = "us-east-1"
-  availability_zone = "us-east-1a"
+  region                      = "us-east-1"
+  availability_zone           = "us-east-1a"
+  secondary_availability_zone = "us-east-1b"
 
   bastion_ami = "ami-0abac89b48b8cc3bb" // amazon/suse-sles-15-sp4-byos-v20220621-hvm-ssd-arm64
 

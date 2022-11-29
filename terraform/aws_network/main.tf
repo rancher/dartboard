@@ -11,7 +11,7 @@ resource "aws_vpc" "main" {
 
   tags = {
     Project = var.project_name
-    Name = "${var.project_name}-vpc"
+    Name    = "${var.project_name}-vpc"
   }
 }
 
@@ -20,7 +20,7 @@ resource "aws_internet_gateway" "main" {
 
   tags = {
     Project = var.project_name
-    Name = "${var.project_name}-internet-gateway"
+    Name    = "${var.project_name}-internet-gateway"
   }
 }
 
@@ -33,7 +33,7 @@ resource "aws_eip" "nat_eip" {
   vpc = true
   tags = {
     Project = var.project_name
-    Name = "${var.project_name}-nat-eip"
+    Name    = "${var.project_name}-nat-eip"
   }
 }
 
@@ -45,7 +45,7 @@ resource "aws_nat_gateway" "nat" {
 
   tags = {
     Project = var.project_name
-    Name = "${var.project_name}-nat"
+    Name    = "${var.project_name}-nat"
   }
 }
 
@@ -59,7 +59,7 @@ resource "aws_route_table" "public" {
 
   tags = {
     Project = var.project_name
-    Name = "${var.project_name}-public-route-table"
+    Name    = "${var.project_name}-public-route-table"
   }
 }
 
@@ -78,7 +78,7 @@ resource "aws_route_table" "private" {
 
   tags = {
     Project = var.project_name
-    Name = "${var.project_name}-private-route-table"
+    Name    = "${var.project_name}-private-route-table"
   }
 }
 
@@ -90,7 +90,7 @@ resource "aws_subnet" "public" {
 
   tags = {
     Project = var.project_name
-    Name = "${var.project_name}-public-subnet"
+    Name    = "${var.project_name}-public-subnet"
   }
 }
 
@@ -107,12 +107,29 @@ resource "aws_subnet" "private" {
 
   tags = {
     Project = var.project_name
-    Name = "${var.project_name}-private-subnet"
+    Name    = "${var.project_name}-private-subnet"
   }
 }
 
 resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.private.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_subnet" "secondary_private" {
+  availability_zone       = var.secondary_availability_zone
+  vpc_id                  = local.vpc_id
+  cidr_block              = "172.16.2.0/24"
+  map_public_ip_on_launch = false
+
+  tags = {
+    Project = var.project_name
+    Name    = "${var.project_name}-secondary-private-subnet"
+  }
+}
+
+resource "aws_route_table_association" "secondary_private" {
+  subnet_id      = aws_subnet.secondary_private.id
   route_table_id = aws_route_table.private.id
 }
 
@@ -122,7 +139,7 @@ resource "aws_vpc_dhcp_options" "dhcp_options" {
 
   tags = {
     Project = var.project_name
-    Name = "${var.project_name}-dhcp-option-set"
+    Name    = "${var.project_name}-dhcp-option-set"
   }
 }
 
@@ -147,7 +164,7 @@ resource "aws_security_group" "public" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = [aws_subnet.private.cidr_block]
+    cidr_blocks = [aws_subnet.private.cidr_block, aws_subnet.secondary_private.cidr_block]
   }
 
   egress {
@@ -163,7 +180,7 @@ resource "aws_security_group" "public" {
 
   tags = {
     Project = var.project_name
-    Name = "${var.project_name}-public-security-group"
+    Name    = "${var.project_name}-public-security-group"
   }
 }
 
@@ -192,7 +209,7 @@ resource "aws_security_group" "private" {
 
   tags = {
     Project = var.project_name
-    Name = "${var.project_name}-private-security-group"
+    Name    = "${var.project_name}-private-security-group"
   }
 }
 
@@ -202,6 +219,10 @@ output "public_subnet_id" {
 
 output "private_subnet_id" {
   value = aws_subnet.private.id
+}
+
+output "secondary_private_subnet_id" {
+  value = aws_subnet.secondary_private.id
 }
 
 output "public_security_group_id" {
