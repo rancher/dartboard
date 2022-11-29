@@ -56,6 +56,7 @@ variable "subnet_id" {
 variable "secondary_subnet_id" {
   description = "ID of the secondary subnet to connect to"
   type        = string
+  default     = null
 }
 
 variable "vpc_security_group_id" {
