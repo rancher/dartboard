@@ -58,3 +58,8 @@ variable "root_volume_size_gb" {
   description = "Size of the root volume"
   default     = 50
 }
+
+variable "host_configuration_commands" {
+  description = "Commands to run when the host is deployed"
+  default     = ["cat /etc/os-release"]
+}
