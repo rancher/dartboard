@@ -27,10 +27,11 @@ module "aws_shared" {
 }
 
 module "aws_network" {
-  source            = "./aws_network"
-  region            = local.region
-  availability_zone = local.availability_zone
-  project_name      = local.project_name
+  source                      = "./aws_network"
+  region                      = local.region
+  availability_zone           = local.availability_zone
+  secondary_availability_zone = local.secondary_availability_zone
+  project_name                = local.project_name
 }
 
 module "bastion" {

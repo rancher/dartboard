@@ -12,3 +12,8 @@ variable "availability_zone" {
   description = "Availability zone where the instance is created"
   type        = string
 }
+
+variable "secondary_availability_zone" {
+  description = "Secondary availability zone (for RDS)"
+  type        = string
+}
