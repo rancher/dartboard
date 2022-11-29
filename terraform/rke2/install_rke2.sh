@@ -6,11 +6,13 @@ set -xe
 sleep ${sleep_time}
 
 # https://docs.rke2.io/known_issues/#networkmanager
-cat >/etc/NetworkManager/conf.d/rke2-canal.conf <<EOF
+if systemctl status NetworkManager; then
+  cat >/etc/NetworkManager/conf.d/rke2-canal.conf <<EOF
 [keyfile]
 unmanaged-devices=interface-name:cali*;interface-name:flannel*
 EOF
-systemctl reload NetworkManager
+  systemctl reload NetworkManager
+fi
 
 # https://docs.rke2.io/known_issues/#wicked
 cat >/etc/sysctl.d/90-rke2.conf <<EOF
