@@ -45,9 +45,7 @@ resource "null_resource" "host_configuration" {
   }
 
   provisioner "remote-exec" {
-    inline = [
-      "cat /etc/os-release",
-    ]
+    inline = var.host_configuration_commands
   }
 }
 
