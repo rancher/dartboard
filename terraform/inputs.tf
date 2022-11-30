@@ -21,16 +21,9 @@ locals {
   upstream_san                 = "upstream.local.gd"
   upstream_local_port          = 6443
   upstream_datastore           = "postgres"
-
-  downstream_instance_type       = "t3.medium"
-  downstream_ami                 = "ami-0746c2106d76fa617" // 792107900819/Rocky-8-ec2-8.6-20220515.0.x86_64
-  downstream_server_count        = 0
-  downstream_agent_count         = 0
-  downstream_distro_version      = "v1.22.13+rke2r1"
-  downstream_max_pods            = 300
-  downstream_node_cidr_mask_size = 22
-  downstream_san                 = "downstream.local.gd"
-  downstream_local_port          = 6444
+  # alternatives:
+  # upstream_datastore           = "mariadb"
+  # upstream_datastore           = null
 
   project_name         = "moio"
   ssh_private_key_path = "~/.ssh/id_ed25519"
