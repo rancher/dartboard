@@ -48,7 +48,9 @@ module "bastion" {
 }
 
 module "upstream_cluster" {
-  source                        = "./aws_k3s"
+  source = "./aws_k3s"
+  # alternatives:
+  # source                        = "./aws_rke2"
   ami                           = local.upstream_ami
   instance_type                 = local.upstream_instance_type
   availability_zone             = local.availability_zone
