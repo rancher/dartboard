@@ -12,17 +12,17 @@
 
 Following conclusions are taken from result data:
  - Steve byte overhead seems to be ~550 bytes/secret compared to the pure k8s API
- - Transferred data is in the hundreds of megabytes at ~10k large (10kB) resources or ~100k small (4-byte) resources
+ - **Transferred data is in the hundreds of megabytes at ~10k large (10kB) resources or ~100k small (4-byte) resources**
  - Steve takes about ~7x the time the pure k8s API to return a response
- - Pure k8s API response times are in the seconds at >=~100k small resources or >=~20k big ones 
+ - **Pure k8s API response times are in the seconds at >=~100k small resources or >=~20k big ones**
  - Steve response times are in the seconds at >=~15k small resources or >=~3k big ones
  - Configmaps take more processing time than similarly-sized secrets on k3s (up to 60%, usually less). Time is anyway in same order of magnitude
  - Configmaps and secrets take a comparable amount of time on RKE2
- - k3s is consistently faster than RKE2 at high scale and large resources (by ~15% up to ~60%)
+ - **k3s is consistently faster than RKE2 at high scale and large resources (by ~15% up to ~60%)**
    - nevertheless, critical out of memory conditions (where not even SSH worked) were only seen in k3s, while RKE2 systems remained accessible despite API errors
- - MariaDB is only faster than embedded etcd at small scale. MariaDB run time appears to be polynomial at large scale while etcd keeps linear. etcd is up to ~6x faster
+ - **MariaDB is only faster than embedded etcd at small scale. MariaDB run time appears to be polynomial at large scale while etcd keeps linear. etcd is up to ~6x faster**
    - Moving from a 2-CPU, 4 GB RAM instance to a 4-CPU, 16 GB RAM, provisioned IOPS MariaDB instance made little measurable difference
- - PostgreSQL is consistently faster than MariaDB although still importantly slower than etcd. Polynomal time growth is observed in PostgreSQL as well
+ - **PostgreSQL is consistently faster than MariaDB although still importantly slower than etcd. Polynomal time growth is observed in PostgreSQL as well**
    - Distance between PostgreSQL and etcd is less when resources are big, although etcd is still consistently faster
 
 [Details in Excel format](https://mysuse-my.sharepoint.com/:x:/g/personal/moio_suse_com/Ee7ylp4PVz1GvDOzFpaVlR0BBpeEfjgPre2qu7_ROu0XMg?e=KF458b) are available to SUSE employees.
