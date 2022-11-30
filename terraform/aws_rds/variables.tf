@@ -51,7 +51,7 @@ variable "allocated_storage_gb" {
 
 variable "username" {
   description = "The database's main user name"
-  default     = "admin"
+  default     = "rdsuser"
 }
 
 variable "password" {
