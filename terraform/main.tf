@@ -71,7 +71,7 @@ module "upstream_cluster" {
   sans                          = [local.upstream_san]
   secondary_subnet_id           = module.aws_network.secondary_private_subnet_id
   datastore                     = local.upstream_datastore
-  host_configuration_commands   = ["apt update", "apt install -y python3-kubernetes python3-requests"]
+  host_configuration_commands   = ["apt update", "apt install -y python3-kubernetes python3-requests python3-psycopg2"]
 }
 
 provider "helm" {
