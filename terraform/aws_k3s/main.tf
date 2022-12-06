@@ -60,7 +60,7 @@ module "k3s" {
   node_cidr_mask_size = var.node_cidr_mask_size
   datastore_endpoint = (
     var.datastore == "mariadb" ?
-    "mariadb://${module.rds[0].username}:${module.rds[0].password}@tcp(${module.rds[0].endpoint})/${module.rds[0].db_name}" :
+    "mysql://${module.rds[0].username}:${module.rds[0].password}@tcp(${module.rds[0].endpoint})/${module.rds[0].db_name}" :
     var.datastore == "postgres" ?
     "postgres://${module.rds[0].username}:${module.rds[0].password}@${module.rds[0].endpoint}/${module.rds[0].db_name}" :
     null
