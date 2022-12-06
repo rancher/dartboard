@@ -7,7 +7,7 @@ terraform {
     }
     docker = {
       source  = "kreuzwerker/docker"
-      version = "2.16.0"
+      version = "2.23.1"
     }
     k3d = {
       source  = "pvotal-tech/k3d"
