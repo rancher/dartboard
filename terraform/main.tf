@@ -36,5 +36,5 @@ module "upstream_cluster" {
   sans                     = [local.upstream_san]
   datastore                = local.upstream_datastore
   enable_pprof             = local.upstream_enable_pprof
-  additional_port_mappings = [[3000, 443]]
+  additional_port_mappings = [[3000, 443], [6443, 6443]]
 }

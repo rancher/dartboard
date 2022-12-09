@@ -2,6 +2,9 @@ output "rancher_help" {
   value = <<-EOT
     CLUSTER ACCESS: already added to default kubeconfig
 
+    CLUSTER API:
+      https://localhost:6443
+
     RANCHER UI:
       https://${local.upstream_san}:3000
 
