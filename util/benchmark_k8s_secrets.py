@@ -10,8 +10,6 @@ from kubernetes import client, config
 
 NAMESPACE = "default"
 SECRET_NAME_PREFIX = "test-secret-"
-HOST = "upstream.local.gd"
-PORT = 443
 USERNAME = "admin"
 PASSWORD = "adminpassword"
 REPETITIONS = 5
