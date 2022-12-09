@@ -35,5 +35,6 @@ module "upstream_cluster" {
   distro_version           = local.upstream_distro_version
   sans                     = [local.upstream_san]
   datastore                = local.upstream_datastore
+  enable_pprof             = local.upstream_enable_pprof
   additional_port_mappings = [[3000, 443]]
 }

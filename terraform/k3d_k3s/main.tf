@@ -100,15 +100,21 @@ resource "k3d_cluster" "cluster" {
         // https://github.com/kubernetes/kubernetes/issues/104459
         arg          = "--disable=metrics-server",
         node_filters = ["all:*"]
-        }], var.datastore != null ? [{
-        arg          = "--datastore-endpoint=${local.datastore_endpoint}",
-        node_filters = ["server:*"]
-        }] : [], [
-        for san in var.sans :
-        {
-          arg          = "--tls-san=${san}",
+        }],
+        var.datastore != null ? [{
+          arg          = "--datastore-endpoint=${local.datastore_endpoint}",
           node_filters = ["server:*"]
-        }
+        }] : [],
+        var.enable_pprof ? [{
+          arg          = "--enable-pprof",
+          node_filters = ["server:*"]
+        }] : [],
+        [
+          for san in var.sans :
+          {
+            arg          = "--tls-san=${san}",
+            node_filters = ["server:*"]
+          }
       ])
       content {
         arg          = extra_args.value["arg"]

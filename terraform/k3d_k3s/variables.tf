@@ -59,3 +59,8 @@ variable "datastore_password" {
   description = "The database's main user password"
   default     = "kinepassword"
 }
+
+variable "enable_pprof" {
+  description = "Enable pprof endpoint on supervisor port"
+  default     = false
+}

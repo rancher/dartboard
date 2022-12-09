@@ -5,6 +5,7 @@ locals {
   rancher_chart           = "https://releases.rancher.com/server-charts/latest/rancher-2.6.9.tgz"
   upstream_san            = "upstream.local.gd"
   upstream_datastore      = "postgres"
+  upstream_enable_pprof   = true
 
   project_name = "moio"
 }
