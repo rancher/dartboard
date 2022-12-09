@@ -38,3 +38,18 @@ module "upstream_cluster" {
   enable_pprof             = local.upstream_enable_pprof
   additional_port_mappings = [[3000, 443], [6443, 6443]]
 }
+
+provider "helm" {
+  kubernetes {
+    config_path = "~/.kube/config"
+  }
+}
+
+module "rancher" {
+  depends_on   = [module.upstream_cluster]
+  count        = local.upstream_server_count > 0 ? 1 : 0
+  source       = "./rancher"
+  public_name  = local.upstream_san
+  private_name = module.upstream_cluster.first_server_private_name
+  chart        = local.rancher_chart
+}
