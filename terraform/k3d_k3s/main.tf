@@ -82,7 +82,7 @@ resource "k3d_cluster" "cluster" {
   servers    = var.server_count
   agents     = var.agent_count
 
-  image   = "docker.io/rancher/k3s:${replace(var.distro_version, "+", "-")}"
+  image   = var.image != null ? var.image : "docker.io/rancher/k3s:${replace(var.distro_version, "+", "-")}"
   network = var.network_name
 
   k3d {

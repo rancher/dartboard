@@ -29,6 +29,12 @@ variable "distro_version" {
   default     = "v1.23.10+k3s1"
 }
 
+variable "image" {
+  description = "Set a k3s image, overriding k3s version"
+  type        = string
+  default     = null
+}
+
 variable "network_name" {
   description = "Name of the Docker network to connect containers to"
   type        = string
