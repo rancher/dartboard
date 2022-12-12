@@ -123,6 +123,12 @@ resource "k3d_cluster" "cluster" {
     }
   }
 
+  env {
+    key          = "GOGC"
+    value        = "200"
+    node_filters = ["server:*"]
+  }
+
   dynamic "port" {
     for_each = var.additional_port_mappings
     content {
