@@ -18,47 +18,6 @@ PASSWORD = "adminpassword"
 REPETITIONS = 5
 DATA_SIZE = 10*1024 # 10 kiB
 
-
-def delete_config_maps_exceeding(v1, start_index):
-    raw_config_maps = v1.list_namespaced_config_map(namespace=NAMESPACE, watch=False, limit=5000)
-
-    while raw_config_maps is not None:
-        config_map_names = [raw_config_map.metadata.name for raw_config_map in raw_config_maps.items]
-        print(f"Checking config_maps bunch starting with: {config_map_names[0]} for deletion", file=sys.stderr)
-
-        deleted = 0
-        errored = 0
-        for name in config_map_names:
-            m = re.match("test-config-map-([0-9]+)", name)
-            if m is not None:
-                index = int(m.group(1))
-                if index > start_index:
-                    try:
-                        v1.delete_namespaced_config_map(name, NAMESPACE)
-                        deleted += 1
-                    except client.exceptions.ApiException as e:
-                        if e.status == 404:
-                            pass
-                        else:
-                            print(e, file=sys.stderr)
-                            errored += 1
-
-        if raw_config_maps.metadata._continue is not None:
-            try:
-                raw_config_maps = v1.list_namespaced_config_map(namespace=NAMESPACE, watch=False, limit=5000, _continue=raw_config_maps.metadata._continue)
-            except client.exceptions.ApiException as e:
-                if e.status == 410:
-                    raw_config_maps = v1.list_namespaced_config_map(namespace=NAMESPACE, watch=False, limit=5000)
-                else:
-                    raise
-        else:
-            raw_config_maps = None
-        print(f"Waiting {5} seconds...", file=sys.stderr)
-        time.sleep(5)
-
-    return deleted, errored
-
-
 def create_config_maps(v1, start_index, end_index):
     data = base64.b64encode(b"a" * DATA_SIZE).decode("ascii")
 
