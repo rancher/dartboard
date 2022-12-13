@@ -94,6 +94,9 @@ resource "k3d_cluster" "cluster" {
   servers    = var.server_count
   agents     = var.agent_count
 
+  // hardcode, so that cluster can be re-created and run from previous datastore
+  token = "secretToken"
+
   image   = var.image != null ? var.image : "docker.io/rancher/k3s:${replace(var.distro_version, "+", "-")}"
   network = var.network_name
 
