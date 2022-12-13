@@ -36,6 +36,12 @@ resource "docker_container" "mariadb" {
     internal = 3306
     external = 3306
   }
+
+  volumes {
+    container_path = "/var/lib/mysql"
+    host_path      = "/tmp/${var.project_name}-kine-data/mysql"
+  }
+  remove_volumes = false
 }
 
 resource "docker_image" "postgres" {
@@ -63,6 +69,12 @@ resource "docker_container" "postgres" {
     internal = 5432
     external = 5432
   }
+
+  volumes {
+    container_path = "/var/lib/postgresql/data"
+    host_path      = "/tmp/${var.project_name}-kine-data/postgres"
+  }
+  remove_volumes = false
 }
 
 locals {
