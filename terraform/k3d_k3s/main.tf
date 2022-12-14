@@ -125,7 +125,7 @@ resource "k3d_cluster" "cluster" {
 
   env {
     key          = "GOGC"
-    value        = "200"
+    value        = string(var.gogc)
     node_filters = ["server:*"]
   }
 

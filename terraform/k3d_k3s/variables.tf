@@ -70,3 +70,9 @@ variable "enable_pprof" {
   description = "Enable pprof endpoint on supervisor port"
   default     = false
 }
+
+variable "gogc" {
+  description = "Tunable parameter for Go's garbage collection, see: https://tip.golang.org/doc/gc-guide"
+  type        = number
+  default     = null
+}
