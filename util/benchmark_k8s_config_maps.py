@@ -15,11 +15,9 @@ HOST = "upstream.local.gd"
 PORT = 443
 USERNAME = "admin"
 PASSWORD = "adminpassword"
-REPETITIONS = 5
-DATA_SIZE = 10*1024 # 10 kiB
 
-def create_config_maps(v1, start_index, end_index):
-    data = base64.b64encode(b"a" * DATA_SIZE).decode("ascii")
+def create_config_maps(v1, start_index, end_index, data_size):
+    data = base64.b64encode(b"a" * data_size).decode("ascii")
 
     created = 0
     errored = 0
@@ -40,12 +38,12 @@ def create_config_maps(v1, start_index, end_index):
     return created, errored
 
 
-def benchmark_k8s(v1, limit):
+def benchmark_k8s(v1, repetitions):
     # make request REPETITIONS times, saving runtimes
     runtimes = []
     bytes = []
     errors = 0
-    for i in range(REPETITIONS):
+    for i in range(repetitions):
         try:
             url="https://127.0.0.1:6443/api/v1/namespaces/default/configmaps"
             headers={'Accept': 'application/json', 'User-Agent': 'OpenAPI-Generator/12.0.1/python'}
@@ -83,10 +81,12 @@ def benchmark_k8s(v1, limit):
     return mean, stdev, bytes, errors
 
 
-_, start_index_string, first_chunk_index_string, end_index_string = sys.argv
+_, start_index_string, first_chunk_index_string, end_index_string, repetitions_string, data_size_string = sys.argv
 start_index = int(start_index_string)
 current_chunk_index = int(first_chunk_index_string)
 end_index = int(end_index_string)
+repetitions = int(repetitions_string)
+data_size = int(data_size_string)
 
 config.load_kube_config()
 v1 = client.CoreV1Api()
@@ -94,12 +94,12 @@ v1 = client.CoreV1Api()
 print("resources\tmean runtime (s)\tstdev (s)\tstdev (%)\tbytes\terrors")
 
 while start_index < end_index:
-    created, errored = create_config_maps(v1, start_index, current_chunk_index)
+    created, errored = create_config_maps(v1, start_index, current_chunk_index, data_size)
     print(f"Created: {created}, Errored: {errored}", file=sys.stderr)
     print(f"Waiting {created/500} seconds...", file=sys.stderr)
     time.sleep(created/500)
     print(f"Benchmarking {current_chunk_index} resources...", file=sys.stderr)
-    mean, stdev, bytes, errors = benchmark_k8s(v1, current_chunk_index)
+    mean, stdev, bytes, errors = benchmark_k8s(v1, repetitions)
     percent = stdev/mean*100
     print(f"{current_chunk_index}\t{'{:.3f}'.format(mean)}\t{'{:.3f}'.format(stdev)}\t{'{:.2f}'.format(percent)}%\t{bytes}\t{errors}")
     sys.stdout.flush()
