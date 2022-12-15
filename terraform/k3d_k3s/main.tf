@@ -75,6 +75,8 @@ resource "docker_container" "postgres" {
     host_path      = "/tmp/${var.project_name}-kine-data/postgres"
   }
   remove_volumes = false
+
+  shm_size = 1024 // MiB
 }
 
 locals {
