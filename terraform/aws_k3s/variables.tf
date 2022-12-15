@@ -98,6 +98,13 @@ variable "node_cidr_mask_size" {
 
 variable "datastore" {
   description = "Data store to use: mariadb, postgres or leave for a default (sqlite for one-server-node installs, embedded etcd otherwise)"
+  type        = string
+  default     = null
+}
+
+variable "datastore_endpoint" {
+  description = "Override datastore with a custom endpoint string"
+  type        = string
   default     = null
 }
 

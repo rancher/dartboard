@@ -59,6 +59,8 @@ module "k3s" {
   max_pods            = var.max_pods
   node_cidr_mask_size = var.node_cidr_mask_size
   datastore_endpoint = (
+    var.datastore_endpoint != null ?
+    var.datastore_endpoint :
     var.datastore == "mariadb" ?
     "mysql://${module.rds[0].username}:${module.rds[0].password}@tcp(${module.rds[0].endpoint})/${module.rds[0].db_name}" :
     var.datastore == "postgres" ?
