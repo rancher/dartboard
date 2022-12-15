@@ -93,7 +93,7 @@ v1 = client.CoreV1Api()
 
 print("resources\tmean runtime (s)\tstdev (s)\tstdev (%)\tbytes\terrors")
 
-while start_index < end_index:
+while current_chunk_index <= end_index:
     created, errored = create_config_maps(v1, start_index, current_chunk_index, data_size)
     print(f"Created: {created}, Errored: {errored}", file=sys.stderr)
     print(f"Waiting {created/500} seconds...", file=sys.stderr)
