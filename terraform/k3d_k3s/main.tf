@@ -77,6 +77,11 @@ resource "docker_container" "postgres" {
   remove_volumes = false
 
   shm_size = 1024 // MiB
+
+  command = [
+    "postgres",
+    "-c", "log_min_duration_statement=${var.postgres_log_min_duration_statement != null ? var.postgres_log_min_duration_statement : -1}",
+  ]
 }
 
 locals {
