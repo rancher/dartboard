@@ -82,3 +82,9 @@ variable "gogc" {
   type        = number
   default     = null
 }
+
+variable "postgres_log_min_duration_statement" {
+  description = "Set to log all statements taking longer than the specified amount of milliseconds, https://www.postgresql.org/docs/15/runtime-config-logging.html#GUC-LOG-MIN-DURATION-STATEMENT"
+  type        = number
+  default     = null
+}
