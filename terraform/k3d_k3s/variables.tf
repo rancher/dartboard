@@ -46,6 +46,12 @@ variable "additional_port_mappings" {
   default     = []
 }
 
+variable "log_level" {
+  description = "Change the logging level (up to 6 for trace)"
+  type        = number
+  default     = null
+}
+
 variable "datastore" {
   description = "Data store to use: mariadb, postgres or leave for a default (sqlite for one-server-node installs, embedded etcd otherwise)"
   default     = null
