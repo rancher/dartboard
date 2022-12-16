@@ -126,6 +126,10 @@ resource "k3d_cluster" "cluster" {
           arg          = "--enable-pprof",
           node_filters = ["server:*"]
         }] : [],
+        var.log_level != null ? [{
+          arg          = "-v=${var.log_level}",
+          node_filters = ["server:*"]
+        }] : [],
         [
           for san in var.sans :
           {
