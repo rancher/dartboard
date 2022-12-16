@@ -51,20 +51,6 @@ module "bastion" {
   vpc_security_group_id = module.aws_network.public_security_group_id
 }
 
-module "postgres_kine" {
-  depends_on            = [module.aws_network]
-  source                = "./aws_postgres_kine"
-  ami                   = local.postgres_ami
-  availability_zone     = local.availability_zone
-  project_name          = local.project_name
-  name                  = "postgres"
-  ssh_key_name          = module.aws_shared.key_name
-  ssh_private_key_path  = local.ssh_private_key_path
-  ssh_bastion_host      = module.bastion.public_name
-  subnet_id             = module.aws_network.private_subnet_id
-  vpc_security_group_id = module.aws_network.public_security_group_id
-}
-
 module "upstream_cluster" {
   source                        = "./aws_k3s"
   ami                           = local.upstream_ami
@@ -86,6 +72,6 @@ module "upstream_cluster" {
   node_cidr_mask_size           = local.upstream_node_cidr_mask_size
   sans                          = [local.upstream_san]
   secondary_subnet_id           = module.aws_network.secondary_private_subnet_id
-  datastore_endpoint            = "http://${module.postgres_kine.private_name}:2379"
+  datastore                     = local.upstream_datastore
   host_configuration_commands   = ["apt update", "apt install -y python3-kubernetes python3-requests"]
 }
