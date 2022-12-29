@@ -129,10 +129,11 @@ resource "docker_container" "kine" {
     external = 2379
   }
 
-  command = [
+  command = concat([
     "--endpoint",
     local.datastore_endpoint,
-  ]
+  ],
+  var.kine_debug ? ["--debug"] : [])
 }
 
 resource "k3d_cluster" "cluster" {
