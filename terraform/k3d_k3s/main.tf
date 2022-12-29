@@ -94,9 +94,29 @@ locals {
   )
 }
 
+resource "docker_container" "kine" {
+  depends_on = [docker_container.mariadb, docker_container.postgres]
+  count = var.datastore != null ? 1 : 0
+  image = var.kine_image
+  name  = "kine"
+
+  networks_advanced {
+    name = var.network_name
+  }
+
+  ports {
+    internal = 2379
+    external = 2379
+  }
+
+  command = [
+    "--endpoint",
+    local.datastore_endpoint,
+  ]
+}
 
 resource "k3d_cluster" "cluster" {
-  depends_on = [docker_container.mariadb, docker_container.postgres]
+  depends_on = [docker_container.kine]
   name       = "${var.project_name}-${var.name}"
   servers    = var.server_count
   agents     = var.agent_count
@@ -124,7 +144,7 @@ resource "k3d_cluster" "cluster" {
         node_filters = ["all:*"]
         }],
         var.datastore != null ? [{
-          arg          = "--datastore-endpoint=${local.datastore_endpoint}",
+          arg          = "--datastore-endpoint=http://kine:2379",
           node_filters = ["server:*"]
         }] : [],
         var.enable_pprof ? [{
