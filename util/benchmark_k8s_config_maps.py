@@ -42,6 +42,7 @@ def benchmark_k8s(v1, repetitions):
     # make request REPETITIONS times, saving runtimes
     runtimes = []
     bytes = []
+    items = []
     errors = 0
     for i in range(repetitions):
         try:
@@ -53,6 +54,7 @@ def benchmark_k8s(v1, repetitions):
 
             runtimes += [0]
             bytes += [0]
+            items += [0]
             _continue = "first"
             while _continue is not None:
                 tic = time.perf_counter()
@@ -66,7 +68,9 @@ def benchmark_k8s(v1, repetitions):
                 if response.status != 200:
                     print(f"ERROR: status {response.status} at repetition {i}", file=sys.stderr)
                     errors += 1
-                _continue = json.loads(response.data)['metadata'].get('continue')
+                data = json.loads(response.data)
+                items[-1] += len(data["items"])
+                _continue = data['metadata'].get('continue')
         except Exception as e:
             print(f"ERROR: exception at repetition {i}: {e}", file=sys.stderr)
             errors += 1
@@ -77,8 +81,9 @@ def benchmark_k8s(v1, repetitions):
     mean = statistics.mean(runtimes)
     stdev = statistics.stdev(runtimes, mean)
     bytes = statistics.mode(bytes)
+    items = statistics.mode(items)
 
-    return mean, stdev, bytes, errors
+    return mean, stdev, bytes, items, errors
 
 
 _, start_index_string, first_chunk_index_string, end_index_string, repetitions_string, data_size_string = sys.argv
@@ -91,7 +96,7 @@ data_size = int(data_size_string)
 config.load_kube_config()
 v1 = client.CoreV1Api()
 
-print("resources\tmean runtime (s)\tstdev (s)\tstdev (%)\tbytes\terrors")
+print("resources\tmean runtime (s)\tstdev (s)\tstdev (%)\tbytes\titems\terrors")
 
 while current_chunk_index <= end_index:
     created, errored = create_config_maps(v1, start_index, current_chunk_index, data_size)
@@ -99,9 +104,9 @@ while current_chunk_index <= end_index:
     print(f"Waiting {created/500} seconds...", file=sys.stderr)
     time.sleep(created/500)
     print(f"Benchmarking {current_chunk_index} resources...", file=sys.stderr)
-    mean, stdev, bytes, errors = benchmark_k8s(v1, repetitions)
+    mean, stdev, bytes, items, errors = benchmark_k8s(v1, repetitions)
     percent = stdev/mean*100
-    print(f"{current_chunk_index}\t{'{:.3f}'.format(mean)}\t{'{:.3f}'.format(stdev)}\t{'{:.2f}'.format(percent)}%\t{bytes}\t{errors}")
+    print(f"{current_chunk_index}\t{'{:.3f}'.format(mean)}\t{'{:.3f}'.format(stdev)}\t{'{:.2f}'.format(percent)}%\t{bytes}\t{items}\t{errors}")
     sys.stdout.flush()
     start_index = current_chunk_index
     current_chunk_index *= 2
