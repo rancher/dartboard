@@ -14,6 +14,7 @@ terraform {
 resource "docker_image" "mariadb" {
   count = var.datastore == "mariadb" ? 1 : 0
   name  = "mariadb:10.10.2-jammy"
+  keep_locally = true
 }
 
 // connect with
@@ -47,6 +48,7 @@ resource "docker_container" "mariadb" {
 resource "docker_image" "postgres" {
   count = var.datastore == "postgres" ? 1 : 0
   name  = "postgres:15.1-alpine"
+  keep_locally = true
 }
 
 // connect with
