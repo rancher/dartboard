@@ -78,6 +78,14 @@ resource "docker_container" "postgres" {
   }
   remove_volumes = false
 
+  healthcheck {
+    test = ["CMD-SHELL", "PGPASSWORD=${var.datastore_password} pg_isready --dbname=${var.datastore_dbname} --username=${var.datastore_username}"]
+    interval = "1s"
+    retries = "60"
+    timeout = "10s"
+  }
+  wait = true
+
   command = [
     "postgres",
     "-c", "log_min_duration_statement=${var.postgres_log_min_duration_statement != null ? var.postgres_log_min_duration_statement : -1}",
