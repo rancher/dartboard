@@ -21,21 +21,39 @@ def create_config_maps(v1, start_index, end_index, data_size):
 
     created = 0
     errored = 0
+    runtimes = []
     for i in range(start_index, end_index):
         name = f"{CONFIG_MAP_NAME_PREFIX}{i}"
         try:
-            v1.create_namespaced_config_map(namespace=NAMESPACE, body = {
-                "metadata": {
-                    "name": name,
-                    "namespace": "default"
-                },
-                "data": {"data": data}
-            })
-            created += 1
+            url="https://127.0.0.1:6443/api/v1/namespaces/default/configmaps"
+            headers={'Accept': 'application/json', 'User-Agent': 'OpenAPI-Generator/12.0.1/python'}
+            _preload_content=True
+            _request_timeout=3600
+            tic = time.perf_counter()
+            response = v1.api_client.rest_client.POST(url=url, headers=headers, _preload_content=_preload_content, _request_timeout=_request_timeout,
+                body = {
+                  "metadata": {
+                      "name": name,
+                      "namespace": "default"
+                  },
+                  "data": {"data": data}
+                }
+            )
+            toc = time.perf_counter()
+            runtimes.append(toc-tic)
+
+            if response.status != 201:
+                print(f"ERROR: status {response.status} at repetition {i}", file=sys.stderr)
+                errored += 1
+            else:
+                created += 1
         except Exception as e:
             print(e, file=sys.stderr)
             errored += 1
-    return created, errored
+
+    mean = statistics.mean(runtimes)
+    stdev = statistics.stdev(runtimes, mean)
+    return created, errored, mean, stdev
 
 
 def benchmark_k8s(v1, repetitions):
@@ -96,17 +114,18 @@ data_size = int(data_size_string)
 config.load_kube_config()
 v1 = client.CoreV1Api()
 
-print("resources\tmean runtime (s)\tstdev (s)\tstdev (%)\tbytes\titems\terrors")
+print("resources\tmean runtime (s)\tstdev (s)\tstdev (%)\tbytes\titems\terrors\twrite mean runtime (s)\twrite stdev (s)")
 
 while current_chunk_index <= end_index:
-    created, errored = create_config_maps(v1, start_index, current_chunk_index, data_size)
+    created, errored, write_mean, write_stdev = create_config_maps(v1, start_index, current_chunk_index, data_size)
     print(f"Created: {created}, Errored: {errored}", file=sys.stderr)
     print(f"Waiting {created/500} seconds...", file=sys.stderr)
     time.sleep(created/500)
     print(f"Benchmarking {current_chunk_index} resources...", file=sys.stderr)
     mean, stdev, bytes, items, errors = benchmark_k8s(v1, repetitions)
     percent = stdev/mean*100
-    print(f"{current_chunk_index}\t{'{:.3f}'.format(mean)}\t{'{:.3f}'.format(stdev)}\t{'{:.2f}'.format(percent)}%\t{bytes}\t{items}\t{errors}")
+    write_percent = write_stdev/write_mean*100
+    print(f"{current_chunk_index}\t{'{:.3f}'.format(mean)}\t{'{:.3f}'.format(stdev)}\t{'{:.2f}'.format(percent)}%\t{bytes}\t{items}\t{errors}\t{'{:.3f}'.format(write_mean)}\t{'{:.6f}'.format(write_stdev)}\t{'{:.6f}'.format(write_percent)}%")
     sys.stdout.flush()
     start_index = current_chunk_index
     current_chunk_index *= 2
