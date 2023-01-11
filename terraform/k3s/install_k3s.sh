@@ -41,6 +41,9 @@ tls-san:
 kube-controller-manager-arg: "node-cidr-mask-size=${node_cidr_mask_size}"
 %{ endif ~}
 kubelet-arg: "config=/etc/rancher/k3s/kubelet-custom.config"
+%{ if datastore_endpoint != null ~}
+datastore-endpoint: "${datastore_endpoint}"
+%{ endif ~}
 EOF
 
 cat > /etc/rancher/k3s/kubelet-custom.config <<EOF
@@ -52,8 +55,5 @@ EOF
 # installation
 export INSTALL_K3S_VERSION=${distro_version}
 export INSTALL_K3S_EXEC=${exec}
-%{ if datastore_endpoint != null ~}
-export K3S_DATASTORE_ENDPOINT="${datastore_endpoint}"
-%{ endif ~}
 
 curl -sfL https://get.k3s.io | sh -
