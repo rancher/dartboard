@@ -61,6 +61,7 @@ resource "docker_container" "postgres" {
     "POSTGRES_DB=${var.datastore_dbname}",
     "POSTGRES_USER=${var.datastore_username}",
     "POSTGRES_PASSWORD=${var.datastore_password}",
+    "POSTGRES_INITDB_ARGS=--locale=C",
   ]
 
   networks_advanced {
