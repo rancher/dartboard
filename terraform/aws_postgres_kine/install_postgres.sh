@@ -23,7 +23,7 @@ systemctl start postgresql-14
 # Create kine user
 su - postgres -c psql <<EOF
   CREATE USER kineuser WITH PASSWORD 'kinepassword';
-  CREATE DATABASE kine;
+  CREATE DATABASE kine LOCALE 'C' TEMPLATE 'template0';
   GRANT ALL ON DATABASE kine TO kineuser;
 EOF
 
