@@ -5,26 +5,27 @@ set -xe
 # Install the repository
 mkdir -p /etc/yum.repos.d/
 cat >/etc/yum.repos.d/pg.repo <<EOF
-[pg14]
-name=PostgreSQL 14 for RHEL/CentOS 7 - `uname -m`
-baseurl=https://download.postgresql.org/pub/repos/yum/14/redhat/rhel-7-`uname -m`
+[pg15]
+name=PostgreSQL 15 for RHEL/CentOS 7 - `uname -m`
+baseurl=https://download.postgresql.org/pub/repos/yum/15/redhat/rhel-7-`uname -m`
 enabled=1
 gpgcheck=0
 EOF
 
 # Install PostgreSQL
-yum install -y postgresql14 postgresql14-server
+yum install -y postgresql15 postgresql15-server
 
 # Initialize the database and enable automatic start
-ls /var/lib/pgsql/14/initdb.log || /usr/pgsql-14/bin/postgresql-14-setup initdb
-systemctl enable postgresql-14
-systemctl start postgresql-14
+ls /var/lib/pgsql/15/initdb.log || /usr/pgsql-15/bin/postgresql-15-setup initdb
+systemctl enable postgresql-15
+systemctl start postgresql-15
 
 # Create kine user
 su - postgres -c psql <<EOF
   CREATE USER kineuser WITH PASSWORD 'kinepassword';
   CREATE DATABASE kine LOCALE 'C' TEMPLATE 'template0';
   GRANT ALL ON DATABASE kine TO kineuser;
+  ALTER DATABASE kine OWNER TO kineuser;
 EOF
 
 # Install kine
