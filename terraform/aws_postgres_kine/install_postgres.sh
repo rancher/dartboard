@@ -16,7 +16,7 @@ EOF
 yum install -y postgresql14 postgresql14-server
 
 # Initialize the database and enable automatic start
-/usr/pgsql-14/bin/postgresql-14-setup initdb
+ls /var/lib/pgsql/14/initdb.log || /usr/pgsql-14/bin/postgresql-14-setup initdb
 systemctl enable postgresql-14
 systemctl start postgresql-14
 
