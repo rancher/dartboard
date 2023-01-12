@@ -6,8 +6,8 @@ set -xe
 mkdir -p /etc/yum.repos.d/
 cat >/etc/yum.repos.d/pg.repo <<EOF
 [pg14]
-name=PostgreSQL 14 for RHEL/CentOS 7 - aarch64
-baseurl=https://download.postgresql.org/pub/repos/yum/14/redhat/rhel-7-aarch64
+name=PostgreSQL 14 for RHEL/CentOS 7 - `uname -m`
+baseurl=https://download.postgresql.org/pub/repos/yum/14/redhat/rhel-7-`uname -m`
 enabled=1
 gpgcheck=0
 EOF
@@ -28,7 +28,7 @@ su - postgres -c psql <<EOF
 EOF
 
 # Install kine
-curl -L -o /usr/bin/kine https://github.com/k3s-io/kine/releases/download/v0.9.8/kine-arm64
+curl -L -o /usr/bin/kine https://github.com/k3s-io/kine/releases/download/v0.9.8/kine-`uname -m | sed 's/x86_64/amd64/'`
 chmod +x /usr/bin/kine
 
 cat >/etc/systemd/system/kine.service <<EOF
