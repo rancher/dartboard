@@ -125,7 +125,7 @@ while current_chunk_index <= end_index:
     mean, stdev, bytes, items, errors = benchmark_k8s(v1, repetitions)
     percent = stdev/mean*100
     write_percent = write_stdev/write_mean*100
-    print(f"{current_chunk_index}\t{'{:.3f}'.format(mean)}\t{'{:.3f}'.format(stdev)}\t{'{:.2f}'.format(percent)}%\t{bytes}\t{items}\t{errors}\t{'{:.3f}'.format(write_mean)}\t{'{:.6f}'.format(write_stdev)}\t{'{:.6f}'.format(write_percent)}%")
+    print(f"{current_chunk_index}\t{'{:.3f}'.format(mean)}\t{'{:.3f}'.format(stdev)}\t{'{:.2f}'.format(percent)}%\t{bytes}\t{items}\t{errors}\t{'{:.6f}'.format(write_mean)}\t{'{:.6f}'.format(write_stdev)}\t{'{:.3f}'.format(write_percent)}%")
     sys.stdout.flush()
     start_index = current_chunk_index
     current_chunk_index *= 2
