@@ -73,7 +73,7 @@ variable "datastore_password" {
 }
 
 variable "enable_pprof" {
-  description = "Enable pprof endpoint on supervisor port"
+  description = "Enable pprof endpoint on supervisor port. Beware: this breaks cert-manager until https://github.com/k3s-io/k3s/pull/6635 is merged"
   default     = false
 }
 
