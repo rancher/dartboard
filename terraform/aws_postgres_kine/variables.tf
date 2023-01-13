@@ -47,3 +47,14 @@ variable "vpc_security_group_id" {
   description = "ID of the security group to connect to"
   type        = string
 }
+
+variable "kine_version" {
+  description = "Kine version"
+  default = "v0.9.8"
+}
+
+variable "kine_executable" {
+  description = "Overrides kine_version by copying an executable from this path"
+  type = string
+  default = null
+}

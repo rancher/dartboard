@@ -29,7 +29,16 @@ resource "ssh_resource" "install_postgres" {
   bastion_host = var.ssh_bastion_host
 
   file {
-    content     = templatefile("${path.module}/install_postgres.sh", {})
+    source      = var.kine_executable != null ? var.kine_executable : "/dev/null"
+    destination = "/tmp/kine"
+    permissions = "0755"
+  }
+
+  file {
+    content = templatefile("${path.module}/install_postgres.sh", {
+      kine_version    = var.kine_version
+      kine_executable = var.kine_executable
+    })
     destination = "/root/install_postgres.sh"
     permissions = "0700"
   }
