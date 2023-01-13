@@ -60,8 +60,12 @@ su - postgres -c psql <<EOF
 EOF
 
 # Install kine
-curl -L -o /usr/bin/kine https://github.com/k3s-io/kine/releases/download/v0.9.8/kine-`uname -m | sed 's/x86_64/amd64/'`
-chmod +x /usr/bin/kine
+if [ -s /tmp/kine ]; then
+  mv -f /tmp/kine /usr/bin/kine
+else
+  curl -L -o /usr/bin/kine https://github.com/k3s-io/kine/releases/download/${kine_version}/kine-`uname -m | sed 's/x86_64/amd64/'`
+  chmod +x /usr/bin/kine
+fi
 
 cat >/etc/systemd/system/kine.service <<EOF
 [Unit]
