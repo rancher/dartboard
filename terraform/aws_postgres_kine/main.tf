@@ -36,6 +36,7 @@ resource "ssh_resource" "install_postgres" {
 
   file {
     content = templatefile("${path.module}/install_postgres.sh", {
+      gogc            = tostring(var.gogc)
       kine_version    = var.kine_version
       kine_executable = var.kine_executable
     })

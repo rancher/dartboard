@@ -48,6 +48,12 @@ variable "vpc_security_group_id" {
   type        = string
 }
 
+variable "gogc" {
+  description = "Tunable parameter for Go's garbage collection, see: https://tip.golang.org/doc/gc-guide"
+  type        = number
+  default     = null
+}
+
 variable "kine_version" {
   description = "Kine version"
   default = "v0.9.8"
