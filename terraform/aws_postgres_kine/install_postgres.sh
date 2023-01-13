@@ -73,6 +73,9 @@ Description=kine
 
 [Service]
 ExecStart=/usr/bin/kine --endpoint postgres://kineuser:kinepassword@localhost:5432/kine?sslmode=disable
+%{ if gogc != null ~}
+Environment="GOGC=${gogc}"
+%{ endif ~}
 
 [Install]
 WantedBy=multi-user.target
