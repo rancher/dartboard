@@ -91,10 +91,10 @@ variable "postgres_log_min_duration_statement" {
 
 variable "kine_image" {
   description = "Kine container image"
-  default = "rancher/kine:v0.9.8"
+  default     = "rancher/kine:v0.9.8"
 }
 
 variable "kine_debug" {
   description = "Set to true to enable kine debug logging"
-  default = false
+  default     = false
 }

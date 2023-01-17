@@ -56,11 +56,11 @@ variable "gogc" {
 
 variable "kine_version" {
   description = "Kine version"
-  default = "v0.9.8"
+  default     = "v0.9.8"
 }
 
 variable "kine_executable" {
   description = "Overrides kine_version by copying an executable from this path"
-  type = string
-  default = null
+  type        = string
+  default     = null
 }
