@@ -24,6 +24,8 @@ fi
 cat >/etc/systemd/system/etcd.service <<EOF
 [Unit]
 Description=etcd
+StartLimitIntervalSec=60
+StartLimitBurst=10
 
 [Service]
 ExecStart=/usr/bin/etcd \
@@ -36,6 +38,9 @@ ExecStart=/usr/bin/etcd \
   --initial-cluster ${join(",", formatlist("%s=http://%s:2380", etcd_names, server_names))} \
   --initial-cluster-state new \
   --data-dir /var/lib/etcd
+
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
