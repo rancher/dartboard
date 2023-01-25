@@ -207,6 +207,10 @@ resource "k3d_cluster" "cluster" {
     node_filters = ["server:*"]
   }
 
+  kube_api {
+    host_port = 6445
+  }
+
   dynamic "port" {
     for_each = var.additional_port_mappings
     content {
