@@ -9,8 +9,8 @@ const limit = 5000
 const timeout = '3600s'
 
 // loads connection variables from kubeconfig's current context
-export function kubeconfig(){
-    const config = YAML.load(open("/home/silvio/.kube/config"));
+export function kubeconfig(file){
+    const config = YAML.load(open(file));
 
     const contextName = config["current-context"]
     const context = config["contexts"].find(c => c["name"] === contextName)["context"]
