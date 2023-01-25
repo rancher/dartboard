@@ -127,7 +127,7 @@ locals {
 
 resource "docker_container" "kine" {
   depends_on = [docker_container.mariadb, docker_container.postgres]
-  count      = var.datastore != null ? 1 : 0
+  count      = var.datastore != "default" ? 1 : 0
   image      = var.kine_image
   name       = "kine"
 
@@ -175,7 +175,7 @@ resource "k3d_cluster" "cluster" {
         arg          = "--disable=metrics-server",
         node_filters = ["all:*"]
         }],
-        var.datastore != null ? [{
+        var.datastore != "default" ? [{
           arg          = "--datastore-endpoint=http://kine:2379",
           node_filters = ["server:*"]
         }] : [],

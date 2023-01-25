@@ -53,8 +53,8 @@ variable "log_level" {
 }
 
 variable "datastore" {
-  description = "Data store to use: mariadb, postgres or leave for a default (sqlite for one-server-node installs, embedded etcd otherwise)"
-  default     = null
+  description = "Data store to use: mariadb, postgres or default for an automatic choice (sqlite for one-server-node installs, embedded etcd otherwise)"
+  default     = "default"
 }
 
 variable "datastore_dbname" {
