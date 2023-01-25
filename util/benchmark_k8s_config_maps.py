@@ -20,7 +20,7 @@ def create_config_maps(v1, start_index, end_index, data_size):
     for i in range(start_index, end_index):
         name = f"{CONFIG_MAP_NAME_PREFIX}{i}"
         try:
-            url="https://127.0.0.1:6443/api/v1/namespaces/default/configmaps"
+            url=f"{v1.api_client.configuration.host}/api/v1/namespaces/default/configmaps"
             headers={'Accept': 'application/json', 'User-Agent': 'OpenAPI-Generator/12.0.1/python'}
             _preload_content=True
             _request_timeout=3600
@@ -59,7 +59,7 @@ def benchmark_k8s(v1, repetitions):
     errors = 0
     for i in range(repetitions):
         try:
-            url="https://127.0.0.1:6443/api/v1/namespaces/default/configmaps"
+            url=f"{v1.api_client.configuration.host}/api/v1/namespaces/default/configmaps"
             headers={'Accept': 'application/json', 'User-Agent': 'OpenAPI-Generator/12.0.1/python'}
             _preload_content=True
             _request_timeout=3600
