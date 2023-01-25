@@ -10,10 +10,6 @@ from kubernetes import client, config
 
 NAMESPACE = "default"
 CONFIG_MAP_NAME_PREFIX = "test-config-map-"
-HOST = "upstream.local.gd"
-PORT = 443
-USERNAME = "admin"
-PASSWORD = "adminpassword"
 
 def create_config_maps(v1, start_index, end_index, data_size):
     data = base64.b64encode(b"a" * data_size).decode("ascii")
