@@ -2,7 +2,6 @@
 
 import base64
 import json
-import re
 import statistics
 import sys
 import time
