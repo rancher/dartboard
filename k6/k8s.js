@@ -29,12 +29,7 @@ export function kubeconfig(file){
 
 // creates a k8s resource
 export function create(url, body){
-    const res = http.post(url, JSON.stringify(body), {
-        headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'OpenAPI-Generator/12.0.1/python'
-        },
-    });
+    const res = http.post(url, JSON.stringify(body));
 
     check(res, {
         'POST returns status 201': (r) => r.status === 201,
