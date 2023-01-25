@@ -15,7 +15,7 @@ const vus = 1
 const listIterations = 50
 
 // Option setting
-const kubeconfig = k8s.kubeconfig()
+const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG)
 const baseUrl = kubeconfig["url"]
 const resourceCounts = exponentialCounts(min, max)
 const scenarios = createAndListScenarios(resourceCounts, vus, listIterations)
