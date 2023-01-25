@@ -12,8 +12,8 @@ terraform {
 // datastore in docker
 
 resource "docker_image" "mariadb" {
-  count = var.datastore == "mariadb" ? 1 : 0
-  name  = "mariadb:10.10.2-jammy"
+  count        = var.datastore == "mariadb" ? 1 : 0
+  name         = "mariadb:10.10.2-jammy"
   keep_locally = true
 }
 
@@ -46,8 +46,8 @@ resource "docker_container" "mariadb" {
 }
 
 resource "docker_image" "postgres" {
-  count = var.datastore == "postgres" ? 1 : 0
-  name  = "postgres:15.1-alpine"
+  count        = var.datastore == "postgres" ? 1 : 0
+  name         = "postgres:15.1-alpine"
   keep_locally = true
 }
 
@@ -80,10 +80,10 @@ resource "docker_container" "postgres" {
   remove_volumes = false
 
   healthcheck {
-    test = ["CMD-SHELL", "PGPASSWORD=${var.datastore_password} pg_isready --dbname=${var.datastore_dbname} --username=${var.datastore_username}"]
+    test     = ["CMD-SHELL", "PGPASSWORD=${var.datastore_password} pg_isready --dbname=${var.datastore_dbname} --username=${var.datastore_username}"]
     interval = "1s"
-    retries = "60"
-    timeout = "10s"
+    retries  = "60"
+    timeout  = "10s"
   }
   wait = true
 
@@ -127,9 +127,9 @@ locals {
 
 resource "docker_container" "kine" {
   depends_on = [docker_container.mariadb, docker_container.postgres]
-  count = var.datastore != null ? 1 : 0
-  image = var.kine_image
-  name  = "kine"
+  count      = var.datastore != null ? 1 : 0
+  image      = var.kine_image
+  name       = "kine"
 
   networks_advanced {
     name = var.network_name
@@ -143,7 +143,7 @@ resource "docker_container" "kine" {
   command = concat([
     "--endpoint",
     local.datastore_endpoint,
-  ],
+    ],
   var.kine_debug ? ["--debug"] : [])
 }
 
