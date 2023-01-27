@@ -44,8 +44,16 @@ export function create(url, body){
 }
 
 // deletes a k8s resource
-export function del(url){
-    return http.del(url)
+export function del(url, ignoreChecks = false){
+    const res = http.del(url)
+
+    if (!ignoreChecks){
+        check(res, {
+            'DELETE returns status 200': (r) => r.status === 200,
+        })
+    }
+
+    return res
 }
 
 // lists k8s resources
