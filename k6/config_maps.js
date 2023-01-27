@@ -121,7 +121,7 @@ function sanityCheckThresholds(scenarios) {
 
 export function setup() {
     // delete leftovers, if any
-    k8s.del(`${baseUrl}/api/v1/namespaces/${namespace}`)
+    k8s.del(`${baseUrl}/api/v1/namespaces/${namespace}`, true)
 
     // create empty namespace
     const body = {
