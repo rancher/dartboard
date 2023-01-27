@@ -51,6 +51,8 @@ export function del(url, ignoreChecks = false){
     return res
 }
 
+const continueRegex = /"continue":"([A-Za-z0-9]+)"/;
+
 // lists k8s resources
 export function list(url) {
     let _continue = 'first'
@@ -71,8 +73,8 @@ export function list(url) {
             'list returns status 200': (r) => r.status === 200,
         });
 
-        const metadata = JSON.parse(res.body).metadata
-        _continue = 'continue' in metadata ? metadata.continue : null
+        const found = res.body.match(continueRegex);
+        _continue = found !== null ? found[1] : null
 
         responses.push(res)
     }
