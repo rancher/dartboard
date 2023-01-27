@@ -11,8 +11,8 @@ const namespace = "scalability-test"
 const min = 1000
 const max = 256000
 const data = encoding.b64encode("a".repeat(4))
-const vus = 1
-const listIterations = 50
+const vus = 20
+const listIterations = 100
 
 // Option setting
 const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG)
@@ -53,7 +53,7 @@ function createAndListScenarios(resourceCounts, vus, listIterations) {
     let cumulatedIterations = 0
 
     resourceCounts.forEach((count, i) => {
-        // resource creation scenario
+        // resource pure-write scenario
         const iterations = i === 0 ? count : (count - resourceCounts[i - 1])
         result[`create-${count}`] = {
             executor: 'shared-iterations',
@@ -68,7 +68,7 @@ function createAndListScenarios(resourceCounts, vus, listIterations) {
         }
         cumulatedIterations += iterations
 
-        // resource list scenario
+        // resource pure-read scenario
         result[`list-${count}`] = {
             executor: 'shared-iterations',
             exec: 'list',
@@ -78,8 +78,23 @@ function createAndListScenarios(resourceCounts, vus, listIterations) {
                 startAfterIteration: cumulatedIterations.toString()
             },
             maxDuration: '24h',
-            startTime: cumulatedIterations * 0.001, // HACK: only to show in time order during execution
+            startTime: cumulatedIterations * 0.001,
         }
+        cumulatedIterations += listIterations
+
+        // resource read-while-writing scenario
+        result[`list-create-delete-${count}`] = {
+            executor: 'shared-iterations',
+            exec: 'listCreateDelete',
+            vus: vus,
+            iterations: listIterations,
+            env: {
+                startAfterIteration: cumulatedIterations.toString()
+            },
+            maxDuration: '24h',
+            startTime: cumulatedIterations * 0.001,
+        }
+
         cumulatedIterations += listIterations
     })
 
@@ -156,6 +171,28 @@ export function list() {
     k8sReqDurationTrend.add(totalDuration, {scenario: exec.scenario.name})
 }
 
+export function listCreateDelete() {
+    // read all
+    list()
+
+    // sleep a bit
+    sleep(Math.random())
+
+    // create one
+    const name = `test-config-map-${exec.scenario.name}-${exec.scenario.iterationInTest}`
+    const body = {
+        "metadata": {
+            "name": name,
+            "namespace": namespace
+        },
+        "data": {"data": data}
+    }
+    k8s.create(`${baseUrl}/api/v1/namespaces/${namespace}/configmaps`, body)
+
+    // delete it
+    k8s.del(`${baseUrl}/api/v1/namespaces/${namespace}/configmaps/${name}`)
+}
+
 export function teardown(data) {
     k8s.del(`${baseUrl}/api/v1/namespaces/${namespace}`)
 }
@@ -164,7 +201,7 @@ export function handleSummary(data) {
     const headers = ["resources"].concat(options.summaryTrendStats)
     let csv = []
 
-    Array("create", "list").forEach(operation => {
+    Array("create", "list", "list-create-delete").forEach(operation => {
         csv.push([operation])
         csv.push(headers)
         resourceCounts.forEach(count => {
