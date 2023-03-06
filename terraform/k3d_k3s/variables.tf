@@ -40,6 +40,11 @@ variable "network_name" {
   type        = string
 }
 
+variable "kubernetes_api_port" {
+  description = "Port k3s cluster's Kubernetes API will be published to"
+  default     = 6445
+}
+
 variable "additional_port_mappings" {
   description = "Opens additional port mappings to the first server node (format is [[host_port, container_port]])"
   type        = list(list(number))

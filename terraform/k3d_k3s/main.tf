@@ -208,7 +208,7 @@ resource "k3d_cluster" "cluster" {
   }
 
   kube_api {
-    host_port = 6445
+    host_port = var.kubernetes_api_port
   }
 
   dynamic "port" {
