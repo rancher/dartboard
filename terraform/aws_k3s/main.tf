@@ -49,7 +49,7 @@ module "k3s" {
   name         = var.name
   server_names = [for node in module.server_nodes : node.private_name]
   agent_names  = [for node in module.agent_nodes : node.private_name]
-  sans         = var.sans
+  sans         = length(var.sans) > 0 ? var.sans : (var.server_count > 0 ? [module.server_nodes[0].private_name] : [])
 
   ssh_private_key_path = var.ssh_private_key_path
   ssh_bastion_host     = var.ssh_bastion_host
