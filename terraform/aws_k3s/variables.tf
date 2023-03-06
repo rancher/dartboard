@@ -64,9 +64,10 @@ variable "vpc_security_group_id" {
   type        = string
 }
 
-variable "k8s_api_ssh_tunnel_local_port" {
-  description = "Local port for the SSH tunnel to the first server node's Kubernetes API port (6443)"
+variable "kubernetes_api_port" {
+  description = "Port to publish this k3s cluster's Kubernetes API locally (via SSH tunnel)"
   type        = number
+  default     = 6443
 }
 
 variable "additional_ssh_tunnels" {
