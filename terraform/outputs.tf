@@ -1,15 +1,14 @@
 output "rancher_help" {
   value = <<-EOT
-    UPSTREAM CLUSTER ACCESS:
-      export KUBECONFIG=../config/upstream.yaml
-
-    CLUSTER API:
-      https://localhost:6443
+    CLUSTER ACCESS: already added to default kubeconfig
 
     RANCHER UI:
-      https://${local.upstream_san}:3000
+      https://upstream.local.gd:8443
 
-    DOWNSTREAM CLUSTER ACCESS:
-      export KUBECONFIG=../config/downstream.yaml
+    CLUSTER API (upstream):
+      https://upstream.local.gd:6445
+
+    CLUSTER API (downstream):
+      https://downstream.local.gd:6446
  EOT
 }
