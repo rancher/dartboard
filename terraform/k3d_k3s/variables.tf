@@ -36,8 +36,9 @@ variable "image" {
 }
 
 variable "network_name" {
-  description = "Name of the Docker network to connect containers to"
+  description = "Name of the Docker network to connect containers to (or null)"
   type        = string
+  default     = null
 }
 
 variable "kubernetes_api_port" {
