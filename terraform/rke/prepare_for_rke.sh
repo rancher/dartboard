@@ -23,7 +23,8 @@ if grep --quiet --ignore-case ubuntu < /etc/os-release; then
 
   export DEBIAN_FRONTEND=noninteractive
   apt-get update
-  apt-get install --yes docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  # HACK: use fixed versions RKE supports
+  apt-get install --yes --allow-downgrades docker-ce=5:20.10.23~3-0~ubuntu-jammy docker-ce-cli=5:20.10.23~3-0~ubuntu-jammy containerd.io docker-compose-plugin
 fi
 
 systemctl enable docker
