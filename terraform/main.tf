@@ -56,10 +56,7 @@ module "bastion" {
 }
 
 module "upstream_cluster" {
-  source = "./aws_rke"
-  # alternatives:
-  # source = "./aws_k3s"
-  # source = "./aws_rke2"
+  source = "./aws_k3s"
   ami                    = local.upstream_ami
   instance_type          = local.upstream_instance_type
   availability_zone      = local.availability_zone
@@ -93,27 +90,4 @@ module "rancher" {
   public_name  = local.upstream_san
   private_name = module.upstream_cluster.first_server_private_name
   chart        = local.rancher_chart
-}
-
-module "downstream_cluster" {
-  source = "./aws_k3s"
-  # alternatives:
-  # source = "./aws_rke"
-  # source = "./aws_rke2"
-  ami                   = local.downstream_ami
-  instance_type         = local.downstream_instance_type
-  availability_zone     = local.availability_zone
-  project_name          = local.project_name
-  name                  = "downstream"
-  server_count          = local.downstream_server_count
-  agent_count           = local.downstream_agent_count
-  ssh_key_name          = module.aws_shared.key_name
-  ssh_private_key_path  = local.ssh_private_key_path
-  ssh_bastion_host      = module.bastion.public_name
-  subnet_id             = module.aws_network.private_subnet_id
-  vpc_security_group_id = module.aws_network.private_security_group_id
-  kubernetes_api_port   = local.downstream_kubernetes_api_port
-  distro_version        = local.downstream_distro_version
-  sans                  = [local.downstream_san]
-  secondary_subnet_id   = module.aws_network.secondary_private_subnet_id
 }
