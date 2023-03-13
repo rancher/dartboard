@@ -1,6 +1,7 @@
 output "rancher_help" {
   value = <<-EOT
-    CLUSTER ACCESS: already added to default kubeconfig
+    UPSTREAM CLUSTER ACCESS:
+      export KUBECONFIG=../config/upstream.yaml
 
     CLUSTER API:
       https://localhost:6443
@@ -8,10 +9,7 @@ output "rancher_help" {
     RANCHER UI:
       https://${local.upstream_san}:3000
 
-    MARIADB KINE DB:
-      mariadb -h 127.0.0.1 -P 3306 -u kineuser --password=kinepassword kine
-
-    POSTGRESQL KINE DB:
-      PGPASSWORD=kinepassword psql -U kineuser -h localhost kine
+    DOWNSTREAM CLUSTER ACCESS:
+      export KUBECONFIG=../config/downstream.yaml
  EOT
 }
