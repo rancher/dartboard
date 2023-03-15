@@ -148,6 +148,7 @@ resource "docker_container" "kine" {
 }
 
 resource "k3d_cluster" "cluster" {
+  count      = var.server_count > 0 ? 1 : 0
   depends_on = [docker_container.kine]
   name       = "${var.project_name}-${var.name}"
   servers    = var.server_count
