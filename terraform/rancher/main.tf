@@ -26,7 +26,7 @@ resource "helm_release" "rancher" {
   }
   set {
     name  = "extraEnv[0].value"
-    value = "https://${var.private_name}"
+    value = "https://${var.private_name}:${var.private_port}"
   }
   set {
     name  = "extraEnv[1].name"

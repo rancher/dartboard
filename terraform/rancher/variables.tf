@@ -3,6 +3,11 @@ variable "private_name" {
   type        = string
 }
 
+variable "private_port" {
+  description = "Port of the Rancher Server (API), as seen from downstream clusters"
+  default = 443
+}
+
 variable "public_name" {
   description = "Name of the Rancher Server (API), as seen from the host running kubectl"
   type        = string
