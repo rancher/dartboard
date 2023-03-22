@@ -1,4 +1,5 @@
 import { check } from 'k6';
+import { sleep } from 'k6';
 import encoding from 'k6/encoding';
 import http from 'k6/http';
 import * as YAML from './lib/js-yaml-4.1.0.mjs'
@@ -8,11 +9,10 @@ import { URL } from './lib/url-1.0.0.js';
 const limit = 5000
 const timeout = '3600s'
 
-// loads connection variables from kubeconfig's current context
-export function kubeconfig(file){
+// loads connection variables from kubeconfig's specified context
+export function kubeconfig(file, contextName){
     const config = YAML.load(open(file));
 
-    const contextName = config["current-context"]
     const context = config["contexts"].find(c => c["name"] === contextName)["context"]
     const clusterName = context["cluster"]
     const userName = context["user"]
@@ -32,21 +32,26 @@ export function create(url, body){
     const res = http.post(url, JSON.stringify(body));
 
     check(res, {
-        'POST returns status 201': (r) => r.status === 201,
+        'POST returns status 201 or 409': (r) => r.status === 201 || r.status === 409,
     })
+
+    if (res.status === 409) {
+        // wait a bit and try again
+        sleep(Math.random())
+
+        return create(url, body)
+    }
 
     return res
 }
 
 // deletes a k8s resource
-export function del(url, ignoreChecks = false){
+export function del(url){
     const res = http.del(url)
 
-    if (!ignoreChecks){
-        check(res, {
-            'DELETE returns status 200': (r) => r.status === 200,
-        })
-    }
+    check(res, {
+        'DELETE returns status 200': (r) => r.status === 200,
+    })
 
     return res
 }

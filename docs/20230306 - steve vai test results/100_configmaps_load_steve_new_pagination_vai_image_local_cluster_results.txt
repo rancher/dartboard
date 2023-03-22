@@ -1,0 +1,60 @@
+
+          /\      |‾‾| /‾‾/   /‾‾/   
+     /\  /  \     |  |/  /   /  /    
+    /  \/    \    |     (   /   ‾‾\  
+   /          \   |  |\  \ |  (‾)  | 
+  / __________ \  |__| \__\ \_____/ .io
+
+  execution: local
+     script: ./load_steve_new_pagination.js
+     output: -
+
+  scenarios: (100.00%) 1 scenario, 10 max VUs, 24h0m30s max duration (incl. graceful stop):
+           * list: 30 iterations for each of 10 VUs (maxDuration: 24h0m0s, exec: list, gracefulStop: 30s)
+
+
+running (0d00h00m01.0s), 10/10 VUs, 37 complete and 0 interrupted iterations
+list   [  12% ] 10 VUs  0d00h00m00.9s/24h0m0s  037/300 iters, 30 per VU
+
+running (0d00h00m02.0s), 10/10 VUs, 89 complete and 0 interrupted iterations
+list   [  30% ] 10 VUs  0d00h00m01.9s/24h0m0s  089/300 iters, 30 per VU
+
+running (0d00h00m03.0s), 10/10 VUs, 139 complete and 0 interrupted iterations
+list   [  46% ] 10 VUs  0d00h00m02.9s/24h0m0s  139/300 iters, 30 per VU
+
+running (0d00h00m04.0s), 10/10 VUs, 185 complete and 0 interrupted iterations
+list   [  62% ] 10 VUs  0d00h00m03.9s/24h0m0s  185/300 iters, 30 per VU
+
+running (0d00h00m05.0s), 10/10 VUs, 238 complete and 0 interrupted iterations
+list   [  79% ] 10 VUs  0d00h00m04.9s/24h0m0s  238/300 iters, 30 per VU
+
+running (0d00h00m06.0s), 08/10 VUs, 285 complete and 0 interrupted iterations
+list   [  95% ] 10 VUs  0d00h00m05.9s/24h0m0s  285/300 iters, 30 per VU
+
+running (0d00h00m06.3s), 00/10 VUs, 300 complete and 0 interrupted iterations
+list ✓ [ 100% ] 10 VUs  0d00h00m06.2s/24h0m0s  300/300 iters, 30 per VU
+
+     ✓ /v1/configmaps returns status 200
+
+     █ setup
+
+       ✓ /v3-public/localProviders/local?action=login returns status 200
+
+   ✓ checks.........................: 100.00% ✓ 901        ✗ 0   
+     data_received..................: 542 MB  86 MB/s
+     data_sent......................: 920 kB  146 kB/s
+     http_req_blocked...............: avg=101.84µs min=0s      med=0s       max=10.73ms  p(95)=1µs      p(99)=6.59ms   count=901
+     http_req_connecting............: avg=11.06µs  min=0s      med=0s       max=1.11ms   p(95)=0s       p(99)=799µs    count=901
+     http_req_duration..............: avg=62.16ms  min=1.88ms  med=64.54ms  max=216.41ms p(95)=128.59ms p(99)=157.02ms count=901
+       { expected_response:true }...: avg=62.16ms  min=1.88ms  med=64.54ms  max=216.41ms p(95)=128.59ms p(99)=157.02ms count=901
+     http_req_failed................: 0.00%   ✓ 0          ✗ 901 
+     http_req_receiving.............: avg=16.81ms  min=7µs     med=13.06ms  max=90.98ms  p(95)=51.41ms  p(99)=72.82ms  count=901
+     http_req_sending...............: avg=20.96µs  min=9µs     med=17µs     max=199µs    p(95)=45µs     p(99)=85µs     count=901
+     http_req_tls_handshaking.......: avg=88.74µs  min=0s      med=0s       max=9.79ms   p(95)=0s       p(99)=5.37ms   count=901
+     http_req_waiting...............: avg=45.32ms  min=1.83ms  med=46.39ms  max=202.56ms p(95)=87.93ms  p(99)=116.89ms count=901
+     http_reqs......................: 901     142.958984/s
+     iteration_duration.............: avg=199.31ms min=74.65ms med=199.22ms max=314.59ms p(95)=255.39ms p(99)=283.58ms count=301
+     iterations.....................: 300     47.600106/s
+     vus............................: 8       min=8        max=10
+     vus_max........................: 10      min=10       max=10
+
