@@ -150,6 +150,8 @@ Interpreting results: k6 will output several values. For this analysis most inte
 ```
 In the example above, retrieving a page up to 100 resources from the local cluster took **98.7ms** on average - 10.79ms best case, 94.62ms median case (~50% of samples fell below this number and ~50% above), 284.48ms worst case. p(95) indicates that 95% of requests took less than 175.11ms, and p(99) indicates that 99% took 210.48ms or less. In general, lower values are better.
 
+[A `test_runner.sh` script is provided in the util directory](../util/test_runner.sh) to automate multiple runs.
+
 #### Analysis of results
 
 Full results are available in the [20230306 - steve vai test results](https://github.com/moio/scalability-tests/tree/20230306_steve_vai_tests/docs/20230306%20-%20steve%20vai%20test%20results) directory, summary is in the table below:
