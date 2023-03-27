@@ -11,9 +11,9 @@ locals {
   upstream_agent_count    = 0
   upstream_distro_version = "v1.4.3/rke_darwin-amd64 v1.24.10-rancher4-1"
   # alternatives:
-  # upstream_distro_version = "v1.24.6+k3s1"
+  # upstream_distro_version = "v1.24.11+k3s1"
   # upstream_distro_version = "v1.24.8+rke2r1"
-  rancher_chart           = "https://releases.rancher.com/server-charts/latest/rancher-2.7.0.tgz"
+  rancher_chart           = "https://releases.rancher.com/server-charts/latest/rancher-2.7.2-rc7.tgz"
   upstream_san            = "upstream.local.gd"
   upstream_kubernetes_api_port          = 6443
 
@@ -21,7 +21,7 @@ locals {
   downstream_ami            = "ami-0096528c9fcc1a6a9" // Ubuntu: us-east-1 jammy 22.04 LTS amd64 hvm:ebs-ssd 20221118
   downstream_server_count   = 1
   downstream_agent_count    = 1
-  downstream_distro_version = "v1.24.6+k3s1"
+  downstream_distro_version = "v1.24.11+k3s1"
   # alternatives:
   # downstream_distro_version = "v1.24.8+rke2r1"
   # downstream_distro_version = "v1.4.3/rke_darwin-amd64 v1.24.10-rancher4-1"
