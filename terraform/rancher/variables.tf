@@ -13,6 +13,11 @@ variable "public_name" {
   type        = string
 }
 
+variable "bootstrap_password" {
+  description = "Bootstrap password for this Rancher server"
+  default = "admin"
+}
+
 variable "cert_manager_chart" {
   default = "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"
 }
