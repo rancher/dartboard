@@ -137,10 +137,10 @@ Variables:
 
 Run this command to benchmark:
 ```shell
-k6 run -e VUS=10 -e PER_VU_ITERATIONS=30 -e BASEURL=https://upstream.local.gd:8443 -e USERNAME=admin -e PASSWORD=adminadminadmin -e CLUSTER=$CLUSTER ./${TEST}.js
+k6 run -e VUS=10 -e PER_VU_ITERATIONS=30 -e BASEURL=https://upstream.local.gd:8443 -e USERNAME=admin -e PASSWORD=adminadminadmin -e CLUSTER=$CLUSTER ./$TEST.js
 ```
 - `$CLUSTER`: use either `local` for the local cluster or a cluster id (eg. `-e CLUSTER=c-m-q5ppjmfc`) for the downstream cluster
-- `TEST`: use either `load_steve_k8s_pagination` for k8s-based pagination or `load_steve_new_pagination` for the new Steve-cache pagination implementation
+- `$TEST`: use either `load_steve_k8s_pagination` for k8s-based pagination or `load_steve_new_pagination` for the new Steve-cache pagination implementation
 
 
 
