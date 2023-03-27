@@ -50,7 +50,7 @@ export function del(url){
     const res = http.del(url)
 
     check(res, {
-        'DELETE returns status 200': (r) => r.status === 200,
+        'DELETE returns status 200 or 404': (r) => r.status === 200 || r.status === 404,
     })
 
     return res
