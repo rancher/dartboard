@@ -48,3 +48,7 @@ resource "helm_release" "rancher_configurator" {
     value = var.public_name
   }
 }
+
+output "bootstrap_password" {
+  value = var.bootstrap_password
+}
