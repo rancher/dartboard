@@ -343,19 +343,6 @@ export function createImportedCluster(baseUrl, cookies, name) {
     check(response, {
         'querying clustertemplaterevisions works': (r) => r.status === 200,
     })
-
-    response = http.get(`${baseUrl}/v3/clusterregistrationtokens/${clusterId}:default-token`, {
-        headers: {
-            accept: 'application/json',
-        },
-        cookies: {cookies},
-    })
-    check(response, {
-        'querying clusterregistrationtokens works': (r) => r.status === 200,
-    })
-    const data = JSON.parse(response.body)
-
-    return `/v3/import/${data["token"]}_${clusterId}.yaml`
 }
 
 export function logout(baseUrl, cookies) {
