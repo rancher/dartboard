@@ -73,7 +73,7 @@ module "upstream_cluster" {
   subnet_id              = module.aws_network.private_subnet_id
   vpc_security_group_id  = module.aws_network.private_security_group_id
   kubernetes_api_port    = local.upstream_kubernetes_api_port
-  additional_ssh_tunnels = [[3000, 443]]
+  additional_ssh_tunnels = [[local.rancher_port, 443]]
   distro_version         = local.upstream_distro_version
   sans                   = [local.upstream_san]
   # k3s only
