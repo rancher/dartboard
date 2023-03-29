@@ -18,8 +18,8 @@ terraform {
       version = "2.2.1"
     }
     k3d = {
-      source  = "pvotal-tech/k3d"
-      version = "0.0.6"
+      source  = "moio/k3d"
+      version = "0.0.7"
     }
   }
 }

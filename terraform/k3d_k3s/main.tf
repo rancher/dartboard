@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     k3d = {
-      source = "pvotal-tech/k3d"
+      source = "moio/k3d"
     }
     docker = {
       source = "kreuzwerker/docker"
