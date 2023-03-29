@@ -16,15 +16,25 @@ export function run(cmd, ...args) {
     const cmdline = `${cmd} ${args.join(" ")}`
     console.log(`***Running: ${cmdline}`)
     const res = spawnSync(cmd, args, {
-        stdio: ["inherit", "pipe", "inherit"],
+        stdio: ["inherit", "inherit", "inherit"],
     })
     if (res.error){
         throw res.error
     }
-    const output = res.stdout.toString()
-    console.log(output)
     if (res.status !== 0){
         throw new Error(`Command returned status ${res.status}: ${cmdline}`)
     }
-    return output
+}
+
+export function runCollectingOutput(cmd, ...args) {
+    const res = spawnSync(cmd, args, {
+        stdio: ["ignore", "pipe", "inherit"],
+    })
+    if (res.error){
+        throw res.error
+    }
+    if (res.status !== 0){
+        throw new Error(`Command returned status ${res.status}: ${cmd} ${args.join(" ")}`)
+    }
+    return res.stdout.toString()
 }
