@@ -29,6 +29,14 @@ resource "helm_release" "rancher" {
     value = "https://${var.private_name}:${var.private_port}"
   }
   set {
+    name  = "extraEnv[1].name"
+    value = "CATTLE_BOOTSTRAP_PASSWORD"
+  }
+  set {
+    name  = "extraEnv[1].value"
+    value = var.bootstrap_password
+  }
+  set {
     name  = "hostname"
     value = var.private_name
   }
