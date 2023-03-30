@@ -181,7 +181,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
         headers: {
             accept: 'application/json',
         },
-        cookies: {cookies},
+        cookies: cookies,
     })
     check(response, {
         'querying clusterrepos works': (r) => r.status === 200,
@@ -190,7 +190,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
     response = http.get(`${baseUrl}/v1/management.cattle.io.kontainerdrivers`, {
         headers: {
             accept: 'application/json',
-            cookies: {cookies},
+            cookies: cookies,
         },
     })
     check(response, {
@@ -203,7 +203,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
             headers: {
                 accept: 'application/json',
             },
-            cookies: {cookies},
+            cookies: cookies,
         }
     )
     check(response, {
@@ -216,7 +216,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
             headers: {
                 accept: 'application/json',
             },
-            cookies: {cookies},
+            cookies: cookies,
         }
     )
     check(response, {
@@ -229,7 +229,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
             headers: {
                 accept: 'application/json',
             },
-            cookies: {cookies},
+            cookies: cookies,
         }
     )
     check(response, {
@@ -240,7 +240,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
         headers: {
             accept: 'application/json',
         },
-        cookies: {cookies},
+        cookies: cookies,
     })
     check(response, {
         'querying clusterroletemplatebindings works': (r) => r.status === 200,
@@ -250,7 +250,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
         headers: {
             accept: 'application/json',
         },
-        cookies: {cookies},
+        cookies: cookies,
     })
     check(response, {
         'querying roletemplates works': (r) => r.status === 200,
@@ -264,9 +264,10 @@ export function createImportedCluster(baseUrl, cookies, name) {
                 accept: 'application/json',
                 'content-type': 'application/json',
             },
-            cookies: {cookies},
+            cookies: cookies,
         }
     )
+
     check(response, {
         'creating an imported cluster works': (r) => r.status === 201 || r.status === 409,
     })
@@ -280,7 +281,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
             headers: {
                 accept: 'application/json',
             },
-            cookies: {cookies},
+            cookies: cookies,
         }
     )
     check(response, {
@@ -295,7 +296,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
         headers: {
             accept: 'application/json',
         },
-        cookies: {cookies},
+        cookies: cookies,
     })
     check(response, {
         'querying machinedeployments works': (r) => r.status === 200,
@@ -305,7 +306,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
         headers: {
             accept: 'application/json',
         },
-        cookies: {cookies},
+        cookies: cookies,
     })
     check(response, {
         'querying etcdsnapshots works': (r) => r.status === 200,
@@ -315,7 +316,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
         headers: {
             accept: 'application/json',
         },
-        cookies: {cookies},
+        cookies: cookies,
     })
     check(response, {
         'querying nodetemplates works': (r) => r.status === 200,
@@ -325,7 +326,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
         headers: {
             accept: 'application/json',
         },
-        cookies: {cookies},
+        cookies: cookies,
     })
     check(response, {
         'querying clustertemplates works': (r) => r.status === 200,
@@ -337,7 +338,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
             headers: {
                 accept: 'application/json',
             },
-            cookies: {cookies},
+            cookies: cookies,
         }
     )
     check(response, {
