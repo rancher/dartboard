@@ -2,10 +2,9 @@
 import {cd, run, runCollectingOutput} from "./common.mjs"
 
 cd("terraform")
-
 run("terraform", "init")
 
-// HACK: Helm deployer does not always clean up successfully. Get rid of its state, cluster is being recreated anyway
+// HACK: Helm deployer does not always clean up successfully. Get rid of its state, cluster is being destroyed anyway
 const states = runCollectingOutput("terraform", "state", "list").split("\n")
 for (const i in states) {
     const state = states[i]
