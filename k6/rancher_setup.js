@@ -15,8 +15,8 @@ export default function main() {
 
     firstLogin(baseUrl, cookies, bootstrapPassword, password)
 
-    for (const name in importedClusterNames) {
-        createImportedCluster(baseUrl, cookies, name)
+    for (const i in importedClusterNames) {
+        createImportedCluster(baseUrl, cookies, importedClusterNames[i])
     }
 
     logout(baseUrl, cookies)
