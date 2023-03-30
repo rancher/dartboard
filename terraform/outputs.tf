@@ -7,7 +7,7 @@ output "bootstrap_password" {
 }
 
 output "downstream_cluster_names" {
-  value = [local.downstream_san]
+  value = ["downstream"]
 }
 
 output "rancher_help" {
