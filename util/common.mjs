@@ -14,7 +14,7 @@ export function cd(dir){
 
 export function run(cmd, ...args) {
     const cmdline = `${cmd} ${args.join(" ")}`
-    console.log(`***Running: ${cmdline}`)
+    console.log(`***Running command:\n ${cmdline}\n`)
     const res = spawnSync(cmd, args, {
         stdio: ["inherit", "inherit", "inherit"],
     })
