@@ -290,7 +290,6 @@ export function createImportedCluster(baseUrl, cookies, name) {
     if (!response.status === 200) {
         fail(`cluster ${name} not found`)
     }
-    const clusterId = JSON.parse(response.body)["status"]["clusterName"]
 
     response = http.get(`${baseUrl}/v1/cluster.x-k8s.io.machinedeployments`, {
         headers: {
