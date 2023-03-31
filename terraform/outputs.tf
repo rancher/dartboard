@@ -6,19 +6,10 @@ output "bootstrap_password" {
   value = local.upstream_server_count > 0 ? module.rancher[0].bootstrap_password : null
 }
 
-output "downstream_cluster_names" {
-  value = ["downstream"]
+output "upstream_cluster" {
+  value = {kubeconfig:pathexpand("../config/upstream.yaml"), context:"upstream.local.gd"}
 }
 
-output "rancher_help" {
-  value = <<-EOT
-    UPSTREAM CLUSTER ACCESS:
-      export KUBECONFIG=../config/upstream.yaml
-
-    DOWNSTREAM CLUSTER ACCESS:
-      export KUBECONFIG=../config/downstream.yaml
-
-    RANCHER UI:
-      https://${local.upstream_san}:${local.rancher_port}
- EOT
+output "downstream_clusters" {
+  value = [{name: "downstream", kubeconfig:pathexpand("../config/downstream.yaml"), context:"downstream.local.gd"}]
 }
