@@ -12,11 +12,14 @@ export function cd(dir){
     chdir(join(__dirname, dir))
 }
 
-export function run(cmd, ...args) {
-    const cmdline = `${cmd} ${args.join(" ")}`
+export function run(cmdline, options = {}) {
     console.log(`***Running command:\n ${cmdline}\n`)
+    const cmd = cmdline.split(" ")[0]
+    const args = cmdline.split(" ").slice(1)
     const res = spawnSync(cmd, args, {
-        stdio: "inherit",
+        input: options.input,
+        stdio: [options.input ? "pipe": "inherit", options.collectingOutput ? "pipe" : "inherit", "inherit"],
+        shell: false
     })
     if (res.error){
         throw res.error
@@ -24,39 +27,13 @@ export function run(cmd, ...args) {
     if (res.status !== 0){
         throw new Error(`Command returned status ${res.status}: ${cmdline}`)
     }
+    return res.stdout?.toString()
 }
 
-export function runWithInput(input, cmd, ...args) {
-    const cmdline = `${cmd} ${args.join(" ")}`
-    console.log(`***Running command:\n ${cmdline}\n`)
-    const res = spawnSync(cmd, args, {
-        input: input,
-        stdio: ["pipe", "inherit", "inherit"],
-    })
-    if (res.error){
-        throw res.error
-    }
-    if (res.status !== 0){
-        throw new Error(`Command returned status ${res.status}: ${cmdline}`)
-    }
+export function runCollectingOutput(cmdline) {
+    return run(cmdline, {collectingOutput: true})
 }
 
-export function runWithOutput(cmd, ...args) {
-    const cmdline = `${cmd} ${args.join(" ")}`
-    console.log(`***Running command:\n ${cmdline}\n`)
-    const res = spawnSync(cmd, args, {
-        stdio: ["ignore", "pipe", "inherit"],
-    })
-    if (res.error){
-        throw res.error
-    }
-    if (res.status !== 0){
-        throw new Error(`Command returned status ${res.status}: ${cmd} ${args.join(" ")}`)
-    }
-    return res.stdout.toString()
-}
-
-export function runWithJsonOutput(cmd, ...args) {
-    const output = runWithOutput(cmd, ...args)
-    return JSON.parse(output)
+export function runCollectingJSONOutput(cmdline) {
+    return JSON.parse(runCollectingOutput(cmdline))
 }
