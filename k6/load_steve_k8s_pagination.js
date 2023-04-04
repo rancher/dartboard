@@ -1,4 +1,4 @@
-import { check } from 'k6';
+import { check, fail } from 'k6';
 import http from 'k6/http';
 import { textSummary } from './lib/k6-summary-0.0.2.js';
 
@@ -65,14 +65,22 @@ export function list(cookies) {
             '/v1/configmaps returns status 200': (r) => r.status === 200,
         })
 
-        const body = JSON.parse(res.body)
-        if (body === undefined || body.continue === undefined) {
-            break
+        try {
+            const body = JSON.parse(res.body)
+            if (body === undefined || body.continue === undefined) {
+                break
+            }
+            if (revision == null) {
+                revision = body.revision
+            }
+            continueToken = body.continue
         }
-        if (revision == null) {
-            revision = body.revision
+        catch (e){
+            if (e instanceof SyntaxError) {
+                fail("Response body does not parse as JSON: " + res.body)
+            }
+            throw e
         }
-        continueToken = body.continue
     }
 }
 
