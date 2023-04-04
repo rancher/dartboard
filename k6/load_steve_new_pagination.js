@@ -1,5 +1,6 @@
 import { check } from 'k6';
 import http from 'k6/http';
+import { textSummary } from './lib/k6-summary-0.0.2.js';
 
 // Parameters
 const vus = __ENV.VUS
@@ -12,8 +13,6 @@ const cluster = __ENV.CLUSTER
 // Option setting
 export const options = {
     insecureSkipTLSVerify: true,
-
-    summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)', 'count'],
 
     scenarios: {
         list : {
@@ -73,5 +72,12 @@ export function list(cookies) {
             revision = body.revision
         }
         i = i + 1
+    }
+}
+
+export function handleSummary(data) {
+    return {
+        'stdout': textSummary(data, { indent: ' ', enableColors: true }), // keep default text output
+        "out.json": JSON.stringify(data), // additionally dump raw data in JSON form for later processing
     }
 }
