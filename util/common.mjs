@@ -27,6 +27,7 @@ export function run(cmdline, options = {}) {
     if (res.status !== 0){
         throw new Error(`Command returned status ${res.status}: ${cmdline}`)
     }
+    console.log("")
     return res.stdout?.toString()
 }
 
