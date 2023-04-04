@@ -21,6 +21,7 @@ export const options = {
         },
     ],
 
+    setupTimeout: '8h',
 
     scenarios: {
         create: {
