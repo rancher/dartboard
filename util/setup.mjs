@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {ADMIN_PASSWORD, dir, run, runCollectingJSONOutput, runCollectingOutput, sleep} from "./common.mjs"
+import {ADMIN_PASSWORD, dir, run, runCollectingJSONOutput, runCollectingOutput} from "./common.mjs"
 
 
 run(`terraform -chdir=${dir("terraform")} init`)
@@ -27,8 +27,10 @@ for (const i in importedClusters) {
 
     const url = `${baseUrl}/v3/import/${token}_${clusterId}.yaml`
     const yaml = runCollectingOutput(`curl --insecure -fL ${url}`)
-    run("kubectl apply -f -" + dka + dca, {input: yaml})
+    run(`kubectl apply -f - ${dka} ${dca}`, {input: yaml})
 }
+
+run(`kubectl wait clusters.management.cattle.io --all --for condition=ready=true --timeout=1h ${uka} ${uca}`)
 
 console.log("\n")
 console.log(`***Rancher UI:\n    ${baseUrl} (admin/${ADMIN_PASSWORD})`)

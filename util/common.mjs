@@ -39,3 +39,7 @@ export function runCollectingOutput(cmdline) {
 export function runCollectingJSONOutput(cmdline) {
     return JSON.parse(runCollectingOutput(cmdline))
 }
+
+export function sleep(s) {
+    return new Promise(resolve => setTimeout(resolve, s*1000));
+}
