@@ -14,7 +14,7 @@ export function dir(dir){
 }
 
 export function run(cmdline, options = {}) {
-    console.log(`***Running command:\n ${cmdline}\n`)
+    console.log(`***Running command:\n ${cmdline.replaceAll(",", "\,")}\n`)
     const cmd = cmdline.split(" ")[0]
     const args = cmdline.split(" ").slice(1)
     const res = spawnSync(cmd, args, {
@@ -26,7 +26,7 @@ export function run(cmdline, options = {}) {
         throw res.error
     }
     if (res.status !== 0){
-        throw new Error(`Command returned status ${res.status}: ${cmdline}`)
+        throw new Error(`Command returned status ${res.status}: ${cmdline.replaceAll(",", "\\,")}`)
     }
     console.log("")
     return res.stdout?.toString()
