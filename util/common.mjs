@@ -1,15 +1,16 @@
 import { spawnSync } from 'child_process'
-import { dirname, join } from 'path'
-import { chdir } from 'process'
+import { dirname, relative, join } from 'path'
+import { cwd } from 'process'
 import { fileURLToPath } from 'url'
 
 export const ADMIN_PASSWORD = "adminadminadmin"
 
-export function cd(dir){
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(dirname(__filename))
+export function dir(dir){
+    const desiredPath = join(dirname(dirname(fileURLToPath(import.meta.url))), dir)
+    const currentPath = cwd()
+    const result = relative(currentPath, desiredPath)
 
-    chdir(join(__dirname, dir))
+    return result !== "" ? result : "."
 }
 
 export function run(cmdline, options = {}) {
