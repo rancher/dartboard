@@ -32,6 +32,7 @@ for (const i in importedClusters) {
 }
 
 run(`kubectl wait clusters.management.cattle.io --all --for condition=ready=true --timeout=1h ${uka} ${uca}`)
+run(`kubectl wait cluster.fleet.cattle.io --all --namespace fleet-default --for condition=ready=true --timeout=1h ${uka} ${uca}`)
 
 console.log("\n")
 console.log(`***Rancher UI:\n    ${baseUrl} (admin/${ADMIN_PASSWORD})`)
