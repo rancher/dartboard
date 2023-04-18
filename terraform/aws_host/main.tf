@@ -55,6 +55,7 @@ resource "local_file" "open_tunnels" {
     ssh_bastion_host = var.ssh_bastion_host,
     ssh_tunnels      = var.ssh_tunnels,
     private_name     = aws_instance.instance.private_dns
+    public_name      = aws_instance.instance.public_dns
   })
 
   filename = "${path.module}/../../config/open-tunnels-to-${var.name}.sh"
