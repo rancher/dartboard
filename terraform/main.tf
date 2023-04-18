@@ -56,7 +56,7 @@ module "bastion" {
 }
 
 module "upstream_cluster" {
-  source = "./aws_rke"
+  source                 = "./aws_rke"
   # alternatives:
   # source = "./aws_k3s"
   # source = "./aws_rke2"
@@ -87,16 +87,16 @@ provider "helm" {
 }
 
 module "rancher" {
-  depends_on         = [module.upstream_cluster]
-  count              = local.upstream_server_count > 0 ? 1 : 0
-  source             = "./rancher"
-  public_name        = local.upstream_san
-  private_name       = module.upstream_cluster.first_server_private_name
-  chart              = local.rancher_chart
+  depends_on   = [module.upstream_cluster]
+  count        = local.upstream_server_count > 0 ? 1 : 0
+  source       = "./rancher"
+  public_name  = local.upstream_san
+  private_name = module.upstream_cluster.first_server_private_name
+  chart        = local.rancher_chart
 }
 
 module "downstream_cluster" {
-  source = "./aws_k3s"
+  source                = "./aws_k3s"
   # alternatives:
   # source = "./aws_rke"
   # source = "./aws_rke2"
