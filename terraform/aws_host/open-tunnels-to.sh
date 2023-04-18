@@ -1,9 +1,9 @@
 #!/bin/sh
 
 # Kill any previously created tunnels
-%{ for tunnel in ssh_tunnels }
+%{ for tunnel in ssh_tunnels ~}
 pkill -f 'ssh .*-o IgnoreUnknown=TerraformCreatedThisTunnel.*-L ${tunnel[0]}:localhost:[0-9]+.*'
-%{ endfor }
+%{ endfor ~}
 
 # Create tunnels
 nohup ssh -o IgnoreUnknown=TerraformCreatedThisTunnel \
