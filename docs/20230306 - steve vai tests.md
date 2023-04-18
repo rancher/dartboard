@@ -49,6 +49,7 @@ All infrastructure is defined in [Terraform](https://www.terraform.io/) files in
 - [Terraform](https://www.terraform.io/downloads)
 - `git`
 - `nc` (netcat)
+- `make`
 - [k6](https://k6.io)
 
 ### Setup
