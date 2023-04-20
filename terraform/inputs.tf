@@ -13,7 +13,7 @@ locals {
   # alternatives:
   # upstream_distro_version = "v1.24.11+k3s1"
   # upstream_distro_version = "v1.24.8+rke2r1"
-  rancher_chart                = "https://releases.rancher.com/server-charts/latest/rancher-2.7.2-rc7.tgz"
+  rancher_chart                = "https://releases.rancher.com/server-charts/latest/rancher-2.7.2.tgz"
   upstream_san                 = "upstream.local.gd"
   upstream_kubernetes_api_port = 6443
   rancher_port                 = 8443
