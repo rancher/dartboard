@@ -30,7 +30,7 @@ locals {
 }
 
 resource "aws_eip" "nat_eip" {
-  vpc = true
+  vpc  = true
   tags = {
     Project = var.project_name
     Name    = "${var.project_name}-nat-eip"
