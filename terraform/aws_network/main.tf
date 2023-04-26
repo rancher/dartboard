@@ -1,6 +1,6 @@
 /*
   This module sets up a class B VPC sliced into two subnets, one public and one private.
-  The private network has no Internet access.
+  The private network has Internet access but does not accept any connections.
   The public network has an Internet Gateway and accepts SSH connections
 */
 
