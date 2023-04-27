@@ -47,3 +47,10 @@ for (const i in importedClusters) {
     console.log(`***${name} cluster access:\n    ${dka} ${dca}`)
 }
 console.log("")
+
+// install monitoring on upstream cluster
+const lib = dir("bin/lib")
+const huka = `--kubeconfig=${upstreamCluster["kubeconfig"]}`
+const huca = `--kube-context=${upstreamCluster["context"]}`
+run(`helm upgrade --install --namespace=cattle-monitoring-system --create-namespace rancher-monitoring-crd https://github.com/rancher/charts/raw/release-v2.7/assets/rancher-monitoring-crd/rancher-monitoring-crd-102.0.0%2Bup40.1.2.tgz --values=${lib}/monitoring-crd-values.yaml ${huka} ${huca}`)
+run(`helm upgrade --install --namespace=cattle-monitoring-system rancher-monitoring https://github.com/rancher/charts/raw/release-v2.7/assets/rancher-monitoring/rancher-monitoring-102.0.0%2Bup40.1.2.tgz --values=${lib}/monitoring-values.yaml ${huka} ${huca}`)
