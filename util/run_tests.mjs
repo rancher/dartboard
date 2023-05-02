@@ -22,6 +22,10 @@ for (const tag of ["baseline", "vai"]) {
     run(`kubectl set image -n cattle-system deployment/cattle-cluster-agent cluster-register=rancher/rancher-agent:${tag} --kubeconfig=${downstreamKubeconfig} --context=${downstreamContext}`)
     run(`kubectl rollout status --watch --timeout=3600s -n cattle-system deployment/cattle-cluster-agent --kubeconfig=${downstreamKubeconfig} --context=${downstreamContext}`)
 
+    // HACK: allow 5 more minutes for Steve to start up on the remote cluster
+    // this can be removed with a good way to detect the "Steve auth startup complete" log message
+    await sleep(5*60)
+
     for (const count of [100, 400, 1600/*, 6400, 25600*/]) {
         for (const cluster of [upstreamCluster, downstreamCluster]) {
             run(`k6 run -e KUBECONFIG=${cluster["kubeconfig"]} -e CONTEXT=${cluster["context"]} -e COUNT=${count} ${dir("k6")}/create_config_maps.js`)
