@@ -26,7 +26,7 @@ for (const tag of ["baseline", "vai"]) {
     // this can be removed with a good way to detect the "Steve auth startup complete" log message
     await sleep(5*60)
 
-    for (const count of [100, 400, 1600/*, 6400, 25600*/]) {
+    for (const count of [100, 400, 1600, 6400]) {
         for (const cluster of [upstreamCluster, downstreamCluster]) {
             run(`k6 run -e KUBECONFIG=${cluster["kubeconfig"]} -e CONTEXT=${cluster["context"]} -e COUNT=${count} ${dir("k6")}/create_config_maps.js`)
         }
