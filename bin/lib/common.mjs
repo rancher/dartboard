@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url'
 export const ADMIN_PASSWORD = "adminadminadmin"
 
 export function dir(dir){
-    const desiredPath = join(dirname(dirname(fileURLToPath(import.meta.url))), dir)
+    const desiredPath = join(dirname(dirname(dirname(fileURLToPath(import.meta.url)))), dir)
     const currentPath = cwd()
     const result = relative(currentPath, desiredPath)
 
