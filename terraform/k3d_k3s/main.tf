@@ -179,7 +179,7 @@ resource "k3d_cluster" "cluster" {
         {
           // https://github.com/kubernetes/kubernetes/issues/104459
           arg          = "--disable=metrics-server",
-          node_filters = ["all:*"]
+          node_filters = ["server:*"]
         }
       ],
         var.datastore != "default" ? [
