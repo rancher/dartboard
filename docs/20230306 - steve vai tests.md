@@ -21,7 +21,7 @@ Under test conditions, according to collected measures described below:
   - backing hardware: one Lenovo ThinkPad P51 laptop (circa 2017)
     - Intel(R) Core(TM) i7-7820HQ CPU @ 2.90GHz, 8 vCPUs
     - 32 GiB RAM
-    - SSD local storage
+    - 2x SSD local storage (LVM striping, ext4)
 - k6 load generator running on another laptop on the same wired local network
 
 ## Process outline
