@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import {appendFileSync, readFileSync} from "fs";
-import {ADMIN_PASSWORD, dir, run, runCollectingJSONOutput, sleep} from "./common.mjs"
+import {ADMIN_PASSWORD, dir, run, runCollectingJSONOutput, sleep} from "./lib/common.mjs"
 
 const params = runCollectingJSONOutput(`terraform -chdir=${dir("terraform")} output -json`)
 const baseUrl = params["base_url"]["value"]

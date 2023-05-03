@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {dir, run, runCollectingOutput} from "./common.mjs"
+import {dir, run, runCollectingOutput} from "./lib/common.mjs"
 
 run(`terraform -chdir=${dir("terraform")} init`)
 
