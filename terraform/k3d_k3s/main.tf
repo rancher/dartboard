@@ -23,7 +23,7 @@ resource "docker_container" "mariadb" {
   count = var.datastore == "mariadb" ? 1 : 0
   image = docker_image.mariadb[0].image_id
   name  = "kine-mariadb"
-  env = [
+  env   = [
     "MARIADB_DATABASE=${var.datastore_dbname}",
     "MARIADB_USER=${var.datastore_username}",
     "MARIADB_PASSWORD=${var.datastore_password}",
@@ -57,7 +57,7 @@ resource "docker_container" "postgres" {
   count = var.datastore == "postgres" ? 1 : 0
   image = docker_image.postgres[0].image_id
   name  = "kine-postgres"
-  env = [
+  env   = [
     "POSTGRES_DB=${var.datastore_dbname}",
     "POSTGRES_USER=${var.datastore_username}",
     "POSTGRES_PASSWORD=${var.datastore_password}",
@@ -80,7 +80,10 @@ resource "docker_container" "postgres" {
   remove_volumes = false
 
   healthcheck {
-    test     = ["CMD-SHELL", "PGPASSWORD=${var.datastore_password} pg_isready --dbname=${var.datastore_dbname} --username=${var.datastore_username}"]
+    test = [
+      "CMD-SHELL",
+      "PGPASSWORD=${var.datastore_password} pg_isready --dbname=${var.datastore_dbname} --username=${var.datastore_username}"
+    ]
     interval = "1s"
     retries  = "60"
     timeout  = "10s"
@@ -89,7 +92,8 @@ resource "docker_container" "postgres" {
 
   command = [
     "postgres",
-    "-c", "log_min_duration_statement=${var.postgres_log_min_duration_statement != null ? var.postgres_log_min_duration_statement : -1}",
+    "-c",
+    "log_min_duration_statement=${var.postgres_log_min_duration_statement != null ? var.postgres_log_min_duration_statement : -1}",
 
     // rough minimal tuning parameters below generated via https://pgtune.leopard.in.ua/
     // assumptions: web application, 16 GB RAM, 4 vCPUs, SSD storage, 50 connections
@@ -117,11 +121,11 @@ resource "docker_container" "postgres" {
 
 locals {
   datastore_endpoint = (
-    var.datastore == "mariadb" ?
-    "mysql://${var.datastore_username}:${var.datastore_password}@tcp(kine-mariadb:3306)/${var.datastore_dbname}" :
-    var.datastore == "postgres" ?
-    "postgres://${var.datastore_username}:${var.datastore_password}@kine-postgres:5432/${var.datastore_dbname}?sslmode=disable" :
-    null
+  var.datastore == "mariadb" ?
+  "mysql://${var.datastore_username}:${var.datastore_password}@tcp(kine-mariadb:3306)/${var.datastore_dbname}" :
+  var.datastore == "postgres" ?
+  "postgres://${var.datastore_username}:${var.datastore_password}@kine-postgres:5432/${var.datastore_dbname}?sslmode=disable" :
+  null
   )
 }
 
@@ -143,8 +147,8 @@ resource "docker_container" "kine" {
   command = concat([
     "--endpoint",
     local.datastore_endpoint,
-    ],
-  var.kine_debug ? ["--debug"] : [])
+  ],
+    var.kine_debug ? ["--debug"] : [])
 }
 
 resource "k3d_cluster" "cluster" {
@@ -171,30 +175,38 @@ resource "k3d_cluster" "cluster" {
 
   k3s {
     dynamic "extra_args" {
-      for_each = concat([{
-        // https://github.com/kubernetes/kubernetes/issues/104459
-        arg          = "--disable=metrics-server",
-        node_filters = ["all:*"]
-        }],
-        var.datastore != "default" ? [{
-          arg          = "--datastore-endpoint=http://kine:2379",
-          node_filters = ["server:*"]
-        }] : [],
-        var.enable_pprof ? [{
-          arg          = "--enable-pprof",
-          node_filters = ["server:*"]
-        }] : [],
-        var.log_level != null ? [{
-          arg          = "-v=${var.log_level}",
-          node_filters = ["server:*"]
-        }] : [],
-        [
-          for san in var.sans :
+      for_each = concat([
+        {
+          // https://github.com/kubernetes/kubernetes/issues/104459
+          arg          = "--disable=metrics-server",
+          node_filters = ["all:*"]
+        }
+      ],
+        var.datastore != "default" ? [
           {
-            arg          = "--tls-san=${san}",
+            arg          = "--datastore-endpoint=http://kine:2379",
             node_filters = ["server:*"]
           }
-      ])
+        ] : [],
+        var.enable_pprof ? [
+          {
+            arg          = "--enable-pprof",
+            node_filters = ["server:*"]
+          }
+        ] : [],
+        var.log_level != null ? [
+          {
+            arg          = "-v=${var.log_level}",
+            node_filters = ["server:*"]
+          }
+        ] : [],
+        [
+        for san in var.sans :
+        {
+          arg          = "--tls-san=${san}",
+          node_filters = ["server:*"]
+        }
+        ])
       content {
         arg          = extra_args.value["arg"]
         node_filters = extra_args.value["node_filters"]
