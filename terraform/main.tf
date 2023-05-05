@@ -28,6 +28,8 @@ module "upstream_cluster" {
   network_name             = module.network.name
   server_count             = local.upstream_server_count
   agent_count              = local.upstream_agent_count
+  labels                   = [{ key : "monitoring", value : "true", node_filters : ["agent:0"] }]
+  taints                   = [{ key : "monitoring", value : "true", effect : "NoSchedule", node_filters : ["agent:0"] }]
   distro_version           = local.upstream_distro_version
   sans                     = [local.upstream_san]
   kubernetes_api_port      = local.upstream_kubernetes_api_port
@@ -42,12 +44,12 @@ provider "helm" {
 }
 
 module "rancher" {
-  depends_on         = [module.upstream_cluster]
-  count              = local.upstream_server_count > 0 ? 1 : 0
-  source             = "./rancher"
-  public_name        = local.upstream_san
-  private_name       = module.upstream_cluster.first_server_private_name
-  chart              = local.rancher_chart
+  depends_on   = [module.upstream_cluster]
+  count        = local.upstream_server_count > 0 ? 1 : 0
+  source       = "./rancher"
+  public_name  = local.upstream_san
+  private_name = module.upstream_cluster.first_server_private_name
+  chart        = local.rancher_chart
 }
 
 module "downstream_cluster" {
