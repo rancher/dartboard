@@ -1,6 +1,6 @@
 locals {
   upstream_server_count        = 3
-  upstream_agent_count         = 0
+  upstream_agent_count         = 2
   upstream_distro_version      = "v1.24.12+k3s1"
   upstream_san                 = "upstream.local.gd"
   upstream_kubernetes_api_port = 6445
