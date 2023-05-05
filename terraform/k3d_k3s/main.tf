@@ -206,7 +206,22 @@ resource "k3d_cluster" "cluster" {
           arg          = "--tls-san=${san}",
           node_filters = ["server:*"]
         }
-        ])
+        ],
+        [
+        for label in var.labels :
+        {
+          arg          = "--node-label=${label.key}=${label.value}",
+          node_filters = label.node_filters
+        }
+        ],
+        [
+        for taint in var.taints :
+        {
+          arg          = "--node-taint=${taint.key}=${taint.value}:${taint.effect}",
+          node_filters = taint.node_filters
+        }
+        ]
+      )
       content {
         arg          = extra_args.value["arg"]
         node_filters = extra_args.value["node_filters"]
@@ -229,13 +244,12 @@ resource "k3d_cluster" "cluster" {
     content {
       host_port      = port.value[0]
       container_port = port.value[1]
-      node_filters = [
+      node_filters   = [
         "server:0:direct",
       ]
     }
   }
 }
-
 
 output "first_server_private_name" {
   value = "k3d-${var.project_name}-${var.name}-server-0"
