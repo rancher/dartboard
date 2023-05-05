@@ -18,6 +18,18 @@ variable "agent_count" {
   default     = 0
 }
 
+variable "labels" {
+  description = "List of labels to apply according to node_filters"
+  type        = list(object({ key : string, value : string, node_filters : list(string) }))
+  default     = []
+}
+
+variable "taints" {
+  description = "List of taints to apply according to node_filters"
+  type        = list(object({ key : string, value : string, effect : string, node_filters : list(string) }))
+  default     = []
+}
+
 variable "sans" {
   description = "Additional Subject Alternative Names"
   type        = list(string)
