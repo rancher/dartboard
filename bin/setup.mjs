@@ -46,11 +46,22 @@ helm_install("rancher-monitoring-crd", RANCHER_MONITORING_CRD_CHART, upstreamClu
     systemDefaultRegistry: "",
 })
 
+const monitoringRestrictions = {
+    nodeSelector: {monitoring: "true"},
+    tolerations: [{key: "monitoring", operator: "Exists", effect: "NoSchedule"}],
+}
+helm_install("mimir", dir("charts/mimir"), upstreamCluster, "cattle-monitoring-system", monitoringRestrictions)
+
 helm_install("rancher-monitoring", RANCHER_MONITORING_CHART, upstreamCluster, "cattle-monitoring-system", {
     alertmanager: { enabled:"false" },
     grafana: {
         nodeSelector: {monitoring: "true"},
         tolerations: [{key: "monitoring", operator: "Exists", effect: "NoSchedule"}],
+        additionalDataSources: [{
+            name: 'mimir',
+            type: 'prometheus',
+            url: 'http://mimir:9009/prometheus',
+        }]
     },
     prometheus: {
         prometheusSpec: {
@@ -59,21 +70,30 @@ helm_install("rancher-monitoring", RANCHER_MONITORING_CHART, upstreamCluster, "c
             tolerations: [{key: "monitoring", operator: "Exists", effect: "NoSchedule"}],
             resources: {limits: {memory: "5000Mi"}},
             retentionSize: "50GiB",
-            scrapeInterval: "1m"
+            scrapeInterval: "1m",
+
+            // configure writing metrics to mimir
+            remoteWrite: [{
+                url: "http://mimir:9009/api/v1/push",
+                writeRelabelConfigs: [
+                    // drop all metrics except for the ones matching regex
+                    {
+                        sourceLabels: ['__name__'],
+                        regex: "node_namespace_pod_container.*",
+                        action: "keep",
+                    },
+                    // add a testsuite-commit label to all metrics
+                    {
+                        targetLabel: 'testsuite_commit',
+                        replacement: runCollectingOutput("git rev-parse --short HEAD"),
+                        action: "replace",
+                    }]
+            }]
         }
     },
-    "prometheus-adapter": {
-        nodeSelector: {monitoring: "true"},
-        tolerations: [{key: "monitoring", operator: "Exists", effect: "NoSchedule"}],
-    },
-    "kube-state-metrics": {
-        nodeSelector: {monitoring: "true"},
-        tolerations: [{key: "monitoring", operator: "Exists", effect: "NoSchedule"}],
-    },
-    prometheusOperator: {
-        nodeSelector: {monitoring: "true"},
-        tolerations: [{key: "monitoring", operator: "Exists", effect: "NoSchedule"}],
-    },
+    "prometheus-adapter": monitoringRestrictions,
+    "kube-state-metrics": monitoringRestrictions,
+    prometheusOperator: monitoringRestrictions,
     global: {
         cattle: {
             clusterId: "local",
@@ -83,6 +103,7 @@ helm_install("rancher-monitoring", RANCHER_MONITORING_CHART, upstreamCluster, "c
     },
     systemDefaultRegistry: "",
 })
+
 
 const uf = `--kubeconfig=${upstreamCluster["kubeconfig"]} --context=${upstreamCluster["context"]}`
 run(`kubectl wait deployment/rancher --namespace cattle-system --for condition=Available=true --timeout=1h ${uf}`)
