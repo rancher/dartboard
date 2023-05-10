@@ -1,6 +1,0 @@
-apiVersion: v2
-name: rancher-configurator
-description: Configures Rancher
-type: application
-version: 0.1.0
-appVersion: "2.6.5"

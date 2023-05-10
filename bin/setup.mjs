@@ -31,8 +31,8 @@ helm_install("rancher", RANCHER_CHART, upstreamCluster, "cattle-system", {
 })
 
 const upstreamSAN = tfOutput["upstream_san"]["value"]
-helm_install("rancher-configurator", dir("charts/rancher-configurator"), upstreamCluster, "default", {
-    publicName: upstreamSAN,
+helm_install("rancher-ingress", dir("charts/rancher-ingress"), upstreamCluster, "default", {
+    san: upstreamSAN,
 })
 
 helm_install("rancher-monitoring-crd", RANCHER_MONITORING_CRD_CHART, upstreamCluster, "cattle-monitoring-system", {
