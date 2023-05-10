@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rancher-ingress
+description: Adds an Ingress to Rancher to make it accessible from a SAN
+type: application
+version: 0.1.0
+appVersion: "2.6.5"
