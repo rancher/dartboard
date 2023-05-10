@@ -43,3 +43,8 @@ export function runCollectingJSONOutput(cmdline) {
 export function sleep(s) {
     return new Promise(resolve => setTimeout(resolve, s*1000));
 }
+
+export function helm_install(name, chart, cluster, namespace, values) {
+    const json = Object.entries(values).map(([k,v]) => `${k}=${JSON.stringify(v)}`).join(",")
+    run(`helm --kubeconfig=${cluster["kubeconfig"]} --kube-context=${cluster["context"]} upgrade --install --namespace=${namespace} ${name} ${chart} --create-namespace --set-json=${json}`)
+}

@@ -1,9 +1,13 @@
-output "base_url" {
-  value = "https://${local.upstream_san}:${local.rancher_port}"
+output "upstream_san" {
+  value = local.upstream_san
 }
 
-output "bootstrap_password" {
-  value = local.upstream_server_count > 0 ? module.rancher[0].bootstrap_password : null
+output "upstream_public_port" {
+  value = local.upstream_public_port
+}
+
+output "upstream_cluster_private_name" {
+  value = module.upstream_cluster.first_server_private_name
 }
 
 output "upstream_cluster" {
@@ -11,5 +15,7 @@ output "upstream_cluster" {
 }
 
 output "downstream_clusters" {
-  value = [{ name : "downstream", kubeconfig : pathexpand("~/.kube/config"), context : "k3d-${local.project_name}-downstream" }]
+  value = [
+    { name : "downstream", kubeconfig : pathexpand("~/.kube/config"), context : "k3d-${local.project_name}-downstream" }
+  ]
 }

@@ -1,10 +1,6 @@
 terraform {
   required_version = "1.3.7"
   required_providers {
-    helm = {
-      source  = "hashicorp/helm"
-      version = "2.7.1"
-    }
     docker = {
       source  = "kreuzwerker/docker"
       version = "2.23.1"
@@ -33,23 +29,7 @@ module "upstream_cluster" {
   distro_version           = local.upstream_distro_version
   sans                     = [local.upstream_san]
   kubernetes_api_port      = local.upstream_kubernetes_api_port
-  additional_port_mappings = [[local.rancher_port, 443]]
-}
-
-provider "helm" {
-  kubernetes {
-    config_path    = "~/.kube/config"
-    config_context = "k3d-${local.project_name}-upstream"
-  }
-}
-
-module "rancher" {
-  depends_on   = [module.upstream_cluster]
-  count        = local.upstream_server_count > 0 ? 1 : 0
-  source       = "./rancher"
-  public_name  = local.upstream_san
-  private_name = module.upstream_cluster.first_server_private_name
-  chart        = local.rancher_chart
+  additional_port_mappings = [[local.upstream_public_port, 443]]
 }
 
 module "downstream_cluster" {
