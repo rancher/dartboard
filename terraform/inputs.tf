@@ -5,8 +5,7 @@ locals {
   upstream_san                 = "upstream.local.gd"
   upstream_kubernetes_api_port = 6445
 
-  rancher_chart = "https://releases.rancher.com/server-charts/latest/rancher-2.7.2.tgz"
-  rancher_port  = 8443
+  upstream_public_port = 8443
 
   downstream_server_count        = 1
   downstream_agent_count         = 0
