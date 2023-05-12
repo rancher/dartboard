@@ -17,29 +17,52 @@ module "network" {
   project_name = local.project_name
 }
 
-module "upstream_cluster" {
+module "old_upstream_cluster" {
   source                   = "./k3d_k3s"
   project_name             = local.project_name
-  name                     = "upstream"
+  name                     = "oldupstream"
   network_name             = module.network.name
-  server_count             = local.upstream_server_count
-  agent_count              = local.upstream_agent_count
-  labels                   = [{ key : "monitoring", value : "true", node_filters : ["agent:0"] }]
-  taints                   = [{ key : "monitoring", value : "true", effect : "NoSchedule", node_filters : ["agent:0"] }]
-  distro_version           = local.upstream_distro_version
-  sans                     = [local.upstream_san]
-  kubernetes_api_port      = local.upstream_kubernetes_api_port
-  additional_port_mappings = [[local.upstream_public_port, 443]]
+  server_count             = local.old_upstream_server_count
+  agent_count              = local.old_upstream_agent_count
+  distro_version           = local.distro_version
+  sans                     = [local.old_upstream_san]
+  kubernetes_api_port      = local.old_upstream_kubernetes_api_port
+  additional_port_mappings = [[local.old_upstream_public_port, 443]]
 }
 
-module "downstream_cluster" {
+module "old_downstream_cluster" {
   source              = "./k3d_k3s"
   project_name        = local.project_name
-  name                = "downstream"
+  name                = "olddownstream"
   network_name        = module.network.name
-  server_count        = local.downstream_server_count
-  agent_count         = local.downstream_agent_count
-  distro_version      = local.downstream_distro_version
-  sans                = [local.downstream_san]
-  kubernetes_api_port = local.downstream_kubernetes_api_port
+  server_count        = local.old_downstream_server_count
+  agent_count         = local.old_downstream_agent_count
+  distro_version      = local.distro_version
+  sans                = [local.old_downstream_san]
+  kubernetes_api_port = local.old_downstream_kubernetes_api_port
+}
+
+module "new_upstream_cluster" {
+  source                   = "./k3d_k3s"
+  project_name             = local.project_name
+  name                     = "newupstream"
+  network_name             = module.network.name
+  server_count             = local.new_upstream_server_count
+  agent_count              = local.new_upstream_agent_count
+  distro_version           = local.distro_version
+  sans                     = [local.new_upstream_san]
+  kubernetes_api_port      = local.new_upstream_kubernetes_api_port
+  additional_port_mappings = [[local.new_upstream_public_port, 443]]
+}
+
+module "new_downstream_cluster" {
+  source              = "./k3d_k3s"
+  project_name        = local.project_name
+  name                = "newdownstream"
+  network_name        = module.network.name
+  server_count        = local.new_downstream_server_count
+  agent_count         = local.new_downstream_agent_count
+  distro_version      = local.distro_version
+  sans                = [local.new_downstream_san]
+  kubernetes_api_port = local.new_downstream_kubernetes_api_port
 }
