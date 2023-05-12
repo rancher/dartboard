@@ -2,29 +2,32 @@
 
 This repo collects code, instructions and results for scalability tests on the Rancher product family.
 
+## Requirements
+ - `docker`
+ - `kubectl`
+ - `helm`
+ - `node`
+ - [k6](https://github.com/grafana/k6/releases/tag/v0.44.1)
+ - [terraform 1.3.7](https://releases.hashicorp.com/terraform/1.3.7)
+ - ~10 GiB of free RAM
+
 ## Usage
 
 ```
-cd terraform
-terraform init
-terraform apply -auto-approve
+git clone https://github.com/moio/scalability-tests.git
+cd scalability-tests
+git checkout 20230512_multiversion_test
+
+cd bin
+./setup.mjs
 ```
 
-npx cypress open --config watchForFileChanges=false
+To teardown:
+```
+./teardown.mjs
+```
 
 ## Troubleshooting
-
-### Kubernetes cluster unreachable
-
-If you get this error from `terraform apply`:
-```
-│ Error: Kubernetes cluster unreachable: Get "https://upstream.local.gd:6443/version": dial tcp 127.0.0.1:6443: connect: connection refused
-```
-
-SSH tunnels might be broken. Reopen them via:
-```shell
-./config/open-tunnels-to-upstream-*.sh
-```
 
 ### Terraform extended logging
 
