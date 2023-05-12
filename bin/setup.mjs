@@ -104,6 +104,7 @@ helm_install("rancher-monitoring", RANCHER_MONITORING_CHART, upstreamCluster, "c
     systemDefaultRegistry: "",
 })
 
+helm_install("k6-files", dir("charts/k6-files"), upstreamCluster, "cattle-monitoring-system", monitoringRestrictions)
 
 const uf = `--kubeconfig=${upstreamCluster["kubeconfig"]} --context=${upstreamCluster["context"]}`
 run(`kubectl wait deployment/rancher --namespace cattle-system --for condition=Available=true --timeout=1h ${uf}`)
