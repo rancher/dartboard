@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {dir, run} from "./lib/common.mjs"
+import {dir, q, run} from "./lib/common.mjs"
 
-run(`terraform -chdir=${dir("terraform")} init`)
-run(`terraform -chdir=${dir("terraform")} destroy -auto-approve`)
+run(`terraform -chdir=${q(dir("terraform"))} init`)
+run(`terraform -chdir=${q(dir("terraform"))} destroy -auto-approve`)

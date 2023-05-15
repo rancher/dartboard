@@ -14,22 +14,28 @@ export function dir(dir){
 }
 
 export function run(cmdline, options = {}) {
-    console.log(`***Running command:\n ${cmdline.replaceAll(",", "\,")}\n`)
-    const cmd = cmdline.split(" ")[0]
-    const args = cmdline.split(" ").slice(1)
-    const res = spawnSync(cmd, args, {
+    console.log(`***Running command:\n ${cmdline}\n`)
+    const res = spawnSync(cmdline, [], {
         input: options.input,
         stdio: [options.input ? "pipe": "inherit", options.collectingOutput ? "pipe" : "inherit", "inherit"],
-        shell: false
+        shell: true
     })
     if (res.error){
         throw res.error
     }
     if (res.status !== 0){
-        throw new Error(`Command returned status ${res.status}: ${cmdline.replaceAll(",", "\\,")}`)
+        throw new Error(`Command returned status ${res.status}`)
     }
     console.log("")
     return res.stdout?.toString()
+}
+
+/** Quotes a string for Unix shell use */
+export function q(s){
+    if (!/[^%+,-.\/:=@_0-9A-Za-z]/.test(s)){
+        return s
+    }
+    return `'` + s.replace(/'/g, `'"'`) + `'`
 }
 
 export function runCollectingOutput(cmdline) {
@@ -46,5 +52,5 @@ export function sleep(s) {
 
 export function helm_install(name, chart, cluster, namespace, values) {
     const json = Object.entries(values).map(([k,v]) => `${k}=${JSON.stringify(v)}`).join(",")
-    run(`helm --kubeconfig=${cluster["kubeconfig"]} --kube-context=${cluster["context"]} upgrade --install --namespace=${namespace} ${name} ${chart} --create-namespace --set-json=${json}`)
+    run(`helm --kubeconfig=${q(cluster["kubeconfig"])} --kube-context=${q(cluster["context"])} upgrade --install --namespace=${q(namespace)} ${q(name)} ${q(chart)} --create-namespace --set-json=${q(json)}`)
 }
