@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import {ADMIN_PASSWORD, dir, helm_install, q, run, runCollectingJSONOutput, runCollectingOutput} from "./lib/common.mjs"
+import {k6_run} from "./lib/k6.mjs";
 
 // Parameters
 const CERT_MANAGER_CHART = "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"
@@ -106,29 +107,31 @@ helm_install("rancher-monitoring", RANCHER_MONITORING_CHART, upstreamCluster, "c
 
 helm_install("k6-files", dir("charts/k6-files"), upstreamCluster, "cattle-monitoring-system", monitoringRestrictions)
 
-const uf = `--kubeconfig=${upstreamCluster["kubeconfig"]} --context=${upstreamCluster["context"]}`
-run(`kubectl wait deployment/rancher --namespace cattle-system --for condition=Available=true --timeout=1h ${q(uf)}`)
+const kuf = `--kubeconfig=${upstreamCluster["kubeconfig"]}`
+const cuf = `--context=${q(upstreamCluster["context"])}`
+run(`kubectl wait deployment/rancher --namespace cattle-system --for condition=Available=true --timeout=1h ${q(kuf)} ${q(cuf)}`)
 
 
 
 // Step 3: Import downstream clusters
 const upstreamPublicPort = tfOutput["upstream_public_port"]["value"]
-const baseUrl = `https://${upstreamSAN}:${upstreamPublicPort}`
 const importedClusters = tfOutput["downstream_clusters"]["value"]
 const importedClusterNames = importedClusters.map(c => c["name"]).join(",")
-run(`k6 run -e BASE_URL=${q(baseUrl)} -e BOOTSTRAP_PASSWORD=${q(BOOTSTRAP_PASSWORD)} -e PASSWORD=${q(ADMIN_PASSWORD)} -e IMPORTED_CLUSTER_NAMES=${q(importedClusterNames)} ${q(dir("k6/rancher_setup.js"))}`)
+k6_run({VUS: 10, PER_VU_ITERATIONS: 30, BOOTSTRAP_PASSWORD: BOOTSTRAP_PASSWORD, PASSWORD: ADMIN_PASSWORD, IMPORTED_CLUSTER_NAMES: importedClusterNames}, "k6/rancher_setup.js")
 
+const baseUrl = `https://${upstreamSAN}:${upstreamPublicPort}`
 for (const i in importedClusters) {
     const name = importedClusters[i]["name"]
-    const df = `--kubeconfig=${importedClusters[i]["kubeconfig"]} --context=${importedClusters[i]["context"]}`
+    const kdf = `--kubeconfig=${q(importedClusters[i]["kubeconfig"])}`
+    const cdf = `--context=${q(importedClusters[i]["context"])}`
 
-    const clusterId = runCollectingJSONOutput(`kubectl get -n fleet-default cluster ${name} -o json ${uf}`)["status"]["clusterName"]
-    const token = runCollectingJSONOutput(`kubectl get -n ${clusterId} clusterregistrationtoken.management.cattle.io default-token -o json ${uf}`)["status"]["token"]
+    const clusterId = runCollectingJSONOutput(`kubectl get -n fleet-default cluster ${q(name)} -o json ${q(kuf)} ${q(cuf)}`)["status"]["clusterName"]
+    const token = runCollectingJSONOutput(`kubectl get -n ${q(clusterId)} clusterregistrationtoken.management.cattle.io default-token -o json ${q(kuf)} ${q(cuf)}`)["status"]["token"]
 
     const url = `${baseUrl}/v3/import/${token}_${clusterId}.yaml`
-    const yaml = runCollectingOutput(`curl --insecure -fL ${url}`)
-    run(`kubectl apply -f - ${q(df)}`, {input: yaml})
+    const yaml = runCollectingOutput(`curl --insecure -fL ${q(url)}`)
+    run(`kubectl apply -f - ${q(kdf)} ${q(cdf)}`, {input: yaml})
 }
 
-run(`kubectl wait clusters.management.cattle.io --all --for condition=ready=true --timeout=1h ${q(uf)}`)
-run(`kubectl wait cluster.fleet.cattle.io --all --namespace fleet-default --for condition=ready=true --timeout=1h ${q(uf)}`)
+run(`kubectl wait clusters.management.cattle.io --all --for condition=ready=true --timeout=1h ${q(kuf)} ${q(cuf)}`)
+run(`kubectl wait cluster.fleet.cattle.io --all --namespace fleet-default --for condition=ready=true --timeout=1h ${q(kuf)} ${q(cuf)}`)
