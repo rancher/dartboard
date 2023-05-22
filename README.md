@@ -14,6 +14,24 @@ npx cypress open --config watchForFileChanges=false
 
 ## Troubleshooting
 
+### k3d: cluster not created
+
+If you get this error from `terraform apply`:
+```
+Error: Failed Cluster Start: Failed to add one or more agents: Node k3d-... failed to get ready: error waiting for log line `successfully registered node` from node 'k3d-moio-upstream-agent-0': stopped returning log lines: node k3d-... is running=true in status=restarting
+```
+
+And `docker logs` on the node container end with:
+```
+kubelet.go:1361] "Failed to start cAdvisor" err="inotify_init: too many open files"
+```
+
+Then you might need to increase inotify's maximum open file counts via:
+```
+echo 256 > /proc/sys/fs/inotify/max_user_instances
+echo "fs.inotify.max_user_instances = 256" > /etc/sysctl.d/99-inotify-mui.conf
+```
+
 ### Kubernetes cluster unreachable
 
 If you get this error from `terraform apply`:
