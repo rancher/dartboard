@@ -10,7 +10,7 @@ const vus = 10
 
 // Option setting
 const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
-const baseUrl = kubeconfig["url"]
+const baseUrl = __ENV.BASE_URL
 
 export const options = {
     insecureSkipTLSVerify: true,
