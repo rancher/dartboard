@@ -1,7 +1,7 @@
-import { spawnSync } from 'child_process'
-import { dirname, relative, join } from 'path'
-import { cwd } from 'process'
-import { fileURLToPath } from 'url'
+import {spawnSync} from 'child_process'
+import {dirname, relative, join} from 'path'
+import {cwd} from 'process'
+import {fileURLToPath} from 'url'
 
 export const ADMIN_PASSWORD = "adminadminadmin"
 
