@@ -1,11 +1,11 @@
 import { check, fail } from 'k6';
 import http from 'k6/http';
-import { textSummary } from './lib/k6-summary-0.0.2.js';
+import { Gauge } from 'k6/metrics';
 
 // Parameters
 const vus = __ENV.VUS
 const perVuIterations = __ENV.PER_VU_ITERATIONS
-const baseUrl = __ENV.BASEURL
+const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
 const cluster = __ENV.CLUSTER
@@ -26,8 +26,10 @@ export const options = {
     thresholds: {
         checks: ['rate>0.99']
     }
-};
+}
 
+// Custom metrics
+const variableMetric = new Gauge('test_variable')
 
 // Test functions, in order of execution
 
@@ -82,11 +84,6 @@ export function list(cookies) {
             throw e
         }
     }
-}
 
-export function handleSummary(data) {
-    return {
-        'stdout': textSummary(data, { indent: ' ', enableColors: true }), // keep default text output
-        "out.json": JSON.stringify(data), // additionally dump raw data in JSON form for later processing
-    }
+    variableMetric.add(Number(__ENV.CONFIG_MAP_COUNT))
 }
