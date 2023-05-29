@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+   labels:
+     app.kubernetes.io/name: mimir
+   name: mimir-ingress
+   annotations:
+     ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+ rules:
+ - http:
+     paths:
+     - path: /mimir
+       backend:
+         service:
+           name: mimir
+           port:
+             number: 9009
+       pathType: Prefix
