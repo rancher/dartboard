@@ -41,7 +41,8 @@ data:
 
     server:
       http_listen_port: 9009
-      log_level: error
+      http_path_prefix: /mimir/
+      log_level: info
 
     store_gateway:
       sharding_ring:
@@ -49,3 +50,6 @@ data:
 
     usage_stats:
       enabled: false
+
+    limits:
+      native_histograms_ingestion_enabled: true
