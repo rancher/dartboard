@@ -1,20 +1,11 @@
 #!/usr/bin/env node
-import {
-    ADMIN_PASSWORD,
-    dir,
-    helm_install,
-    q,
-    run,
-    runCollectingJSONOutput,
-    runCollectingOutput
-} from "./lib/common.mjs"
+import {ADMIN_PASSWORD, dir, helm_install, q, run, runCollectingJSONOutput, runCollectingOutput} from "./lib/common.mjs"
 import {k6_run} from "./lib/k6.mjs";
+import {install_rancher_monitoring} from "./lib/rancher_monitoring.mjs";
 
 // Parameters
 const CERT_MANAGER_CHART = "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"
 const RANCHER_CHART = "https://releases.rancher.com/server-charts/latest/rancher-2.7.2.tgz"
-const RANCHER_MONITORING_CRD_CHART = "https://github.com/rancher/charts/raw/release-v2.7/assets/rancher-monitoring-crd/rancher-monitoring-crd-102.0.0%2Bup40.1.2.tgz"
-const RANCHER_MONITORING_CHART = "https://github.com/rancher/charts/raw/release-v2.7/assets/rancher-monitoring/rancher-monitoring-102.0.0%2Bup40.1.2.tgz"
 const GRAFANA_CHART = "https://github.com/grafana/helm-charts/releases/download/grafana-6.56.5/grafana-6.56.5.tgz"
 
 // Step 1: Terraform
@@ -96,60 +87,13 @@ helm_install("rancher-ingress", dir("charts/rancher-ingress"), upstream, "defaul
     san: upstreamSAN,
 })
 
-helm_install("rancher-monitoring-crd", RANCHER_MONITORING_CRD_CHART, upstream, "cattle-monitoring-system", {
-    global: {
-        cattle: {
-            clusterId: "local",
-            clusterName: "local",
-            systemDefaultRegistry: "",
-        }
-    },
-    systemDefaultRegistry: "",
-})
-
 const monitoringRestrictions = {
     nodeSelector: {monitoring: "true"},
     tolerations: [{key: "monitoring", operator: "Exists", effect: "NoSchedule"}],
 }
 const testerPrivateName = tester["private_name"]
-helm_install("rancher-monitoring", RANCHER_MONITORING_CHART, upstream, "cattle-monitoring-system", {
-    alertmanager: { enabled:"false" },
-    grafana: monitoringRestrictions,
-    prometheus: {
-        prometheusSpec: {
-            evaluationInterval: "1m",
-            nodeSelector: {monitoring: "true"},
-            tolerations: [{key: "monitoring", operator: "Exists", effect: "NoSchedule"}],
-            resources: {limits: {memory: "5000Mi"}},
-            retentionSize: "50GiB",
-            scrapeInterval: "1m",
 
-            // configure writing metrics to mimir
-            remoteWrite: [{
-                url: `http://${testerPrivateName}/mimir/api/v1/push`,
-                writeRelabelConfigs: [
-                    // drop all metrics except for the ones matching regex
-                    {
-                        sourceLabels: ['__name__'],
-                        regex: "(node_namespace_pod_container|node_load|node_memory|node_network_receive_bytes_total|container_network_receive_bytes_total).*",
-                        action: "keep",
-                    },
-                ]
-            }]
-        }
-    },
-    "prometheus-adapter": monitoringRestrictions,
-    "kube-state-metrics": monitoringRestrictions,
-    prometheusOperator: monitoringRestrictions,
-    global: {
-        cattle: {
-            clusterId: "local",
-            clusterName: "local",
-            systemDefaultRegistry: "",
-        }
-    },
-    systemDefaultRegistry: "",
-})
+install_rancher_monitoring(upstream, monitoringRestrictions, `http://${testerPrivateName}/mimir/api/v1/push`)
 
 const kuf = `--kubeconfig=${upstream["kubeconfig"]}`
 const cuf = `--context=${upstream["context"]}`
@@ -174,3 +118,7 @@ for (const [name, cluster] of importedClusters) {
 
 run(`kubectl wait clusters.management.cattle.io --all --for condition=ready=true --timeout=1h ${q(kuf)} ${q(cuf)}`)
 run(`kubectl wait cluster.fleet.cattle.io --all --namespace fleet-default --for condition=ready=true --timeout=1h ${q(kuf)} ${q(cuf)}`)
+
+for (const [_, cluster] of importedClusters) {
+    install_rancher_monitoring(cluster, {})
+}
