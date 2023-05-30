@@ -22,225 +22,102 @@
   "liveNow": false,
   "panels": [
     {
-      "collapsed": true,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P46B05499459EE360"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 10,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ConfigMaps"
+        },
+        "overrides": []
+      },
       "gridPos": {
-        "h": 1,
+        "h": 9,
         "w": 24,
         "x": 0,
         "y": 0
       },
-      "id": 6,
-      "panels": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P46B05499459EE360"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "bars",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 10,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "ConfigMaps"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 24,
-            "x": 0,
-            "y": 1
-          },
-          "id": 1,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": false
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "P46B05499459EE360"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "k6_test_variable",
-              "format": "time_series",
-              "instant": false,
-              "interval": "5s",
-              "key": "Q-2fb390c2-5716-4362-a18b-c7117f6664b1-1",
-              "legendFormat": "{{test}}, {{cluster}} cluster, {{tag}} image",
-              "range": true,
-              "refId": "B"
-            }
-          ],
-          "title": "Input (ConfigMap count)",
-          "type": "timeseries"
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
         },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "P46B05499459EE360"
           },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 11,
-            "w": 24,
-            "x": 0,
-            "y": 10
-          },
-          "id": 3,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": false
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "P46B05499459EE360"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{pod=~\"rancher-[a-z0-9]{9}-[a-z0-9]{5}\", namespace=\"cattle-system\", container=\"rancher\"})",
-              "instant": false,
-              "interval": "1m",
-              "key": "Q-7a35d9eb-910e-44ab-9662-d73d646b975f-2",
-              "legendFormat": "Load",
-              "range": true,
-              "refId": "C"
-            }
-          ],
-          "title": "CPU load of cattle-system-agent/rancher",
-          "type": "timeseries"
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "k6_test_variable",
+          "format": "time_series",
+          "instant": false,
+          "interval": "5s",
+          "key": "Q-2fb390c2-5716-4362-a18b-c7117f6664b1-1",
+          "legendFormat": "{{test}}, {{cluster}} cluster, {{tag}} image",
+          "range": true,
+          "refId": "B"
         }
       ],
-      "title": "API stress test",
-      "type": "row"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 1
-      },
-      "id": 5,
-      "panels": [],
-      "title": "Cluster statistics",
-      "type": "row"
+      "title": "Input (ConfigMap count)",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -303,7 +180,7 @@
         "h": 11,
         "w": 24,
         "x": 0,
-        "y": 2
+        "y": 9
       },
       "id": 7,
       "options": {
@@ -330,7 +207,7 @@
           "instant": false,
           "interval": "1m",
           "key": "Q-7a35d9eb-910e-44ab-9662-d73d646b975f-2",
-          "legendFormat": "Load",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "C"
         }
@@ -401,7 +278,7 @@
         "h": 11,
         "w": 24,
         "x": 0,
-        "y": 13
+        "y": 20
       },
       "id": 8,
       "options": {
@@ -428,7 +305,7 @@
           "instant": false,
           "interval": "1m",
           "key": "Q-7a35d9eb-910e-44ab-9662-d73d646b975f-2",
-          "legendFormat": "Load",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "C"
         }
@@ -493,38 +370,13 @@
           },
           "unit": "Bps"
         },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "traefik-64b96ccbcd-5ps42"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 11,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 31
       },
       "id": 9,
       "interval": "1m",
@@ -561,107 +413,114 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P46B05499459EE360"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
+      "collapsed": true,
       "gridPos": {
-        "h": 8,
+        "h": 1,
         "w": 24,
         "x": 0,
-        "y": 35
+        "y": 42
       },
-      "id": 2,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
+      "id": 5,
+      "panels": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "P46B05499459EE360"
           },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "histogram_quantile(0.95, sum by (commit, cluster, config_map_count, tag, test) (k6_http_req_duration_seconds{method=\"GET\", url=~\".+/configmaps.*\"}))",
-          "format": "time_series",
-          "hide": false,
-          "instant": false,
-          "interval": "5s",
-          "key": "Q-85e4342b-b221-4873-8a96-a9509e008c4a-0",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 11,
+            "w": 24,
+            "x": 0,
+            "y": 43
+          },
+          "id": 3,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "P46B05499459EE360"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=\"cattle-system\", container=\"rancher\", pod=~\"rancher-[a-z0-9-]+\"}) by (pod)",
+              "instant": false,
+              "interval": "1m",
+              "key": "Q-7a35d9eb-910e-44ab-9662-d73d646b975f-2",
+              "legendFormat": "Usage",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "CPU usage of cattle-system-agent/rancher",
+          "type": "timeseries"
         }
       ],
-      "title": "List time, 100 ConfigMaps, p(95)",
-      "type": "timeseries"
+      "title": "Other statistics",
+      "type": "row"
     }
   ],
   "refresh": "5s",
@@ -672,7 +531,7 @@
     "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {},
