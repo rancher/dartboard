@@ -1,5 +1,6 @@
 import encoding from 'k6/encoding';
 import exec from 'k6/execution';
+import { Gauge } from 'k6/metrics';
 import * as k8s from './k8s.js'
 
 // Parameters
@@ -37,6 +38,9 @@ export const options = {
     }
 };
 
+// Custom metrics
+const variableMetric = new Gauge('test_variable')
+
 // Test functions, in order of execution
 
 export function setup() {
@@ -63,4 +67,5 @@ export function create() {
     }
 
     k8s.create(`${baseUrl}/api/v1/namespaces/${namespace}/configmaps`, body)
+    variableMetric.add(Number(__ENV.COUNT))
 }
