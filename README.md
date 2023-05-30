@@ -4,15 +4,9 @@ This repo collects code, instructions and results for scalability tests on the R
 
 ## Usage
 
-```
-cd terraform
-terraform init
-terraform apply -auto-approve
-```
+See the [docs](docs) directory for a list of tests and their usage specifics.
 
-npx cypress open --config watchForFileChanges=false
-
-## Troubleshooting
+## Common Troubleshooting
 
 ### k3d: cluster not created
 
