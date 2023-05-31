@@ -60,7 +60,8 @@ It is expected that tests are fully reproducible given the same commit in this r
 ## Load outline
 
 - all downstream clusters run Rancher Monitoring
-- 1000 1k ConfigMaps per cluster
+- 1000 1kiB ConfigMaps per downstream cluster
+- 1000 1kiB Secrets per downstream cluster
 - more TBD
 
 ## Reproduction Instructions
