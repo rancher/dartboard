@@ -66,12 +66,12 @@ It is expected that tests are fully reproducible given the same commit in this r
 ## Reproduction Instructions
 
 ```shell
-./setup.mjs && ./create_base_load.mjs
+./setup.mjs && ./run_tests.mjs
 ```
 
 Notes:
  - `./setup.mjs` invokes Terraform to deploy infrastructure and then Helm/kubectl for the configuration of applications
- - `./create_base_load.mjs` invokes k6 to set up resources which will generate background load
+ - `./run_tests.mjs` invokes k6 to set up resources which will generate background load
 
 All created infrastructure can be destroyed at the end of the test via:
 ```shell
