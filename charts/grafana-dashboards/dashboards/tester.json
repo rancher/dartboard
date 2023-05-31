@@ -75,7 +75,7 @@
               }
             ]
           },
-          "unit": "ConfigMaps"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -91,7 +91,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "mode": "single",
@@ -106,17 +106,17 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "k6_test_variable",
+          "expr": "k6_test_resources",
           "format": "time_series",
           "instant": false,
-          "interval": "5s",
+          "interval": "1s",
           "key": "Q-2fb390c2-5716-4362-a18b-c7117f6664b1-1",
-          "legendFormat": "test commit {{commit}}, {{cluster}} cluster",
+          "legendFormat": "test commit {{commit}}, {{cluster}} cluster, {{ConfigMaps}} ConfigMaps, {{Secrets}} Secrets",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "Input (ConfigMap count)",
+      "title": "Total test resources",
       "type": "timeseries"
     },
     {
@@ -359,7 +359,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
