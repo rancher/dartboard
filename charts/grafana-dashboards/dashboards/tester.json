@@ -111,7 +111,7 @@
           "instant": false,
           "interval": "5s",
           "key": "Q-2fb390c2-5716-4362-a18b-c7117f6664b1-1",
-          "legendFormat": "{{test}}, {{cluster}} cluster, {{tag}} image",
+          "legendFormat": "test commit {{commit}}, {{cluster}} cluster",
           "range": true,
           "refId": "B"
         }
@@ -359,8 +359,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -467,8 +466,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
