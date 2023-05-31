@@ -57,6 +57,12 @@ It is expected that all scripts and their parts are idempotent.
 
 It is expected that tests are fully reproducible given the same commit in this repo.
 
+## Load outline
+
+- all downstream clusters run Rancher Monitoring
+- 1000 1k ConfigMaps per cluster
+- more TBD
+
 ## Reproduction Instructions
 
 ```shell
