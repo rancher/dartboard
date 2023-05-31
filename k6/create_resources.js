@@ -5,9 +5,10 @@ import * as k8s from './k8s.js'
 
 // Parameters
 const namespace = "scalability-test"
-const count = Number(__ENV.COUNT)
+const configMapCount = Number(__ENV.CONFIG_MAP_COUNT)
+const secretCount = Number(__ENV.SECRET_COUNT)
 const data = encoding.b64encode("a".repeat(10*1024))
-const vus = 10
+const vus = 1
 
 // Option setting
 const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
@@ -25,11 +26,18 @@ export const options = {
     setupTimeout: '8h',
 
     scenarios: {
-        create: {
+        createConfigMaps: {
             executor: 'shared-iterations',
-            exec: 'create',
+            exec: 'createConfigMaps',
             vus: vus,
-            iterations: count,
+            iterations: configMapCount,
+            maxDuration: '1h',
+        },
+        createSecrets: {
+            executor: 'shared-iterations',
+            exec: 'createSecrets',
+            vus: vus,
+            iterations: secretCount,
             maxDuration: '1h',
         },
     },
@@ -39,7 +47,7 @@ export const options = {
 };
 
 // Custom metrics
-const variableMetric = new Gauge('test_variable')
+const resourceMetric = new Gauge('test_resources')
 
 // Test functions, in order of execution
 
@@ -56,8 +64,8 @@ export function setup() {
     k8s.create(`${baseUrl}/api/v1/namespaces`, body)
 }
 
-export function create() {
-    const name = `test-config-map-${exec.scenario.name}-${exec.scenario.iterationInTest}`
+export function createConfigMaps() {
+    const name = `test-config-maps-${exec.scenario.iterationInTest}`
     const body = {
         "metadata": {
             "name": name,
@@ -67,5 +75,19 @@ export function create() {
     }
 
     k8s.create(`${baseUrl}/api/v1/namespaces/${namespace}/configmaps`, body)
-    variableMetric.add(Number(__ENV.COUNT))
+    resourceMetric.add(configMapCount + secretCount)
+}
+
+export function createSecrets() {
+    const name = `test-secrets-${exec.scenario.iterationInTest}`
+    const body = {
+        "metadata": {
+            "name": name,
+            "namespace": namespace
+        },
+        "data": {"data": data}
+    }
+
+    k8s.create(`${baseUrl}/api/v1/namespaces/${namespace}/secrets`, body)
+    resourceMetric.add(configMapCount + secretCount)
 }
