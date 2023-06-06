@@ -21,8 +21,8 @@ export function install_rancher_monitoring(cluster, monitoringRestrictions, mimi
         prometheus: {
             prometheusSpec: {
                 evaluationInterval: "1m",
-                nodeSelector: {monitoring: "true"},
-                tolerations: [{key: "monitoring", operator: "Exists", effect: "NoSchedule"}],
+                nodeSelector: monitoringRestrictions["nodeSelector"],
+                tolerations: monitoringRestrictions["tolerations"],
                 resources: {limits: {memory: "5000Mi"}},
                 retentionSize: "50GiB",
                 scrapeInterval: "1m",
