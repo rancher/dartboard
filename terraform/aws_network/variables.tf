@@ -16,4 +16,5 @@ variable "availability_zone" {
 variable "secondary_availability_zone" {
   description = "Secondary availability zone (for RDS)"
   type        = string
+  default     = null
 }
