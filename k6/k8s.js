@@ -56,6 +56,24 @@ export function del(url){
     return res
 }
 
+// updates an existing k8s resource
+export function update(url, body){
+    const res = http.put(url, JSON.stringify(body));
+
+    check(res, {
+        'PUT returns status 200 or 409': (r) => r.status === 200 || r.status === 409,
+    })
+
+    if (res.status === 409) {
+        // wait a bit and try again
+        sleep(Math.random())
+
+        return update(url, body)
+    }
+
+    return res
+}
+
 const continueRegex = /"continue":"([A-Za-z0-9]+)"/;
 
 // lists k8s resources

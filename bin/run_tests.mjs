@@ -56,3 +56,12 @@ const testerSAN = tester["san"]
 const testerPublicPort = tester["public_http_port"]
 console.log(`    Grafana UI: http://${testerSAN}:${testerPublicPort}/grafana/ (admin/${ADMIN_PASSWORD})`)
 console.log()
+
+// Change config maps
+for (const [name, downstream] of downstreams) {
+    k6_run(tester,
+        { BASE_URL: `https://${downstream["private_name"]}:6443`, KUBECONFIG: downstream["kubeconfig"], CONTEXT: downstream["context"], CONFIG_MAP_COUNT: CONFIG_MAP_COUNT, VUS: 10, RATE: 200, DURATION: "1h"},
+        {commit: commit, cluster: name, test: "change_config_maps.mjs"},
+        "k6/change_config_maps.js", true
+    )
+}
