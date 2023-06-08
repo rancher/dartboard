@@ -117,6 +117,7 @@ resource "aws_route_table_association" "private" {
 }
 
 resource "aws_subnet" "secondary_private" {
+  count                   = var.secondary_availability_zone != null ? 1 : 0
   availability_zone       = var.secondary_availability_zone
   vpc_id                  = local.vpc_id
   cidr_block              = "172.16.2.0/24"
@@ -129,7 +130,8 @@ resource "aws_subnet" "secondary_private" {
 }
 
 resource "aws_route_table_association" "secondary_private" {
-  subnet_id      = aws_subnet.secondary_private.id
+  count          = var.secondary_availability_zone != null ? 1 : 0
+  subnet_id      = aws_subnet.secondary_private[0].id
   route_table_id = aws_route_table.private.id
 }
 
@@ -164,7 +166,9 @@ resource "aws_security_group" "public" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = [aws_subnet.private.cidr_block, aws_subnet.secondary_private.cidr_block]
+    cidr_blocks = concat([aws_subnet.private.cidr_block], var.secondary_availability_zone != null ? [
+      aws_subnet.secondary_private[0].cidr_block
+    ] : [])
   }
 
   egress {
@@ -222,7 +226,7 @@ output "private_subnet_id" {
 }
 
 output "secondary_private_subnet_id" {
-  value = aws_subnet.secondary_private.id
+  value = var.secondary_availability_zone != null ? aws_subnet.secondary_private[0].id : null
 }
 
 output "public_security_group_id" {
