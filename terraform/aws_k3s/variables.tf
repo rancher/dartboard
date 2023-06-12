@@ -23,6 +23,18 @@ variable "agent_count" {
   default     = 0
 }
 
+variable "agent_labels" {
+  description = "Per-agent-node lists of labels to apply"
+  type        = list(list(object({ key : string, value : string })))
+  default     = []
+}
+
+variable "agent_taints" {
+  description = "Per-agent-node lists of taints to apply"
+  type        = list(list(object({ key : string, value : string, effect : string })))
+  default     = []
+}
+
 variable "ami" {
   description = "AMI ID for all nodes in this cluster"
   type        = string

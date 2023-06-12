@@ -22,6 +22,8 @@ resource "ssh_sensitive_resource" "first_server_installation" {
       token          = null
       server_url     = null
       cluster_init   = length(var.server_names) > 1
+      labels         = []
+      taints         = []
 
       client_ca_key          = tls_private_key.client_ca_key.private_key_pem
       client_ca_cert         = tls_self_signed_cert.client_ca_cert.cert_pem
@@ -69,6 +71,8 @@ resource "ssh_resource" "additional_server_installation" {
       token          = ssh_sensitive_resource.first_server_installation[0].result
       server_url     = "https://${var.server_names[0]}:6443"
       cluster_init   = false
+      labels         = []
+      taints         = []
 
       client_ca_key          = tls_private_key.client_ca_key.private_key_pem
       client_ca_cert         = tls_self_signed_cert.client_ca_cert.cert_pem
@@ -108,6 +112,8 @@ resource "ssh_resource" "agent_installation" {
       token          = ssh_sensitive_resource.first_server_installation[0].result
       server_url     = "https://${var.server_names[0]}:6443"
       cluster_init   = false
+      labels         = length(var.agent_labels) > count.index ? var.agent_labels[count.index] : []
+      taints         = length(var.agent_taints) > count.index ? var.agent_taints[count.index] : []
 
       client_ca_key          = tls_private_key.client_ca_key.private_key_pem
       client_ca_cert         = tls_self_signed_cert.client_ca_cert.cert_pem
