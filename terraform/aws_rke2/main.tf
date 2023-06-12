@@ -5,7 +5,7 @@ module "server_nodes" {
   instance_type               = var.instance_type
   availability_zone           = var.availability_zone
   project_name                = var.project_name
-  name                        = "${var.name}-server-node-${count.index}"
+  name                        = "${var.name}-server-${count.index}"
   ssh_key_name                = var.ssh_key_name
   ssh_private_key_path        = var.ssh_private_key_path
   subnet_id                   = var.subnet_id
@@ -22,7 +22,7 @@ module "agent_nodes" {
   instance_type               = var.instance_type
   availability_zone           = var.availability_zone
   project_name                = var.project_name
-  name                        = "${var.name}-agent-node-${count.index}"
+  name                        = "${var.name}-agent-${count.index}"
   ssh_key_name                = var.ssh_key_name
   ssh_private_key_path        = var.ssh_private_key_path
   subnet_id                   = var.subnet_id
