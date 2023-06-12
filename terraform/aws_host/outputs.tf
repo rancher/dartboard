@@ -1,4 +1,4 @@
-resource "local_file" "login_script" {
+resource "local_file" "ssh_script" {
   content = <<-EOT
     #!/bin/sh
     ssh -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" \
@@ -10,5 +10,5 @@ resource "local_file" "login_script" {
       $@
   EOT
 
-  filename = "${path.module}/../../config/ssh-to-${var.name}-${aws_instance.instance.private_dns}.sh"
+  filename = "${path.module}/../../config/ssh-to-${var.name}.sh"
 }
