@@ -1,7 +1,8 @@
 /*
-  This module sets up a class B VPC sliced into two subnets, one public and one private.
-  The private network has Internet access but does not accept any connections.
-  The public network has an Internet Gateway and accepts SSH connections
+  This module sets up a class B VPC sliced into three subnets, one public and one or two private.
+  The public network has an Internet Gateway and accepts SSH connections only.
+  The private networks have Internet access but do not accept any connections.
+  A secondary private connection is optional, and is used to support RDS use cases.
 */
 
 resource "aws_vpc" "main" {
