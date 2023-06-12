@@ -25,8 +25,8 @@ module "cluster" {
   network_name             = module.network.name
   server_count             = each.value.server_count
   agent_count              = each.value.agent_count
-  labels                   = each.value.labels
-  taints                   = each.value.taints
+  agent_labels             = each.value.agent_labels
+  agent_taints             = each.value.agent_taints
   distro_version           = each.value.distro_version
   sans                     = [each.value.san]
   kubernetes_api_port      = each.value.kubernetes_api_port

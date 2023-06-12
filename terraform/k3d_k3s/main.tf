@@ -207,20 +207,26 @@ resource "k3d_cluster" "cluster" {
           node_filters = ["server:*"]
         }
         ],
+        flatten([
+        for agent_i, labels in var.agent_labels :
         [
-        for label in var.labels :
+        for label in labels :
         {
           arg          = "--node-label=${label.key}=${label.value}",
-          node_filters = label.node_filters
-        }
-        ],
-        [
-        for taint in var.taints :
-        {
-          arg          = "--node-taint=${taint.key}=${taint.value}:${taint.effect}",
-          node_filters = taint.node_filters
+          node_filters = ["agent:${agent_i}"]
         }
         ]
+        ]),
+        flatten([
+        for agent_i, taints in var.agent_taints :
+        [
+        for taint in taints :
+        {
+          arg          = "--node-taint=${taint.key}=${taint.value}:${taint.effect}",
+          node_filters = ["agent:${agent_i}"]
+        }
+        ]
+        ]),
       )
       content {
         arg          = extra_args.value["arg"]
