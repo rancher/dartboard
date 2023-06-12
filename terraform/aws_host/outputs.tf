@@ -12,3 +12,11 @@ resource "local_file" "ssh_script" {
 
   filename = "${path.module}/../../config/ssh-to-${var.name}.sh"
 }
+
+output "name" {
+  value = var.name
+}
+
+output "ssh_script_filename" {
+  value = abspath(local_file.ssh_script.filename)
+}
