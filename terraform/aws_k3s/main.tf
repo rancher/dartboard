@@ -1,17 +1,19 @@
 module "server_nodes" {
-  count                       = var.server_count
-  source                      = "../aws_host"
-  ami                         = var.ami
-  instance_type               = var.instance_type
-  availability_zone           = var.availability_zone
-  project_name                = var.project_name
-  name                        = "${var.name}-server-node-${count.index}"
-  ssh_key_name                = var.ssh_key_name
-  ssh_private_key_path        = var.ssh_private_key_path
-  subnet_id                   = var.subnet_id
-  vpc_security_group_id       = var.vpc_security_group_id
-  ssh_bastion_host            = var.ssh_bastion_host
-  ssh_tunnels                 = count.index == 0 ? concat([[var.kubernetes_api_port, 6443]], var.additional_ssh_tunnels) : []
+  count                 = var.server_count
+  source                = "../aws_host"
+  ami                   = var.ami
+  instance_type         = var.instance_type
+  availability_zone     = var.availability_zone
+  project_name          = var.project_name
+  name                  = "${var.name}-server-node-${count.index}"
+  ssh_key_name          = var.ssh_key_name
+  ssh_private_key_path  = var.ssh_private_key_path
+  subnet_id             = var.subnet_id
+  vpc_security_group_id = var.vpc_security_group_id
+  ssh_bastion_host      = var.ssh_bastion_host
+  ssh_tunnels           = count.index == 0 ? concat([
+    [var.kubernetes_api_port, 6443]
+  ], var.additional_port_mappings) : []
   host_configuration_commands = var.host_configuration_commands
 }
 
@@ -58,17 +60,16 @@ module "k3s" {
   distro_version      = var.distro_version
   max_pods            = var.max_pods
   node_cidr_mask_size = var.node_cidr_mask_size
-  datastore_endpoint = (
-    var.datastore_endpoint != null ?
-    var.datastore_endpoint :
-    var.datastore == "mariadb" ?
-    "mysql://${module.rds[0].username}:${module.rds[0].password}@tcp(${module.rds[0].endpoint})/${module.rds[0].db_name}" :
-    var.datastore == "postgres" ?
-    "postgres://${module.rds[0].username}:${module.rds[0].password}@${module.rds[0].endpoint}/${module.rds[0].db_name}" :
-    null
+  datastore_endpoint  = (
+  var.datastore_endpoint != null ?
+  var.datastore_endpoint :
+  var.datastore == "mariadb" ?
+  "mysql://${module.rds[0].username}:${module.rds[0].password}@tcp(${module.rds[0].endpoint})/${module.rds[0].db_name}" :
+  var.datastore == "postgres" ?
+  "postgres://${module.rds[0].username}:${module.rds[0].password}@${module.rds[0].endpoint}/${module.rds[0].db_name}" :
+  null
   )
 }
-
 
 
 output "first_server_private_name" {

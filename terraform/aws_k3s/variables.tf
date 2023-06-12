@@ -69,7 +69,7 @@ variable "kubernetes_api_port" {
   type        = number
 }
 
-variable "additional_ssh_tunnels" {
+variable "additional_port_mappings" {
   description = "Opens additional SSH tunnels to the first server node"
   type        = list(list(number))
   default     = []
