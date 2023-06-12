@@ -18,15 +18,15 @@ variable "agent_count" {
   default     = 0
 }
 
-variable "labels" {
-  description = "List of labels to apply according to node_filters"
-  type        = list(object({ key : string, value : string, node_filters : list(string) }))
+variable "agent_labels" {
+  description = "Per-agent-node lists of labels to apply"
+  type        = list(list(object({ key : string, value : string })))
   default     = []
 }
 
-variable "taints" {
-  description = "List of taints to apply according to node_filters"
-  type        = list(object({ key : string, value : string, effect : string, node_filters : list(string) }))
+variable "agent_taints" {
+  description = "Per-agent-node lists of taints to apply"
+  type        = list(list(object({ key : string, value : string, effect : string })))
   default     = []
 }
 

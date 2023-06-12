@@ -6,11 +6,11 @@ locals {
       server_count   = 3
       agent_count    = 2
       distro_version = "v1.24.12+k3s1"
-      labels = [
-        { key : "monitoring", value : "true", node_filters : ["agent:0"] }
+      agent_labels   = [
+        [{ key : "monitoring", value : "true" }]
       ]
-      taints = [
-        { key : "monitoring", value : "true", effect : "NoSchedule", node_filters : ["agent:0"] }
+      agent_taints = [
+        [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
       ]
       san                 = "upstream.local.gd"
       kubernetes_api_port = 6445
@@ -21,8 +21,8 @@ locals {
       server_count        = 1
       agent_count         = 0
       distro_version      = "v1.24.12+k3s1"
-      labels              = []
-      taints              = []
+      agent_labels        = []
+      agent_taints        = []
       san                 = "downstream.local.gd"
       kubernetes_api_port = 6446
       public_http_port    = 8081
@@ -32,8 +32,8 @@ locals {
       server_count        = 1
       agent_count         = 0
       distro_version      = "v1.24.12+k3s1"
-      labels              = []
-      taints              = []
+      agent_labels        = []
+      agent_taints        = []
       san                 = "tester.local.gd"
       kubernetes_api_port = 6447
       public_http_port    = 8082
