@@ -2,6 +2,7 @@
 import {
     ADMIN_PASSWORD,
     dir,
+    terraformDir,
     helm_install,
     q,
     runCollectingJSONOutput, runCollectingOutput,
@@ -14,7 +15,7 @@ const CONFIG_MAP_COUNT = 1000
 const SECRET_COUNT = 1000
 
 // Refresh k6 files on the tester cluster
-const clusters = runCollectingJSONOutput(`terraform -chdir=${dir("terraform")} output -json`)["clusters"]["value"]
+const clusters = runCollectingJSONOutput(`terraform -chdir=${terraformDir()} output -json`)["clusters"]["value"]
 const tester = clusters["tester"]
 helm_install("k6-files", dir("charts/k6-files"), tester, "tester", {})
 

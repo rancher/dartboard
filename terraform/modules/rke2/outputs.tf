@@ -5,21 +5,21 @@ resource "local_file" "kubeconfig" {
       {
         cluster = {
           certificate-authority-data = base64encode(tls_self_signed_cert.server_ca_cert.cert_pem)
-          server                     = "https://${var.sans[0]}:${var.kubernetes_api_port}"
+          server                     = "https://${var.sans[0]}:${var.ssh_local_port}"
         }
-        name = var.name
+        name = var.sans[0]
       }
     ]
     contexts = [
       {
         context = {
-          cluster = var.name
+          cluster = var.sans[0]
           user : "master-user"
         }
-        name = var.name
+        name = var.sans[0]
       }
     ]
-    current-context = var.name
+    current-context = var.sans[0]
     kind            = "Config"
     preferences     = {}
     users           = [
@@ -33,13 +33,5 @@ resource "local_file" "kubeconfig" {
     ]
   })
 
-  filename = "${path.module}/../../config/${var.name}.yaml"
-}
-
-output "kubeconfig" {
-  value = abspath(local_file.kubeconfig.filename)
-}
-
-output "context" {
-  value = var.name
+  filename = "${path.module}/../../../config/${var.name}.yaml"
 }
