@@ -21,3 +21,7 @@ output "private_security_group_id" {
 output "key_name" {
   value = aws_key_pair.key_pair.key_name
 }
+
+output "bastion_public_name" {
+  value = module.bastion.public_name
+}

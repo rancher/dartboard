@@ -227,3 +227,14 @@ resource "aws_key_pair" "key_pair" {
     Name    = "${var.project_name}-ssh-key-pair"
   }
 }
+
+module "bastion" {
+  source                = "../aws_host"
+  availability_zone     = var.availability_zone
+  project_name          = var.project_name
+  name                  = "bastion"
+  ssh_key_name          = aws_key_pair.key_pair.key_name
+  ssh_private_key_path  = var.ssh_private_key_path
+  subnet_id             = aws_subnet.public.id
+  vpc_security_group_id = aws_security_group.public.id
+}

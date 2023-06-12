@@ -23,3 +23,8 @@ variable "ssh_public_key_path" {
   description = "Path of public ssh key for AWS"
   type        = string
 }
+
+variable "ssh_private_key_path" {
+  description = "Path of private ssh key for AWS"
+  type        = string
+}
