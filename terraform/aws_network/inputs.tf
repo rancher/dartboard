@@ -14,12 +14,12 @@ variable "availability_zone" {
 }
 
 variable "secondary_availability_zone" {
-  description = "Secondary availability zone (for RDS)"
+  description = "Optional secondary availability zone. Setting creates of a secondary private subnet"
   type        = string
   default     = null
 }
 
 variable "ssh_public_key_path" {
   description = "Path of public ssh key for AWS"
-  type = string
+  type        = string
 }
