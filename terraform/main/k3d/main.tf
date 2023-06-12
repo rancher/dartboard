@@ -13,13 +13,13 @@ terraform {
 }
 
 module "network" {
-  source       = "./k3d_network"
+  source       = "../../modules/k3d_network"
   project_name = local.project_name
 }
 
 module "cluster" {
   for_each                 = local.clusters
-  source                   = "./k3d_k3s"
+  source                   = "../../modules/k3d_k3s"
   project_name             = local.project_name
   name                     = each.key
   server_count             = each.value.server_count

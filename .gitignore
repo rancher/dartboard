@@ -1,19 +1,13 @@
 .DS_Store
 .idea
 
-terraform/.terraform
-terraform/.terraform.lock.hcl
-terraform/terraform.tfstate
-terraform/terraform.tfstate.*
-terraform/nohup.out
+terraform/main/*/.terraform
+terraform/main/*/.terraform.lock.hcl
+terraform/main/*/terraform.tfstate
+terraform/main/*/terraform.tfstate.*
 config/*.yaml
 config/*.sh
 config/rke*
-
-cypress/cypress/screenshots
-cypress/cypress/videos
-cypress/cypress/logs
-cypress/node_modules
 
 bin/out.json
 bin/results.csv

@@ -37,7 +37,7 @@ resource "local_file" "rke_config" {
     sans                 = var.sans
   })
 
-  filename = "${path.module}/../../config/rke_config/${var.name}.yaml"
+  filename = "${path.module}/../../../config/rke_config/${var.name}.yaml"
 }
 
 resource "null_resource" "rke_up_execution" {
@@ -46,14 +46,14 @@ resource "null_resource" "rke_up_execution" {
 
   provisioner "local-exec" {
     interpreter = ["bash", "-c"]
-    command = templatefile("${path.module}/download_rke.sh", {
+    command     = templatefile("${path.module}/download_rke.sh", {
       version = split(" ", var.distro_version)[0]
-      target  = "${path.module}/../../config"
+      target  = "${path.module}/../../../config"
     })
   }
 
   provisioner "local-exec" {
-    command = "${path.module}/../../config/rke up --config ${path.module}/../../config/rke_config/${var.name}.yaml"
+    command = "${path.module}/../../../config/rke up --config ${path.module}/../../../config/rke_config/${var.name}.yaml"
   }
 
   triggers = {

@@ -1,5 +1,14 @@
 #!/usr/bin/env node
-import {ADMIN_PASSWORD, dir, helm_install, q, run, runCollectingJSONOutput, runCollectingOutput} from "./lib/common.mjs"
+import {
+    ADMIN_PASSWORD,
+    dir,
+    terraformDir,
+    helm_install,
+    q,
+    run,
+    runCollectingJSONOutput,
+    runCollectingOutput,
+} from "./lib/common.mjs"
 import {k6_run} from "./lib/k6.mjs";
 import {install_rancher_monitoring} from "./lib/rancher_monitoring.mjs";
 
@@ -9,9 +18,9 @@ const RANCHER_CHART = "https://releases.rancher.com/server-charts/latest/rancher
 const GRAFANA_CHART = "https://github.com/grafana/helm-charts/releases/download/grafana-6.56.5/grafana-6.56.5.tgz"
 
 // Step 1: Terraform
-run(`terraform -chdir=${q(dir("terraform"))} init -upgrade`)
-run(`terraform -chdir=${q(dir("terraform"))} apply -auto-approve`)
-const clusters = runCollectingJSONOutput(`terraform -chdir=${q(dir("terraform"))} output -json`)["clusters"]["value"]
+run(`terraform -chdir=${q(terraformDir())} init -upgrade`)
+run(`terraform -chdir=${q(terraformDir())} apply -auto-approve`)
+const clusters = runCollectingJSONOutput(`terraform -chdir=${q(terraformDir())} output -json`)["clusters"]["value"]
 
 
 

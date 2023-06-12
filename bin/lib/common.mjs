@@ -1,6 +1,6 @@
 import {spawnSync} from 'child_process'
 import {dirname, relative, join} from 'path'
-import {cwd} from 'process'
+import {cwd, env} from 'process'
 import {fileURLToPath} from 'url'
 
 export const ADMIN_PASSWORD = "adminadminadmin"
@@ -11,6 +11,11 @@ export function dir(dir){
     const result = relative(currentPath, desiredPath)
 
     return result !== "" ? result : "."
+}
+
+export function terraformDir(){
+    const main_dir = env.TERRAFORM_MAIN_DIR ?? "k3d"
+    return dir(join("terraform", "main", main_dir))
 }
 
 export function run(cmdline, options = {}) {
