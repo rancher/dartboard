@@ -22,7 +22,6 @@ module "cluster" {
   source                   = "./k3d_k3s"
   project_name             = local.project_name
   name                     = each.key
-  network_name             = module.network.name
   server_count             = each.value.server_count
   agent_count              = each.value.agent_count
   agent_labels             = each.value.agent_labels
@@ -31,4 +30,5 @@ module "cluster" {
   sans                     = [each.value.san]
   kubernetes_api_port      = each.value.kubernetes_api_port
   additional_port_mappings = [[each.value.public_http_port, 80], [each.value.public_https_port, 443]]
+  network_name             = module.network.name
 }
