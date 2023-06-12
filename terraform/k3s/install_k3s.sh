@@ -33,6 +33,12 @@ token: ${jsonencode(token)}
 %{ if cluster_init ~}
 cluster-init: true
 %{ endif ~}
+%{ for label in labels ~}
+node-label: ${label.key}=${label.value}
+%{ endfor ~}
+%{ for taint in taints ~}
+node-taint: ${taint.key}=${taint.value}:${taint.effect}
+%{ endfor ~}
 %{ if exec == "server" ~}
 tls-san:
 %{ for san in sans ~}
