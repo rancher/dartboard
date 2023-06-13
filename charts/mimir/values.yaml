@@ -5,5 +5,3 @@
 image:
   name: grafana/mimir
   tag: 2.8.0
-
-san: mimir.local.gd

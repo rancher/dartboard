@@ -35,10 +35,8 @@ console.log("*** ACCESS DETAILS")
 console.log()
 
 const upstream = clusters["upstream"]
-const upstreamSAN = upstream["san"]
-const upstreamPublicPort = upstream["public_https_port"]
 console.log(`*** UPSTREAM CLUSTER`)
-console.log(`    Rancher UI: https://${upstreamSAN}:${upstreamPublicPort} (admin/${ADMIN_PASSWORD})`)
+console.log(`    Rancher UI: https://${upstream["local_name"]}:${upstream["local_https_port"]} (admin/${ADMIN_PASSWORD})`)
 console.log(`    Kubernetes API:`)
 console.log(`export KUBECONFIG=${q(upstream["kubeconfig"])}`)
 console.log(`kubectl config set-context ${q(upstream["context"])}`)
@@ -53,7 +51,5 @@ for (const [name, downstream] of downstreams) {
 }
 
 console.log(`*** TESTER CLUSTER`)
-const testerSAN = tester["san"]
-const testerPublicPort = tester["public_http_port"]
-console.log(`    Grafana UI: http://${testerSAN}:${testerPublicPort}/grafana/ (admin/${ADMIN_PASSWORD})`)
+console.log(`    Grafana UI: http://${tester["local_name"]}:${tester["local_http_port"]}/grafana/ (admin/${ADMIN_PASSWORD})`)
 console.log()
