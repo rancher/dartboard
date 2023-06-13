@@ -13,7 +13,7 @@ locals {
       agent_taints = [
         [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
       ]
-      san = "upstream.local.gd"
+      local_name = "upstream.local.gd"
     },
     {
       name           = "downstream"
@@ -22,7 +22,7 @@ locals {
       distro_version = "v1.24.12+k3s1"
       agent_labels   = []
       agent_taints   = []
-      san            = "downstream.local.gd"
+      local_name     = "downstream.local.gd"
     },
     {
       name           = "tester"
@@ -31,7 +31,7 @@ locals {
       distro_version = "v1.24.12+k3s1"
       agent_labels   = []
       agent_taints   = []
-      san            = "tester.local.gd"
+      local_name     = "tester.local.gd"
     },
   ]
 

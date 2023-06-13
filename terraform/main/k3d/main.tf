@@ -28,7 +28,7 @@ module "cluster" {
   agent_taints   = local.clusters[count.index].agent_taints
   distro_version = local.clusters[count.index].distro_version
 
-  sans                      = [local.clusters[count.index].san]
+  sans                      = [local.clusters[count.index].local_name]
   local_kubernetes_api_port = local.first_local_kubernetes_api_port + count.index
   local_http_port           = local.first_local_http_port + count.index
   local_https_port          = local.first_local_https_port + count.index

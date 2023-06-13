@@ -27,12 +27,11 @@ const clusters = runCollectingJSONOutput(`terraform -chdir=${q(terraformDir())} 
 // Step 2: Helm charts
 // tester cluster
 const tester = clusters["tester"]
-const testerSAN = tester["san"]
-helm_install("mimir", dir("charts/mimir"), tester, "tester", { san: testerSAN })
+helm_install("mimir", dir("charts/mimir"), tester, "tester", {})
 helm_install("k6-files", dir("charts/k6-files"), tester, "tester", {})
 helm_install("grafana-dashboards", dir("charts/grafana-dashboards"), tester, "tester", {})
 
-const MIMIR_URL = "http://mimir.tester:9009/mimir"
+const localTesterName = tester["local_name"]
 helm_install("grafana", GRAFANA_CHART, tester, "tester", {
     datasources: {
         "datasources.yaml": {
@@ -40,7 +39,7 @@ helm_install("grafana", GRAFANA_CHART, tester, "tester", {
             datasources: [{
                 name: "mimir",
                 type: "prometheus",
-                url: MIMIR_URL + "/prometheus",
+                url: "http://mimir.tester:9009/mimir/prometheus",
                 access: "proxy",
                 isDefault: true
             }]
@@ -65,10 +64,10 @@ helm_install("grafana", GRAFANA_CHART, tester, "tester", {
     ingress: {
         enabled: true,
         path: "/grafana",
-        hosts: [testerSAN]
+        hosts: [localTesterName]
     },
     env: {
-        "GF_SERVER_ROOT_URL": `http://${testerSAN}/grafana`,
+        "GF_SERVER_ROOT_URL": `http://${localTesterName}/grafana`,
         "GF_SERVER_SERVE_FROM_SUB_PATH": "true"
     },
     adminPassword: ADMIN_PASSWORD,
@@ -79,11 +78,11 @@ const upstream = clusters["upstream"]
 helm_install("cert-manager", CERT_MANAGER_CHART, upstream, "cert-manager", {installCRDs: true})
 
 const BOOTSTRAP_PASSWORD = "admin"
-const upstreamPrivateName = upstream["private_name"]
-const privateRancherUrl = `https://${upstreamPrivateName}`
+const privateUpstreamName = upstream["private_name"]
+const privateRancherUrl = `https://${privateUpstreamName}`
 helm_install("rancher", RANCHER_CHART, upstream, "cattle-system", {
     bootstrapPassword: BOOTSTRAP_PASSWORD,
-    hostname: upstreamPrivateName,
+    hostname: privateUpstreamName,
     replicas: 1,
     extraEnv: [{
         name: "CATTLE_SERVER_URL",
@@ -91,18 +90,17 @@ helm_install("rancher", RANCHER_CHART, upstream, "cattle-system", {
     }],
 })
 
-const upstreamSAN = upstream["san"]
+const localUpstreamName = upstream["local_name"]
 helm_install("rancher-ingress", dir("charts/rancher-ingress"), upstream, "default", {
-    san: upstreamSAN,
+    san: localUpstreamName,
 })
 
 const monitoringRestrictions = {
     nodeSelector: {monitoring: "true"},
     tolerations: [{key: "monitoring", operator: "Exists", effect: "NoSchedule"}],
 }
-const testerPrivateName = tester["private_name"]
 
-install_rancher_monitoring(upstream, monitoringRestrictions, `http://${testerPrivateName}/mimir/api/v1/push`)
+install_rancher_monitoring(upstream, monitoringRestrictions, `http://${tester["private_name"]}/mimir/api/v1/push`)
 
 const kuf = `--kubeconfig=${upstream["kubeconfig"]}`
 const cuf = `--context=${upstream["context"]}`
@@ -110,8 +108,7 @@ run(`kubectl wait deployment/rancher --namespace cattle-system --for condition=A
 
 
 // Step 3: Import downstream clusters
-const upstreamPublicPort = upstream["public_https_port"]
-const publicRancherUrl = `https://${upstreamSAN}:${upstreamPublicPort}`
+const localRancherUrl = `https://${localUpstreamName}:${upstream["local_https_port"]}`
 const importedClusters = Object.entries(clusters).filter(([k,v]) => k.startsWith("downstream"))
 const importedClusterNames = importedClusters.map(([name, cluster]) => name).join(",")
 k6_run(tester, { BASE_URL: privateRancherUrl, BOOTSTRAP_PASSWORD: BOOTSTRAP_PASSWORD, PASSWORD: ADMIN_PASSWORD, IMPORTED_CLUSTER_NAMES: importedClusterNames}, {}, "k6/rancher_setup.js")
@@ -120,7 +117,7 @@ for (const [name, cluster] of importedClusters) {
     const clusterId = runCollectingJSONOutput(`kubectl get -n fleet-default cluster ${q(name)} -o json ${q(kuf)} ${q(cuf)}`)["status"]["clusterName"]
     const token = runCollectingJSONOutput(`kubectl get -n ${q(clusterId)} clusterregistrationtoken.management.cattle.io default-token -o json ${q(kuf)} ${q(cuf)}`)["status"]["token"]
 
-    const url = `${publicRancherUrl}/v3/import/${token}_${clusterId}.yaml`
+    const url = `${localRancherUrl}/v3/import/${token}_${clusterId}.yaml`
     const yaml = runCollectingOutput(`curl --insecure -fL ${q(url)}`)
     run(`kubectl apply -f - --kubeconfig=${q(cluster["kubeconfig"])} --context=${q(cluster["context"])}`, {input: yaml})
 }
