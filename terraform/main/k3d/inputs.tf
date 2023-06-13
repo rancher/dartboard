@@ -13,6 +13,8 @@ locals {
       agent_taints = [
         [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
       ]
+
+      // k3d-specific
       local_name = "upstream.local.gd"
     },
     {
@@ -22,7 +24,9 @@ locals {
       distro_version = "v1.24.12+k3s1"
       agent_labels   = []
       agent_taints   = []
-      local_name     = "downstream.local.gd"
+
+      // k3d-specific
+      local_name = "downstream.local.gd"
     },
     {
       name           = "tester"
@@ -31,10 +35,13 @@ locals {
       distro_version = "v1.24.12+k3s1"
       agent_labels   = []
       agent_taints   = []
-      local_name     = "tester.local.gd"
+
+      // k3d-specific
+      local_name = "tester.local.gd"
     },
   ]
 
+  // k3d-specific
   first_local_kubernetes_api_port = 6445
   first_local_http_port           = 8080
   first_local_https_port          = 8443
