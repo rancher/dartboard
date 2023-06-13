@@ -40,7 +40,7 @@ console.log(`    Rancher UI: https://${upstream["local_name"]}:${upstream["local
 console.log(`    Kubernetes API:`)
 console.log(`export KUBECONFIG=${q(upstream["kubeconfig"])}`)
 console.log(`kubectl config set-context ${q(upstream["context"])}`)
-for (const [node, command] of upstream["node_access_commands"]) {
+for (const [node, command] of Object.entries(upstream["node_access_commands"])) {
     console.log(`    Node ${node}: ${q(command)}`)
 }
 console.log()
@@ -50,7 +50,7 @@ for (const [name, downstream] of downstreams) {
     console.log(`    Kubernetes API:`)
     console.log(`export KUBECONFIG=${q(downstream["kubeconfig"])}`)
     console.log(`kubectl config set-context ${q(downstream["context"])}`)
-    for (const [node, command] of downstream["node_access_commands"]) {
+    for (const [node, command] of Object.entries(downstream["node_access_commands"])) {
         console.log(`    Node ${node}: ${q(command)}`)
     }
     console.log()
@@ -58,7 +58,7 @@ for (const [name, downstream] of downstreams) {
 
 console.log(`*** TESTER CLUSTER`)
 console.log(`    Grafana UI: http://${tester["local_name"]}:${tester["local_http_port"]}/grafana/ (admin/${ADMIN_PASSWORD})`)
-for (const [node, command] of tester["node_access_commands"]) {
+for (const [node, command] of Object.entries(tester["node_access_commands"])) {
     console.log(`    Node ${node}: ${q(command)}`)
 }
 console.log()
