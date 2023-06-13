@@ -11,9 +11,11 @@ module "server_nodes" {
   subnet_id             = var.subnet_id
   vpc_security_group_id = var.vpc_security_group_id
   ssh_bastion_host      = var.ssh_bastion_host
-  ssh_tunnels           = count.index == 0 ? concat([
-    [var.kubernetes_api_port, 6443]
-  ], var.additional_port_mappings) : []
+  ssh_tunnels           = count.index == 0 ? [
+    [var.local_kubernetes_api_port, 6443],
+    [var.local_http_port, 80],
+    [var.local_https_port, 443],
+  ] : []
   host_configuration_commands = var.host_configuration_commands
 }
 
@@ -55,9 +57,9 @@ module "k3s" {
   agent_taints = var.agent_taints
   sans         = length(var.sans) > 0 ? var.sans : (var.server_count > 0 ? [module.server_nodes[0].private_name] : [])
 
-  ssh_private_key_path = var.ssh_private_key_path
-  ssh_bastion_host     = var.ssh_bastion_host
-  kubernetes_api_port  = var.kubernetes_api_port
+  ssh_private_key_path      = var.ssh_private_key_path
+  ssh_bastion_host          = var.ssh_bastion_host
+  local_kubernetes_api_port = var.local_kubernetes_api_port
 
   distro_version      = var.distro_version
   max_pods            = var.max_pods

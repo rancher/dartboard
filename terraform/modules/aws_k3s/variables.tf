@@ -76,15 +76,19 @@ variable "vpc_security_group_id" {
   type        = string
 }
 
-variable "kubernetes_api_port" {
-  description = "Port to publish this cluster's Kubernetes API locally (via SSH tunnel)"
-  type        = number
+variable "local_kubernetes_api_port" {
+  description = "Local port this cluster's Kubernetes API will be published to (via SSH tunnel)"
+  default     = 6445
 }
 
-variable "additional_port_mappings" {
-  description = "Opens additional SSH tunnels to the first server node"
-  type        = list(list(number))
-  default     = []
+variable "local_http_port" {
+  description = "Local port this cluster's http endpoints will be published to (via SSH tunnel)"
+  default     = 8080
+}
+
+variable "local_https_port" {
+  description = "Local port this cluster's https endpoints will be published to (via SSH tunnel)"
+  default     = 8443
 }
 
 variable "sans" {

@@ -52,7 +52,7 @@ variable "ssh_bastion_host" {
   default     = null
 }
 
-variable "kubernetes_api_port" {
+variable "local_kubernetes_api_port" {
   description = "Port k3s cluster's Kubernetes API will be published to (for inclusion in kubeconfig)"
   default     = 6443
 }
