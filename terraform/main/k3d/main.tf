@@ -18,17 +18,19 @@ module "network" {
 }
 
 module "cluster" {
-  for_each                 = local.clusters
-  source                   = "../../modules/k3d_k3s"
-  project_name             = local.project_name
-  name                     = each.key
-  server_count             = each.value.server_count
-  agent_count              = each.value.agent_count
-  agent_labels             = each.value.agent_labels
-  agent_taints             = each.value.agent_taints
-  distro_version           = each.value.distro_version
-  sans                     = [each.value.san]
-  kubernetes_api_port      = each.value.kubernetes_api_port
-  additional_port_mappings = [[each.value.public_http_port, 80], [each.value.public_https_port, 443]]
-  network_name             = module.network.name
+  count          = length(local.clusters)
+  source         = "../../modules/k3d_k3s"
+  project_name   = local.project_name
+  name           = local.clusters[count.index].name
+  server_count   = local.clusters[count.index].server_count
+  agent_count    = local.clusters[count.index].agent_count
+  agent_labels   = local.clusters[count.index].agent_labels
+  agent_taints   = local.clusters[count.index].agent_taints
+  distro_version = local.clusters[count.index].distro_version
+
+  sans                      = [local.clusters[count.index].san]
+  local_kubernetes_api_port = local.first_local_kubernetes_api_port + count.index
+  local_http_port           = local.first_local_http_port + count.index
+  local_https_port          = local.first_local_https_port + count.index
+  network_name              = module.network.name
 }

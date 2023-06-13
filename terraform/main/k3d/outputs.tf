@@ -1,13 +1,12 @@
 output "clusters" {
   value = {
-  for name, locals in local.clusters : name => {
-    name : name,
-    san : locals.san,
-    public_http_port : locals.public_http_port,
-    public_https_port : locals.public_https_port,
-    private_name = module.cluster[name].first_server_private_name,
-    kubeconfig   = module.cluster[name].kubeconfig
-    context      = module.cluster[name].context
+  for i, cluster in local.clusters : cluster.name => {
+    san : cluster.san,
+    public_http_port : module.cluster[i].local_http_port,
+    public_https_port : module.cluster[i].local_https_port,
+    private_name = module.cluster[i].first_server_private_name,
+    kubeconfig   = module.cluster[i].kubeconfig
+    context      = module.cluster[i].context
   }
   }
 }
