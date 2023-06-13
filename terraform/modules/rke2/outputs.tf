@@ -35,3 +35,11 @@ resource "local_file" "kubeconfig" {
 
   filename = "${path.module}/../../../config/${var.name}.yaml"
 }
+
+output "kubeconfig" {
+  value = abspath(local_file.kubeconfig.filename)
+}
+
+output "context" {
+  value = var.name
+}
