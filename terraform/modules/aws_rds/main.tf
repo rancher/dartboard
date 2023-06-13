@@ -29,7 +29,9 @@ resource "aws_db_parameter_group" "db_parameter_group_postgres" {
 }
 
 resource "aws_db_instance" "instance" {
-  depends_on        = [aws_db_parameter_group.db_parameter_group_mariadb, aws_db_parameter_group.db_parameter_group_postgres]
+  depends_on        = [
+    aws_db_parameter_group.db_parameter_group_mariadb, aws_db_parameter_group.db_parameter_group_postgres
+  ]
   identifier        = "${var.project_name}-${var.name}"
   instance_class    = var.instance_class
   availability_zone = var.availability_zone
@@ -49,26 +51,4 @@ resource "aws_db_instance" "instance" {
   allow_major_version_upgrade = false
   apply_immediately           = true
   auto_minor_version_upgrade  = false
-}
-
-
-
-output "id" {
-  value = aws_db_instance.instance.id
-}
-
-output "endpoint" {
-  value = aws_db_instance.instance.endpoint
-}
-
-output "db_name" {
-  value = aws_db_instance.instance.db_name
-}
-
-output "username" {
-  value = aws_db_instance.instance.username
-}
-
-output "password" {
-  value = aws_db_instance.instance.password
 }
