@@ -12,7 +12,7 @@ resource "local_file" "kubeconfig" {
       {
         cluster = {
           certificate-authority-data = yamldecode(data.local_file.rke_kubeconfig[0].content)["clusters"][0]["cluster"]["certificate-authority-data"]
-          server                     = "https://${var.sans[0]}:${var.ssh_local_port}"
+          server                     = "https://${var.sans[0]}:${var.local_kubernetes_api_port}"
         }
         name = var.sans[0]
       }

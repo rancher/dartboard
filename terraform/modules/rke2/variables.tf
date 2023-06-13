@@ -40,9 +40,9 @@ variable "ssh_bastion_host" {
   default     = null
 }
 
-variable "ssh_local_port" {
-  description = "Local port for the SSH tunnel for the API"
-  default     = null
+variable "local_kubernetes_api_port" {
+  description = "Port this cluster's Kubernetes API will be published to (for inclusion in kubeconfig)"
+  default     = 6443
 }
 
 variable "max_pods" {
