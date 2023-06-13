@@ -10,6 +10,14 @@ output "context" {
   value = module.k3s.context
 }
 
+output "local_http_port" {
+  value = var.local_http_port
+}
+
+output "local_https_port" {
+  value = var.local_https_port
+}
+
 output "ssh_scripts" {
   value = merge({
   for node in module.server_nodes : node.name => { ssh_script : node.ssh_script_filename }

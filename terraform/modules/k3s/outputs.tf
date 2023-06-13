@@ -5,7 +5,7 @@ resource "local_file" "kubeconfig" {
       {
         cluster = {
           certificate-authority-data = base64encode(tls_self_signed_cert.server_ca_cert.cert_pem)
-          server                     = "https://${var.sans[0]}:${var.kubernetes_api_port}"
+          server                     = "https://${var.sans[0]}:${var.local_kubernetes_api_port}"
         }
         name = var.name
       }
