@@ -53,15 +53,19 @@ variable "network_name" {
   default     = null
 }
 
-variable "kubernetes_api_port" {
-  description = "Port k3s cluster's Kubernetes API will be published to"
+variable "local_kubernetes_api_port" {
+  description = "Local port this cluster's Kubernetes API will be published to"
   default     = 6445
 }
 
-variable "additional_port_mappings" {
-  description = "Opens additional port mappings to the first server node (format is [[host_port, container_port]])"
-  type        = list(list(number))
-  default     = []
+variable "local_http_port" {
+  description = "Local port this cluster's http endpoints will be published to"
+  default     = 8080
+}
+
+variable "local_https_port" {
+  description = "Local port this cluster's https endpoints will be published to"
+  default     = 8443
 }
 
 variable "log_level" {

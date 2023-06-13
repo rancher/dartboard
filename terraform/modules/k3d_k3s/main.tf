@@ -242,18 +242,23 @@ resource "k3d_cluster" "cluster" {
   }
 
   kube_api {
-    host_port = var.kubernetes_api_port
+    host_port = var.local_kubernetes_api_port
   }
 
-  dynamic "port" {
-    for_each = var.additional_port_mappings
-    content {
-      host_port      = port.value[0]
-      container_port = port.value[1]
-      node_filters   = [
-        "server:0:direct",
-      ]
-    }
+  port {
+    host_port      = var.local_http_port
+    container_port = 80
+    node_filters   = [
+      "server:0:direct",
+    ]
+  }
+
+  port {
+    host_port      = var.local_https_port
+    container_port = 443
+    node_filters   = [
+      "server:0:direct",
+    ]
   }
 }
 
