@@ -102,6 +102,8 @@ const monitoringRestrictions = {
 
 install_rancher_monitoring(upstream, monitoringRestrictions, `http://${tester["private_name"]}/mimir/api/v1/push`)
 
+helm_install("cgroups-exporter", dir("charts/cgroups-exporter"), upstream, "cattle-monitoring-system", {})
+
 const kuf = `--kubeconfig=${upstream["kubeconfig"]}`
 const cuf = `--context=${upstream["context"]}`
 run(`kubectl wait deployment/rancher --namespace cattle-system --for condition=Available=true --timeout=1h ${q(kuf)} ${q(cuf)}`)
