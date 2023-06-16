@@ -173,6 +173,12 @@ resource "k3d_cluster" "cluster" {
     switch_current_context    = true
   }
 
+  volume {
+    source       = "/sys"
+    destination  = "/host/sys"
+    node_filters = []
+  }
+
   k3s {
     dynamic "extra_args" {
       for_each = concat([
