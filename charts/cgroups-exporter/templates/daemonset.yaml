@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cgroups-exporter
+  labels:
+    app.kubernetes.io/name: cgroups-exporter
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cgroups-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cgroups-exporter
+    spec:
+      tolerations:
+        # allow to run on control plane nodes
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
+          args:
+            - cgroups-exporter
+            - --metrics-address=0.0.0.0
+            - --cgroups-path
+            - /host/host/sys/fs/cgroup/*/docker/*
+            - /host/sys/fs/cgroup/*/system.slice/k3s.service
+            - /host/sys/fs/cgroup/*/kubepods.slice/*
+          ports:
+            - containerPort: 9753
+              hostPort: 9753
+              name: http-metrics
+              protocol: TCP
+          volumeMounts:
+            - name: host-sys
+              mountPath: /host/sys
+              readOnly: true
+            - name: host-host-sys
+              mountPath: /host/host/sys
+              readOnly: true
+      volumes:
+        - name: host-sys
+          hostPath:
+            path: /sys
+            type: Directory
+        - name: host-host-sys
+          hostPath:
+            path: /host/sys
+            type: DirectoryOrCreate
