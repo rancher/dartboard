@@ -83,7 +83,7 @@ const privateRancherUrl = `https://${privateUpstreamName}`
 helm_install("rancher", RANCHER_CHART, upstream, "cattle-system", {
     bootstrapPassword: BOOTSTRAP_PASSWORD,
     hostname: privateUpstreamName,
-    replicas: 1,
+    replicas: 3,
     extraEnv: [{
         name: "CATTLE_SERVER_URL",
         value: privateRancherUrl
