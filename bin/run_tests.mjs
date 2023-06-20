@@ -57,7 +57,7 @@ for (const [name, downstream] of downstreams) {
 }
 
 console.log(`*** TESTER CLUSTER`)
-console.log(`    Grafana UI: http://${tester["local_name"]}:${tester["local_http_port"]}/grafana/ (admin/${ADMIN_PASSWORD})`)
+console.log(`    Grafana UI: http://${tester["local_name"]}:${tester["local_http_port"]}/grafana/d/a1508c35-b2e6-47f4-94ab-fec400d1c243/test-results?orgId=1&refresh=5s&from=now-30m&to=now (admin/${ADMIN_PASSWORD})`)
 for (const [node, command] of Object.entries(tester["node_access_commands"])) {
     console.log(`    Node ${node}: ${q(command)}`)
 }
