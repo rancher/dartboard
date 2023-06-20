@@ -1,0 +1,7 @@
+# Default values
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  name: ghcr.io/mosquito/cgroups-exporter
+  tag: 0.8.0

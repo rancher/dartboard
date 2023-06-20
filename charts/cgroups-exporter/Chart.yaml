@@ -1,0 +1,6 @@
+apiVersion: v2
+name: cgroups-exporter
+description: Exporter for CGroups metrics, for LXD/Docker/systemd
+type: application
+version: 0.1.0
+appVersion: "0.7.0"
