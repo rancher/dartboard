@@ -15,19 +15,11 @@ EOF
 # Install PostgreSQL
 yum install -y postgresql15 postgresql15-server
 
-# if this host has a local SSD device (eg. m6i family), format the partition and mount the data path on it
-if [ -b /dev/nvme1n1 ] && [ ! -b /dev/nvme1n1p1 ]; then
-  /usr/sbin/parted -s /dev/nvme1n1 mklabel gpt
-  /usr/sbin/parted -s /dev/nvme1n1 mkpart primary 0% 100%
-
-  # HACK: allow kernel time before calling mkfs
-  sleep 1
-
-  /sbin/mkfs.xfs /dev/nvme1n1p1
-  mkdir -p /var/lib/pgsql
-  mount /dev/nvme1n1p1 /var/lib/pgsql
-fi
-
+# use data disk if available (see mount_ephemeral.sh)
+if [ -d /data ]; then
+  mkdir -p /data/pgsql
+  ln -sf /data/pgsql /var/lib/pgsql
+endif
 
 # Initialize the database and enable automatic start
 ls /var/lib/pgsql/15/initdb.log || /usr/pgsql-15/bin/postgresql-15-setup initdb

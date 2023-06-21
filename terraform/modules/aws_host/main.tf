@@ -33,6 +33,14 @@ resource "null_resource" "host_configuration" {
   }
 
   provisioner "remote-exec" {
+    script = "${path.module}/mount_ephemeral.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = var.host_configuration_commands
+  }
+
+  provisioner "remote-exec" {
     inline = var.host_configuration_commands
   }
 }

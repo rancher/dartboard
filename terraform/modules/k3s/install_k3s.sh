@@ -5,6 +5,12 @@ set -xe
 # HACK: work around https://github.com/k3s-io/k3s/issues/2306
 sleep ${sleep_time}
 
+# use data disk if available (see mount_ephemeral.sh)
+if [ -d /data ]; then
+  mkdir -p /data/rancher
+  ln -sf /data/rancher /var/lib/rancher
+fi
+
 # pre-shared secrets
 mkdir -p /var/lib/rancher/k3s/server/tls/
 cat >/var/lib/rancher/k3s/server/tls/client-ca.key <<EOF
