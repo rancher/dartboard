@@ -12,18 +12,6 @@ resource "aws_instance" "instance" {
 
   user_data = templatefile("${path.module}/user_data.yaml", {})
 
-  # WORKAROUND: ephemeral block devices are defined in any case
-  # they will only be used for instance types that provide them
-  ephemeral_block_device {
-    device_name  = "xvdb"
-    virtual_name = "ephemeral0"
-  }
-
-  ephemeral_block_device {
-    device_name  = "xvdc"
-    virtual_name = "ephemeral1"
-  }
-
   tags = {
     Project = var.project_name
     Name    = "${var.project_name}-${var.name}"
