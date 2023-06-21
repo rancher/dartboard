@@ -28,9 +28,14 @@ spec:
             - cgroups-exporter
             - --metrics-address=0.0.0.0
             - --cgroups-path
-            - /host/host/sys/fs/cgroup/*/docker/*
-            - /host/sys/fs/cgroup/*/system.slice/k3s.service
-            - /host/sys/fs/cgroup/*/kubepods.slice/*
+            - /host/sys/fs/cgroup/memory/system.slice/k3s.service
+            - /host/sys/fs/cgroup/memory/kubepods.slice/*
+            - /host/sys/fs/cgroup/cpu,cpuacct/system.slice/k3s.service
+            - /host/sys/fs/cgroup/cpu,cpuacct/kubepods.slice/*
+            - /host/host/sys/fs/cgroup/memory/docker/*/k3s
+            - /host/host/sys/fs/cgroup/memory/docker/*/kubepods/*
+            - /host/host/sys/fs/cgroup/cpu,cpuacct/docker/*/k3s
+            - /host/host/sys/fs/cgroup/cpu,cpuacct/docker/*/kubepods/*
           ports:
             - containerPort: 9753
               hostPort: 9753
