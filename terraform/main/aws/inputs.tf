@@ -20,11 +20,11 @@ locals {
   }
 
   downstream_clusters = [
-  for i in range(1) :
+  for i in range(5) :
   {
     name           = "downstream-${i}"
-    server_count   = 1
-    agent_count    = 0
+    server_count   = 3
+    agent_count    = 7
     distro_version = "v1.24.12+k3s1"
     agent_labels   = []
     agent_taints   = []
