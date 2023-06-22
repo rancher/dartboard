@@ -2,7 +2,8 @@
 
 set -xe
 
-# HACK: work around https://github.com/k3s-io/k3s/issues/2306
+# HACK: work around https://github.com/k3s-io/k3s/issues/7000
+# can be removed as of v1.27.2+k3s1 and later
 sleep ${sleep_time}
 
 # use data disk if available (see mount_ephemeral.sh)
