@@ -13,6 +13,10 @@ export function dir(dir){
     return result !== "" ? result : "."
 }
 
+export function isK3d() {
+    return (env.TERRAFORM_MAIN_DIR ?? "k3d") === "k3d"
+}
+
 export function terraformDir(){
     const main_dir = env.TERRAFORM_MAIN_DIR ?? "k3d"
     return dir(join("terraform", "main", main_dir))

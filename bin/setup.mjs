@@ -7,7 +7,7 @@ import {
     q,
     run,
     runCollectingJSONOutput,
-    runCollectingOutput,
+    runCollectingOutput, isK3d,
 } from "./lib/common.mjs"
 import {k6_run} from "./lib/k6.mjs";
 import {install_rancher_monitoring} from "./lib/rancher_monitoring.mjs";
@@ -83,7 +83,7 @@ const privateRancherUrl = `https://${privateUpstreamName}`
 helm_install("rancher", RANCHER_CHART, upstream, "cattle-system", {
     bootstrapPassword: BOOTSTRAP_PASSWORD,
     hostname: privateUpstreamName,
-    replicas: env.TERRAFORM_MAIN_DIR === "k3d" ? 1 : 3,
+    replicas: isK3d() ? 1 : 3,
     extraEnv: [{
         name: "CATTLE_SERVER_URL",
         value: privateRancherUrl
