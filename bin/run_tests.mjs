@@ -13,6 +13,8 @@ import {k6_run} from "./lib/k6.mjs"
 // Parameters
 const CONFIG_MAP_COUNT = 1000
 const SECRET_COUNT = 1000
+const ROLE_COUNT = 10
+const USER_COUNT = 5
 
 // Refresh k6 files on the tester cluster
 const clusters = runCollectingJSONOutput(`terraform -chdir=${terraformDir()} output -json`)["clusters"]["value"]
@@ -26,15 +28,21 @@ for (const [name, downstream] of downstreams) {
     k6_run(tester,
         { BASE_URL: `https://${downstream["private_name"]}:6443`, KUBECONFIG: downstream["kubeconfig"], CONTEXT: downstream["context"], CONFIG_MAP_COUNT: CONFIG_MAP_COUNT, SECRET_COUNT: SECRET_COUNT},
         {commit: commit, cluster: name, test: "create_load.mjs", ConfigMaps: CONFIG_MAP_COUNT, Secrets: SECRET_COUNT},
-        "k6/create_resources.js", true
+        "k6/create_k8s_resources.js", true
     )
 }
+
+const upstream = clusters["upstream"]
+k6_run(tester,
+    { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, ROLE_COUNT: ROLE_COUNT, USER_COUNT: USER_COUNT },
+    {commit: commit, cluster: "upstream", test: "create_rancher_resources.mjs", Roles: ROLE_COUNT, Users: USER_COUNT},
+    "k6/create_rancher_resources.js", true
+)
 
 // Output access details
 console.log("*** ACCESS DETAILS")
 console.log()
 
-const upstream = clusters["upstream"]
 console.log(`*** UPSTREAM CLUSTER`)
 console.log(`    Rancher UI: https://${upstream["local_name"]}:${upstream["local_https_port"]} (admin/${ADMIN_PASSWORD})`)
 console.log(`    Kubernetes API:`)
