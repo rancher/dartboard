@@ -71,7 +71,7 @@ export function install_rancher_monitoring(cluster, monitoringRestrictions, mimi
                         // drop all metrics except for the ones matching regex
                         {
                             sourceLabels: ['__name__'],
-                            regex: "(node_namespace_pod_container|node_load|node_memory|node_network_receive_bytes_total|container_network_receive_bytes_total|cgroups_).*",
+                            regex: "(node_namespace_pod_container|node_cpu|node_load|node_memory|node_network_receive_bytes_total|container_network_receive_bytes_total|cgroups_).*",
                             action: "keep",
                         }
                     ]
