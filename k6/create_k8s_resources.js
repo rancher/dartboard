@@ -44,7 +44,7 @@ export const options = {
     thresholds: {
         checks: ['rate>0.99']
     }
-};
+}
 
 // Custom metrics
 const resourceMetric = new Gauge('test_resources')
