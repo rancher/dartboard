@@ -3,15 +3,11 @@ locals {
 
   upstream_cluster = {
     name           = "upstream"
-    server_count   = 3
-    agent_count    = 2
+    server_count   = 1
+    agent_count    = 0
     distro_version = "v1.24.12+k3s1"
-    agent_labels   = [
-      [{ key : "monitoring", value : "true" }]
-    ]
-    agent_taints = [
-      [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
-    ]
+    agent_labels   = []
+    agent_taints   = []
 
     // k3d-specific
     local_name = "upstream.local.gd"

@@ -100,7 +100,7 @@ const monitoringRestrictions = {
     tolerations: [{key: "monitoring", operator: "Exists", effect: "NoSchedule"}],
 }
 
-install_rancher_monitoring(upstream, monitoringRestrictions, `http://${tester["private_name"]}/mimir/api/v1/push`)
+install_rancher_monitoring(upstream, isK3d() ? {} : monitoringRestrictions, `http://${tester["private_name"]}/mimir/api/v1/push`)
 
 helm_install("cgroups-exporter", dir("charts/cgroups-exporter"), upstream, "cattle-monitoring-system", {})
 
