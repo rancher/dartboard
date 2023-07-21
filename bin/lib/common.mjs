@@ -22,6 +22,13 @@ export function terraformDir(){
     return env.TERRAFORM_WORK_DIR ?? default_dir
 }
 
+export function terraformVar() {
+    if (env.TERRAFORM_VAR_FILE) {
+        return `-var-file=${env.TERRAFORM_VAR_FILE}`
+    }
+    return ""
+}
+
 export function run(cmdline, options = {}) {
     console.log(`***Running command:\n ${cmdline}\n`)
     const res = spawnSync(cmdline, [], {

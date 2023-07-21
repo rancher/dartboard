@@ -3,6 +3,7 @@ import {
     ADMIN_PASSWORD,
     dir,
     terraformDir,
+    terraformVar,
     helm_install,
     q,
     run,
@@ -19,7 +20,7 @@ const GRAFANA_CHART = "https://github.com/grafana/helm-charts/releases/download/
 
 // Step 1: Terraform
 run(`terraform -chdir=${q(terraformDir())} init -upgrade`)
-run(`terraform -chdir=${q(terraformDir())} apply -auto-approve`)
+run(`terraform -chdir=${q(terraformDir())} apply -auto-approve ${q(terraformVar())}`)
 const clusters = runCollectingJSONOutput(`terraform -chdir=${q(terraformDir())} output -json`)["clusters"]["value"]
 
 
