@@ -2,14 +2,17 @@
 
 set -xe
 
+WAITSECS=${WAITSECS:-"2"}
+KUBECTL=${KUBECTL:-"/usr/local/bin/kubectl"}
+
 for i in {1..20}
 do
-  if kubectl get services
+  if $KUBECTL get services
   then
     exit 0
   fi
-  echo "Waiting for k8s API to be up..."
-  sleep 2
+  echo "Waiting another ${WAITSECS} seconds for k8s API to be up..."
+  sleep $WAITSECS
 done
 
 echo "ERROR: k8s API still not up after 20 attempts, quitting"
