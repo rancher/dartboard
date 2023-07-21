@@ -35,3 +35,27 @@ export TERRAFORM_WORK_DIR=terraform/main/aws
 ./bin/teardown.mjs && ./bin/setup.mjs && ./bin/run_tests.mjs
 ```
 
+At the moment there are k3d, aws, ssh available.
+
+
+## Passing parameters to terraform
+
+Terraform variables can be overridden using `TERRAFORM_VAR_FILE` environment variable,
+just like using -var-file terraform argument. The one should pass full path to the
+file in tfvars format or json. For example, for 'ssh' deployment platform
+the one can override nodes' ip addresses, login name, etc. as follows:
+
+```shell
+export TERRAFORM_WORK_DIR=terraform/main/ssh
+TERRAFORM_WORK_DIR=$PWD/terraform/examples/ssh.tfvars.json bin/setup.mjs
+TERRAFORM_WORK_DIR=$PWD/terraform/examples/ssh.tfvars.json bin/run_tests.mjs
+TERRAFORM_WORK_DIR=$PWD/terraform/examples/ssh.tfvars.json bin/teardown.mjs
+
+```
+
+You can get the idea what the var files look like, please, refer terraform var file and json file respectively:
+
+- [terraform/examples/ssh.tfvars](terraform/examples/ssh.tfvars)
+- [terraform/examples/ssh.tfvars.json](terraform/examples/ssh.tfvars.json)
+
+

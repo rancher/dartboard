@@ -10,7 +10,7 @@ resource "ssh_sensitive_resource" "first_server_installation" {
   count        = length(var.server_names) > 0 ? 1 : 0
   host         = var.server_names[0]
   private_key  = file(var.ssh_private_key_path)
-  user         = "root"
+  user         = var.ssh_user
   bastion_host = var.ssh_bastion_host
   timeout      = "600s"
 
@@ -36,22 +36,38 @@ resource "ssh_sensitive_resource" "first_server_installation" {
       node_cidr_mask_size    = var.node_cidr_mask_size
       datastore_endpoint     = var.datastore_endpoint
     })
-    destination = "/root/install_k3s.sh"
+    destination = "/tmp/install_k3s.sh"
     permissions = "0700"
   }
 
   file {
     content     = file("${path.module}/wait_for_k8s.sh")
-    destination = "/root/wait_for_k8s.sh"
+    destination = "/tmp/wait_for_k8s.sh"
     permissions = "0700"
   }
 
   commands = [
-    "/root/install_k3s.sh > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)",
-    "/root/wait_for_k8s.sh",
-    "cat /var/lib/rancher/k3s/server/node-token",
+    "sudo /tmp/install_k3s.sh > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)",
+    "sudo /tmp/wait_for_k8s.sh",
+    "sudo cat /var/lib/rancher/k3s/server/node-token",
   ]
 }
+
+
+resource "ssh_sensitive_resource" "first_server_remove_k3s" {
+  count        = (length(var.server_names) > 0 && var.remove_k3s) ? 1 : 0
+  host         = var.server_names[0]
+  private_key  = file(var.ssh_private_key_path)
+  user         = var.ssh_user
+  bastion_host = var.ssh_bastion_host
+  timeout      = "600s"
+
+  when         = "destroy"
+  commands = [
+    "/usr/local/bin/k3s-uninstall.sh || true"
+  ]
+}
+
 
 resource "ssh_resource" "additional_server_installation" {
   depends_on = [ssh_sensitive_resource.first_server_installation]
@@ -59,7 +75,7 @@ resource "ssh_resource" "additional_server_installation" {
 
   host         = var.server_names[count.index + 1]
   private_key  = file(var.ssh_private_key_path)
-  user         = "root"
+  user         = var.ssh_user
   bastion_host = var.ssh_bastion_host
   timeout      = "600s"
 
@@ -85,14 +101,31 @@ resource "ssh_resource" "additional_server_installation" {
       node_cidr_mask_size    = var.node_cidr_mask_size
       datastore_endpoint     = var.datastore_endpoint
     })
-    destination = "/root/install_k3s.sh"
+    destination = "/tmp/install_k3s.sh"
     permissions = "0700"
   }
 
   commands = [
-    "/root/install_k3s.sh > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)"
+    "sudo /tmp/install_k3s.sh > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)"
   ]
 }
+
+
+resource "ssh_resource" "additional_server_remove_k3s" {
+  count      = (length(var.server_names) > 0 && var.remove_k3s) ? length(var.server_names) - 1 : 0
+
+  host         = var.server_names[count.index + 1]
+  private_key  = file(var.ssh_private_key_path)
+  user         = var.ssh_user
+  bastion_host = var.ssh_bastion_host
+  timeout      = "600s"
+
+  when         = "destroy"
+  commands = [
+    "/usr/local/bin/k3s-uninstall.sh || true"
+  ]
+}
+
 
 resource "ssh_resource" "agent_installation" {
   depends_on = [ssh_sensitive_resource.first_server_installation]
@@ -100,7 +133,7 @@ resource "ssh_resource" "agent_installation" {
 
   host         = var.agent_names[count.index]
   private_key  = file(var.ssh_private_key_path)
-  user         = "root"
+  user         = var.ssh_user
   bastion_host = var.ssh_bastion_host
   timeout      = "600s"
 
@@ -126,11 +159,29 @@ resource "ssh_resource" "agent_installation" {
       node_cidr_mask_size    = var.node_cidr_mask_size
       datastore_endpoint     = var.datastore_endpoint
     })
-    destination = "/root/install_k3s.sh"
+    destination = "/tmp/install_k3s.sh"
     permissions = "0700"
   }
 
   commands = [
-    "/root/install_k3s.sh > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)"
+    "sudo /tmp/install_k3s.sh > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)",
   ]
 }
+
+
+resource "ssh_resource" "agent_remove_k3s" {
+  depends_on = [ssh_sensitive_resource.first_server_installation]
+  count      = var.remove_k3s ? length(var.agent_names) : 0
+
+  host         = var.agent_names[count.index]
+  private_key  = file(var.ssh_private_key_path)
+  user         = var.ssh_user
+  bastion_host = var.ssh_bastion_host
+  timeout      = "600s"
+
+  when         = "destroy"
+  commands = [
+    "/usr/local/bin/k3s-agent-uninstall.sh || true"
+  ]
+}
+
