@@ -47,6 +47,27 @@ const resourceMetric = new Gauge('test_resources')
 
 // Test functions, in order of execution
 
+export function setup() {
+    // log in
+    const res = http.post(`${baseUrl}/v3-public/localProviders/local?action=login`, JSON.stringify({
+        "description": "UI session",
+        "responseType": "cookie",
+        "username": username,
+        "password": password
+    }))
+
+    check(res, {
+        '/v3-public/localProviders/local?action=login returns status 200': (r) => r.status === 200,
+    })
+
+    const cookies = http.cookieJar().cookiesForURL(res.url)
+
+    // delete leftovers, if any
+    cleanup(cookies)
+
+    return cookies
+}
+
 function cleanup(cookies) {
     let res = http.get(`${baseUrl}/v1/management.cattle.io.globalroles`, {cookies: cookies})
     check(res, {
@@ -69,27 +90,6 @@ function cleanup(cookies) {
             'DELETE /v3/users returns status 200': (r) => r.status === 200,
         })
     })
-}
-
-export function setup() {
-    // log in
-    const res = http.post(`${baseUrl}/v3-public/localProviders/local?action=login`, JSON.stringify({
-        "description": "UI session",
-        "responseType": "cookie",
-        "username": username,
-        "password": password
-    }))
-
-    check(res, {
-        '/v3-public/localProviders/local?action=login returns status 200': (r) => r.status === 200,
-    })
-
-    const cookies = http.cookieJar().cookiesForURL(res.url)
-
-    // delete leftovers, if any
-    cleanup(cookies)
-
-    return cookies
 }
 
 const groupResources = [
