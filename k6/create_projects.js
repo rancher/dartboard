@@ -1,0 +1,194 @@
+import {check, fail, sleep} from 'k6';
+import exec from 'k6/execution';
+import http from 'k6/http';
+import {Gauge} from 'k6/metrics';
+import {getCookies, login} from "./rancher_utils.js";
+
+// Parameters
+const projectCount = Number(__ENV.PROJECT_COUNT)
+const vus = 1
+const customRoleTemplateBindingsPerProject = 5
+
+// Option setting
+const baseUrl = __ENV.BASE_URL
+const username = __ENV.USERNAME
+const password = __ENV.PASSWORD
+
+// Option setting
+export const options = {
+    insecureSkipTLSVerify: true,
+
+    setupTimeout: '8h',
+
+    scenarios: {
+        createProjects: {
+            executor: 'shared-iterations',
+            exec: 'createProjects',
+            vus: vus,
+            iterations: projectCount,
+            maxDuration: '1h',
+        },
+    },
+    thresholds: {
+        checks: ['rate>0.99']
+    }
+}
+
+// Custom metrics
+const projectsMetric = new Gauge('test_projects')
+
+// Test functions, in order of execution
+
+export function setup() {
+    // log in
+    if (!login(baseUrl, {}, username, password)) {
+        fail(`could not login into cluster`)
+    }
+    const cookies = getCookies(baseUrl)
+
+    // delete leftovers, if any
+    cleanup(cookies)
+
+    // return data that remains constant throughout the test
+    return {
+        cookies: cookies,
+        principalIds: getPrincipalIds(cookies),
+        myId: getMyId(cookies),
+        clusterIds: getClusterIds(cookies)
+    }
+}
+
+function getPrincipalIds(cookies) {
+    const response = http.get(
+        `${baseUrl}/v1/management.cattle.io.users`,
+        {cookies: cookies}
+    )
+    if (response.status !== 200) {
+        fail('could not list users')
+    }
+    const users = JSON.parse(response.body).data
+    return users.filter(u => u["username"] != null).map(u => u["principalIds"][0])
+}
+
+function getMyId(cookies) {
+    const response = http.get(
+        `${baseUrl}/v3/users?me=true`,
+        {cookies: cookies}
+    )
+    if (response.status !== 200) {
+        fail('could not get my user')
+    }
+    return JSON.parse(response.body).data[0].principalIds[0]
+}
+
+function getClusterIds(cookies) {
+    const response = http.get(
+        `${baseUrl}/v1/management.cattle.io.clusters`,
+        {cookies: cookies}
+    )
+    if (response.status !== 200) {
+        fail('could not list clusters')
+    }
+    const clusters = JSON.parse(response.body).data
+    return clusters.map(c => c["id"])
+}
+
+function cleanup(cookies) {
+    let res = http.get(`${baseUrl}/v1/management.cattle.io.projects`, {cookies: cookies})
+    check(res, {
+        '/v1/management.cattle.io.projects returns status 200': (r) => r.status === 200,
+    })
+    JSON.parse(res.body)["data"].filter(r => r["spec"]["description"].startsWith("Test ")).forEach(r => {
+        res = http.del(`${baseUrl}/v3/projects/${r["id"].replace("/", ":")}`, {cookies: cookies})
+        check(res, {
+            'DELETE /v3/projects returns status 200': (r) => r.status === 200,
+        })
+    })
+}
+
+const mainRoleTemplateIds = ["project-owner", "project-member", "read-only", "custom"]
+const customRoleTemplateIds = ["create-ns", "configmaps-manage", "ingress-manage", "projectcatalogs-manage", "projectroletemplatebindings-manage", "secrets-manage", "serviceaccounts-manage", "services-manage", "persistentvolumeclaims-manage", "workloads-manage", "configmaps-view", "ingress-view", "monitoring-ui-view", "projectcatalogs-view", "projectroletemplatebindings-view", "secrets-view", "serviceaccounts-view", "services-view", "persistentvolumeclaims-view", "workloads-view"]
+
+export function createProjects(data) {
+    let response
+    const i = exec.scenario.iterationInTest
+    const cookies = data.cookies
+    const myId = data.myId
+    const clusterId = data.clusterIds[i % data.clusterIds.length]
+
+    response = http.post(
+        `${baseUrl}/v3/projects`,
+        JSON.stringify({
+            "type": "project",
+            "name": `Test Project ${i}`,
+            "description": `Test Project ${i}`,
+            "annotations": {},
+            "labels": {},
+            "clusterId": clusterId,
+            "creatorId": `local://${myId}`,
+            "containerDefaultResourceLimit": {
+                "limitsCpu": "4m",
+                "limitsMemory": "5Mi",
+                "requestsCpu": "2m",
+                "limitsGpu": 6,
+                "requestsMemory": "3Mi"
+            },
+            "resourceQuota": {
+                "limit": {
+                    "configMaps": "9",
+                    "limitsMemory": "900Mi",
+                    "limitsCpu": "90m",
+                    "persistentVolumeClaims": "9000"
+                }
+            },
+            "namespaceDefaultResourceQuota": {
+                "limit": {
+                    "configMaps": "6",
+                    "limitsMemory": "600Mi",
+                    "limitsCpu": "60m",
+                    "persistentVolumeClaims": "6000"
+                }
+            }
+        }),
+        { cookies: cookies }
+    )
+    check(response, {
+        '/v3/projects returns status 201': (r) => r.status === 201,
+    })
+
+    const projectId = JSON.parse(response.body)["id"]
+
+    response = http.post(
+        `${baseUrl}/v3/projects/${projectId.replace("/", ":")}?action=setpodsecuritypolicytemplate`,
+        JSON.stringify({"podSecurityPolicyTemplateId": null}),
+        { cookies: cookies }
+    )
+    check(response, {
+        'setpodsecuritypolicytemplate works': (r) => r.status === 200 || r.status === 409,
+    })
+
+    const principalId = data.principalIds[i % data.principalIds.length]
+    const mainRoleTemplateId = mainRoleTemplateIds[i % mainRoleTemplateIds.length]
+    const roleTemplateIds = mainRoleTemplateId !== "custom" ? [mainRoleTemplateId] : Array.from({length: customRoleTemplateBindingsPerProject}, (_, j) => (
+        customRoleTemplateIds[i % customRoleTemplateIds.length]
+    ))
+
+    for (const roleTemplateId of roleTemplateIds) {
+        response = http.post(
+            `${baseUrl}/v3/projectroletemplatebindings`,
+            JSON.stringify({
+                "type": "projectroletemplatebinding",
+                "roleTemplateId": roleTemplateId,
+                "userPrincipalId": `local://${principalId}`,
+                "projectId": projectId
+            }),
+            { cookies: cookies }
+        )
+
+        check(response, {
+            '/v3/projectroletemplatebindings returns status 201': (r) => r.status === 201,
+        })
+    }
+
+    projectsMetric.add(projectCount)
+}
