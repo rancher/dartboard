@@ -15,6 +15,7 @@ const CONFIG_MAP_COUNT = 1000
 const SECRET_COUNT = 1000
 const ROLE_COUNT = 10
 const USER_COUNT = 5
+const PROJECT_COUNT = 20
 
 // Refresh k6 files on the tester cluster
 const clusters = runCollectingJSONOutput(`terraform -chdir=${terraformDir()} output -json`)["clusters"]["value"]
@@ -33,10 +34,17 @@ for (const [name, downstream] of downstreams) {
 }
 
 const upstream = clusters["upstream"]
+// create users and roles
 k6_run(tester,
     { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, ROLE_COUNT: ROLE_COUNT, USER_COUNT: USER_COUNT },
     {commit: commit, cluster: "upstream", test: "create_rancher_resources.mjs", Roles: ROLE_COUNT, Users: USER_COUNT},
     "k6/create_rancher_resources.js", true
+)
+// create projects
+k6_run(tester,
+    { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, PROJECT_COUNT: PROJECT_COUNT },
+    {commit: commit, cluster: "upstream", test: "create_projects.mjs", Projects: PROJECT_COUNT},
+    "k6/create_projects.js", true
 )
 
 // Output access details
