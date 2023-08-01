@@ -174,20 +174,33 @@ export function createProjects(data) {
     ))
 
     for (const roleTemplateId of roleTemplateIds) {
-        response = http.post(
-            `${baseUrl}/v3/projectroletemplatebindings`,
-            JSON.stringify({
-                "type": "projectroletemplatebinding",
-                "roleTemplateId": roleTemplateId,
-                "userPrincipalId": `local://${principalId}`,
-                "projectId": projectId
-            }),
-            { cookies: cookies }
-        )
 
-        check(response, {
-            '/v3/projectroletemplatebindings returns status 201': (r) => r.status === 201,
-        })
+        // HACK: creating projectroletemplatebindings might fail with 404 if the project controller is too slow
+        // allow up to 10 retries
+        let success = false
+        for (let j = 0; j < 10 && !success; j++) {
+            response = http.post(
+                `${baseUrl}/v3/projectroletemplatebindings`,
+                JSON.stringify({
+                    "type": "projectroletemplatebinding",
+                    "roleTemplateId": roleTemplateId,
+                    "userPrincipalId": `local://${principalId}`,
+                    "projectId": projectId
+                }),
+                { cookies: cookies }
+            )
+            check(response, {
+                '/v3/projectroletemplatebindings returns status 201 or 404': (r) => r.status === 201 || r.status === 404,
+            })
+
+            success = response.status === 201
+            if (!success) {
+                sleep(Math.random())
+            }
+        }
+        if (!success) {
+            fail("/v3/projectroletemplatebindings did not return 201 after 10 attempts")
+        }
     }
 
     projectsMetric.add(projectCount)
