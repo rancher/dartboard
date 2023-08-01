@@ -28,9 +28,10 @@ Created clusters may or may not be directly reachable from the machine running T
 
 `node_access_commands` are an optional convenience mechanism to allow a user to SSH into a particular node directly.
 
-Switching between test environments is done via the `TERRAFORM_MAIN_DIR` environment variable, eg.
+A particular deployment platform can be selected using `TERRAFORM_WORK_DIR` environment variable, eg.
 
 ```shell
-export TERRAFORM_MAIN_DIR=aws
+export TERRAFORM_WORK_DIR=terraform/main/aws
 ./bin/teardown.mjs && ./bin/setup.mjs && ./bin/run_tests.mjs
 ```
+
