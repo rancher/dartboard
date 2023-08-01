@@ -55,7 +55,7 @@ console.log(`*** UPSTREAM CLUSTER`)
 console.log(`    Rancher UI: https://${upstream["local_name"]}:${upstream["local_https_port"]} (admin/${ADMIN_PASSWORD})`)
 console.log(`    Kubernetes API:`)
 console.log(`export KUBECONFIG=${q(upstream["kubeconfig"])}`)
-console.log(`kubectl config set-context ${q(upstream["context"])}`)
+console.log(`kubectl config use-context ${q(upstream["context"])}`)
 for (const [node, command] of Object.entries(upstream["node_access_commands"])) {
     console.log(`    Node ${node}: ${q(command)}`)
 }
@@ -65,7 +65,7 @@ for (const [name, downstream] of downstreams) {
     console.log(`*** ${name.toUpperCase()} CLUSTER`)
     console.log(`    Kubernetes API:`)
     console.log(`export KUBECONFIG=${q(downstream["kubeconfig"])}`)
-    console.log(`kubectl config set-context ${q(downstream["context"])}`)
+    console.log(`kubectl config use-context ${q(downstream["context"])}`)
     for (const [node, command] of Object.entries(downstream["node_access_commands"])) {
         console.log(`    Node ${node}: ${q(command)}`)
     }
