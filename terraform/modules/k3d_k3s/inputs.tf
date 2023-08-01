@@ -53,6 +53,11 @@ variable "network_name" {
   default     = null
 }
 
+variable "registry" {
+  description = "Name of the k3d registry for docker.io to use"
+  type        = string
+}
+
 variable "local_kubernetes_api_port" {
   description = "Local port this cluster's Kubernetes API will be published to"
   default     = 6445

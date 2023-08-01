@@ -241,6 +241,18 @@ resource "k3d_cluster" "cluster" {
     }
   }
 
+  registries {
+    use = [
+      var.registry
+    ]
+    config = <<-EOF
+    mirrors:
+      "docker.io":
+        endpoint:
+          - http://${var.registry}
+    EOF
+  }
+
   env {
     key          = "GOGC"
     value        = tostring(var.gogc)

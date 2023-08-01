@@ -7,7 +7,7 @@ terraform {
     }
     k3d = {
       source  = "moio/k3d"
-      version = "0.0.7"
+      version = "0.0.10"
     }
   }
 }
@@ -33,4 +33,5 @@ module "cluster" {
   local_http_port           = local.first_local_http_port + count.index
   local_https_port          = local.first_local_https_port + count.index
   network_name              = module.network.name
+  registry                  = module.network.registry
 }
