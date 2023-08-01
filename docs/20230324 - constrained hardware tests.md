@@ -79,17 +79,17 @@ It is expected that tests are fully reproducible given the same commit in this r
 ## Reproduction Instructions
 
 ```shell
-export TERRAFORM_MAIN_DIR=aws # or k3d, by default
-./setup.mjs && ./run_tests.mjs
+export TERRAFORM_WORK_DIR=terraform/main/aws # or terraform/main/k3d, by default
+bin/setup.mjs && bin/run_tests.mjs
 ```
 
 Notes:
- - `./setup.mjs` invokes Terraform to deploy infrastructure and then Helm/kubectl for the configuration of applications
- - `./run_tests.mjs` invokes k6 to set up resources which will generate background load
+ - `bin/setup.mjs` invokes Terraform to deploy infrastructure and then Helm/kubectl for the configuration of applications
+ - `bin/run_tests.mjs` invokes k6 to set up resources which will generate background load
 
 All created infrastructure can be destroyed at the end of the test via:
 ```shell
-./teardown.mjs
+bin/teardown.mjs
 ```
 
 ## Interpreting results
