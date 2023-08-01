@@ -5,7 +5,7 @@ const MIMIR_URL = "http://mimir.tester:9009/mimir"
 
 /**
  * Runs a k6 script from inside the specified k8s cluster via kubectl run.
- * Specify envs, tags, and a test file from the k6/ dir (which will be transfered via ConfigMaps).
+ * Specify envs, tags, and a test file from the k6/ dir (which will be transferred via ConfigMaps).
  * Set record = true for result metrics to be sent to Mimir, which is expected to be running in the same cluster.
  *
  * If the test script exercises the Kubernetes API, specify a KUBECONFIG env, the corresponding file will be transferred
