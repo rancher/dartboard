@@ -33,8 +33,8 @@ module "network" {
   project_name         = local.project_name
   region               = local.region
   availability_zone    = local.availability_zone
-  ssh_public_key_path  = local.ssh_public_key_path
-  ssh_private_key_path = local.ssh_private_key_path
+  ssh_public_key_path  = var.ssh_public_key_path
+  ssh_private_key_path = var.ssh_private_key_path
 }
 
 module "cluster" {
@@ -56,7 +56,7 @@ module "cluster" {
   instance_type             = local.clusters[count.index].instance_type
   availability_zone         = local.availability_zone
   ssh_key_name              = module.network.key_name
-  ssh_private_key_path      = local.ssh_private_key_path
+  ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
   subnet_id                 = module.network.private_subnet_id
   vpc_security_group_id     = module.network.private_security_group_id
