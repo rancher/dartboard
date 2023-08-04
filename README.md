@@ -60,3 +60,9 @@ Eg. on SUSE OSs edit the `/etc/sysconfig/docker` file as root and add or edit th
 ```
 DOCKER_OPTS="-H unix:///var/run/docker.sock -H tcp://127.0.0.1:2375"
 ```
+
+If you access the Docker host via SSH, you might want to forward the Docker port along with any relevant ports to access Rancher and the clusters' Kubernetes APIs, for example:
+
+```shell
+ssh remotehost -L 2375:localhost:2375 -L 8443:localhost:8443 $(for KUBEPORT in $(seq 6445 1 6465); do echo " -L ${KUBEPORT}:localhost:${KUBEPORT}" ; done | tr -d "\n")
+```
