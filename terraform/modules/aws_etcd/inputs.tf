@@ -20,7 +20,7 @@ variable "server_count" {
 
 variable "ami" {
   description = "AMI ID for all nodes in this cluster"
-  type = string
+  type        = string
 }
 
 // see https://etcd.io/docs/v3.5/op-guide/hardware/
