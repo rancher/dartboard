@@ -37,24 +37,17 @@ export TERRAFORM_WORK_DIR=terraform/main/aws
 
 See `terraform/main` subdirectories for the currently available platforms.
 
-## Passing parameters to terraform
+## Passing custom Terraform variables
 
-Terraform variables can be overridden using `TERRAFORM_VAR_FILE` environment variable,
-just like using -var-file terraform argument. The one should pass full path to the
-file in tfvars format or json. For example, for 'ssh' deployment platform
-the one can override nodes' ip addresses, login name, etc. as follows:
+Terraform variables can be overridden using `TERRAFORM_VAR_FILE` environment variable, to point to a [`.tfvars` file](https://developer.hashicorp.com/terraform/language/values/variables#variable-definitions-tfvars-files). The variable should contain a full path to the file in json or tfvars format.
+For example, for the `ssh` module, nodes' ip addresses, login name, etc. can be overridden cas follows:
 
 ```shell
 export TERRAFORM_WORK_DIR=terraform/main/ssh
-TERRAFORM_WORK_DIR=$PWD/terraform/examples/ssh.tfvars.json bin/setup.mjs
-TERRAFORM_WORK_DIR=$PWD/terraform/examples/ssh.tfvars.json bin/run_tests.mjs
-TERRAFORM_WORK_DIR=$PWD/terraform/examples/ssh.tfvars.json bin/teardown.mjs
-
+export TERRAFORM_VAR_FILE=$PWD/terraform/examples/ssh.tfvars.json
+./bin/setup.mjs
+./bin/run_tests.mjs
+./bin/teardown.mjs
 ```
 
-You can get the idea what the var files look like, please, refer terraform var file and json file respectively:
-
-- [terraform/examples/ssh.tfvars](terraform/examples/ssh.tfvars)
-- [terraform/examples/ssh.tfvars.json](terraform/examples/ssh.tfvars.json)
-
-
+Example files can be found in [terraform/examples].
