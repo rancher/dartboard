@@ -35,8 +35,7 @@ export TERRAFORM_WORK_DIR=terraform/main/aws
 ./bin/teardown.mjs && ./bin/setup.mjs && ./bin/run_tests.mjs
 ```
 
-At the moment there are k3d, aws, ssh available.
-
+See `terraform/main` subdirectories for the currently available platforms.
 
 ## Passing parameters to terraform
 
