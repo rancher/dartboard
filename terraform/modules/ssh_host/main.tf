@@ -1,7 +1,6 @@
 resource "null_resource" "host_configuration" {
-
   connection {
-    host        = var.ssh_addr
+    host        = var.fqdn
     user        = var.ssh_user
     private_key = file(var.ssh_private_key_path)
 
