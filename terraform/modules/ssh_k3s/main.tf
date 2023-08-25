@@ -2,7 +2,7 @@ module "server_nodes" {
   count                       = var.server_count
   source                      = "../ssh_host"
   project_name                = var.project_name
-  ssh_addr                    = var.ip_addr[count.index]
+  fqdn                        = var.fqdns[count.index]
   ssh_user                    = var.ssh_user
   name                        = "${var.name}-server-${count.index}"
   ssh_private_key_path        = var.ssh_private_key_path
@@ -13,7 +13,7 @@ module "agent_nodes" {
   count                       = var.agent_count
   source                      = "../ssh_host"
   project_name                = var.project_name
-  ssh_addr                    = var.ip_addr[var.server_count + count.index]
+  fqdn                        = var.fqdns[var.server_count + count.index]
   ssh_user                    = var.ssh_user
   name                        = "${var.name}-agent-${count.index}"
   ssh_private_key_path        = var.ssh_private_key_path

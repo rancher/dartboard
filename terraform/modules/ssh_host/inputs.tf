@@ -4,12 +4,12 @@ variable "project_name" {
 }
 
 variable "name" {
-  description = "Symbolic name of this instance"
+  description = "Symbolic name of this host"
   type        = string
 }
 
-variable "ssh_addr" {
-  description = "Host SSH address"
+variable "fqdn" {
+  description = "Host fully-qualified domain name for SSH address"
   type        = string
 }
 

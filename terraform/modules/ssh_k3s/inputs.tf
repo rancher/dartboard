@@ -35,8 +35,8 @@ variable "instance_type" {
   default     = "t3.large"
 }
 
-variable "ip_addr" {
-  description = "IP address list for nodes in this cluster"
+variable "fqdns" {
+  description = "List of fully qualified domain name, one for each node in this cluster"
   type        = list(string)
   default     = []
 }
@@ -71,6 +71,7 @@ variable "sans" {
   type        = list(string)
   default     = []
 }
+
 variable "distro_version" {
   description = "k3s version"
   default     = "v1.23.10+k3s1"
