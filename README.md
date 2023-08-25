@@ -66,3 +66,18 @@ If you access the Docker host via SSH, you might want to forward the Docker port
 ```shell
 ssh remotehost -L 2375:localhost:2375 -L 8443:localhost:8443 $(for KUBEPORT in $(seq 6445 1 6465); do echo " -L ${KUBEPORT}:localhost:${KUBEPORT}" ; done | tr -d "\n")
 ```
+
+## Passing custom Terraform variables
+
+Terraform variables can be overridden using `TERRAFORM_VAR_FILE` environment variable, to point to a [`.tfvars` file](https://developer.hashicorp.com/terraform/language/values/variables#variable-definitions-tfvars-files). The variable should contain a full path to the file in json or tfvars format.
+For example, for the `ssh` module, nodes' ip addresses, login name, etc. can be overridden cas follows:
+
+```shell
+export TERRAFORM_WORK_DIR=terraform/main/ssh
+export TERRAFORM_VAR_FILE=$PWD/terraform/examples/ssh.tfvars.json
+./bin/setup.mjs
+./bin/run_tests.mjs
+./bin/teardown.mjs
+```
+
+Example files can be found in [terraform/examples].
