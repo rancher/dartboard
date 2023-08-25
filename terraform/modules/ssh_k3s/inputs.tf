@@ -51,21 +51,6 @@ variable "ssh_private_key_path" {
   type        = string
 }
 
-variable "local_kubernetes_api_port" {
-  description = "Local port this cluster's Kubernetes API will be published to (via SSH tunnel)"
-  default     = 6445
-}
-
-variable "local_http_port" {
-  description = "Local port this cluster's http endpoints will be published to (via SSH tunnel)"
-  default     = 8080
-}
-
-variable "local_https_port" {
-  description = "Local port this cluster's https endpoints will be published to (via SSH tunnel)"
-  default     = 8443
-}
-
 variable "sans" {
   description = "Additional Subject Alternative Names"
   type        = list(string)

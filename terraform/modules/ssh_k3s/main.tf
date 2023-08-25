@@ -31,9 +31,8 @@ module "k3s" {
   remove_k3s   = true
   sans         = length(var.sans) > 0 ? var.sans : (var.server_count > 0 ? [module.server_nodes[0].private_name] : [])
 
-  ssh_user                  = var.ssh_user
-  ssh_private_key_path      = var.ssh_private_key_path
-  local_kubernetes_api_port = var.local_kubernetes_api_port
+  ssh_user             = var.ssh_user
+  ssh_private_key_path = var.ssh_private_key_path
 
   distro_version      = var.distro_version
   max_pods            = var.max_pods
