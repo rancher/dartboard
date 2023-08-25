@@ -5,7 +5,7 @@ resource "null_resource" "host_configuration" {
     user        = var.ssh_user
     private_key = file(var.ssh_private_key_path)
 
-    timeout             = "120s"
+    timeout = "120s"
   }
 
   provisioner "remote-exec" {

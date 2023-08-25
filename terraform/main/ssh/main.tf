@@ -22,17 +22,17 @@ terraform {
 
 
 module "cluster" {
-  count          = length(local.clusters)
-  source         = "../../modules/ssh_k3s"
-  project_name   = local.project_name
-  name           = local.clusters[count.index].name
-  server_count   = local.clusters[count.index].server_count
-  agent_count    = local.clusters[count.index].agent_count
-  agent_labels   = local.clusters[count.index].agent_labels
-  agent_taints   = local.clusters[count.index].agent_taints
-  distro_version = local.clusters[count.index].distro_version
-  ip_addr        = [for node in var.nodes[count.index]: node.addr]
-  sans           = ["${local.clusters[count.index].name}.${replace(var.nodes[count.index][0].addr, ".", "-")}.sslip.io"]
+  count                     = length(local.clusters)
+  source                    = "../../modules/ssh_k3s"
+  project_name              = local.project_name
+  name                      = local.clusters[count.index].name
+  server_count              = local.clusters[count.index].server_count
+  agent_count               = local.clusters[count.index].agent_count
+  agent_labels              = local.clusters[count.index].agent_labels
+  agent_taints              = local.clusters[count.index].agent_taints
+  distro_version            = local.clusters[count.index].distro_version
+  ip_addr                   = [for node in var.nodes[count.index] : node.addr]
+  sans                      = ["${local.clusters[count.index].name}.${replace(var.nodes[count.index][0].addr, ".", "-")}.sslip.io"]
   ssh_user                  = var.ssh_user
   ssh_private_key_path      = var.ssh_private_key_path
   local_kubernetes_api_port = 6443

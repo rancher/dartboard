@@ -23,7 +23,7 @@ resource "docker_container" "mariadb" {
   count = var.datastore == "mariadb" ? 1 : 0
   image = docker_image.mariadb[0].image_id
   name  = "kine-mariadb"
-  env   = [
+  env = [
     "MARIADB_DATABASE=${var.datastore_dbname}",
     "MARIADB_USER=${var.datastore_username}",
     "MARIADB_PASSWORD=${var.datastore_password}",
@@ -57,7 +57,7 @@ resource "docker_container" "postgres" {
   count = var.datastore == "postgres" ? 1 : 0
   image = docker_image.postgres[0].image_id
   name  = "kine-postgres"
-  env   = [
+  env = [
     "POSTGRES_DB=${var.datastore_dbname}",
     "POSTGRES_USER=${var.datastore_username}",
     "POSTGRES_PASSWORD=${var.datastore_password}",
@@ -121,11 +121,11 @@ resource "docker_container" "postgres" {
 
 locals {
   datastore_endpoint = (
-  var.datastore == "mariadb" ?
-  "mysql://${var.datastore_username}:${var.datastore_password}@tcp(kine-mariadb:3306)/${var.datastore_dbname}" :
-  var.datastore == "postgres" ?
-  "postgres://${var.datastore_username}:${var.datastore_password}@kine-postgres:5432/${var.datastore_dbname}?sslmode=disable" :
-  null
+    var.datastore == "mariadb" ?
+    "mysql://${var.datastore_username}:${var.datastore_password}@tcp(kine-mariadb:3306)/${var.datastore_dbname}" :
+    var.datastore == "postgres" ?
+    "postgres://${var.datastore_username}:${var.datastore_password}@kine-postgres:5432/${var.datastore_dbname}?sslmode=disable" :
+    null
   )
 }
 
@@ -147,8 +147,8 @@ resource "docker_container" "kine" {
   command = concat([
     "--endpoint",
     local.datastore_endpoint,
-  ],
-    var.kine_debug ? ["--debug"] : [])
+    ],
+  var.kine_debug ? ["--debug"] : [])
 }
 
 resource "k3d_cluster" "cluster" {
@@ -187,7 +187,7 @@ resource "k3d_cluster" "cluster" {
           arg          = "--disable=metrics-server",
           node_filters = ["server:*"]
         }
-      ],
+        ],
         var.datastore != "default" ? [
           {
             arg          = "--datastore-endpoint=http://kine:2379",
@@ -207,31 +207,31 @@ resource "k3d_cluster" "cluster" {
           }
         ] : [],
         [
-        for san in var.sans :
-        {
-          arg          = "--tls-san=${san}",
-          node_filters = ["server:*"]
-        }
+          for san in var.sans :
+          {
+            arg          = "--tls-san=${san}",
+            node_filters = ["server:*"]
+          }
         ],
         flatten([
-        for agent_i, labels in var.agent_labels :
-        [
-        for label in labels :
-        {
-          arg          = "--node-label=${label.key}=${label.value}",
-          node_filters = ["agent:${agent_i}"]
-        }
-        ]
+          for agent_i, labels in var.agent_labels :
+          [
+            for label in labels :
+            {
+              arg          = "--node-label=${label.key}=${label.value}",
+              node_filters = ["agent:${agent_i}"]
+            }
+          ]
         ]),
         flatten([
-        for agent_i, taints in var.agent_taints :
-        [
-        for taint in taints :
-        {
-          arg          = "--node-taint=${taint.key}=${taint.value}:${taint.effect}",
-          node_filters = ["agent:${agent_i}"]
-        }
-        ]
+          for agent_i, taints in var.agent_taints :
+          [
+            for taint in taints :
+            {
+              arg          = "--node-taint=${taint.key}=${taint.value}:${taint.effect}",
+              node_filters = ["agent:${agent_i}"]
+            }
+          ]
         ]),
       )
       content {
@@ -266,7 +266,7 @@ resource "k3d_cluster" "cluster" {
   port {
     host_port      = var.local_http_port
     container_port = 80
-    node_filters   = [
+    node_filters = [
       "server:0:direct",
     ]
   }
@@ -274,7 +274,7 @@ resource "k3d_cluster" "cluster" {
   port {
     host_port      = var.local_https_port
     container_port = 443
-    node_filters   = [
+    node_filters = [
       "server:0:direct",
     ]
   }

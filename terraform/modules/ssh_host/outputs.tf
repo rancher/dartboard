@@ -8,7 +8,7 @@ output "private_name" {
 }
 
 output "private_ip" {
-  value = "${var.ssh_addr}"
+  value = var.ssh_addr
 }
 
 output "public_name" {

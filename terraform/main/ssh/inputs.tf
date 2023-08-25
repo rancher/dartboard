@@ -6,7 +6,7 @@ locals {
     server_count   = 1
     agent_count    = 2
     distro_version = "v1.24.12+k3s1"
-    agent_labels   = [
+    agent_labels = [
       [{ key : "monitoring", value : "true" }]
     ]
     agent_taints = [
@@ -44,26 +44,26 @@ locals {
 }
 
 
-variable ssh_public_key_path {
-    description = "Path to SSH public key file"
-    type = string
-    default = "~/.ssh/st-ed25519.pub"
+variable "ssh_public_key_path" {
+  description = "Path to SSH public key file"
+  type        = string
+  default     = "~/.ssh/st-ed25519.pub"
 }
 
-variable ssh_private_key_path {
-    description = "Path to SSH private key file. (Can be generated with `ssh-keygen -t ed25519`)"
-    type = string
-    default = "~/.ssh/st"
+variable "ssh_private_key_path" {
+  description = "Path to SSH private key file. (Can be generated with `ssh-keygen -t ed25519`)"
+  type        = string
+  default     = "~/.ssh/st"
 }
 
-variable ssh_user {
-    description = "Default ssh user for nodes"
-    type = string
-    default = "root"
+variable "ssh_user" {
+  description = "Default ssh user for nodes"
+  type        = string
+  default     = "root"
 }
 
-variable nodes {
-    description = "Node description"
-    type = list
-    default = []
+variable "nodes" {
+  description = "Node description"
+  type        = list(any)
+  default     = []
 }

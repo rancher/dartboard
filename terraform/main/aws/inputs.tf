@@ -6,7 +6,7 @@ locals {
     server_count   = 3
     agent_count    = 2
     distro_version = "v1.24.12+k3s1"
-    agent_labels   = [
+    agent_labels = [
       [{ key : "monitoring", value : "true" }]
     ]
     agent_taints = [
@@ -20,20 +20,20 @@ locals {
   }
 
   downstream_clusters = [
-  for i in range(5) :
-  {
-    name           = "downstream-${i}"
-    server_count   = 3
-    agent_count    = 7
-    distro_version = "v1.24.12+k3s1"
-    agent_labels   = []
-    agent_taints   = []
+    for i in range(5) :
+    {
+      name           = "downstream-${i}"
+      server_count   = 3
+      agent_count    = 7
+      distro_version = "v1.24.12+k3s1"
+      agent_labels   = []
+      agent_taints   = []
 
-    // aws-specific
-    local_name    = "downstream-${i}.local.gd"
-    instance_type = "t4g.large"
-    ami           = "ami-0e55a8b472a265e3f" // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
-  }
+      // aws-specific
+      local_name    = "downstream-${i}.local.gd"
+      instance_type = "t4g.large"
+      ami           = "ami-0e55a8b472a265e3f" // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
+    }
   ]
 
   tester_cluster = {
@@ -61,14 +61,14 @@ locals {
 }
 
 
-variable ssh_public_key_path {
-    description = "Path to SSH public key file, see also variable `ssh_private_key_path`."
-    type = string
-    default = "~/.ssh/id_ed25519.pub"
+variable "ssh_public_key_path" {
+  description = "Path to SSH public key file, see also variable `ssh_private_key_path`."
+  type        = string
+  default     = "~/.ssh/id_ed25519.pub"
 }
 
-variable ssh_private_key_path {
-    description = "Path to SSH private key file. (Can be generated with `ssh-keygen -t ed25519`)"
-    type = string
-    default = "~/.ssh/id_ed25519"
+variable "ssh_private_key_path" {
+  description = "Path to SSH private key file. (Can be generated with `ssh-keygen -t ed25519`)"
+  type        = string
+  default     = "~/.ssh/id_ed25519"
 }
