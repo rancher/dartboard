@@ -49,8 +49,7 @@ variable "ssh_private_key_path" {
 }
 
 variable "ssh_user" {
-  description = "Default ssh user for nodes"
-  type        = string
+  description = "Default SSH user for nodes"
   default     = "root"
 }
 
