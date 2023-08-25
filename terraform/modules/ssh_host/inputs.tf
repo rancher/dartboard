@@ -9,12 +9,12 @@ variable "name" {
 }
 
 variable "fqdn" {
-  description = "Host fully-qualified domain name for SSH address"
+  description = "Host fully-qualified domain name for SSH access"
   type        = string
 }
 
 variable "ssh_user" {
-  description = "Host SSH address"
+  description = "User name for SSH access"
   type        = string
 }
 
