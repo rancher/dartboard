@@ -36,11 +36,6 @@ locals {
   }
 
   clusters = concat([local.upstream_cluster], local.downstream_clusters, [local.tester_cluster])
-
-  // k3s-specific
-  first_local_kubernetes_api_port = 7445
-  first_local_http_port           = 9080
-  first_local_https_port          = 9443
 }
 
 variable "ssh_public_key_path" {
