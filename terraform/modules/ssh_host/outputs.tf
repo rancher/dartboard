@@ -1,8 +1,3 @@
-
-output "id" {
-  value = "id:${var.name}"
-}
-
 output "private_name" {
   value = var.fqdn
 }
