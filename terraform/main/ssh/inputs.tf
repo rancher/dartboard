@@ -54,7 +54,6 @@ variable "ssh_user" {
 }
 
 variable "nodes" {
-  description = "Node description"
-  type        = list(any)
-  default     = []
+  description = "Node names and FQDNs in per-cluster lists, see terraform/examples/ssh.tfvars"
+  type        = list(list(object({ fqdn : string, name : string })))
 }
