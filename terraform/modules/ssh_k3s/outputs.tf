@@ -2,10 +2,6 @@ output "first_server_private_name" {
   value = var.server_count > 0 ? module.server_nodes[0].private_name : null
 }
 
-output "first_server_public_name" {
-  value = var.server_count > 0 ? module.server_nodes[0].public_name : null
-}
-
 output "kubeconfig" {
   value = module.k3s.kubeconfig
 }
@@ -28,8 +24,4 @@ output "node_access_commands" {
     }, {
     for node in module.agent_nodes : node.name => node.ssh_script_filename
   })
-}
-
-output "node_address" {
-  value = module.server_nodes
 }
