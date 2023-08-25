@@ -62,7 +62,7 @@ resource "ssh_sensitive_resource" "first_server_remove_k3s" {
   bastion_host = var.ssh_bastion_host
   timeout      = "600s"
 
-  when         = "destroy"
+  when = "destroy"
   commands = [
     "/usr/local/bin/k3s-uninstall.sh || true"
   ]
@@ -112,7 +112,7 @@ resource "ssh_resource" "additional_server_installation" {
 
 
 resource "ssh_resource" "additional_server_remove_k3s" {
-  count      = (length(var.server_names) > 0 && var.remove_k3s) ? length(var.server_names) - 1 : 0
+  count = (length(var.server_names) > 0 && var.remove_k3s) ? length(var.server_names) - 1 : 0
 
   host         = var.server_names[count.index + 1]
   private_key  = file(var.ssh_private_key_path)
@@ -120,7 +120,7 @@ resource "ssh_resource" "additional_server_remove_k3s" {
   bastion_host = var.ssh_bastion_host
   timeout      = "600s"
 
-  when         = "destroy"
+  when = "destroy"
   commands = [
     "/usr/local/bin/k3s-uninstall.sh || true"
   ]
@@ -179,7 +179,7 @@ resource "ssh_resource" "agent_remove_k3s" {
   bastion_host = var.ssh_bastion_host
   timeout      = "600s"
 
-  when         = "destroy"
+  when = "destroy"
   commands = [
     "/usr/local/bin/k3s-agent-uninstall.sh || true"
   ]

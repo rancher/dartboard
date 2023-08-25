@@ -14,18 +14,18 @@ locals {
   }
 
   downstream_clusters = [
-  for i in range(1) :
-  {
-    name           = "downstream-${i}"
-    server_count   = 1
-    agent_count    = 0
-    distro_version = "v1.24.12+k3s1"
-    agent_labels   = []
-    agent_taints   = []
+    for i in range(1) :
+    {
+      name           = "downstream-${i}"
+      server_count   = 1
+      agent_count    = 0
+      distro_version = "v1.24.12+k3s1"
+      agent_labels   = []
+      agent_taints   = []
 
-    // k3d-specific
-    local_name = "downstream-${i}.local.gd"
-  }
+      // k3d-specific
+      local_name = "downstream-${i}.local.gd"
+    }
   ]
 
   tester_cluster = {

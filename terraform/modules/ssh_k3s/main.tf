@@ -1,11 +1,11 @@
 module "server_nodes" {
-  count                 = var.server_count
-  source                = "../ssh_host"
-  project_name          = var.project_name
-  ssh_addr              = var.ip_addr[count.index]
-  ssh_user              = var.ssh_user
-  name                  = "${var.name}-server-${count.index}"
-  ssh_private_key_path  = var.ssh_private_key_path
+  count                       = var.server_count
+  source                      = "../ssh_host"
+  project_name                = var.project_name
+  ssh_addr                    = var.ip_addr[count.index]
+  ssh_user                    = var.ssh_user
+  name                        = "${var.name}-server-${count.index}"
+  ssh_private_key_path        = var.ssh_private_key_path
   host_configuration_commands = var.host_configuration_commands
 }
 
