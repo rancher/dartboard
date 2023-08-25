@@ -15,4 +15,3 @@ resource "null_resource" "host_configuration" {
     inline = var.host_configuration_commands
   }
 }
-
