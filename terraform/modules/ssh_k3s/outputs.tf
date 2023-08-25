@@ -11,11 +11,11 @@ output "context" {
 }
 
 output "local_http_port" {
-  value = var.local_http_port
+  value = 80
 }
 
 output "local_https_port" {
-  value = var.local_https_port
+  value = 443
 }
 
 output "node_access_commands" {
