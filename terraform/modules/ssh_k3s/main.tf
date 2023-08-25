@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    ssh = {
+      source = "loafoe/ssh"
+    }
+  }
+}
+
 module "server_nodes" {
   count                       = var.server_count
   source                      = "../ssh_host"
@@ -28,7 +36,6 @@ module "k3s" {
   agent_names  = [for node in module.agent_nodes : node.private_name]
   agent_labels = var.agent_labels
   agent_taints = var.agent_taints
-  remove_k3s   = true
   sans         = length(var.sans) > 0 ? var.sans : (var.server_count > 0 ? [module.server_nodes[0].private_name] : [])
 
   ssh_user             = var.ssh_user
@@ -37,4 +44,18 @@ module "k3s" {
   distro_version      = var.distro_version
   max_pods            = var.max_pods
   node_cidr_mask_size = var.node_cidr_mask_size
+}
+
+resource "ssh_resource" "remove_k3s" {
+  count = var.server_count + var.agent_count
+
+  host        = var.fqdns[count.index]
+  private_key = file(var.ssh_private_key_path)
+  user        = var.ssh_user
+  timeout     = "600s"
+
+  when = "destroy"
+  commands = [
+    "sudo /usr/local/bin/k3s-*uninstall.sh"
+  ]
 }

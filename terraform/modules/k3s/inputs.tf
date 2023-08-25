@@ -76,15 +76,3 @@ variable "datastore_endpoint" {
   description = "Configuration string for optional data store"
   default     = null
 }
-
-// In general case we need to avoid trying to do any cleanup on the hosts
-// For example, for AWS the node or IP address cannot be present and the
-// instance will never be used again because it's going to be terminated
-// From other side, if the ssh_resource object cannot be accessed, it can
-// lock removal of the rest of the dependend resource or generate useless
-// error messages at teardown stage.
-variable "remove_k3s" {
-  description = "Try to remove k3s on destroy"
-  type        = bool
-  default     = false
-}

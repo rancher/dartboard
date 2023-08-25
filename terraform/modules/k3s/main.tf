@@ -53,22 +53,6 @@ resource "ssh_sensitive_resource" "first_server_installation" {
   ]
 }
 
-
-resource "ssh_sensitive_resource" "first_server_remove_k3s" {
-  count        = (length(var.server_names) > 0 && var.remove_k3s) ? 1 : 0
-  host         = var.server_names[0]
-  private_key  = file(var.ssh_private_key_path)
-  user         = var.ssh_user
-  bastion_host = var.ssh_bastion_host
-  timeout      = "600s"
-
-  when = "destroy"
-  commands = [
-    "/usr/local/bin/k3s-uninstall.sh || true"
-  ]
-}
-
-
 resource "ssh_resource" "additional_server_installation" {
   depends_on = [ssh_sensitive_resource.first_server_installation]
   count      = length(var.server_names) > 0 ? length(var.server_names) - 1 : 0
@@ -110,23 +94,6 @@ resource "ssh_resource" "additional_server_installation" {
   ]
 }
 
-
-resource "ssh_resource" "additional_server_remove_k3s" {
-  count = (length(var.server_names) > 0 && var.remove_k3s) ? length(var.server_names) - 1 : 0
-
-  host         = var.server_names[count.index + 1]
-  private_key  = file(var.ssh_private_key_path)
-  user         = var.ssh_user
-  bastion_host = var.ssh_bastion_host
-  timeout      = "600s"
-
-  when = "destroy"
-  commands = [
-    "/usr/local/bin/k3s-uninstall.sh || true"
-  ]
-}
-
-
 resource "ssh_resource" "agent_installation" {
   depends_on = [ssh_sensitive_resource.first_server_installation]
   count      = length(var.agent_names)
@@ -167,21 +134,3 @@ resource "ssh_resource" "agent_installation" {
     "sudo /tmp/install_k3s.sh > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)",
   ]
 }
-
-
-resource "ssh_resource" "agent_remove_k3s" {
-  depends_on = [ssh_sensitive_resource.first_server_installation]
-  count      = var.remove_k3s ? length(var.agent_names) : 0
-
-  host         = var.agent_names[count.index]
-  private_key  = file(var.ssh_private_key_path)
-  user         = var.ssh_user
-  bastion_host = var.ssh_bastion_host
-  timeout      = "600s"
-
-  when = "destroy"
-  commands = [
-    "/usr/local/bin/k3s-agent-uninstall.sh || true"
-  ]
-}
-
