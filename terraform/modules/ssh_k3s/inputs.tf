@@ -42,7 +42,7 @@ variable "fqdns" {
 }
 
 variable "ssh_user" {
-  description = "SSH user name used to access cluster nodes"
+  description = "User name for SSH access"
   type        = string
 }
 
