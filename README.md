@@ -12,7 +12,7 @@ See the [docs](docs) directory for a list of tests and their usage specifics.
 
 If you get this error from `terraform apply`:
 ```
-Error: Failed Cluster Start: Failed to add one or more agents: Node k3d-... failed to get ready: error waiting for log line `successfully registered node` from node 'k3d-moio-upstream-agent-0': stopped returning log lines: node k3d-... is running=true in status=restarting
+Error: Failed Cluster Start: Failed to add one or more agents: Node k3d-... failed to get ready: error waiting for log line `successfully registered node` from node 'k3d-st-upstream-agent-0': stopped returning log lines: node k3d-... is running=true in status=restarting
 ```
 
 And `docker logs` on the node container end with:
