@@ -63,12 +63,10 @@ locals {
 
 variable "ssh_public_key_path" {
   description = "Path to SSH public key file, see also variable `ssh_private_key_path`."
-  type        = string
   default     = "~/.ssh/id_ed25519.pub"
 }
 
 variable "ssh_private_key_path" {
   description = "Path to SSH private key file. (Can be generated with `ssh-keygen -t ed25519`)"
-  type        = string
   default     = "~/.ssh/id_ed25519"
 }
