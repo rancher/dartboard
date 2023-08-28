@@ -1,7 +1,7 @@
 resource "local_file" "kubeconfig" {
   content = yamlencode({
     apiVersion = "v1"
-    clusters   = [
+    clusters = [
       {
         cluster = {
           certificate-authority-data = base64encode(tls_self_signed_cert.server_ca_cert.cert_pem)
@@ -22,7 +22,7 @@ resource "local_file" "kubeconfig" {
     current-context = var.sans[0]
     kind            = "Config"
     preferences     = {}
-    users           = [
+    users = [
       {
         user = {
           client-certificate-data : base64encode(tls_locally_signed_cert.master_user.cert_pem)
