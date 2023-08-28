@@ -169,8 +169,8 @@ resource "k3d_cluster" "cluster" {
   }
 
   kubeconfig {
-    update_default_kubeconfig = true
-    switch_current_context    = true
+    update_default_kubeconfig = false
+    switch_current_context    = false
   }
 
   volume {
