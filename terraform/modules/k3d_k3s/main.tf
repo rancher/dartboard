@@ -131,7 +131,7 @@ locals {
 
 resource "docker_container" "kine" {
   depends_on = [docker_container.mariadb, docker_container.postgres]
-  count      = var.datastore != "default" ? 1 : 0
+  count      = var.datastore == "mariadb" || var.datastore == "postgres" ? 1 : 0
   image      = var.kine_image
   name       = "kine"
 
@@ -188,10 +188,19 @@ resource "k3d_cluster" "cluster" {
           node_filters = ["server:*"]
         }
         ],
-        var.datastore != "default" ? [
+        // if datastore requires an external kine instance, point to it
+        var.datastore == "mariadb" || var.datastore == "postgres" ? [
           {
             arg          = "--datastore-endpoint=http://kine:2379",
             node_filters = ["server:*"]
+          }
+        ] : [],
+        // normally k3s defaults to sqlite for 1-node clusters and embedded etcd for multi-node ones
+        // it is possible to force use of the embedded etcd for 1-node clusters via --cluster-init
+        var.datastore == "embedded_etcd" && var.server_count == 1 && var.agent_count == 0 ? [
+          {
+            arg          = "--cluster-init",
+            node_filters = ["server:0"]
           }
         ] : [],
         var.enable_pprof ? [
