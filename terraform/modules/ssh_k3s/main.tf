@@ -46,6 +46,11 @@ module "k3s" {
   node_cidr_mask_size = var.node_cidr_mask_size
 }
 
+locals {
+  server_uninstall = "/usr/local/bin/k3s-uninstall.sh"
+  client_uninstall = "/usr/local/bin/k3s-agent-uninstall.sh"
+}
+
 resource "ssh_resource" "remove_k3s" {
   count = var.server_count + var.agent_count
 
@@ -56,6 +61,7 @@ resource "ssh_resource" "remove_k3s" {
 
   when = "destroy"
   commands = [
-    "sudo /usr/local/bin/k3s-*uninstall.sh"
+    "stat ${local.client_uninstall} && sudo ${local.client_uninstall} || true",
+    "stat ${local.server_uninstall} && sudo ${local.server_uninstall} || true",
   ]
 }
