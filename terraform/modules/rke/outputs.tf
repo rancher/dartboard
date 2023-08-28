@@ -5,10 +5,10 @@ data "local_file" "rke_kubeconfig" {
 }
 
 resource "local_file" "kubeconfig" {
-  count   = length(var.server_names) > 0 ? 1 : 0
+  count = length(var.server_names) > 0 ? 1 : 0
   content = yamlencode({
     apiVersion = "v1"
-    clusters   = [
+    clusters = [
       {
         cluster = {
           certificate-authority-data = yamldecode(data.local_file.rke_kubeconfig[0].content)["clusters"][0]["cluster"]["certificate-authority-data"]
@@ -29,7 +29,7 @@ resource "local_file" "kubeconfig" {
     current-context = var.sans[0]
     kind            = "Config"
     preferences     = {}
-    users           = [
+    users = [
       {
         user = {
           client-certificate-data : yamldecode(data.local_file.rke_kubeconfig[0].content)["users"][0]["user"]["client-certificate-data"]
