@@ -49,6 +49,7 @@ module "k3s" {
 locals {
   server_uninstall = "/usr/local/bin/k3s-uninstall.sh"
   client_uninstall = "/usr/local/bin/k3s-agent-uninstall.sh"
+  k3s_killall = "/usr/local/bin/k3s-killall.sh"
 }
 
 resource "ssh_resource" "remove_k3s" {
@@ -61,6 +62,7 @@ resource "ssh_resource" "remove_k3s" {
 
   when = "destroy"
   commands = [
+    "stat ${local.k3s_killall} && sudo ${local.k3s_killall} || true",
     "stat ${local.client_uninstall} && sudo ${local.client_uninstall} || true",
     "stat ${local.server_uninstall} && sudo ${local.server_uninstall} || true",
   ]
