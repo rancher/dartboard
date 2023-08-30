@@ -5,12 +5,12 @@ import {
     terraformDir,
     helm_install,
     q,
-    runCollectingJSONOutput, runCollectingOutput, run,
+    runCollectingJSONOutput, runCollectingOutput, run, sleep,
 } from "./lib/common.mjs"
 import {k6_run} from "./lib/k6.mjs"
 
 // Refresh k6 files on the tester cluster
-const clusters = runCollectingJSONOutput(`terraform -chdir=${terraformDir()} output -json`)["clusters"]["value"]
+const clusters = runCollectingJSONOutput(`terraform -chdir=${q(terraformDir())} output -json`)["clusters"]["value"]
 const tester = clusters["tester"]
 helm_install("k6-files", dir("charts/k6-files"), tester, "tester", {})
 
@@ -19,11 +19,11 @@ const commit = runCollectingOutput("git rev-parse --short HEAD").trim()
 const upstream = clusters["upstream"]
 const kuf = `--kubeconfig=${upstream["kubeconfig"]}`
 const cuf = `--context=${upstream["context"]}`
-const downstream = clusters["upstream"]
+const downstream = clusters["downstream-0"]
 const kdf = `--kubeconfig=${downstream["kubeconfig"]}`
 const cdf = `--context=${downstream["context"]}`
 
-const downstreamClusterId = runCollectingJSONOutput(`kubectl get -o json ${q(kuf)} ${q(cuf)} -n fleet-default cluster ${downstream["name"]}`)["status"]["clusterName"]
+const downstreamClusterId = runCollectingJSONOutput(`kubectl get -o json ${q(kuf)} ${q(cuf)} -n fleet-default cluster downstream-0`)["status"]["clusterName"]
 
 for (const tag of ["v2.7.5", "improved"]) {
     run(`kubectl set image -n cattle-system deployment/rancher rancher=rancher/rancher:${tag} ${q(kuf)} ${q(cuf)}`)
@@ -45,21 +45,20 @@ for (const tag of ["v2.7.5", "improved"]) {
         }
 
         for (const test of ["load_steve_k8s_pagination", "load_steve_new_pagination"]) {
-            for (const cluster of [upstream, downstream]) {
+            for (const clusterId of ["local", downstreamClusterId]) {
 
-                const clusterId = cluster == upstream ? "local" : downstreamClusterId
                 // warmup
                 k6_run(tester,
-                    { BASE_URL: `https://${cluster["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, VUS: 1, PER_VU_ITERATIONS: 5, CLUSTER: clusterId },
-                    {commit: commit, cluster: clusterId, test: "${test}.js", ConfigMaps: count},
-                    "k6/${test}.js"
+                    { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, VUS: 1, PER_VU_ITERATIONS: 5, CLUSTER: clusterId, CONFIG_MAP_COUNT: count },
+                    {commit: commit, cluster: clusterId, test: `${test}.js`, ConfigMaps: count},
+                    `k6/${test}.js`
                 )
 
                 // test + record
                 k6_run(tester,
-                    { BASE_URL: `https://${cluster["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, VUS: 10, PER_VU_ITERATIONS: 30, CLUSTER: clusterId },
-                    {commit: commit, cluster: clusterId, test: "${test}.js", ConfigMaps: count},
-                    "k6/${test}.js", true
+                    { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, VUS: 10, PER_VU_ITERATIONS: 30, CLUSTER: clusterId, CONFIG_MAP_COUNT: count },
+                    {commit: commit, cluster: clusterId, test: `${test}.js`, ConfigMaps: count},
+                    `k6/${test}.js`, true
                 )
             }
         }
