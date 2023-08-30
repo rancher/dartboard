@@ -5,76 +5,63 @@ import {
     terraformDir,
     helm_install,
     q,
-    runCollectingJSONOutput, runCollectingOutput,
+    runCollectingJSONOutput, runCollectingOutput, run,
 } from "./lib/common.mjs"
 import {k6_run} from "./lib/k6.mjs"
-
-
-// Parameters
-const CONFIG_MAP_COUNT = 1000
-const SECRET_COUNT = 1000
-const ROLE_COUNT = 10
-const USER_COUNT = 5
-const PROJECT_COUNT = 20
 
 // Refresh k6 files on the tester cluster
 const clusters = runCollectingJSONOutput(`terraform -chdir=${terraformDir()} output -json`)["clusters"]["value"]
 const tester = clusters["tester"]
 helm_install("k6-files", dir("charts/k6-files"), tester, "tester", {})
 
-// Create config maps
 const commit = runCollectingOutput("git rev-parse --short HEAD").trim()
-const downstreams = Object.entries(clusters).filter(([k,v]) => k.startsWith("downstream"))
-for (const [name, downstream] of downstreams) {
-    k6_run(tester,
-        { BASE_URL: `https://${downstream["private_name"]}:6443`, KUBECONFIG: downstream["kubeconfig"], CONTEXT: downstream["context"], CONFIG_MAP_COUNT: CONFIG_MAP_COUNT, SECRET_COUNT: SECRET_COUNT},
-        {commit: commit, cluster: name, test: "create_load.mjs", ConfigMaps: CONFIG_MAP_COUNT, Secrets: SECRET_COUNT},
-        "k6/create_k8s_resources.js", true
-    )
-}
 
 const upstream = clusters["upstream"]
-// create users and roles
-k6_run(tester,
-    { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, ROLE_COUNT: ROLE_COUNT, USER_COUNT: USER_COUNT },
-    {commit: commit, cluster: "upstream", test: "create_roles_users.mjs", Roles: ROLE_COUNT, Users: USER_COUNT},
-    "k6/create_roles_users.js", true
-)
-// create projects
-k6_run(tester,
-    { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, PROJECT_COUNT: PROJECT_COUNT },
-    {commit: commit, cluster: "upstream", test: "create_projects.mjs", Projects: PROJECT_COUNT},
-    "k6/create_projects.js", true
-)
+const kuf = `--kubeconfig=${upstream["kubeconfig"]}`
+const cuf = `--context=${upstream["context"]}`
+const downstream = clusters["upstream"]
+const kdf = `--kubeconfig=${downstream["kubeconfig"]}`
+const cdf = `--context=${downstream["context"]}`
 
-// Output access details
-console.log("*** ACCESS DETAILS")
-console.log()
+const downstreamClusterId = runCollectingJSONOutput(`kubectl get -o json ${q(kuf)} ${q(cuf)} -n fleet-default cluster ${downstream["name"]}`)["status"]["clusterName"]
 
-console.log(`*** UPSTREAM CLUSTER`)
-console.log(`    Rancher UI: https://${upstream["local_name"]}:${upstream["local_https_port"]} (admin/${ADMIN_PASSWORD})`)
-console.log(`    Kubernetes API:`)
-console.log(`export KUBECONFIG=${q(upstream["kubeconfig"])}`)
-console.log(`kubectl config use-context ${q(upstream["context"])}`)
-for (const [node, command] of Object.entries(upstream["node_access_commands"])) {
-    console.log(`    Node ${node}: ${q(command)}`)
-}
-console.log()
+for (const tag of ["v2.7.5", "improved"]) {
+    run(`kubectl set image -n cattle-system deployment/rancher rancher=rancher/rancher:${tag} ${q(kuf)} ${q(cuf)}`)
+    run(`kubectl rollout status --watch --timeout=3600s -n cattle-system deployment/rancher ${q(kuf)} ${q(cuf)}`)
+    run(`kubectl set image -n cattle-system deployment/cattle-cluster-agent cluster-register=rancher/rancher-agent:${tag} ${q(kdf)} ${q(cdf)}`)
+    run(`kubectl rollout status --watch --timeout=3600s -n cattle-system deployment/cattle-cluster-agent ${q(kdf)} ${q(cdf)}`)
 
-for (const [name, downstream] of downstreams) {
-    console.log(`*** ${name.toUpperCase()} CLUSTER`)
-    console.log(`    Kubernetes API:`)
-    console.log(`export KUBECONFIG=${q(downstream["kubeconfig"])}`)
-    console.log(`kubectl config use-context ${q(downstream["context"])}`)
-    for (const [node, command] of Object.entries(downstream["node_access_commands"])) {
-        console.log(`    Node ${node}: ${q(command)}`)
+    // HACK: allow 5 more minutes for Steve to start up on the remote cluster
+    // this can be removed with a good way to detect the "Steve auth startup complete" log message
+    await sleep(5*60)
+
+    for (const count of [100, 400, 1600, 6400]) {
+        for (const cluster of [upstream, downstream]) {
+            k6_run(tester,
+                { BASE_URL: `https://${cluster["private_name"]}:6443`, KUBECONFIG: cluster["kubeconfig"], CONTEXT: cluster["context"], CONFIG_MAP_COUNT: count, SECRET_COUNT: 1},
+                {commit: commit, cluster: cluster["context"], test: "create_load.mjs", ConfigMaps: count, Secrets: 1},
+                "k6/create_k8s_resources.js", true
+            )
+        }
+
+        for (const test of ["load_steve_k8s_pagination", "load_steve_new_pagination"]) {
+            for (const cluster of [upstream, downstream]) {
+
+                const clusterId = cluster == upstream ? "local" : downstreamClusterId
+                // warmup
+                k6_run(tester,
+                    { BASE_URL: `https://${cluster["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, VUS: 1, PER_VU_ITERATIONS: 5, CLUSTER: clusterId },
+                    {commit: commit, cluster: clusterId, test: "${test}.js", ConfigMaps: count},
+                    "k6/${test}.js"
+                )
+
+                // test + record
+                k6_run(tester,
+                    { BASE_URL: `https://${cluster["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, VUS: 10, PER_VU_ITERATIONS: 30, CLUSTER: clusterId },
+                    {commit: commit, cluster: clusterId, test: "${test}.js", ConfigMaps: count},
+                    "k6/${test}.js", true
+                )
+            }
+        }
     }
-    console.log()
 }
-
-console.log(`*** TESTER CLUSTER`)
-console.log(`    Grafana UI: http://${tester["local_name"]}:${tester["local_http_port"]}/grafana/d/a1508c35-b2e6-47f4-94ab-fec400d1c243/test-results?orgId=1&refresh=5s&from=now-30m&to=now (admin/${ADMIN_PASSWORD})`)
-for (const [node, command] of Object.entries(tester["node_access_commands"])) {
-    console.log(`    Node ${node}: ${q(command)}`)
-}
-console.log()
