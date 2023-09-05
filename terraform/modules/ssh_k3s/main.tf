@@ -49,7 +49,7 @@ module "k3s" {
 locals {
   server_uninstall = "/usr/local/bin/k3s-uninstall.sh"
   client_uninstall = "/usr/local/bin/k3s-agent-uninstall.sh"
-  k3s_killall = "/usr/local/bin/k3s-killall.sh"
+  k3s_killall      = "/usr/local/bin/k3s-killall.sh"
 }
 
 resource "ssh_resource" "remove_k3s" {
