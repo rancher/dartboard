@@ -1,34 +1,30 @@
-# Openstack provider
+# OpenStack provider
 
-## Opensack Requirements
-
-- Openstack with following features enabled:
+## OpenStack Requirements
+- OpenStack with following features enabled:
   - Router
-  - Floating IP (with internet connectivity IP pool address)
-    - One IP is needed for each clusters (upstream/downstream/tester) and one for the bastion
-- An OpenRC file (Openstack credentials)
-
-## Configuration
-
-- An External Network (Gateway and FloatingIP will be attached from this network)
-- A private Network (the Subnet will spawn in this Network)
-
-## Not yet implemented
-
-- No multi K3S masters
-  - No shared databases deployed
-  - No Octavia (loadbalancer) deployed in front of masters (floating IP is attached to the first/master node)
+  - Floating IPs (with internet connectivity IP pool address)
+    - One IP is needed for each cluster (upstream/downstream/tester) and one for the bastion
+- An OpenRC file (OpenStack credentials)
+- An External Network ID (Gateway and Floating IPs will be attached to this network)
+- Optionally, a Private Network ID
 
 ## Design
+- A Private Network is either specified via ID (see above) or crated
+- A single Subnet is created in the Private Network. All instances will be connected in this subnet
+- An OpenStack Router is spawned to allow the usage of Floating IPs (from the External Network) and allow SNAT
+- A Floating IP is attached to the bastion host and to the first Server of each K3S cluster
 
-- Create a single private subnet in the provided Openstack Network. All instances will be spawn in this subnet.
-- An Openstack Router is spawn to allow the usage of Floating IPs (from Ext-Net) and allow SNAT
-- A floating IP is attached to the bastion and to each K3S Master servers
+## Not yet implemented
+Octavia (loadbalancer) server nodes. Currently, floating IPs are attached to the first server node only.
+
+This set of Terraform files has been tested so far on the OVHcloud OpenStack implementation.
 
 ## Usage
 
+Deployment only:
 ```shell
-source ./openrc.bash # Openstack Credentials
-vim input.tf         # Tweak your infra
-terraform apply      # Deploy your infra
+source ./openrc.bash # OpenStack Credentials
+vim input.tf         # Tweak parameters
+terraform apply      # Deploy (Terraform only). ./bin/setup.mjs can be used to set up the test suite
 ```
