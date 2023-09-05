@@ -16,7 +16,7 @@ output "public_name" {
 }
 
 resource "local_file" "ssh_script" {
-  content = <<-EOT
+  content  = <<-EOT
     #!/bin/sh
     ssh -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" \
       %{if var.ssh_bastion_host != null~}

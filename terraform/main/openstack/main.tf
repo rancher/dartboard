@@ -41,7 +41,7 @@ module "network" {
 }
 
 module "cluster" {
-  depends_on     = [ module.network ]
+  depends_on     = [module.network]
   count          = length(local.clusters)
   source         = "../../modules/openstack_k3s"
   project_name   = local.project_name

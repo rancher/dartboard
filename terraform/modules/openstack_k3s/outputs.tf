@@ -20,9 +20,9 @@ output "local_https_port" {
 
 output "node_access_commands" {
   value = merge({
-  for node in module.server_nodes : node.name => node.ssh_script_filename
-  }, {
-  for node in module.agent_nodes : node.name => node.ssh_script_filename
+    for node in module.server_nodes : node.name => node.ssh_script_filename
+    }, {
+    for node in module.agent_nodes : node.name => node.ssh_script_filename
   })
 }
 

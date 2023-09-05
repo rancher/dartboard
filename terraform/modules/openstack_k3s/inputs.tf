@@ -5,10 +5,12 @@ variable "project_name" {
 
 variable "name" {
   description = "Symbolic name of this cluster"
+  type        = string
 }
 
 variable "availability_zone" {
   description = "Availability zone where the instance is created"
+  type        = string
 }
 
 variable "server_count" {
@@ -33,16 +35,18 @@ variable "agent_taints" {
   default     = []
 }
 
-variable "floating_ip_pool_ext" {
-  description = "External network Name"
+variable "image_id" {
+  description = "Image ID for all nodes in this cluster"
 }
 
 variable "flavor_name" {
-  description = "Bastion flavor name"
+  description = "Flavor name"
+  type        = string
 }
 
-variable "image_id" {
-  description = "Bastion image id"
+variable "floating_ip_pool_ext" {
+  description = "External network Name"
+  type        = string
 }
 
 variable "keypair" {
@@ -59,11 +63,13 @@ variable "ssh_bastion_host" {
 }
 
 variable "network_id" {
-  description = "Private network ID"
+  description = "Private Network ID"
+  type        = string
 }
 
 variable "subnet_id" {
   description = "Subnet of the Private Network ID"
+  type        = string
 }
 
 variable "distro_version" {
@@ -83,11 +89,13 @@ variable "node_cidr_mask_size" {
 
 variable "datastore" {
   description = "Data store to use: mariadb, postgres or leave for a default (sqlite for one-server-node installs, embedded etcd otherwise)"
+  type        = string
   default     = null
 }
 
 variable "datastore_endpoint" {
   description = "Override datastore with a custom endpoint string"
+  type        = string
   default     = null
 }
 
