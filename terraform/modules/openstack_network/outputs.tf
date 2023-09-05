@@ -7,6 +7,6 @@ output "private_subnet_id" {
 }
 
 output "bastion_public_name" {
-  depends_on = [ module.bastion ]
-  value = module.bastion.public_name
+  depends_on = [module.bastion]
+  value      = module.bastion.public_name
 }

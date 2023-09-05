@@ -13,17 +13,17 @@ variable "name" {
 }
 
 variable "image" {
-  description = "Openstack Image/Glance ID"
-  default     = "af0caca5-fd24-4340-a84a-e60e088bc92d" # Centos 7 on OVH GRA7 Region
+  description = "OpenStack Image/Glance ID"
+  default     = "af0caca5-fd24-4340-a84a-e60e088bc92d" // OVHcloud: GRA7 - CentOS7
 }
 
 variable "flavor" {
-  description = "Openstack Flavor name"
+  description = "OpenStack Flavor name"
   default     = "b2-7"
 }
 
 variable "keypair" {
-  description = "Openstack Keypair name"
+  description = "OpenStack Keypair name"
 }
 
 variable "ssh_bastion_host" {
@@ -44,7 +44,7 @@ variable "subnet_id" {
 }
 
 variable "attach_floating_ip_from" {
-  description = "Network name where we will spawn Floating IP. Should be a Public IP address. (Set null if no need public exposition)"
+  description = "Network name to spawn a Floating IP for this host. Should be a Public IP address. Leve null if there is no need for public exposition"
   default     = null
 }
 
@@ -55,5 +55,5 @@ variable "host_configuration_commands" {
 
 variable "ip_wildcard_resolver_domain" {
   description = "Wildcard resolver to craft DNS name to an IP address"
-  default = "nip.io"
+  default     = "nip.io"
 }

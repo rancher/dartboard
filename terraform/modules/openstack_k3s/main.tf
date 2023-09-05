@@ -2,7 +2,7 @@ module "server_nodes" {
   count                       = var.server_count
   source                      = "../openstack_host"
   availability_zone           = var.availability_zone
-  flavor                      = var.flavor_name 
+  flavor                      = var.flavor_name
   image                       = var.image_id
   project_name                = var.project_name
   name                        = "${var.name}-server-${count.index}"
@@ -40,10 +40,10 @@ module "k3s" {
   agent_names  = [for node in module.agent_nodes : node.private_name]
   agent_labels = var.agent_labels
   agent_taints = var.agent_taints
-  sans         = concat([module.server_nodes[0].public_name], (var.server_count > 0 ? [module.server_nodes[0].private_name] : []) )
+  sans         = concat([module.server_nodes[0].public_name], (var.server_count > 0 ? [module.server_nodes[0].private_name] : []))
 
-  ssh_private_key_path      = var.ssh_private_key_path
-  ssh_bastion_host          = var.ssh_bastion_host
+  ssh_private_key_path = var.ssh_private_key_path
+  ssh_bastion_host     = var.ssh_bastion_host
 
   distro_version      = var.distro_version
   max_pods            = var.max_pods

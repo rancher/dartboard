@@ -1,29 +1,28 @@
 terraform {
   required_providers {
     openstack = {
-      source  = "terraform-provider-openstack/openstack"
+      source = "terraform-provider-openstack/openstack"
     }
   }
 }
 
 resource "openstack_networking_port_v2" "port" {
   name                  = "${var.project_name}-${var.name}-port"
-  network_id            =  var.network_id
+  network_id            = var.network_id
   admin_state_up        = "true"
   port_security_enabled = false
   security_group_ids    = null
   no_security_groups    = true
 
   fixed_ip {
-      subnet_id = var.subnet_id
+    subnet_id = var.subnet_id
   }
-
 }
 
-# Setup a floating IP if we need Public exposition
+// Setup a Floating IP if we need exposure on the Public network
 resource "openstack_networking_floatingip_v2" "fip" {
-  count      = var.attach_floating_ip_from == null ? 0 : 1
-  pool       = var.attach_floating_ip_from
+  count = var.attach_floating_ip_from == null ? 0 : 1
+  pool  = var.attach_floating_ip_from
 }
 
 resource "openstack_networking_floatingip_associate_v2" "fip_1" {
@@ -43,7 +42,6 @@ resource "openstack_compute_instance_v2" "instance" {
   network {
     port = openstack_networking_port_v2.port.id
   }
-
 }
 
 resource "null_resource" "host_configuration" {
@@ -61,5 +59,4 @@ resource "null_resource" "host_configuration" {
   provisioner "remote-exec" {
     inline = var.host_configuration_commands
   }
-
 }
