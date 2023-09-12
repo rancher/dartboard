@@ -22,3 +22,5 @@ go.work
 
 # Misc
 *.yaml
+.vscode
+*.tfvars
