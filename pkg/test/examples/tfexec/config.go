@@ -1,4 +1,4 @@
-package test
+package examples
 
 const (
 	ConfigurationFileKey = "tfexecInput"
