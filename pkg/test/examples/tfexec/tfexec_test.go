@@ -1,7 +1,8 @@
-package test
+package examples
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -25,7 +26,8 @@ type TfApplyDestroy struct {
 func (s *TfApplyDestroy) TearDownSuite() {
 	log.Info("TEARING DOWN")
 	s.TfDestroy()
-	os.Remove(s.config.PlanFilePath)
+	err := os.Remove(s.config.PlanFilePath)
+	require.NoError(s.T(), err)
 }
 
 func (s *TfApplyDestroy) SetupSuite() {
@@ -69,6 +71,14 @@ func (s *TfApplyDestroy) TfApplyPlanJSON() {
 	// log.Info("TF State: " + string(out))
 }
 
+func (s *TfApplyDestroy) TfOutput() {
+	outputs, err := s.client.Output(context.Background())
+	require.NoError(s.T(), err)
+	outputsJSON, err := json.Marshal(outputs)
+	require.NoError(s.T(), err)
+	log.Info("Output: " + string(outputsJSON))
+}
+
 func (s *TfApplyDestroy) TfWorkspaceExists(ctx context.Context, workspace string) bool {
 	wsList, _, err := s.client.WorkspaceList(context.Background())
 	require.NoError(s.T(), err)
@@ -100,7 +110,7 @@ func (s *TfApplyDestroy) TfDestroy() {
 	varFileOpt := tfexec.DestroyOption(tfexec.VarFile(s.config.VarFilePath))
 	err := s.client.DestroyJSON(context.Background(), os.Stdout, varFileOpt)
 	require.NoError(s.T(), err)
-	log.Info("Successfully ran `terraform destroy -var-file=" + s.config.VarFilePath + "`")
+	log.Info("Successfully ran `terraform destroy -json -var-file=" + s.config.VarFilePath + "`")
 }
 
 func (s *TfApplyDestroy) TestTfPlanJSON() {
@@ -112,6 +122,10 @@ func (s *TfApplyDestroy) TestTfApplyPlanJSON() {
 		s.TfPlanJSON()
 		s.TfApplyPlanJSON()
 	})
+}
+
+func (s *TfApplyDestroy) TestTfOutput() {
+	s.TfOutput()
 }
 
 func TestTfApplyDestroy(t *testing.T) {
