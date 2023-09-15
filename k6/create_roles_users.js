@@ -1,7 +1,8 @@
-import {check, randomSeed} from 'k6';
+import { check } from 'k6'
 import exec from 'k6/execution';
 import http from 'k6/http';
 import {Gauge} from 'k6/metrics';
+import {retryOnConflict} from "./rancher_utils.js";
 
 // Parameters
 const roleCount = Number(__ENV.ROLE_COUNT)
@@ -146,15 +147,15 @@ export function createUsers(cookies) {
 
     const res = http.post(`${baseUrl}/v3/users`,
         JSON.stringify({
-            "type":"user",
-            "name":`Test User ${i}`,
-            "description":`Test User ${i}`,
-            "enabled":true,
-            "mustChangePassword":false,
-            "password":"useruseruser",
-            "username":`user-${i}`
+            "type": "user",
+            "name": `Test User ${i}`,
+            "description": `Test User ${i}`,
+            "enabled": true,
+            "mustChangePassword": false,
+            "password": "useruseruser",
+            "username": `user-${i}`
         }),
-        { cookies: cookies }
+        {cookies: cookies}
     )
     check(res, {
         '/v3/users returns status 201': (r) => r.status === 201,
@@ -163,15 +164,17 @@ export function createUsers(cookies) {
     const id = JSON.parse(res.body)["id"]
 
     for (let j = 0; j < bindingsPerUser; j++) {
-        const res = http.post(
-            `${baseUrl}/v3/globalrolebindings`,
-            JSON.stringify({
-                "type": "globalRoleBinding",
-                "globalRoleId": [bindings[(i*bindingsPerUser + j) % bindings.length]],
-                "userId": id
-            }),
-            { cookies: cookies }
-        )
+        const res = retryOnConflict(() => {
+            return http.post(
+                `${baseUrl}/v3/globalrolebindings`,
+                JSON.stringify({
+                    "type": "globalRoleBinding",
+                    "globalRoleId": [bindings[(i * bindingsPerUser + j) % bindings.length]],
+                    "userId": id
+                }),
+                {cookies: cookies}
+            )
+        })
 
         check(res, {
             '/v3/globalrolebindings returns status 201': (r) => r.status === 201,

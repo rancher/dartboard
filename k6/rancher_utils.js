@@ -1,4 +1,4 @@
-import { check, fail } from 'k6';
+import { check, fail, sleep } from 'k6'
 import http from 'k6/http'
 
 export function getCookies(baseUrl) {
@@ -357,4 +357,20 @@ export function logout(baseUrl, cookies) {
     check(response, {
         'logging out works': (r) => r.status === 200,
     })
+}
+
+// Retries result-returning function for up to 10 times
+// until a non-409 status is returned, waiting for up to 1s
+// between retries
+export function retryOnConflict(f) {
+    for (let i = 0; i < 9; i++) {
+        const res = f()
+        if (res.status !== 409) {
+            return res
+        }
+        // expected conflict. Sleep a bit and retry
+        sleep(Math.random())
+    }
+    // all previous attempts failed, try one last time
+    return f()
 }
