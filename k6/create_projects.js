@@ -176,9 +176,9 @@ export function createProjects(data) {
     for (const roleTemplateId of roleTemplateIds) {
 
         // HACK: creating projectroletemplatebindings might fail with 404 if the project controller is too slow
-        // allow up to 10 retries
+        // allow up to 30 retries
         let success = false
-        for (let j = 0; j < 10 && !success; j++) {
+        for (let j = 0; j < 30 && !success; j++) {
             response = http.post(
                 `${baseUrl}/v3/projectroletemplatebindings`,
                 JSON.stringify({
@@ -199,7 +199,7 @@ export function createProjects(data) {
             }
         }
         if (!success) {
-            fail("/v3/projectroletemplatebindings did not return 201 after 10 attempts")
+            fail("/v3/projectroletemplatebindings did not return 201 after 30 attempts")
         }
     }
 
