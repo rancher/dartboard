@@ -91,6 +91,10 @@ helm_install("rancher", RANCHER_CHART, upstream, "cattle-system", {
     extraEnv: [{
         name: "CATTLE_SERVER_URL",
         value: privateRancherUrl
+    },
+    {
+        name: "CATTLE_PROMETHEUS_METRICS",
+        value: "true"
     }],
 })
 
