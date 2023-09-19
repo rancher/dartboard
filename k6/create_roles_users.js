@@ -7,7 +7,7 @@ import {retryOnConflict} from "./rancher_utils.js";
 // Parameters
 const roleCount = Number(__ENV.ROLE_COUNT)
 const userCount = Number(__ENV.USER_COUNT)
-const vus = 1
+const vus = Math.min(10, userCount, roleCount)
 const resourcesPerRole = 5
 const bindingsPerUser = 5
 
