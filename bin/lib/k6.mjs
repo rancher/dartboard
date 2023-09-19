@@ -2,6 +2,7 @@ import {dir, q, run} from "./common.mjs"
 
 const MIMIR_URL = "http://mimir.tester:9009/mimir"
 
+const K6_IMAGE = "grafana/k6:0.46.0";
 
 /**
  * Runs a k6 script from inside the specified k8s cluster via kubectl run.
@@ -31,7 +32,7 @@ export function k6_run(cluster, envs, tags, test, record = false) {
             "containers": [
                 {
                     "name": "k6",
-                    "image": "grafana/k6:0.44.1",
+                    "image": K6_IMAGE,
                     "stdin": true,
                     "tty": true,
                     "args": [ "run" , envArgs, tagArgs, test, outputArgs].flat(),
@@ -54,5 +55,5 @@ export function k6_run(cluster, envs, tags, test, record = false) {
         }
     }
 
-    return run(`kubectl run k6 --image grafana/k6:0.44.1 --namespace=tester --rm -i --tty --restart=Never --overrides=${q(JSON.stringify(overrides))} --kubeconfig=${q(cluster["kubeconfig"])} --context=${q(cluster["context"])}`)
+    return run(`kubectl run k6 --image ${K6_IMAGE} --namespace=tester --rm -i --tty --restart=Never --overrides=${q(JSON.stringify(overrides))} --kubeconfig=${q(cluster["kubeconfig"])} --context=${q(cluster["context"])}`)
 }
