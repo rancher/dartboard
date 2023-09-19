@@ -8,7 +8,9 @@ import {
     q,
     run,
     runCollectingJSONOutput,
-    runCollectingOutput, isK3d,
+    runCollectingOutput,
+    isK3d,
+    retryOnError,
 } from "./lib/common.mjs"
 import {k6_run} from "./lib/k6.mjs";
 import {install_rancher_monitoring} from "./lib/rancher_monitoring.mjs";
@@ -132,7 +134,9 @@ const importedClusterNames = importedClusters.map(([name, cluster]) => name).joi
 k6_run(tester, { BASE_URL: privateRancherUrl, BOOTSTRAP_PASSWORD: BOOTSTRAP_PASSWORD, PASSWORD: ADMIN_PASSWORD, IMPORTED_CLUSTER_NAMES: importedClusterNames}, {}, "k6/rancher_setup.js")
 
 for (const [name, cluster] of importedClusters) {
-    const clusterId = runCollectingJSONOutput(`kubectl get -n fleet-default cluster ${q(name)} -o json ${q(kuf)} ${q(cuf)}`)["status"]["clusterName"]
+    const clusterId = await retryOnError(() =>
+        runCollectingJSONOutput(`kubectl get -n fleet-default cluster ${q(name)} -o json ${q(kuf)} ${q(cuf)}`)["status"]["clusterName"]
+    )
     const token = runCollectingJSONOutput(`kubectl get -n ${q(clusterId)} clusterregistrationtoken.management.cattle.io default-token -o json ${q(kuf)} ${q(cuf)}`)["status"]["token"]
 
     const url = `${localRancherUrl}/v3/import/${token}_${clusterId}.yaml`

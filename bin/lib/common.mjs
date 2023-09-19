@@ -63,7 +63,18 @@ export function runCollectingJSONOutput(cmdline) {
 }
 
 export function sleep(s) {
-    return new Promise(resolve => setTimeout(resolve, s*1000));
+    return new Promise(resolve => setTimeout(resolve, s*1000))
+}
+
+export async function retryOnError(f) {
+    for (let i = 0; i < 12; i++) {
+        try {
+            return f()
+        }
+        catch (e) {
+            await sleep(5)
+        }
+    }
 }
 
 export function helm_install(name, chart, cluster, namespace, values) {
