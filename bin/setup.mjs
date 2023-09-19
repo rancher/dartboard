@@ -95,7 +95,15 @@ helm_install("rancher", RANCHER_CHART, upstream, "cattle-system", {
     {
         name: "CATTLE_PROMETHEUS_METRICS",
         value: "true"
+    },
+    {
+        name: "CATTLE_DEV_MODE",
+        value: "true"
     }],
+    livenessProbe: {
+        initialDelaySeconds: 30,
+        periodSeconds: 3600
+    }
 })
 
 const localUpstreamName = upstream["local_name"]
