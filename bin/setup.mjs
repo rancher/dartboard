@@ -14,8 +14,10 @@ import {k6_run} from "./lib/k6.mjs";
 import {install_rancher_monitoring} from "./lib/rancher_monitoring.mjs";
 
 // Parameters
+const RANCHER_VERSION = "2.7.6"
+const RANCHER_CHART = `https://releases.rancher.com/server-charts/latest/rancher-${RANCHER_VERSION}.tgz`
+const RANCHER_IMAGE_TAG = `v${RANCHER_VERSION}`
 const CERT_MANAGER_CHART = "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"
-const RANCHER_CHART = "https://releases.rancher.com/server-charts/latest/rancher-2.7.6.tgz"
 const GRAFANA_CHART = "https://github.com/grafana/helm-charts/releases/download/grafana-6.56.5/grafana-6.56.5.tgz"
 
 // Step 1: Terraform
@@ -85,6 +87,7 @@ helm_install("rancher", RANCHER_CHART, upstream, "cattle-system", {
     bootstrapPassword: BOOTSTRAP_PASSWORD,
     hostname: privateUpstreamName,
     replicas: isK3d() ? 1 : 3,
+    rancherImageTag: RANCHER_IMAGE_TAG,
     extraEnv: [{
         name: "CATTLE_SERVER_URL",
         value: privateRancherUrl
