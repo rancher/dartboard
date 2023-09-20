@@ -44,21 +44,21 @@ for (const tag of ["v2.7.5", "improved"]) {
             )
         }
 
-        for (const test of ["load_steve_k8s_pagination", "load_steve_new_pagination"]) {
+        for (const paginationStyle of ["k8s", "steve"]) {
             for (const clusterId of ["local", downstreamClusterId]) {
 
                 // warmup
                 k6_run(tester,
-                    { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, VUS: 1, PER_VU_ITERATIONS: 5, CLUSTER: clusterId, CONFIG_MAP_COUNT: count },
-                    {commit: commit, cluster: clusterId, test: `${test}.js`, ConfigMaps: count},
-                    `k6/${test}.js`
+                    { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, VUS: 1, PER_VU_ITERATIONS: 5, CLUSTER: clusterId, RESOURCE: "configmap", PAGINATION_STYLE: paginationStyle },
+                    {commit: commit, cluster: clusterId, test: `steve_paginated_api_benchmark.js`, ConfigMaps: count},
+                    `k6/steve_paginated_api_benchmark.js`
                 )
 
                 // test + record
                 k6_run(tester,
-                    { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, VUS: 10, PER_VU_ITERATIONS: 30, CLUSTER: clusterId, CONFIG_MAP_COUNT: count },
-                    {commit: commit, cluster: clusterId, test: `${test}.js`, ConfigMaps: count},
-                    `k6/${test}.js`, true
+                    { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, VUS: 10, PER_VU_ITERATIONS: 30, CLUSTER: clusterId, RESOURCE: "configmap", PAGINATION_STYLE: paginationStyle },
+                    {commit: commit, cluster: clusterId, test: `steve_paginated_api_benchmark.js`, ConfigMaps: count},
+                    `k6/steve_paginated_api_benchmark.js`, true
                 )
             }
         }
