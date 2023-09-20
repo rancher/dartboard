@@ -76,9 +76,10 @@ function listWithK8sStylePagination(url, cookies) {
 
         const res = http.get(fullUrl, {cookies: cookies})
 
-        const criterion = {}
-        criterion[`listing ${resource} from cluster ${cluster} (k8s style pagination) returns status 200`] = (r) => r.status === 200
-        check(res, criterion)
+        const criteria = {}
+        criteria[`listing ${resource} from cluster ${cluster} (k8s style pagination) succeeds`] = (r) => r.status === 200
+        criteria[`no slow pagination errors (410 Gone) detected`] = (r) => r.status !== 410
+        check(res, criteria)
 
         try {
             const body = JSON.parse(res.body)
@@ -108,9 +109,10 @@ function listWithSteveStylePagination(url, cookies) {
 
         const res = http.get(fullUrl, {cookies: cookies})
 
-        const criterion = {}
-        criterion[`listing ${resource} from cluster ${cluster} (steve style pagination) returns status 200`] = (r) => r.status === 200
-        check(res, criterion)
+        const criteria = {}
+        criteria[`listing ${resource} from cluster ${cluster} (steve style pagination) succeeds`] = (r) => r.status === 200
+        criteria[`no slow pagination errors (410 Gone) detected`] = (r) => r.status !== 410
+        check(res, criteria)
 
         try {
             const body = JSON.parse(res.body)
