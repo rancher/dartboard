@@ -100,12 +100,11 @@ function listWithK8sStylePagination(url, cookies) {
 }
 
 function listWithSteveStylePagination(url, cookies) {
+    let i = 1
     let revision = null
-    let continueToken = null
     while (true) {
-        const fullUrl = url + "?limit=100" +
-            (revision != null ? "&revision=" + revision : "") +
-            (continueToken != null ? "&continue=" + continueToken : "")
+        const fullUrl = url + "?pagesize=100&page=" + i +
+            (revision != null ? "&revision=" + revision : "")
 
         const res = http.get(fullUrl, {cookies: cookies})
 
@@ -116,13 +115,13 @@ function listWithSteveStylePagination(url, cookies) {
 
         try {
             const body = JSON.parse(res.body)
-            if (body === undefined || body.continue === undefined) {
+            if (body === undefined || body.data === undefined || body.data.length === 0) {
                 break
             }
             if (revision == null) {
                 revision = body.revision
             }
-            continueToken = body.continue
+            i = i + 1
         }
         catch (e){
             if (e instanceof SyntaxError) {
