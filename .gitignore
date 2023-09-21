@@ -24,3 +24,7 @@ go.work
 *.yaml
 .vscode
 *.tfvars
+*.pem
+bin/*
+keys/*
+scripts/utils/*.txt
