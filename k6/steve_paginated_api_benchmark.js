@@ -38,19 +38,23 @@ export function setup() {
         return {R_SESS: token}
     }
 
-    // otherwise, log in
-    const res = http.post(`${baseUrl}/v3-public/localProviders/local?action=login`, JSON.stringify({
-        "description": "UI session",
-        "responseType": "cookie",
-        "username": username,
-        "password": password
-    }))
+    // if credentials were specified, log in
+    if (username && password) {
+        const res = http.post(`${baseUrl}/v3-public/localProviders/local?action=login`, JSON.stringify({
+            "description": "UI session",
+            "responseType": "cookie",
+            "username": username,
+            "password": password
+        }))
 
-    check(res, {
-        'logging in returns status 200': (r) => r.status === 200,
-    })
+        check(res, {
+            'logging in returns status 200': (r) => r.status === 200,
+        })
 
-    return http.cookieJar().cookiesForURL(res.url)
+        return http.cookieJar().cookiesForURL(res.url)
+    }
+
+    return {}
 }
 
 export function list(cookies) {
