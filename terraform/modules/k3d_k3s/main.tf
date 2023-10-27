@@ -179,6 +179,19 @@ resource "k3d_cluster" "cluster" {
     node_filters = []
   }
 
+  volume {
+    source       = "/var/log/k3d/audit"
+    destination  = "/var/log/kubernetes/audit"
+    node_filters = ["server:*"]
+  }
+
+  volume {
+    source       = "/var/lib/k3d/audit"
+    destination  = "/var/lib/rancher/k3s/server/manifests/audit"
+    node_filters = ["server:*"]
+
+  }
+
   k3s {
     dynamic "extra_args" {
       for_each = concat([
@@ -222,6 +235,16 @@ resource "k3d_cluster" "cluster" {
             node_filters = ["server:*"]
           }
         ],
+        var.enable_audit_log ? flatten([
+          {
+            arg          = "--kube-apiserver-arg=audit-policy-file=/var/lib/rancher/k3s/server/manifests/audit/audit.yaml",
+            node_filters = ["server:*"]
+          },
+          [for i in range(0, var.server_count) : {
+            arg          = "--kube-apiserver-arg=audit-log-path=/var/log/kubernetes/audit/audit_server_${i}.log",
+            node_filters = ["server:${i}"]
+          }],
+        ]) : [],
         flatten([
           for agent_i, labels in var.agent_labels :
           [
