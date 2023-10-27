@@ -11,6 +11,7 @@ const token = __ENV.TOKEN
 const cluster = __ENV.CLUSTER || "local"
 const resource = __ENV.RESOURCE || "management.cattle.io.setting"
 const paginationStyle = __ENV.PAGINATION_STYLE || "k8s"
+const pageSize = __ENV.PAGE_SIZE || 100
 
 // Option setting
 export const options = {
@@ -74,7 +75,7 @@ function listWithK8sStylePagination(url, cookies) {
     let revision = null
     let continueToken = null
     while (true) {
-        const fullUrl = url + "?limit=100" +
+        const fullUrl = url + "?limit=" + pageSize +
             (revision != null ? "&revision=" + revision : "") +
             (continueToken != null ? "&continue=" + continueToken : "")
 
@@ -107,7 +108,7 @@ function listWithSteveStylePagination(url, cookies) {
     let i = 1
     let revision = null
     while (true) {
-        const fullUrl = url + "?pagesize=100&page=" + i +
+        const fullUrl = url + "?pagesize=" + pageSize + "&page=" + i +
             (revision != null ? "&revision=" + revision : "")
 
         const res = http.get(fullUrl, {cookies: cookies})
