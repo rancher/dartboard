@@ -104,6 +104,11 @@ variable "enable_pprof" {
   default     = false
 }
 
+variable "enable_audit_log" {
+  description = "Enable Kubernetes API audit log to /var/log/k3d/audit for server nodes. Assumes a /var/lib/k3d/audit/audit.yaml file exists on the host"
+  default     = false
+}
+
 variable "gogc" {
   description = "Tunable parameter for Go's garbage collection, see: https://tip.golang.org/doc/gc-guide"
   type        = number
