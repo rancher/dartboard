@@ -5,7 +5,7 @@ locals {
     name           = "upstream"
     server_count   = 1
     agent_count    = 0
-    distro_version = "v1.24.12+k3s1"
+    distro_version = "v1.26.9+k3s1"
     agent_labels   = []
     agent_taints   = []
 
@@ -19,7 +19,7 @@ locals {
       name           = "downstream-${i}"
       server_count   = 1
       agent_count    = 0
-      distro_version = "v1.24.12+k3s1"
+      distro_version = "v1.26.9+k3s1"
       agent_labels   = []
       agent_taints   = []
 
@@ -32,7 +32,7 @@ locals {
     name           = "tester"
     server_count   = 1
     agent_count    = 0
-    distro_version = "v1.24.12+k3s1"
+    distro_version = "v1.26.9+k3s1"
     agent_labels   = []
     agent_taints   = []
 
