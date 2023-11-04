@@ -19,12 +19,21 @@
 
 # Go workspace file
 go.work
+go.work.sum
+
+# local go.mod file
+local.go.mod
+local.go.sum
 
 # Misc
 *.yaml
 .vscode
 *.tfvars
 *.pem
+*.conf
 bin/*
 keys/*
 scripts/utils/*.txt
+
+# Misc Exceptions
+!test/utils/rancher-monitoring/files/configmaps/*.yaml
