@@ -45,7 +45,7 @@ resource "local_file" "kubeconfig" {
 }
 
 output "kubeconfig" {
-  value = abspath(local_file.kubeconfig.filename)
+  value = length(var.server_names) > 0 ? abspath(local_file.kubeconfig[0].filename) : null
 }
 
 output "context" {
