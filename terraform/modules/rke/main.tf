@@ -35,6 +35,8 @@ resource "local_file" "rke_config" {
     max_pods             = var.max_pods
     node_cidr_mask_size  = var.node_cidr_mask_size
     sans                 = var.sans
+    agent_labels         = var.agent_labels
+    agent_taints         = var.agent_taints
   })
 
   filename = "${path.module}/../../../config/rke_config/${var.name}.yaml"
@@ -55,7 +57,7 @@ resource "null_resource" "rke_up_execution" {
 
   provisioner "local-exec" {
     interpreter = ["bash", "-c"]
-    command     = templatefile("${path.module}/download_rke.sh", {
+    command = templatefile("${path.module}/download_rke.sh", {
       version = split(" ", var.distro_version)[0]
       target  = "${path.module}/../../../config"
     })
