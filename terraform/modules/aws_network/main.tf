@@ -232,6 +232,8 @@ module "bastion" {
   availability_zone     = var.availability_zone
   project_name          = var.project_name
   name                  = "bastion"
+  ami                   = var.bastion_host_ami
+  instance_type         = var.bastion_host_instance_type
   ssh_key_name          = aws_key_pair.key_pair.key_name
   ssh_private_key_path  = var.ssh_private_key_path
   subnet_id             = aws_subnet.public.id
