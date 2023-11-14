@@ -11,7 +11,7 @@ module "server_nodes" {
   subnet_id             = var.subnet_id
   vpc_security_group_id = var.vpc_security_group_id
   ssh_bastion_host      = var.ssh_bastion_host
-  ssh_tunnels           = count.index == 0 ? [
+  ssh_tunnels = count.index == 0 ? [
     [var.local_kubernetes_api_port, 6443],
     [var.local_http_port, 80],
     [var.local_https_port, 443],
@@ -41,6 +41,8 @@ module "rke" {
   name         = var.name
   server_names = [for node in module.server_nodes : node.private_name]
   agent_names  = [for node in module.agent_nodes : node.private_name]
+  agent_labels = var.agent_labels
+  agent_taints = var.agent_taints
   sans         = var.sans
 
   ssh_private_key_path      = var.ssh_private_key_path

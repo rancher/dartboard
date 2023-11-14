@@ -14,12 +14,26 @@ nodes:
     - etcd
     - worker
 %{ endfor ~}
-%{ for agent_name in agent_names ~}
+%{ for i, agent_name in agent_names ~}
 - address: ${jsonencode(agent_name)}
   user: root
   role:
     - worker
-%{ endfor }
+%{ if length(agent_labels) > i && length(agent_labels[i]) > 0 ~}
+  labels:
+%{ for label in agent_labels[i] ~}
+    - ${label.key}=${label.value}
+%{ endfor ~}
+%{endif ~}
+%{ if length(agent_taints) > i && length(agent_taints[i]) > 0 ~}
+  taints:
+%{ for taint in agent_taints[i] ~}
+    - key: ${taint.key}
+      value: ${taint.value}
+      effect: ${taint.effect}
+%{ endfor ~}
+%{endif ~}
+%{ endfor ~}
 
 # Service-specific settings
 services:
