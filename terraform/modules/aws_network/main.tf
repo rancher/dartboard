@@ -31,7 +31,6 @@ locals {
 }
 
 resource "aws_eip" "nat_eip" {
-  vpc  = true
   tags = {
     Project = var.project_name
     Name    = "${var.project_name}-nat-eip"
@@ -164,9 +163,9 @@ resource "aws_security_group" "public" {
   }
 
   ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
     cidr_blocks = concat([aws_subnet.private.cidr_block], var.secondary_availability_zone != null ? [
       aws_subnet.secondary_private[0].cidr_block
     ] : [])
