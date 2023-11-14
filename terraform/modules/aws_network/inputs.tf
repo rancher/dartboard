@@ -28,3 +28,14 @@ variable "ssh_private_key_path" {
   description = "Path of private ssh key for AWS"
   type        = string
 }
+
+variable "bastion_host_ami" {
+  description = "AMI ID"
+  default     = "ami-0e55a8b472a265e3f"
+  // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
+}
+
+variable "bastion_host_instance_type" {
+  description = "EC2 instance type"
+  default     = "t4g.small"
+}
