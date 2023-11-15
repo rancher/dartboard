@@ -24,6 +24,12 @@ terraform {
   }
 }
 
+locals {
+  k3s_clusters  = [for cluster in local.clusters : cluster if strcontains(cluster.distro_version, "k3s")]
+  rke_clusters  = [for cluster in local.clusters : cluster if strcontains(cluster.distro_version, "rke_")]
+  rke2_clusters = [for cluster in local.clusters : cluster if strcontains(cluster.distro_version, "rke2")]
+}
+
 provider "aws" {
   region = local.region
 }
@@ -37,23 +43,73 @@ module "network" {
   ssh_private_key_path = var.ssh_private_key_path
 }
 
-module "cluster" {
-  count          = length(local.clusters)
+module "k3s_cluster" {
+  count          = length(local.k3s_clusters)
   source         = "../../modules/aws_k3s"
   project_name   = local.project_name
-  name           = local.clusters[count.index].name
-  server_count   = local.clusters[count.index].server_count
-  agent_count    = local.clusters[count.index].agent_count
-  agent_labels   = local.clusters[count.index].agent_labels
-  agent_taints   = local.clusters[count.index].agent_taints
-  distro_version = local.clusters[count.index].distro_version
+  name           = local.k3s_clusters[count.index].name
+  server_count   = local.k3s_clusters[count.index].server_count
+  agent_count    = local.k3s_clusters[count.index].agent_count
+  agent_labels   = local.k3s_clusters[count.index].agent_labels
+  agent_taints   = local.k3s_clusters[count.index].agent_taints
+  distro_version = local.k3s_clusters[count.index].distro_version
 
-  sans                      = [local.clusters[count.index].local_name]
+  sans                      = [local.k3s_clusters[count.index].local_name]
   local_kubernetes_api_port = local.first_local_kubernetes_api_port + count.index
   local_http_port           = local.first_local_http_port + count.index
   local_https_port          = local.first_local_https_port + count.index
-  ami                       = local.clusters[count.index].ami
-  instance_type             = local.clusters[count.index].instance_type
+  ami                       = local.k3s_clusters[count.index].ami
+  instance_type             = local.k3s_clusters[count.index].instance_type
+  availability_zone         = local.availability_zone
+  ssh_key_name              = module.network.key_name
+  ssh_private_key_path      = var.ssh_private_key_path
+  ssh_bastion_host          = module.network.bastion_public_name
+  subnet_id                 = module.network.private_subnet_id
+  vpc_security_group_id     = module.network.private_security_group_id
+}
+
+module "rke_cluster" {
+  count          = length(local.rke_clusters)
+  source         = "../../modules/aws_rke"
+  project_name   = local.project_name
+  name           = local.rke_clusters[count.index].name
+  server_count   = local.rke_clusters[count.index].server_count
+  agent_count    = local.rke_clusters[count.index].agent_count
+  agent_labels   = local.rke_clusters[count.index].agent_labels
+  agent_taints   = local.rke_clusters[count.index].agent_taints
+  distro_version = local.rke_clusters[count.index].distro_version
+
+  sans                      = [local.rke_clusters[count.index].local_name]
+  local_kubernetes_api_port = local.first_local_kubernetes_api_port + length(local.k3s_clusters) + count.index
+  local_http_port           = local.first_local_http_port + length(local.k3s_clusters) + count.index
+  local_https_port          = local.first_local_https_port + length(local.k3s_clusters) + count.index
+  ami                       = local.rke_clusters[count.index].ami
+  instance_type             = local.rke_clusters[count.index].instance_type
+  availability_zone         = local.availability_zone
+  ssh_key_name              = module.network.key_name
+  ssh_private_key_path      = var.ssh_private_key_path
+  ssh_bastion_host          = module.network.bastion_public_name
+  subnet_id                 = module.network.private_subnet_id
+  vpc_security_group_id     = module.network.private_security_group_id
+}
+
+module "rke2_cluster" {
+  count          = length(local.rke2_clusters)
+  source         = "../../modules/aws_rke2"
+  project_name   = local.project_name
+  name           = local.rke2_clusters[count.index].name
+  server_count   = local.rke2_clusters[count.index].server_count
+  agent_count    = local.rke2_clusters[count.index].agent_count
+  agent_labels   = local.rke2_clusters[count.index].agent_labels
+  agent_taints   = local.rke2_clusters[count.index].agent_taints
+  distro_version = local.rke2_clusters[count.index].distro_version
+
+  sans                      = [local.rke2_clusters[count.index].local_name]
+  local_kubernetes_api_port = local.first_local_kubernetes_api_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
+  local_http_port           = local.first_local_http_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
+  local_https_port          = local.first_local_https_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
+  ami                       = local.rke2_clusters[count.index].ami
+  instance_type             = local.rke2_clusters[count.index].instance_type
   availability_zone         = local.availability_zone
   ssh_key_name              = module.network.key_name
   ssh_private_key_path      = var.ssh_private_key_path
