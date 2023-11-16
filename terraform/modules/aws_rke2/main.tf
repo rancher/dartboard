@@ -41,6 +41,8 @@ module "rke2" {
   name         = var.name
   server_names = [for node in module.server_nodes : node.private_name]
   agent_names  = [for node in module.agent_nodes : node.private_name]
+  agent_labels = var.agent_labels
+  agent_taints = var.agent_taints
   sans         = var.sans
 
   ssh_private_key_path      = var.ssh_private_key_path

@@ -45,6 +45,12 @@ mkdir -p /etc/rancher/rke2/
 cat >/etc/rancher/rke2/config.yaml <<EOF
 server: ${jsonencode(server_url)}
 token: ${jsonencode(token)}
+%{ for label in labels ~}
+node-label: ${label.key}=${label.value}
+%{ endfor ~}
+%{ for taint in taints ~}
+node-taint: ${taint.key}=${taint.value}:${taint.effect}
+%{ endfor ~}
 tls-san:
 %{ for san in sans ~}
   - ${jsonencode(san)}
