@@ -109,8 +109,9 @@ helm_install("rancher", RANCHER_CHART, upstream, "cattle-system", {
 })
 
 const localUpstreamName = upstream["local_name"]
+const publicUpstreamName = upstream["public_name"]
 helm_install("rancher-ingress", dir("charts/rancher-ingress"), upstream, "default", {
-    san: localUpstreamName,
+    sans: [localUpstreamName, privateUpstreamName, publicUpstreamName].filter(x => x),
 })
 
 const monitoringRestrictions = {

@@ -52,7 +52,12 @@ console.log("*** ACCESS DETAILS")
 console.log()
 
 console.log(`*** UPSTREAM CLUSTER`)
-console.log(`    Rancher UI: https://${upstream["local_name"]}:${upstream["local_https_port"]} (admin/${ADMIN_PASSWORD})`)
+if (upstream["public_name"]) {
+    console.log(`    Rancher UI: https://${upstream["public_name"]} (admin/${ADMIN_PASSWORD})`)
+}
+else {
+    console.log(`    Rancher UI: https://${upstream["local_name"]}:${upstream["local_https_port"]} (admin/${ADMIN_PASSWORD})`)
+}
 console.log(`    Kubernetes API:`)
 console.log(`export KUBECONFIG=${q(upstream["kubeconfig"])}`)
 console.log(`kubectl config use-context ${q(upstream["context"])}`)

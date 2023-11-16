@@ -14,19 +14,19 @@ resource "local_file" "kubeconfig" {
           certificate-authority-data = yamldecode(data.local_file.rke_kubeconfig[0].content)["clusters"][0]["cluster"]["certificate-authority-data"]
           server                     = "https://${var.sans[0]}:${var.local_kubernetes_api_port}"
         }
-        name = var.sans[0]
+        name = var.name
       }
     ]
     contexts = [
       {
         context = {
-          cluster = var.sans[0]
+          cluster = var.name
           user : "kube-admin-local"
         }
-        name = var.sans[0]
+        name = var.name
       }
     ]
-    current-context = var.sans[0]
+    current-context = var.name
     kind            = "Config"
     preferences     = {}
     users = [

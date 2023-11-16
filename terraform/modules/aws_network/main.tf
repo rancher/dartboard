@@ -152,7 +152,7 @@ resource "aws_vpc_dhcp_options_association" "vpc_dhcp_options" {
 
 resource "aws_security_group" "public" {
   name        = "${var.project_name}-public-security-group"
-  description = "Allow inbound connections from the private subnet; allow connections on ports 22 (SSH); allow all outbound connections"
+  description = "Allow inbound connections from the VPC; allow connections on ports 22 (SSH) and 443 (HTTPS); allow all outbound connections"
   vpc_id      = local.vpc_id
 
   ingress {
@@ -163,12 +163,17 @@ resource "aws_security_group" "public" {
   }
 
   ingress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-    cidr_blocks = concat([aws_subnet.private.cidr_block], var.secondary_availability_zone != null ? [
-      aws_subnet.secondary_private[0].cidr_block
-    ] : [])
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [local.vpc_cidr_block]
   }
 
   egress {

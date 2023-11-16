@@ -22,7 +22,7 @@ resource "null_resource" "host_configuration" {
   depends_on = [aws_instance.instance]
 
   connection {
-    host        = coalesce(aws_instance.instance.public_dns, aws_instance.instance.private_dns)
+    host        = var.ssh_bastion_host == null ? aws_instance.instance.public_dns : aws_instance.instance.private_dns
     private_key = file(var.ssh_private_key_path)
     user        = "root"
 
@@ -46,7 +46,7 @@ resource "null_resource" "host_configuration" {
 }
 
 resource "local_file" "open_tunnels" {
-  count   = length(var.ssh_tunnels) > 0 ? 1 : 0
+  count = length(var.ssh_tunnels) > 0 ? 1 : 0
   content = templatefile("${path.module}/open-tunnels-to.sh", {
     ssh_bastion_host = var.ssh_bastion_host,
     ssh_tunnels      = var.ssh_tunnels,

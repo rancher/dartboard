@@ -7,16 +7,20 @@ metadata:
    namespace: cattle-system
 spec:
  rules:
- - host: {{ $.Values.san }}
-   http:
-     paths:
-     - backend:
-         service:
-           name: rancher
-           port:
-             number: 80
-       pathType: ImplementationSpecific
+{{- range .Values.sans }}
+   - host: {{ . }}
+     http:
+       paths:
+       - backend:
+           service:
+             name: rancher
+             port:
+               number: 80
+         pathType: ImplementationSpecific
+{{- end }}
  tls:
  - hosts:
-   - {{ $.Values.san }}
+{{- range .Values.sans }}
+   - {{ . }}
+{{- end }}
    secretName: tls-rancher-ingress

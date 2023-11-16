@@ -11,7 +11,7 @@ module "server_nodes" {
   subnet_id             = var.subnet_id
   vpc_security_group_id = var.vpc_security_group_id
   ssh_bastion_host      = var.ssh_bastion_host
-  ssh_tunnels           = count.index == 0 ? [
+  ssh_tunnels = count.index == 0 ? [
     [var.local_kubernetes_api_port, 6443],
     [var.local_http_port, 80],
     [var.local_https_port, 443],
