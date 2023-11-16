@@ -10,8 +10,7 @@ fi
 
 # https://rancher.com/docs/rke/latest/en/os/#suse-linux-enterprise-server-sles-opensuse
 if grep --quiet --ignore-case suse < /etc/os-release; then
-  zypper addrepo https://download.docker.com/linux/centos/docker-ce.repo
-  zypper install -y docker-ce
+  zypper install -y docker
 fi
 
 # https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
