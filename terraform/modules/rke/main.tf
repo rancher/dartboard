@@ -38,6 +38,15 @@ resource "local_file" "rke_config" {
   })
 
   filename = "${path.module}/../../../config/rke_config/${var.name}.yaml"
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "rm -f ${replace(self.filename, "/^(.+).yaml$/", "$1.rkestate")}"
+  }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "rm -f ${replace(self.filename, "/^(.+)/(.+?).yaml$/", "$1/kube_config_$2.yaml")}"
+  }
 }
 
 resource "null_resource" "rke_up_execution" {
