@@ -17,10 +17,12 @@ resource "ssh_sensitive_resource" "first_server_installation" {
   file {
     content = templatefile("${path.module}/install_rke2.sh", {
       distro_version = var.distro_version,
-      sans         = concat([var.server_names[0]], var.sans)
-      type         = "server"
-      token        = null
-      server_url   = null
+      sans           = concat([var.server_names[0]], var.sans)
+      type           = "server"
+      token          = null
+      server_url     = null
+      labels         = []
+      taints         = []
 
       client_ca_key          = tls_private_key.client_ca_key.private_key_pem
       client_ca_cert         = tls_self_signed_cert.client_ca_cert.cert_pem
@@ -62,10 +64,12 @@ resource "ssh_resource" "additional_server_installation" {
   file {
     content = templatefile("${path.module}/install_rke2.sh", {
       distro_version = var.distro_version,
-      sans         = [var.server_names[count.index + 1]]
-      type         = "server"
-      token        = ssh_sensitive_resource.first_server_installation[0].result
-      server_url   = "https://${var.server_names[0]}:9345"
+      sans           = [var.server_names[count.index + 1]]
+      type           = "server"
+      token          = ssh_sensitive_resource.first_server_installation[0].result
+      server_url     = "https://${var.server_names[0]}:9345"
+      labels         = []
+      taints         = []
 
       client_ca_key          = tls_private_key.client_ca_key.private_key_pem
       client_ca_cert         = tls_self_signed_cert.client_ca_cert.cert_pem

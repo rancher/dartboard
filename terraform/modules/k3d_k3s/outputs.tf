@@ -50,6 +50,10 @@ output "first_server_private_name" {
   value = "k3d-${var.project_name}-${var.name}-server-0"
 }
 
+output "first_server_public_name" {
+  value = null
+}
+
 output "local_http_port" {
   value = var.local_http_port
 }

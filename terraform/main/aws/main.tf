@@ -64,8 +64,8 @@ module "k3s_cluster" {
   ssh_key_name              = module.network.key_name
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
-  subnet_id                 = module.network.private_subnet_id
-  vpc_security_group_id     = module.network.private_security_group_id
+  subnet_id                 = local.k3s_clusters[count.index].public_ip ? module.network.public_subnet_id : module.network.private_subnet_id
+  vpc_security_group_id     = local.k3s_clusters[count.index].public_ip ? module.network.public_security_group_id : module.network.private_security_group_id
 }
 
 module "rke_cluster" {
@@ -89,8 +89,8 @@ module "rke_cluster" {
   ssh_key_name              = module.network.key_name
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
-  subnet_id                 = module.network.private_subnet_id
-  vpc_security_group_id     = module.network.private_security_group_id
+  subnet_id                 = local.rke_clusters[count.index].public_ip ? module.network.public_subnet_id : module.network.private_subnet_id
+  vpc_security_group_id     = local.rke_clusters[count.index].public_ip ? module.network.public_security_group_id : module.network.private_security_group_id
 }
 
 module "rke2_cluster" {
@@ -114,6 +114,6 @@ module "rke2_cluster" {
   ssh_key_name              = module.network.key_name
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
-  subnet_id                 = module.network.private_subnet_id
-  vpc_security_group_id     = module.network.private_security_group_id
+  subnet_id                 = local.rke2_clusters[count.index].public_ip ? module.network.public_subnet_id : module.network.private_subnet_id
+  vpc_security_group_id     = local.rke2_clusters[count.index].public_ip ? module.network.public_security_group_id : module.network.private_security_group_id
 }

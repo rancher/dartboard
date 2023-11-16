@@ -43,7 +43,7 @@ module "rke" {
   agent_names  = [for node in module.agent_nodes : node.private_name]
   agent_labels = var.agent_labels
   agent_taints = var.agent_taints
-  sans         = var.sans
+  sans         = compact(concat(var.sans, var.server_count > 0 ? [module.server_nodes[0].private_name, module.server_nodes[0].public_name] : []))
 
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = var.ssh_bastion_host
