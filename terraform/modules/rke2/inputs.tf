@@ -24,6 +24,18 @@ variable "agent_names" {
   default     = []
 }
 
+variable "agent_labels" {
+  description = "Per-agent-node lists of labels to apply"
+  type        = list(list(object({ key : string, value : string })))
+  default     = []
+}
+
+variable "agent_taints" {
+  description = "Per-agent-node lists of taints to apply"
+  type        = list(list(object({ key : string, value : string, effect : string })))
+  default     = []
+}
+
 variable "sans" {
   description = "Additional Subject Alternative Names"
   type        = list(string)
