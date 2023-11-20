@@ -39,10 +39,6 @@ resource "null_resource" "host_configuration" {
   provisioner "remote-exec" {
     inline = var.host_configuration_commands
   }
-
-  provisioner "remote-exec" {
-    inline = var.host_configuration_commands
-  }
 }
 
 resource "local_file" "open_tunnels" {
