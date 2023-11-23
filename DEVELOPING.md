@@ -36,3 +36,11 @@ export TERRAFORM_WORK_DIR=terraform/main/aws
 ```
 
 See `terraform/main` subdirectories for the currently available platforms.
+
+## Hacks and workarounds
+
+In some situations we want to add code which "uncleanly" works around bugs in other software or limitations of some kind. Those can be discussed in the PR on a case-by-case basis, but they have to be documented with a comment starting with `HACK:`, so that they can be tracked later, eg.:
+
+https://github.com/search?q=repo%3Amoio%2Fscalability-tests+HACK%3A&type=code
+
+If at all possible, also include a condition for the removal of the hack (eg. dependency is updated to a version that fixes a certain issue).
