@@ -1,5 +1,5 @@
 output "private_name" {
-  value = azurerm_linux_virtual_machine.main.private_ip_address
+  value = "${azurerm_linux_virtual_machine.main.private_ip_address}.sslip.io"
 }
 
 output "public_name" {
