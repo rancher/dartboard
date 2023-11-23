@@ -4,7 +4,7 @@ module "server_nodes" {
   os_image             = var.os_image
   location             = var.location
   resource_group_name  = var.resource_group_name
-  instance_type        = var.instance_type
+  size                 = var.size
   project_name         = var.project_name
   name                 = "${var.name}-server-${count.index}"
   ssh_public_key_path  = var.ssh_public_key_path
@@ -26,7 +26,7 @@ module "agent_nodes" {
   os_image                    = var.os_image
   location                    = var.location
   resource_group_name         = var.resource_group_name
-  instance_type               = var.instance_type
+  size                        = var.size
   project_name                = var.project_name
   name                        = "${var.name}-agent-${count.index}"
   ssh_public_key_path         = var.ssh_public_key_path
@@ -47,7 +47,7 @@ module "k3s" {
   agent_taints = var.agent_taints
   sans         = compact(concat(var.sans, var.server_count > 0 ? [module.server_nodes[0].private_name] : []))
 
-  ssh_user                  = var.admin_username
+  ssh_user                  = var.ssh_user
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = var.ssh_bastion_host
   local_kubernetes_api_port = var.local_kubernetes_api_port

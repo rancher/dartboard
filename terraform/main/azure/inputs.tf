@@ -1,5 +1,5 @@
 locals {
-  project_name = "fgiudici"
+  project_name = "st"
 
   upstream_cluster = {
     name           = "upstream"

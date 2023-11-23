@@ -28,13 +28,21 @@ variable "os_image" {
   })
 }
 
-variable "instance_type" {
-  description = "Azure VM instance type"
+variable "size" {
+  description = "Azure VM kind"
   default     = "Standard_B2as_v2"
 }
 
-variable "admin_username" {
-  description = "Azure VM admin user name"
+// Spot instances can be Deallocated/Deleted but costs 1/10th
+// anyway, seems we have a constraint that only 3 cores can be allocated as Spot instances
+// causing provisioning of many nodes to fail
+variable "is_spot" {
+  description = "Wheter the VM should be allocated as a Spot instance (costs 1/10th of regular ones but could be evicted)"
+  default     = false
+}
+
+variable "ssh_user" {
+  description = "Azure VM admin user name used for ssh access"
   default     = "azureuser"
 }
 
@@ -45,10 +53,10 @@ variable "subnet_id" {
 
 variable "public_ip_address_id" {
   description = "Public IP to attach to the VM, optional"
+  type        = string
   default     = null
 }
 
-# TODO: commands should be actually applied
 variable "host_configuration_commands" {
   description = "Commands to run when the host is deployed"
   default     = ["cat /etc/os-release"]

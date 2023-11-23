@@ -15,21 +15,13 @@ resource "azurerm_linux_virtual_machine" "main" {
   name                  = "${var.project_name}-${var.name}"
   resource_group_name   = var.resource_group_name
   location              = var.location
-  size                  = var.instance_type
-  admin_username        = var.admin_username
+  size                  = var.size
+  priority              = var.is_spot ? "Spot" : "Regular"
+  admin_username        = var.ssh_user
   network_interface_ids = [azurerm_network_interface.nic.id]
 
-  /* 
-   * Spot instances can be Deallocated/Deleted but costs 1/10th
-   * anyway, seems we have a constraint that only 3 cores can be allocated as Spot instances
-   * causing provisioning to fail
-   *
-  priority        = "Spot"
-  eviction_policy = "Deallocate"
-   */
-
   admin_ssh_key {
-    username   = var.admin_username
+    username   = var.ssh_user
     public_key = file(var.ssh_public_key_path)
   }
 
@@ -53,10 +45,10 @@ resource "null_resource" "host_configuration" {
     host = coalesce(azurerm_linux_virtual_machine.main.public_ip_address,
     azurerm_linux_virtual_machine.main.private_ip_address)
     private_key = file(var.ssh_private_key_path)
-    user        = var.admin_username
+    user        = var.ssh_user
 
     bastion_host        = var.ssh_bastion_host
-    bastion_user        = var.admin_username
+    bastion_user        = var.ssh_user
     bastion_private_key = file(var.ssh_private_key_path)
     timeout             = "120s"
   }
@@ -73,7 +65,7 @@ resource "local_file" "open_tunnels" {
     ssh_tunnels          = var.ssh_tunnels,
     private_name         = azurerm_linux_virtual_machine.main.private_ip_address,
     public_name          = azurerm_linux_virtual_machine.main.public_ip_address
-    admin_username       = var.admin_username
+    ssh_user             = var.ssh_user
     ssh_private_key_path = var.ssh_private_key_path
   })
 

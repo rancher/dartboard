@@ -50,13 +50,13 @@ variable "os_image" {
   })
 }
 
-variable "instance_type" {
-  description = "Azure VM instance type"
+variable "size" {
+  description = "Azure VM size"
   default     = "Standard_B2as_v2"
 }
 
-variable "admin_username" {
-  description = "Azure VM admin user name"
+variable "ssh_user" {
+  description = "Azure VM admin user name used for ssh access"
   default     = "azureuser"
 }
 

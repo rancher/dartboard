@@ -1,9 +1,9 @@
 terraform {
-  required_version = "1.6.3"
+  required_version = "1.5.6"
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.0.2"
+      version = "3.0.2"
     }
     tls = {
       source  = "hashicorp/tls"
@@ -46,10 +46,8 @@ module "network" {
 
 
 module "cluster" {
-  /*
-   * We need to wait for the module.network to complete before moving on to workaround
-   * terraform issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
-   */
+  // HACK: we need to wait for the module.network to complete before moving on to workaround
+  // terraform issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
   depends_on = [module.network]
 
   count          = length(local.clusters)
@@ -62,7 +60,7 @@ module "cluster" {
   agent_taints   = local.clusters[count.index].agent_taints
   distro_version = local.clusters[count.index].distro_version
   os_image       = local.clusters[count.index].os_image
-  instance_type  = local.clusters[count.index].instance_type
+  size           = local.clusters[count.index].size
 
   sans                      = [local.clusters[count.index].local_name]
   local_kubernetes_api_port = local.first_local_kubernetes_api_port + count.index
@@ -76,25 +74,3 @@ module "cluster" {
   subnet_id                 = module.network.private_subnet_id
 }
 
-/*
- * Single host test
-
-module "host" {
-  source              = "../../modules/azure_host"
-  project_name        = local.project_name
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  name                = "node01"
-  instance_type       = local.instance_type
-  os_image = {
-    publisher = local.upstream_cluster.os_image.publisher
-    offer     = local.upstream_cluster.os_image.offer
-    sku       = local.upstream_cluster.os_image.sku
-    version   = local.upstream_cluster.os_image.version
-  }
-  subnet_id            = module.network.private_subnet_id
-  ssh_public_key_path  = var.ssh_public_key_path
-  ssh_private_key_path = var.ssh_private_key_path
-}
-
- */
