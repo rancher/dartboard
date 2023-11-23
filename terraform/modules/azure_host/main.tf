@@ -69,11 +69,12 @@ resource "null_resource" "host_configuration" {
 resource "local_file" "open_tunnels" {
   count = length(var.ssh_tunnels) > 0 ? 1 : 0
   content = templatefile("${path.module}/open-tunnels-to.sh", {
-    ssh_bastion_host = var.ssh_bastion_host,
-    ssh_tunnels      = var.ssh_tunnels,
-    private_name     = azurerm_linux_virtual_machine.main.private_ip_address,
-    public_name      = azurerm_linux_virtual_machine.main.public_ip_address
-    admin_username   = var.admin_username
+    ssh_bastion_host     = var.ssh_bastion_host,
+    ssh_tunnels          = var.ssh_tunnels,
+    private_name         = azurerm_linux_virtual_machine.main.private_ip_address,
+    public_name          = azurerm_linux_virtual_machine.main.public_ip_address
+    admin_username       = var.admin_username
+    ssh_private_key_path = var.ssh_private_key_path
   })
 
   filename = "${path.module}/../../../config/open-tunnels-to-${var.name}.sh"
