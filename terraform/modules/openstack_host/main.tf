@@ -60,3 +60,17 @@ resource "null_resource" "host_configuration" {
     inline = var.host_configuration_commands
   }
 }
+
+module "ssh_access" {
+  depends_on = [null_resource.host_configuration]
+
+  source = "../ssh_access"
+  name   = var.name
+
+  ssh_bastion_host     = var.ssh_bastion_host
+  ssh_tunnels          = []
+  private_name         = openstack_compute_instance_v2.instance.access_ip_v4
+  public_name          = openstack_networking_floatingip_v2.fip[0].address
+  ssh_user             = "root"
+  ssh_private_key_path = var.ssh_private_key_path
+}
