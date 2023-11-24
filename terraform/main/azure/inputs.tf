@@ -76,7 +76,7 @@ locals {
   // azure-specific
   location = "West Europe"
   tags = {
-    Owner = "fgiudici"
+    Owner = local.project_name
   }
 }
 // azure supports RSA ssh key pairs only
