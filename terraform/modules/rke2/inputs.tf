@@ -42,6 +42,11 @@ variable "sans" {
   default     = []
 }
 
+variable "ssh_user" {
+  description = "User name for SSH access"
+  default     = "root"
+}
+
 variable "ssh_private_key_path" {
   description = "Path of private ssh key used to access the instance"
   type        = string

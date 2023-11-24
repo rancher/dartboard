@@ -10,7 +10,7 @@ resource "ssh_sensitive_resource" "first_server_installation" {
   count        = length(var.server_names) > 0 ? 1 : 0
   host         = var.server_names[0]
   private_key  = file(var.ssh_private_key_path)
-  user         = "root"
+  user         = var.ssh_user
   bastion_host = var.ssh_bastion_host
   timeout      = "600s"
 
@@ -34,20 +34,20 @@ resource "ssh_sensitive_resource" "first_server_installation" {
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
-    destination = "/root/install_rke2.sh"
+    destination = "/tmp/install_rke2.sh"
     permissions = "0700"
   }
 
   file {
     content     = file("${path.module}/wait_for_k8s.sh")
-    destination = "/root/wait_for_k8s.sh"
+    destination = "/tmp/wait_for_k8s.sh"
     permissions = "0700"
   }
 
   commands = [
-    "/root/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)",
-    "/root/wait_for_k8s.sh",
-    "cat /var/lib/rancher/rke2/server/node-token",
+    "sudo /tmp/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)",
+    "sudo /tmp/wait_for_k8s.sh",
+    "sudo cat /var/lib/rancher/rke2/server/node-token",
   ]
 }
 
@@ -57,7 +57,7 @@ resource "ssh_resource" "additional_server_installation" {
 
   host         = var.server_names[count.index + 1]
   private_key  = file(var.ssh_private_key_path)
-  user         = "root"
+  user         = var.ssh_user
   bastion_host = var.ssh_bastion_host
   timeout      = "600s"
 
@@ -81,12 +81,12 @@ resource "ssh_resource" "additional_server_installation" {
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
-    destination = "/root/install_rke2.sh"
+    destination = "/tmp/install_rke2.sh"
     permissions = "0700"
   }
 
   commands = [
-    "/root/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)"
+    "sudo /tmp/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)"
   ]
 }
 
@@ -96,7 +96,7 @@ resource "ssh_resource" "agent_installation" {
 
   host         = var.agent_names[count.index]
   private_key  = file(var.ssh_private_key_path)
-  user         = "root"
+  user         = var.ssh_user
   bastion_host = var.ssh_bastion_host
   timeout      = "600s"
 
@@ -120,11 +120,11 @@ resource "ssh_resource" "agent_installation" {
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
-    destination = "/root/install_rke2.sh"
+    destination = "/tmp/install_rke2.sh"
     permissions = "0700"
   }
 
   commands = [
-    "/root/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)"
+    "sudo /tmp/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)"
   ]
 }
