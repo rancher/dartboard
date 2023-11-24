@@ -62,6 +62,7 @@ variable "ssh_user" {
 
 variable "ssh_public_key_path" {
   description = "Path to the (public) SSH key used to access cluster nodes"
+  type        = string
 }
 
 variable "ssh_private_key_path" {
@@ -71,6 +72,7 @@ variable "ssh_private_key_path" {
 
 variable "ssh_bastion_host" {
   description = "Public name of the SSH bastion host. Leave null for publicly accessible nodes."
+  type        = string
   default     = null
 }
 

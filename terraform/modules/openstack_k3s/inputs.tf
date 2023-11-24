@@ -55,10 +55,12 @@ variable "keypair" {
 
 variable "ssh_private_key_path" {
   description = "Path of private ssh key used to access cluster nodes"
+  type        = string
 }
 
 variable "ssh_bastion_host" {
   description = "Public name of the SSH bastion host. Leave null for publicly accessible nodes"
+  type        = string
   default     = null
 }
 
