@@ -46,8 +46,8 @@ module "network" {
   project_name         = local.project_name
   location             = local.location
   resource_group_name  = azurerm_resource_group.rg.name
-  ssh_private_key_path = var.ssh_private_key_path
   ssh_public_key_path  = var.ssh_public_key_path
+  ssh_private_key_path = var.ssh_private_key_path
 }
 
 
@@ -69,13 +69,13 @@ module "k3s_cluster" {
     [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
   ] : []
   distro_version = local.k3s_clusters[count.index].distro_version
-  os_image       = local.k3s_clusters[count.index].os_image
-  size           = local.k3s_clusters[count.index].size
 
   sans                      = [local.k3s_clusters[count.index].local_name]
   local_kubernetes_api_port = local.first_local_kubernetes_api_port + count.index
   local_http_port           = local.first_local_http_port + count.index
   local_https_port          = local.first_local_https_port + count.index
+  os_image                  = local.k3s_clusters[count.index].os_image
+  size                      = local.k3s_clusters[count.index].size
   resource_group_name       = azurerm_resource_group.rg.name
   location                  = azurerm_resource_group.rg.location
   ssh_public_key_path       = var.ssh_public_key_path
@@ -102,13 +102,13 @@ module "rke2_cluster" {
     [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
   ] : []
   distro_version = local.rke2_clusters[count.index].distro_version
-  os_image       = local.rke2_clusters[count.index].os_image
-  size           = local.rke2_clusters[count.index].size
 
   sans                      = [local.rke2_clusters[count.index].local_name]
   local_kubernetes_api_port = local.first_local_kubernetes_api_port + length(local.k3s_clusters) + count.index
   local_http_port           = local.first_local_http_port + length(local.k3s_clusters) + count.index
   local_https_port          = local.first_local_https_port + length(local.k3s_clusters) + count.index
+  os_image                  = local.rke2_clusters[count.index].os_image
+  size                      = local.rke2_clusters[count.index].size
   resource_group_name       = azurerm_resource_group.rg.name
   location                  = azurerm_resource_group.rg.location
   ssh_public_key_path       = var.ssh_public_key_path
