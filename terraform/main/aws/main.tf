@@ -17,10 +17,6 @@ terraform {
       source  = "loafoe/ssh"
       version = "2.2.1"
     }
-    k3d = {
-      source  = "pvotal-tech/k3d"
-      version = "0.0.6"
-    }
   }
 }
 
@@ -42,6 +38,7 @@ module "network" {
   ssh_public_key_path  = var.ssh_public_key_path
   ssh_private_key_path = var.ssh_private_key_path
 }
+
 
 module "k3s_cluster" {
   count        = length(local.k3s_clusters)
