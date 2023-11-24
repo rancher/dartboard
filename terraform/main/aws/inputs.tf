@@ -16,11 +16,11 @@ locals {
   }
 
   downstream_clusters = [
-    for i in range(5) :
+    for i in range(2) :
     {
       name                        = "downstream-${i}"
-      server_count                = 3
-      agent_count                 = 7
+      server_count                = 1
+      agent_count                 = 0
       distro_version              = "v1.26.9+k3s1"
       reserve_node_for_monitoring = false
 
