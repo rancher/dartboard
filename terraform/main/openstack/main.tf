@@ -41,15 +41,19 @@ module "network" {
 }
 
 module "cluster" {
-  depends_on     = [module.network]
-  count          = length(local.clusters)
-  source         = "../../modules/openstack_k3s"
-  project_name   = local.project_name
-  name           = local.clusters[count.index].name
-  server_count   = local.clusters[count.index].server_count
-  agent_count    = local.clusters[count.index].agent_count
-  agent_labels   = local.clusters[count.index].agent_labels
-  agent_taints   = local.clusters[count.index].agent_taints
+  depends_on   = [module.network]
+  count        = length(local.clusters)
+  source       = "../../modules/openstack_k3s"
+  project_name = local.project_name
+  name         = local.clusters[count.index].name
+  server_count = local.clusters[count.index].server_count
+  agent_count  = local.clusters[count.index].agent_count
+  agent_labels = local.clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true" }]
+  ] : []
+  agent_taints = local.clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
+  ] : []
   distro_version = local.clusters[count.index].distro_version
 
   image_id             = local.clusters[count.index].image_id

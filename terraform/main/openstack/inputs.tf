@@ -2,16 +2,11 @@ locals {
   project_name = "st"
 
   upstream_cluster = {
-    name           = "upstream"
-    server_count   = 1
-    agent_count    = 2
-    distro_version = "v1.26.9+k3s1"
-    agent_labels = [
-      [{ key : "monitoring", value : "true" }]
-    ]
-    agent_taints = [
-      [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
-    ]
+    name                        = "upstream"
+    server_count                = 1
+    agent_count                 = 2
+    distro_version              = "v1.26.9+k3s1"
+    reserve_node_for_monitoring = true
 
     // openstack-specific
     flavor_name = "c2-15"                                // OVHcloud: 4vCPUs at 3 GHz, 15 GiB RAM
@@ -21,12 +16,11 @@ locals {
   downstream_clusters = [
     for i in range(10) :
     {
-      name           = "downstream-${i}"
-      server_count   = 1
-      agent_count    = 10
-      distro_version = "v1.26.9+k3s1"
-      agent_labels   = []
-      agent_taints   = []
+      name                        = "downstream-${i}"
+      server_count                = 1
+      agent_count                 = 10
+      distro_version              = "v1.26.9+k3s1"
+      reserve_node_for_monitoring = false
 
       // openstack-specific
       flavor_name = "c2-7"                                 // OVHcloud: 2vCPUs at 3 GHz, 7 GiB RAM
@@ -35,12 +29,11 @@ locals {
   ]
 
   tester_cluster = {
-    name           = "tester"
-    server_count   = 1
-    agent_count    = 0
-    distro_version = "v1.26.9+k3s1"
-    agent_labels   = []
-    agent_taints   = []
+    name                        = "tester"
+    server_count                = 1
+    agent_count                 = 0
+    distro_version              = "v1.26.9+k3s1"
+    reserve_node_for_monitoring = false
 
     // openstack-specific
     flavor_name = "b2-7"                                 // OVHcloud: 2vCPUs at 2 GHz, 7 GiB RAM

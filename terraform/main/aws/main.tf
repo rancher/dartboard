@@ -44,14 +44,18 @@ module "network" {
 }
 
 module "k3s_cluster" {
-  count          = length(local.k3s_clusters)
-  source         = "../../modules/aws_k3s"
-  project_name   = local.project_name
-  name           = local.k3s_clusters[count.index].name
-  server_count   = local.k3s_clusters[count.index].server_count
-  agent_count    = local.k3s_clusters[count.index].agent_count
-  agent_labels   = local.k3s_clusters[count.index].agent_labels
-  agent_taints   = local.k3s_clusters[count.index].agent_taints
+  count        = length(local.k3s_clusters)
+  source       = "../../modules/aws_k3s"
+  project_name = local.project_name
+  name         = local.k3s_clusters[count.index].name
+  server_count = local.k3s_clusters[count.index].server_count
+  agent_count  = local.k3s_clusters[count.index].agent_count
+  agent_labels = local.k3s_clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true" }]
+  ] : []
+  agent_taints = local.k3s_clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
+  ] : []
   distro_version = local.k3s_clusters[count.index].distro_version
 
   sans                      = [local.k3s_clusters[count.index].local_name]
@@ -69,14 +73,18 @@ module "k3s_cluster" {
 }
 
 module "rke_cluster" {
-  count          = length(local.rke_clusters)
-  source         = "../../modules/aws_rke"
-  project_name   = local.project_name
-  name           = local.rke_clusters[count.index].name
-  server_count   = local.rke_clusters[count.index].server_count
-  agent_count    = local.rke_clusters[count.index].agent_count
-  agent_labels   = local.rke_clusters[count.index].agent_labels
-  agent_taints   = local.rke_clusters[count.index].agent_taints
+  count        = length(local.rke_clusters)
+  source       = "../../modules/aws_rke"
+  project_name = local.project_name
+  name         = local.rke_clusters[count.index].name
+  server_count = local.rke_clusters[count.index].server_count
+  agent_count  = local.rke_clusters[count.index].agent_count
+  agent_labels = local.rke_clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true" }]
+  ] : []
+  agent_taints = local.rke_clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
+  ] : []
   distro_version = local.rke_clusters[count.index].distro_version
 
   sans                      = [local.rke_clusters[count.index].local_name]
@@ -94,14 +102,18 @@ module "rke_cluster" {
 }
 
 module "rke2_cluster" {
-  count          = length(local.rke2_clusters)
-  source         = "../../modules/aws_rke2"
-  project_name   = local.project_name
-  name           = local.rke2_clusters[count.index].name
-  server_count   = local.rke2_clusters[count.index].server_count
-  agent_count    = local.rke2_clusters[count.index].agent_count
-  agent_labels   = local.rke2_clusters[count.index].agent_labels
-  agent_taints   = local.rke2_clusters[count.index].agent_taints
+  count        = length(local.rke2_clusters)
+  source       = "../../modules/aws_rke2"
+  project_name = local.project_name
+  name         = local.rke2_clusters[count.index].name
+  server_count = local.rke2_clusters[count.index].server_count
+  agent_count  = local.rke2_clusters[count.index].agent_count
+  agent_labels = local.rke2_clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true" }]
+  ] : []
+  agent_taints = local.rke2_clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
+  ] : []
   distro_version = local.rke2_clusters[count.index].distro_version
 
   sans                      = [local.rke2_clusters[count.index].local_name]

@@ -22,14 +22,18 @@ terraform {
 
 
 module "cluster" {
-  count                = length(local.clusters)
-  source               = "../../modules/ssh_k3s"
-  project_name         = local.project_name
-  name                 = local.clusters[count.index].name
-  server_count         = local.clusters[count.index].server_count
-  agent_count          = local.clusters[count.index].agent_count
-  agent_labels         = local.clusters[count.index].agent_labels
-  agent_taints         = local.clusters[count.index].agent_taints
+  count        = length(local.clusters)
+  source       = "../../modules/ssh_k3s"
+  project_name = local.project_name
+  name         = local.clusters[count.index].name
+  server_count = local.clusters[count.index].server_count
+  agent_count  = local.clusters[count.index].agent_count
+  agent_labels = local.clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true" }]
+  ] : []
+  agent_taints = local.clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
+  ] : []
   distro_version       = local.clusters[count.index].distro_version
   fqdns                = [for node in var.nodes[count.index] : node.fqdn]
   ssh_user             = var.ssh_user

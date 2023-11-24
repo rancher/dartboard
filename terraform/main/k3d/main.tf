@@ -24,8 +24,6 @@ module "cluster" {
   name           = local.clusters[count.index].name
   server_count   = local.clusters[count.index].server_count
   agent_count    = local.clusters[count.index].agent_count
-  agent_labels   = local.clusters[count.index].agent_labels
-  agent_taints   = local.clusters[count.index].agent_taints
   distro_version = local.clusters[count.index].distro_version
 
   sans                      = [local.clusters[count.index].local_name]
