@@ -7,19 +7,19 @@ resource "local_file" "kubeconfig" {
           certificate-authority-data = base64encode(tls_self_signed_cert.server_ca_cert.cert_pem)
           server                     = "https://${var.sans[0]}:${var.local_kubernetes_api_port}"
         }
-        name = var.sans[0]
+        name = var.name
       }
     ]
     contexts = [
       {
         context = {
-          cluster = var.sans[0]
+          cluster = var.name
           user : "master-user"
         }
-        name = var.sans[0]
+        name = var.name
       }
     ]
-    current-context = var.sans[0]
+    current-context = var.name
     kind            = "Config"
     preferences     = {}
     users = [
