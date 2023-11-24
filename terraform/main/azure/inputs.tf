@@ -5,10 +5,11 @@ locals {
     name                        = "upstream"
     server_count                = 3
     agent_count                 = 2
-    distro_version              = "v1.26.9+k3s1"
+    distro_version              = "v1.24.4+rke2r1"
     reserve_node_for_monitoring = true
 
     local_name = "upstream.local.gd"
+
     // azure-specific
     size = "Standard_B4as_v2"
     os_image = {
@@ -29,9 +30,8 @@ locals {
       reserve_node_for_monitoring = false
 
       local_name = "downstream-${i}.local.gd"
-      # public_ip = false
-      // azure-specific
 
+      // azure-specific
       size = "Standard_B2as_v2"
       os_image = {
         publisher = "suse"
@@ -50,6 +50,7 @@ locals {
     reserve_node_for_monitoring = false
 
     local_name = "upstream.local.gd"
+
     // azure-specific
     size = "Standard_B2as_v2"
     os_image = {
