@@ -5,6 +5,7 @@ set -xe
 # HACK: work around https://github.com/k3s-io/k3s/issues/2306
 sleep ${sleep_time}
 
+sudo -s <<SUDO
 # https://docs.rke2.io/known_issues/#networkmanager
 if systemctl status NetworkManager; then
   cat >/etc/NetworkManager/conf.d/rke2-canal.conf <<EOF
@@ -82,3 +83,4 @@ export INSTALL_RKE2_TYPE=${type}
 curl -sfL https://get.rke2.io | sh -
 systemctl enable rke2-${type}.service
 systemctl restart rke2-${type}.service
+SUDO
