@@ -17,10 +17,6 @@ terraform {
       source  = "loafoe/ssh"
       version = "2.2.1"
     }
-    k3d = {
-      source  = "pvotal-tech/k3d"
-      version = "0.0.6"
-    }
   }
 }
 
