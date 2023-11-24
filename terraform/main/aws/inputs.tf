@@ -5,7 +5,7 @@ locals {
     name                        = "upstream"
     server_count                = 3
     agent_count                 = 2
-    distro_version              = "v1.26.9+k3s1"
+    distro_version              = "v1.24.4+rke2r1"
     reserve_node_for_monitoring = true
 
     // aws-specific
