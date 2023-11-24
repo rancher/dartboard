@@ -27,7 +27,12 @@ locals {
 
 provider "azurerm" {
   skip_provider_registration = true
-  features {}
+  features {
+    resource_group {
+      # destroy resource group even if they contain stale resources
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 
 resource "azurerm_resource_group" "rg" {
