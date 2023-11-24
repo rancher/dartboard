@@ -20,6 +20,11 @@ terraform {
   }
 }
 
+locals {
+  k3s_clusters  = [for cluster in local.clusters : cluster if strcontains(cluster.distro_version, "k3s")]
+  rke2_clusters = [for cluster in local.clusters : cluster if strcontains(cluster.distro_version, "rke2")]
+}
+
 provider "azurerm" {
   skip_provider_registration = true
   features {}
@@ -41,31 +46,64 @@ module "network" {
 }
 
 
-module "cluster" {
+module "k3s_cluster" {
   // HACK: we need to wait for the module.network to complete before moving on to workaround
   // terraform issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
   depends_on = [module.network]
 
-  count        = length(local.clusters)
+  count        = length(local.k3s_clusters)
   source       = "../../modules/azure_k3s"
   project_name = local.project_name
-  name         = local.clusters[count.index].name
-  server_count = local.clusters[count.index].server_count
-  agent_count  = local.clusters[count.index].agent_count
-  agent_labels = local.clusters[count.index].reserve_node_for_monitoring ? [
+  name         = local.k3s_clusters[count.index].name
+  server_count = local.k3s_clusters[count.index].server_count
+  agent_count  = local.k3s_clusters[count.index].agent_count
+  agent_labels = local.k3s_clusters[count.index].reserve_node_for_monitoring ? [
     [{ key : "monitoring", value : "true" }]
   ] : []
-  agent_taints = local.clusters[count.index].reserve_node_for_monitoring ? [
+  agent_taints = local.k3s_clusters[count.index].reserve_node_for_monitoring ? [
     [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
   ] : []
-  distro_version = local.clusters[count.index].distro_version
-  os_image       = local.clusters[count.index].os_image
-  size           = local.clusters[count.index].size
+  distro_version = local.k3s_clusters[count.index].distro_version
+  os_image       = local.k3s_clusters[count.index].os_image
+  size           = local.k3s_clusters[count.index].size
 
-  sans                      = [local.clusters[count.index].local_name]
+  sans                      = [local.k3s_clusters[count.index].local_name]
   local_kubernetes_api_port = local.first_local_kubernetes_api_port + count.index
   local_http_port           = local.first_local_http_port + count.index
   local_https_port          = local.first_local_https_port + count.index
+  resource_group_name       = azurerm_resource_group.rg.name
+  location                  = azurerm_resource_group.rg.location
+  ssh_public_key_path       = var.ssh_public_key_path
+  ssh_private_key_path      = var.ssh_private_key_path
+  ssh_bastion_host          = module.network.bastion_public_name
+  subnet_id                 = module.network.private_subnet_id
+}
+
+module "rke2_cluster" {
+  // HACK: we need to wait for the module.network to complete before moving on to workaround
+  // terraform issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
+  depends_on = [module.network]
+
+  count        = length(local.rke2_clusters)
+  source       = "../../modules/azure_rke2"
+  project_name = local.project_name
+  name         = local.rke2_clusters[count.index].name
+  server_count = local.rke2_clusters[count.index].server_count
+  agent_count  = local.rke2_clusters[count.index].agent_count
+  agent_labels = local.rke2_clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true" }]
+  ] : []
+  agent_taints = local.rke2_clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
+  ] : []
+  distro_version = local.rke2_clusters[count.index].distro_version
+  os_image       = local.rke2_clusters[count.index].os_image
+  size           = local.rke2_clusters[count.index].size
+
+  sans                      = [local.rke2_clusters[count.index].local_name]
+  local_kubernetes_api_port = local.first_local_kubernetes_api_port + length(local.k3s_clusters) + count.index
+  local_http_port           = local.first_local_http_port + length(local.k3s_clusters) + count.index
+  local_https_port          = local.first_local_https_port + length(local.k3s_clusters) + count.index
   resource_group_name       = azurerm_resource_group.rg.name
   location                  = azurerm_resource_group.rg.location
   ssh_public_key_path       = var.ssh_public_key_path
