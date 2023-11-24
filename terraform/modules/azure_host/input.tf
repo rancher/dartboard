@@ -41,11 +41,6 @@ variable "is_spot" {
   default     = false
 }
 
-variable "ssh_user" {
-  description = "Azure VM admin user name used for ssh access"
-  default     = "azureuser"
-}
-
 variable "subnet_id" {
   description = "Azure Subnet id to attach the VM NIC"
   type        = string
@@ -60,6 +55,11 @@ variable "public_ip_address_id" {
 variable "host_configuration_commands" {
   description = "Commands to run when the host is deployed"
   default     = ["cat /etc/os-release"]
+}
+
+variable "ssh_user" {
+  description = "Azure VM admin user name used for ssh access"
+  default     = "azureuser"
 }
 
 variable "ssh_public_key_path" {
