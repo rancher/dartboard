@@ -5,7 +5,7 @@ locals {
     name                        = "upstream"
     server_count                = 3
     agent_count                 = 2
-    distro_version              = "v1.24.4+rke2r1"
+    distro_version              = "1.26.3"
     reserve_node_for_monitoring = true
 
     // azure-specific
@@ -25,11 +25,10 @@ locals {
     for i in range(2) :
     {
       name                        = "downstream-${i}"
-      server_count                = 3
-      agent_count                 = 2
+      server_count                = 1
+      agent_count                 = 0
       distro_version              = "v1.26.9+k3s1"
       reserve_node_for_monitoring = false
-
 
       // azure-specific
       local_name = "downstream-${i}.local.gd"
@@ -67,8 +66,6 @@ locals {
   first_local_kubernetes_api_port = 7445
   first_local_http_port           = 9080
   first_local_https_port          = 9443
-
-  // azure-specific
   location = "West Europe"
   tags = {
     Owner = local.project_name

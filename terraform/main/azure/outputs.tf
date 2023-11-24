@@ -21,8 +21,19 @@ locals {
     node_access_commands = module.rke2_cluster[i].node_access_commands
     }
   }
+  aks_outputs = { for i, cluster in local.aks_clusters : cluster.name => {
+    local_name           = cluster.local_name,
+    local_http_port      = module.aks_cluster[i].local_http_port
+    local_https_port     = module.aks_cluster[i].local_https_port
+    private_name         = module.aks_cluster[i].first_server_private_name
+    public_name          = module.aks_cluster[i].first_server_public_name
+    kubeconfig           = module.aks_cluster[i].kubeconfig
+    context              = module.aks_cluster[i].context
+    node_access_commands = module.aks_cluster[i].node_access_commands
+    }
+  }
 }
 
 output "clusters" {
-  value = merge(local.k3s_outputs, local.rke2_outputs)
+  value = merge(local.k3s_outputs, local.rke2_outputs, local.aks_outputs)
 }
