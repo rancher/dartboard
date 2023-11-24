@@ -6,6 +6,7 @@ set -xe
 # can be removed as of v1.27.2+k3s1 and later
 sleep ${sleep_time}
 
+sudo -s <<SUDO
 # use data disk if available (see mount_ephemeral.sh)
 if [ -d /data ]; then
   mkdir -p /data/rancher
@@ -70,3 +71,4 @@ export INSTALL_K3S_VERSION=${distro_version}
 export INSTALL_K3S_EXEC=${exec}
 
 curl -sfL https://get.k3s.io | sh -
+SUDO
