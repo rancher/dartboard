@@ -23,6 +23,7 @@ terraform {
 locals {
   k3s_clusters  = [for cluster in local.clusters : cluster if strcontains(cluster.distro_version, "k3s")]
   rke2_clusters = [for cluster in local.clusters : cluster if strcontains(cluster.distro_version, "rke2")]
+  aks_clusters  = [for cluster in local.clusters : cluster if !strcontains(cluster.distro_version, "v")]
 }
 
 provider "azurerm" {
@@ -121,4 +122,26 @@ module "rke2_cluster" {
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
   subnet_id                 = module.network.private_subnet_id
+}
+
+module "aks_cluster" {
+  // HACK: we need to wait for the module.network to complete before moving on to workaround
+  // terraform issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
+  depends_on                 = [module.network]
+  count                      = length(local.aks_clusters)
+  source                     = "../../modules/azure_aks"
+  project_name               = local.project_name
+  name                       = local.aks_clusters[count.index].name
+  system_node_pool_count     = local.aks_clusters[count.index].server_count
+  main_node_pool_count       = local.aks_clusters[count.index].agent_count
+  secondary_node_pool_count  = local.aks_clusters[count.index].reserve_node_for_monitoring ? 1 : 0
+  secondary_node_pool_labels = local.aks_clusters[count.index].reserve_node_for_monitoring ? { monitoring : "true" } : {}
+  secondary_node_pool_taints = local.aks_clusters[count.index].reserve_node_for_monitoring ? ["monitoring=true:NoSchedule"] : []
+  distro_version             = local.aks_clusters[count.index].distro_version
+  os_image                   = local.aks_clusters[count.index].os_image
+  vm_size                    = local.aks_clusters[count.index].size
+
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  subnet_id           = module.network.private_subnet_id
 }
