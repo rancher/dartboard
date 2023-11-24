@@ -6,8 +6,6 @@ locals {
     server_count   = 1
     agent_count    = 0
     distro_version = "v1.26.9+k3s1"
-    agent_labels   = []
-    agent_taints   = []
 
     // k3d-specific
     local_name = "upstream.local.gd"
@@ -20,8 +18,6 @@ locals {
       server_count   = 1
       agent_count    = 0
       distro_version = "v1.26.9+k3s1"
-      agent_labels   = []
-      agent_taints   = []
 
       // k3d-specific
       local_name = "downstream-${i}.local.gd"
@@ -33,8 +29,6 @@ locals {
     server_count   = 1
     agent_count    = 0
     distro_version = "v1.26.9+k3s1"
-    agent_labels   = []
-    agent_taints   = []
 
     // k3d-specific
     local_name = "tester.local.gd"

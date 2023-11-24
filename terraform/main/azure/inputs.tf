@@ -2,16 +2,11 @@ locals {
   project_name = "st"
 
   upstream_cluster = {
-    name           = "upstream"
-    server_count   = 3
-    agent_count    = 2
-    distro_version = "v1.26.9+k3s1"
-    agent_labels = [
-      [{ key : "monitoring", value : "true" }]
-    ]
-    agent_taints = [
-      [{ key : "monitoring", value : "true", effect : "NoSchedule " }]
-    ]
+    name                        = "upstream"
+    server_count                = 3
+    agent_count                 = 2
+    distro_version              = "v1.26.9+k3s1"
+    reserve_node_for_monitoring = true
 
     local_name = "upstream.local.gd"
     // azure-specific
@@ -27,12 +22,11 @@ locals {
   downstream_clusters = [
     for i in range(2) :
     {
-      name           = "downstream-${i}"
-      server_count   = 3
-      agent_count    = 2
-      distro_version = "v1.26.9+k3s1"
-      agent_labels   = []
-      agent_taints   = []
+      name                        = "downstream-${i}"
+      server_count                = 3
+      agent_count                 = 2
+      distro_version              = "v1.26.9+k3s1"
+      reserve_node_for_monitoring = false
 
       local_name = "downstream-${i}.local.gd"
       # public_ip = false
@@ -49,12 +43,11 @@ locals {
   ]
 
   tester_cluster = {
-    name           = "tester"
-    server_count   = 1
-    agent_count    = 0
-    distro_version = "v1.26.9+k3s1"
-    agent_labels   = []
-    agent_taints   = []
+    name                        = "tester"
+    server_count                = 1
+    agent_count                 = 0
+    distro_version              = "v1.26.9+k3s1"
+    reserve_node_for_monitoring = false
 
     local_name = "upstream.local.gd"
     // azure-specific

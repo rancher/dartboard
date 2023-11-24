@@ -50,14 +50,18 @@ module "cluster" {
   // terraform issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
   depends_on = [module.network]
 
-  count          = length(local.clusters)
-  source         = "../../modules/azure_k3s"
-  project_name   = local.project_name
-  name           = local.clusters[count.index].name
-  server_count   = local.clusters[count.index].server_count
-  agent_count    = local.clusters[count.index].agent_count
-  agent_labels   = local.clusters[count.index].agent_labels
-  agent_taints   = local.clusters[count.index].agent_taints
+  count        = length(local.clusters)
+  source       = "../../modules/azure_k3s"
+  project_name = local.project_name
+  name         = local.clusters[count.index].name
+  server_count = local.clusters[count.index].server_count
+  agent_count  = local.clusters[count.index].agent_count
+  agent_labels = local.clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true" }]
+  ] : []
+  agent_taints = local.clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
+  ] : []
   distro_version = local.clusters[count.index].distro_version
   os_image       = local.clusters[count.index].os_image
   size           = local.clusters[count.index].size
@@ -73,4 +77,3 @@ module "cluster" {
   ssh_bastion_host          = module.network.bastion_public_name
   subnet_id                 = module.network.private_subnet_id
 }
-
