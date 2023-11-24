@@ -36,6 +36,7 @@ variable "ssh_private_key_path" {
 
 variable "ssh_bastion_host" {
   description = "Public name of the SSH bastion host. Leave null for publicly accessible instances"
+  type        = string
   default     = null
 }
 
