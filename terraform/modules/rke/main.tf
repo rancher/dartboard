@@ -39,7 +39,7 @@ resource "local_file" "rke_config" {
     agent_taints         = var.agent_taints
   })
 
-  filename = "${path.module}/../../../config/rke_config/${var.name}.yaml"
+  filename = "${path.root}/config/rke_config/${var.name}.yaml"
 
   provisioner "local-exec" {
     when    = destroy
@@ -59,12 +59,12 @@ resource "null_resource" "rke_up_execution" {
     interpreter = ["bash", "-c"]
     command = templatefile("${path.module}/download_rke.sh", {
       version = split(" ", var.distro_version)[0]
-      target  = "${path.module}/../../../config"
+      target  = "${path.root}/config"
     })
   }
 
   provisioner "local-exec" {
-    command = "${path.module}/../../../config/rke up --config ${path.module}/../../../config/rke_config/${var.name}.yaml"
+    command = "${path.root}/config/rke up --config ${path.root}/config/rke_config/${var.name}.yaml"
   }
 
   triggers = {

@@ -33,7 +33,7 @@ resource "local_file" "kubeconfig" {
     ]
   })
 
-  filename        = "${path.module}/../../../config/${var.name}.yaml"
+  filename        = "${path.root}/config/${var.name}.yaml"
   file_permission = "0700"
 }
 

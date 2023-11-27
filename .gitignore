@@ -5,9 +5,7 @@ terraform/main/*/.terraform
 terraform/main/*/.terraform.lock.hcl
 terraform/main/*/terraform.tfstate
 terraform/main/*/terraform.tfstate.*
-config/*.yaml
-config/*.sh
-config/rke*
+terraform/main/*/config
 
 bin/out.json
 bin/results.csv
