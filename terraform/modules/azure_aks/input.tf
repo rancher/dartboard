@@ -69,18 +69,3 @@ variable "distro_version" {
   description = "Kubernetes version for AKS to use"
   default     = "1.26.3"
 }
-
-variable "local_kubernetes_api_port" {
-  description = "Local port this cluster's Kubernetes API will be published to (via SSH tunnel)"
-  default     = 6445
-}
-
-variable "local_http_port" {
-  description = "Local port this cluster's http endpoints will be published to (via SSH tunnel)"
-  default     = 8080
-}
-
-variable "local_https_port" {
-  description = "Local port this cluster's https endpoints will be published to (via SSH tunnel)"
-  default     = 8443
-}

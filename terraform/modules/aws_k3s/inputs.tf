@@ -82,12 +82,12 @@ variable "local_kubernetes_api_port" {
   default     = 6445
 }
 
-variable "local_http_port" {
+variable "tunnel_app_http_port" {
   description = "Local port this cluster's http endpoints will be published to (via SSH tunnel)"
   default     = 8080
 }
 
-variable "local_https_port" {
+variable "tunnel_app_https_port" {
   description = "Local port this cluster's https endpoints will be published to (via SSH tunnel)"
   default     = 8443
 }

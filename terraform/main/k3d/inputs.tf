@@ -6,9 +6,6 @@ locals {
     server_count   = 1
     agent_count    = 0
     distro_version = "v1.26.9+k3s1"
-
-    // k3d-specific
-    local_name = "upstream.local.gd"
   }
 
   downstream_clusters = [
@@ -18,9 +15,6 @@ locals {
       server_count   = 1
       agent_count    = 0
       distro_version = "v1.26.9+k3s1"
-
-      // k3d-specific
-      local_name = "downstream-${i}.local.gd"
     }
   ]
 
@@ -29,15 +23,12 @@ locals {
     server_count   = 1
     agent_count    = 0
     distro_version = "v1.26.9+k3s1"
-
-    // k3d-specific
-    local_name = "tester.local.gd"
   }
 
   clusters = concat([local.upstream_cluster], local.downstream_clusters, [local.tester_cluster])
 
   // k3d-specific
-  first_local_kubernetes_api_port = 6445
-  first_local_http_port           = 8080
-  first_local_https_port          = 8443
+  first_kubernetes_api_port = 6445
+  first_app_http_port       = 8080
+  first_app_https_port      = 8443
 }

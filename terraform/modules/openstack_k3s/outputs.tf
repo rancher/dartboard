@@ -14,11 +14,11 @@ output "context" {
   value = module.k3s.context
 }
 
-output "local_http_port" {
+output "tunnel_app_http_port" {
   value = 80
 }
 
-output "local_https_port" {
+output "tunnel_app_https_port" {
   value = 443
 }
 
