@@ -14,12 +14,12 @@ output "context" {
   value = module.rke2.context
 }
 
-output "local_http_port" {
-  value = var.local_http_port
+output "tunnel_app_http_port" {
+  value = var.tunnel_app_http_port
 }
 
-output "local_https_port" {
-  value = var.local_https_port
+output "tunnel_app_https_port" {
+  value = var.tunnel_app_https_port
 }
 
 output "node_access_commands" {

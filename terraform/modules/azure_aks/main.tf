@@ -5,6 +5,10 @@ resource "azurerm_kubernetes_cluster" "cluster" {
   kubernetes_version  = var.distro_version
   dns_prefix          = "${var.project_name}-${var.name}"
 
+  web_app_routing {
+    dns_zone_id = ""
+  }
+
   default_node_pool {
     name       = "system"
     node_count = var.system_node_pool_count

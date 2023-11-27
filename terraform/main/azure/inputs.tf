@@ -9,8 +9,7 @@ locals {
     reserve_node_for_monitoring = true
 
     // azure-specific
-    local_name = "upstream.local.gd"
-    size       = "Standard_E2ads_v5"
+    size = "Standard_E2ads_v5"
     os_image = {
       publisher = "suse"
       offer     = "opensuse-leap-15-5"
@@ -31,8 +30,7 @@ locals {
       reserve_node_for_monitoring = false
 
       // azure-specific
-      local_name = "downstream-${i}.local.gd"
-      size       = "Standard_B2as_v2"
+      size = "Standard_B2as_v2"
       os_image = {
         publisher = "suse"
         offer     = "opensuse-leap-15-5"
@@ -50,8 +48,7 @@ locals {
     reserve_node_for_monitoring = false
 
     // azure-specific
-    local_name = "tester.local.gd"
-    size       = "Standard_B2as_v2"
+    size = "Standard_B2as_v2"
     os_image = {
       publisher = "suse"
       offer     = "opensuse-leap-15-5"
@@ -66,7 +63,7 @@ locals {
   first_local_kubernetes_api_port = 7445
   first_local_http_port           = 9080
   first_local_https_port          = 9443
-  location = "West Europe"
+  location                        = "West Europe"
   tags = {
     Owner = local.project_name
   }

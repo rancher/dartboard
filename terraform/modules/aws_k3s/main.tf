@@ -13,8 +13,8 @@ module "server_nodes" {
   ssh_bastion_host      = var.ssh_bastion_host
   ssh_tunnels = count.index == 0 ? [
     [var.local_kubernetes_api_port, 6443],
-    [var.local_http_port, 80],
-    [var.local_https_port, 443],
+    [var.tunnel_app_http_port, 80],
+    [var.tunnel_app_https_port, 443],
   ] : []
   host_configuration_commands = var.host_configuration_commands
 }

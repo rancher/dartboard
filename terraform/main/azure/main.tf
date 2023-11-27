@@ -71,10 +71,10 @@ module "k3s_cluster" {
   ] : []
   distro_version = local.k3s_clusters[count.index].distro_version
 
-  sans                      = [local.k3s_clusters[count.index].local_name]
+  sans                      = ["${local.k3s_clusters[count.index].name}.local.gd"]
   local_kubernetes_api_port = local.first_local_kubernetes_api_port + count.index
-  local_http_port           = local.first_local_http_port + count.index
-  local_https_port          = local.first_local_https_port + count.index
+  tunnel_app_http_port      = local.first_tunnel_app_http_port + count.index
+  tunnel_app_https_port     = local.first_tunnel_app_https_port + count.index
   os_image                  = local.k3s_clusters[count.index].os_image
   size                      = local.k3s_clusters[count.index].size
   is_spot                   = lookup(local.k3s_clusters[count.index], "is_spot", false)
@@ -107,10 +107,10 @@ module "rke2_cluster" {
   ] : []
   distro_version = local.rke2_clusters[count.index].distro_version
 
-  sans                      = [local.rke2_clusters[count.index].local_name]
+  sans                      = ["${local.rke2_clusters[count.index].name}.local.gd"]
   local_kubernetes_api_port = local.first_local_kubernetes_api_port + length(local.k3s_clusters) + count.index
-  local_http_port           = local.first_local_http_port + length(local.k3s_clusters) + count.index
-  local_https_port          = local.first_local_https_port + length(local.k3s_clusters) + count.index
+  tunnel_app_http_port      = local.first_tunnel_app_http_port + length(local.k3s_clusters) + count.index
+  tunnel_app_https_port     = local.first_tunnel_app_https_port + length(local.k3s_clusters) + count.index
   os_image                  = local.rke2_clusters[count.index].os_image
   size                      = local.rke2_clusters[count.index].size
   is_spot                   = lookup(local.rke2_clusters[count.index], "is_spot", false)
