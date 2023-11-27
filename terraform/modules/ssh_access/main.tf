@@ -11,7 +11,7 @@ resource "local_file" "ssh_script" {
       $@
   EOT
 
-  filename = "${path.module}/../../../config/ssh-to-${var.name}.sh"
+  filename = "${path.root}/config/ssh-to-${var.name}.sh"
 }
 
 resource "local_file" "open_tunnels" {
@@ -25,7 +25,7 @@ resource "local_file" "open_tunnels" {
     ssh_private_key_path = var.ssh_private_key_path
   })
 
-  filename = "${path.module}/../../../config/open-tunnels-to-${var.name}.sh"
+  filename = "${path.root}/config/open-tunnels-to-${var.name}.sh"
 }
 
 resource "null_resource" "open_tunnels" {
