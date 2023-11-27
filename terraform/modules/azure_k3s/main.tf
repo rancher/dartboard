@@ -2,6 +2,8 @@ module "server_nodes" {
   count                = var.server_count
   source               = "../azure_host"
   os_image             = var.os_image
+  os_disk_type         = var.os_disk_type
+  os_disk_size         = var.os_disk_size
   location             = var.location
   resource_group_name  = var.resource_group_name
   size                 = var.size
@@ -24,6 +26,8 @@ module "agent_nodes" {
   count                       = var.agent_count
   source                      = "../azure_host"
   os_image                    = var.os_image
+  os_disk_type                = var.os_disk_type
+  os_disk_size                = var.os_disk_size
   location                    = var.location
   resource_group_name         = var.resource_group_name
   size                        = var.size

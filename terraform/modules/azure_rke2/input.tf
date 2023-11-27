@@ -50,6 +50,16 @@ variable "os_image" {
   })
 }
 
+variable "os_disk_type" {
+  description = "Provisioned root disk type: 'Standard_LRS', 'StandardSSD_LRS', 'Premium_LRS', 'StandardSSD_ZRS' and 'Premium_ZRS'"
+  default = "Standard_LRS"
+}
+
+variable "os_disk_size" {
+  description = " The Size of the Internal OS Disk in GB"
+  default = 30
+}
+
 variable "size" {
   description = "Azure VM size"
   default     = "Standard_B2as_v2"
@@ -62,6 +72,7 @@ variable "ssh_user" {
 
 variable "ssh_public_key_path" {
   description = "Path to the (public) SSH key used to access cluster nodes"
+  type        = string
 }
 
 variable "ssh_private_key_path" {
@@ -71,6 +82,7 @@ variable "ssh_private_key_path" {
 
 variable "ssh_bastion_host" {
   description = "Public name of the SSH bastion host. Leave null for publicly accessible nodes."
+  type        = string
   default     = null
 }
 
