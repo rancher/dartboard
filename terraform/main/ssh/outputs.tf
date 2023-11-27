@@ -8,6 +8,7 @@ output "clusters" {
       kubeconfig           = module.cluster[i].kubeconfig
       context              = module.cluster[i].context
       node_access_commands = module.cluster[i].node_access_commands
+      ingress_class_name   = module.cluster[i].ingress_class_name
     }
   }
 }

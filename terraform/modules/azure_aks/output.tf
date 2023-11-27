@@ -25,3 +25,7 @@ output "local_https_port" {
 output "node_access_commands" {
   value = []
 }
+
+output "ingress_class_name" {
+  value = "webapprouting.kubernetes.azure.com"
+}

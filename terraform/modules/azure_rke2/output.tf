@@ -29,3 +29,7 @@ output "node_access_commands" {
     for node in module.agent_nodes : node.name => node.ssh_script_filename
   })
 }
+
+output "ingress_class_name" {
+  value = module.rke2.ingress_class_name
+}

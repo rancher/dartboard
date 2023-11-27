@@ -61,3 +61,7 @@ output "local_http_port" {
 output "local_https_port" {
   value = var.local_https_port
 }
+
+output "ingress_class_name" {
+  value = null
+}
