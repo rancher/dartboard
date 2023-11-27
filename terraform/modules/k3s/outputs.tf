@@ -44,3 +44,7 @@ output "kubeconfig" {
 output "context" {
   value = var.name
 }
+
+output "ingress_class_name" {
+  value = null
+}

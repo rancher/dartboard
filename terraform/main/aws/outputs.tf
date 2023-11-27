@@ -8,6 +8,7 @@ locals {
     kubeconfig           = module.k3s_cluster[i].kubeconfig
     context              = module.k3s_cluster[i].context
     node_access_commands = module.k3s_cluster[i].node_access_commands
+    ingress_class_name   = module.k3s_cluster[i].ingress_class_name
     }
   }
   rke_outputs = { for i, cluster in local.rke_clusters : cluster.name => {
@@ -19,6 +20,7 @@ locals {
     kubeconfig           = module.rke_cluster[i].kubeconfig
     context              = module.rke_cluster[i].context
     node_access_commands = module.rke_cluster[i].node_access_commands
+    ingress_class_name   = module.rke_cluster[i].ingress_class_name
     }
   }
   rke2_outputs = { for i, cluster in local.rke2_clusters : cluster.name => {
@@ -30,6 +32,7 @@ locals {
     kubeconfig           = module.rke2_cluster[i].kubeconfig
     context              = module.rke2_cluster[i].context
     node_access_commands = module.rke2_cluster[i].node_access_commands
+    ingress_class_name   = module.rke2_cluster[i].ingress_class_name
     }
   }
 }

@@ -33,3 +33,7 @@ output "node_access_commands" {
 output "public_dns" {
   value = module.server_nodes[0].public_name
 }
+
+output "ingress_class_name" {
+  value = module.k3s.ingress_class_name
+}
