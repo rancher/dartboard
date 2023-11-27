@@ -41,6 +41,16 @@ variable "is_spot" {
   default     = false
 }
 
+variable "os_disk_type" {
+  description = "Provisioned root disk type: 'Standard_LRS', 'StandardSSD_LRS', 'Premium_LRS', 'StandardSSD_ZRS' and 'Premium_ZRS'"
+  default = "Standard_LRS"
+}
+
+variable "os_disk_size" {
+  description = " The Size of the Internal OS Disk in GB"
+  default = 30
+}
+
 variable "subnet_id" {
   description = "Azure Subnet id to attach the VM NIC"
   type        = string

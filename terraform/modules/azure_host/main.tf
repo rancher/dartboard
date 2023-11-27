@@ -33,7 +33,8 @@ resource "azurerm_linux_virtual_machine" "main" {
   }
 
   os_disk {
-    storage_account_type = "Standard_LRS"
+    storage_account_type = var.os_disk_type
+    disk_size_gb         = var.os_disk_size
     caching              = "ReadWrite"
   }
 }

@@ -17,6 +17,8 @@ locals {
       sku       = "gen2"
       version   = "latest"
     }
+    os_disk_type = "StandardSSD_LRS"
+    os_disk_size = 30
   }
 
   downstream_clusters = [
