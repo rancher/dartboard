@@ -32,7 +32,7 @@ const clusters = runCollectingJSONOutput(`terraform -chdir=${q(terraformDir())} 
 // Step 2: Helm charts
 // tester cluster
 const tester = clusters["tester"]
-helm_install("mimir", dir("charts/mimir"), tester, "tester", {})
+helm_install("mimir", dir("charts/mimir"), tester, "tester", {ingressClassName: tester["ingress_class_name"]})
 helm_install("k6-files", dir("charts/k6-files"), tester, "tester", {})
 helm_install("grafana-dashboards", dir("charts/grafana-dashboards"), tester, "tester", {})
 
@@ -71,7 +71,8 @@ helm_install("grafana", GRAFANA_CHART, tester, "tester", {
     ingress: {
         enabled: true,
         path: "/grafana",
-        hosts: [grafanaName]
+        hosts: [grafanaName],
+        ingressClassName: tester["ingress_class_name"],
     },
     env: {
         "GF_SERVER_ROOT_URL": `${grafanaURL}/grafana`,
