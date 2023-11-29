@@ -10,7 +10,7 @@ locals {
 
     // azure-specific
     local_name = "upstream.local.gd"
-    size       = "Standard_B4as_v2"
+    size       = "Standard_E2ads_v5"
     os_image = {
       publisher = "suse"
       offer     = "opensuse-leap-15-5"
