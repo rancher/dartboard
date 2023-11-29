@@ -17,6 +17,7 @@ resource "azurerm_linux_virtual_machine" "main" {
   location              = var.location
   size                  = var.size
   priority              = var.is_spot ? "Spot" : "Regular"
+  eviction_policy       = var.is_spot ? "Deallocate" : null
   admin_username        = var.ssh_user
   network_interface_ids = [azurerm_network_interface.nic.id]
 

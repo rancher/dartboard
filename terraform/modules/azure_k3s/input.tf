@@ -65,6 +65,11 @@ variable "size" {
   default     = "Standard_B2as_v2"
 }
 
+variable "is_spot" {
+  description = "Wheter the VM should be allocated as a Spot instance (can cost 90% less of regular ones but could be evicted)"
+  default     = false
+}
+
 variable "ssh_user" {
   description = "Azure VM admin user name used for ssh access"
   default     = "azureuser"

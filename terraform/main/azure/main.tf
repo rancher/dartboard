@@ -76,6 +76,7 @@ module "k3s_cluster" {
   local_https_port          = local.first_local_https_port + count.index
   os_image                  = local.k3s_clusters[count.index].os_image
   size                      = local.k3s_clusters[count.index].size
+  is_spot                   = lookup(local.k3s_clusters[count.index], "is_spot", false)
   os_disk_type              = lookup(local.k3s_clusters[count.index], "os_disk_type", "Standard_LRS")
   os_disk_size              = lookup(local.k3s_clusters[count.index], "os_disk_size", 30)
   resource_group_name       = azurerm_resource_group.rg.name
@@ -111,6 +112,7 @@ module "rke2_cluster" {
   local_https_port          = local.first_local_https_port + length(local.k3s_clusters) + count.index
   os_image                  = local.rke2_clusters[count.index].os_image
   size                      = local.rke2_clusters[count.index].size
+  is_spot                   = lookup(local.rke2_clusters[count.index], "is_spot", false)
   os_disk_type              = lookup(local.rke2_clusters[count.index], "os_disk_type", "Standard_LRS")
   os_disk_size              = lookup(local.rke2_clusters[count.index], "os_disk_size", 30)
   resource_group_name       = azurerm_resource_group.rg.name

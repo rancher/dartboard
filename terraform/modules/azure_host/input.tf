@@ -33,11 +33,11 @@ variable "size" {
   default     = "Standard_B2as_v2"
 }
 
-// Spot instances can be Deallocated/Deleted but costs 1/10th
+// Spot instances can be Deallocated/Deleted but can costs 90% less
 // anyway, seems we have a constraint that only 3 cores can be allocated as Spot instances
 // causing provisioning of many nodes to fail
 variable "is_spot" {
-  description = "Wheter the VM should be allocated as a Spot instance (costs 1/10th of regular ones but could be evicted)"
+  description = "Wheter the VM should be allocated as a Spot instance (can cost 90% less of regular ones but could be evicted)"
   default     = false
 }
 

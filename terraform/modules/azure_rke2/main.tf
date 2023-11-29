@@ -7,6 +7,7 @@ module "server_nodes" {
   location             = var.location
   resource_group_name  = var.resource_group_name
   size                 = var.size
+  is_spot              = var.is_spot
   project_name         = var.project_name
   name                 = "${var.name}-server-${count.index}"
   ssh_public_key_path  = var.ssh_public_key_path
@@ -31,6 +32,7 @@ module "agent_nodes" {
   location                    = var.location
   resource_group_name         = var.resource_group_name
   size                        = var.size
+  is_spot                     = var.is_spot
   project_name                = var.project_name
   name                        = "${var.name}-agent-${count.index}"
   ssh_public_key_path         = var.ssh_public_key_path
