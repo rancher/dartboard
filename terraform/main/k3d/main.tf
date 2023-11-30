@@ -26,10 +26,10 @@ module "cluster" {
   agent_count    = local.clusters[count.index].agent_count
   distro_version = local.clusters[count.index].distro_version
 
-  sans                      = [local.clusters[count.index].local_name]
-  local_kubernetes_api_port = local.first_local_kubernetes_api_port + count.index
-  local_http_port           = local.first_local_http_port + count.index
-  local_https_port          = local.first_local_https_port + count.index
-  network_name              = module.network.name
-  registry                  = module.network.registry
+  sans                = ["${local.clusters[count.index].name}.local.gd"]
+  kubernetes_api_port = local.first_kubernetes_api_port + count.index
+  app_http_port       = local.first_app_http_port + count.index
+  app_https_port      = local.first_app_https_port + count.index
+  network_name        = module.network.name
+  registry            = module.network.registry
 }

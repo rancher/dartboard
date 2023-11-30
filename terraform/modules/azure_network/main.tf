@@ -6,6 +6,7 @@ resource "azurerm_virtual_network" "main" {
 }
 
 resource "azurerm_subnet" "public" {
+  depends_on           = [azurerm_virtual_network.main]
   name                 = "${var.project_name}-public-subnet"
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.main.name
@@ -13,6 +14,7 @@ resource "azurerm_subnet" "public" {
 }
 
 resource "azurerm_subnet" "private" {
+  depends_on           = [azurerm_virtual_network.main]
   name                 = "${var.project_name}-private-subnet"
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.main.name

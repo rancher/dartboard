@@ -81,3 +81,46 @@ export function helm_install(name, chart, cluster, namespace, values) {
     const json = Object.entries(values).map(([k,v]) => `${k}=${JSON.stringify(v)}`).join(",")
     run(`helm --kubeconfig=${q(cluster["kubeconfig"])} --kube-context=${q(cluster["context"])} upgrade --install --namespace=${q(namespace)} ${q(name)} ${q(chart)} --create-namespace --set-json=${q(json)}`)
 }
+
+export function getAppAddressesFor(cluster) {
+    const addresses = cluster["app_addresses"]
+    const loadBalancerName = guessAppFQDNFromLoadBalancer(cluster)
+
+    // addresses meant to be resolved from the machine running Terraform
+    // use tunnel if available, otherwise public, otherwise go through the load balancer
+    const localNetworkName = addresses["tunnel"]["name"] || addresses["public"]["name"] || loadBalancerName
+    const localNetworkHTTPPort = addresses["tunnel"]["http_port"] || addresses["public"]["http_port"] || 80
+    const localNetworkHTTPSPort = addresses["tunnel"]["https_port"] || addresses["public"]["https_port"] || 443
+
+    // addresses meant to be resolved from the network running clusters
+    // use public if available, otherwise private if available, otherwise go through the load balancer
+    const clusterNetworkName = addresses["public"]["name"] || addresses["private"]["name"] || loadBalancerName
+    const clusterNetworkHTTPPort = addresses["public"]["http_port"] || addresses["private"]["http_port"] || 80
+    const clusterNetworkHTTPSPort = addresses["public"]["https_port"] || addresses["private"]["https_port"] || 443
+
+    return {
+        localNetwork: {
+            name: localNetworkName,
+            httpURL: `http://${localNetworkName}:${localNetworkHTTPPort}`,
+            httpsURL: `https://${localNetworkName}:${localNetworkHTTPSPort}`,
+        },
+        clusterNetwork: {
+            name: clusterNetworkName,
+            httpURL: `http://${clusterNetworkName}:${clusterNetworkHTTPPort}`,
+            httpsURL: `https://${clusterNetworkName}:${clusterNetworkHTTPSPort}`,
+        },
+    }
+}
+
+export function guessAppFQDNFromLoadBalancer(cluster){
+    const kf = `--kubeconfig=${cluster["kubeconfig"]}`
+    const cf = `--context=${cluster["context"]}`
+
+    return runCollectingJSONOutput(`kubectl get service --all-namespaces --output json ${q(kf)} ${q(cf)}`)
+        .items
+        .filter(x => x["spec"]["type"] === "LoadBalancer")
+        .map(x => x["status"]["loadBalancer"]["ingress"])
+        .flat()
+        .filter(x => x)
+        .map(x => x["ip"] + ".sslip.io" || x["hostname"])[0]
+}

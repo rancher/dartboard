@@ -14,18 +14,22 @@ output "context" {
   value = module.rke2.context
 }
 
-output "local_http_port" {
-  value = var.local_http_port
+output "tunnel_app_http_port" {
+  value = var.tunnel_app_http_port
 }
 
-output "local_https_port" {
-  value = var.local_https_port
+output "tunnel_app_https_port" {
+  value = var.tunnel_app_https_port
 }
 
-output "ssh_scripts" {
+output "node_access_commands" {
   value = merge({
-    for node in module.server_nodes : node.name => { ssh_script : node.ssh_script_filename }
+    for node in module.server_nodes : node.name => node.ssh_script_filename
     }, {
-    for node in module.agent_nodes : node.name => { ssh_script : node.ssh_script_filename }
+    for node in module.agent_nodes : node.name => node.ssh_script_filename
   })
+}
+
+output "ingress_class_name" {
+  value = module.rke2.ingress_class_name
 }

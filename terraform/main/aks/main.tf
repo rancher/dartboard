@@ -138,8 +138,8 @@ module "aks_cluster" {
   secondary_node_pool_taints = ["monitoring=true:NoSchedule"]
   distro_version             = local.aks_clusters[count.index].distro_version
   vm_size                    = local.aks_clusters[count.index].size
-  os_disk_type               = local.aks_clusters[count.index].os_disk_type
-  os_disk_size               = local.aks_clusters[count.index].os_disk_size
+  os_disk_type               = lookup(local.aks_clusters[count.index], "os_disk_type", "Managed")
+  os_disk_size               = lookup(local.aks_clusters[count.index], "os_disk_size", 30)
 
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location

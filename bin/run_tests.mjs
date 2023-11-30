@@ -5,7 +5,9 @@ import {
     terraformDir,
     helm_install,
     q,
-    runCollectingJSONOutput, runCollectingOutput,
+    runCollectingJSONOutput,
+    runCollectingOutput,
+    getAppAddressesFor,
 } from "./lib/common.mjs"
 import {k6_run} from "./lib/k6.mjs"
 
@@ -27,22 +29,26 @@ const commit = runCollectingOutput("git rev-parse --short HEAD").trim()
 const downstreams = Object.entries(clusters).filter(([k,v]) => k.startsWith("downstream"))
 for (const [name, downstream] of downstreams) {
     k6_run(tester,
-        { BASE_URL: `https://${downstream["private_name"]}:6443`, KUBECONFIG: downstream["kubeconfig"], CONTEXT: downstream["context"], CONFIG_MAP_COUNT: CONFIG_MAP_COUNT, SECRET_COUNT: SECRET_COUNT},
+        { BASE_URL: downstream["private_kubernetes_api_url"], KUBECONFIG: downstream["kubeconfig"], CONTEXT: downstream["context"], CONFIG_MAP_COUNT: CONFIG_MAP_COUNT, SECRET_COUNT: SECRET_COUNT},
         {commit: commit, cluster: name, test: "create_load.mjs", ConfigMaps: CONFIG_MAP_COUNT, Secrets: SECRET_COUNT},
         "k6/create_k8s_resources.js", true
     )
 }
 
 const upstream = clusters["upstream"]
+
 // create users and roles
+const upstreamAddresses = getAppAddressesFor(upstream)
+const rancherURL = upstreamAddresses.localNetwork.httpsURL
+const rancherClusterNetworkURL = upstreamAddresses.clusterNetwork.httpsURL
 k6_run(tester,
-    { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, ROLE_COUNT: ROLE_COUNT, USER_COUNT: USER_COUNT },
+    { BASE_URL: rancherClusterNetworkURL, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, ROLE_COUNT: ROLE_COUNT, USER_COUNT: USER_COUNT },
     {commit: commit, cluster: "upstream", test: "create_roles_users.mjs", Roles: ROLE_COUNT, Users: USER_COUNT},
     "k6/create_roles_users.js", true
 )
 // create projects
 k6_run(tester,
-    { BASE_URL: `https://${upstream["private_name"]}:443`, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, PROJECT_COUNT: PROJECT_COUNT },
+    { BASE_URL: rancherClusterNetworkURL, USERNAME: "admin", PASSWORD: ADMIN_PASSWORD, PROJECT_COUNT: PROJECT_COUNT },
     {commit: commit, cluster: "upstream", test: "create_projects.mjs", Projects: PROJECT_COUNT},
     "k6/create_projects.js", true
 )
@@ -52,12 +58,8 @@ console.log("*** ACCESS DETAILS")
 console.log()
 
 console.log(`*** UPSTREAM CLUSTER`)
-if (upstream["public_name"]) {
-    console.log(`    Rancher UI: https://${upstream["public_name"]} (admin/${ADMIN_PASSWORD})`)
-}
-else {
-    console.log(`    Rancher UI: https://${upstream["local_name"]}:${upstream["local_https_port"]} (admin/${ADMIN_PASSWORD})`)
-}
+console.log(`    Rancher UI: ${rancherURL} (admin/${ADMIN_PASSWORD})`)
+
 console.log(`    Kubernetes API:`)
 console.log(`export KUBECONFIG=${q(upstream["kubeconfig"])}`)
 console.log(`kubectl config use-context ${q(upstream["context"])}`)
@@ -78,7 +80,9 @@ for (const [name, downstream] of downstreams) {
 }
 
 console.log(`*** TESTER CLUSTER`)
-console.log(`    Grafana UI: http://${tester["local_name"]}:${tester["local_http_port"]}/grafana/d/a1508c35-b2e6-47f4-94ab-fec400d1c243/test-results?orgId=1&refresh=5s&from=now-30m&to=now (admin/${ADMIN_PASSWORD})`)
+const testerAddresses = getAppAddressesFor(tester)
+const grafanaURL = testerAddresses.localNetwork.httpURL
+console.log(`    Grafana UI: ${grafanaURL}/grafana/d/a1508c35-b2e6-47f4-94ab-fec400d1c243/test-results?orgId=1&refresh=5s&from=now-30m&to=now (admin/${ADMIN_PASSWORD})`)
 for (const [node, command] of Object.entries(tester["node_access_commands"])) {
     console.log(`    Node ${node}: ${q(command)}`)
 }

@@ -10,11 +10,11 @@ output "context" {
   value = module.k3s.context
 }
 
-output "local_http_port" {
+output "tunnel_app_http_port" {
   value = 80
 }
 
-output "local_https_port" {
+output "tunnel_app_https_port" {
   value = 443
 }
 
@@ -24,4 +24,8 @@ output "node_access_commands" {
     }, {
     for node in module.agent_nodes : node.name => node.ssh_script_filename
   })
+}
+
+output "ingress_class_name" {
+  value = module.k3s.ingress_class_name
 }

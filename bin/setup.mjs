@@ -11,12 +11,13 @@ import {
     runCollectingOutput,
     isK3d,
     retryOnError,
+    getAppAddressesFor,
 } from "./lib/common.mjs"
 import {k6_run} from "./lib/k6.mjs";
 import {install_rancher_monitoring} from "./lib/rancher_monitoring.mjs";
 
 // Parameters
-const RANCHER_VERSION = "2.7.6"
+const RANCHER_VERSION = "2.7.9"
 const RANCHER_CHART = `https://releases.rancher.com/server-charts/latest/rancher-${RANCHER_VERSION}.tgz`
 const RANCHER_IMAGE_TAG = `v${RANCHER_VERSION}`
 const CERT_MANAGER_CHART = "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"
@@ -32,11 +33,13 @@ const clusters = runCollectingJSONOutput(`terraform -chdir=${q(terraformDir())} 
 // Step 2: Helm charts
 // tester cluster
 const tester = clusters["tester"]
-helm_install("mimir", dir("charts/mimir"), tester, "tester", {})
+helm_install("mimir", dir("charts/mimir"), tester, "tester", {ingressClassName: tester["ingress_class_name"]})
 helm_install("k6-files", dir("charts/k6-files"), tester, "tester", {})
 helm_install("grafana-dashboards", dir("charts/grafana-dashboards"), tester, "tester", {})
 
-const localTesterName = tester["local_name"]
+const testerAddresses = getAppAddressesFor(tester)
+const grafanaName = testerAddresses.localNetwork.name
+const grafanaURL = testerAddresses.localNetwork.httpURL
 helm_install("grafana", GRAFANA_CHART, tester, "tester", {
     datasources: {
         "datasources.yaml": {
@@ -69,10 +72,11 @@ helm_install("grafana", GRAFANA_CHART, tester, "tester", {
     ingress: {
         enabled: true,
         path: "/grafana",
-        hosts: [localTesterName]
+        hosts: [grafanaName],
+        ingressClassName: tester["ingress_class_name"],
     },
     env: {
-        "GF_SERVER_ROOT_URL": `http://${localTesterName}/grafana`,
+        "GF_SERVER_ROOT_URL": `${grafanaURL}/grafana`,
         "GF_SERVER_SERVE_FROM_SUB_PATH": "true"
     },
     adminPassword: ADMIN_PASSWORD,
@@ -83,16 +87,17 @@ const upstream = clusters["upstream"]
 helm_install("cert-manager", CERT_MANAGER_CHART, upstream, "cert-manager", {installCRDs: true})
 
 const BOOTSTRAP_PASSWORD = "admin"
-const privateUpstreamName = upstream["private_name"]
-const privateRancherUrl = `https://${privateUpstreamName}`
+const upstreamAddresses = getAppAddressesFor(upstream)
+const rancherClusterNetworkName = upstreamAddresses.clusterNetwork.name
+const rancherClusterNetworkURL = upstreamAddresses.clusterNetwork.httpsURL
 helm_install("rancher", RANCHER_CHART, upstream, "cattle-system", {
     bootstrapPassword: BOOTSTRAP_PASSWORD,
-    hostname: privateUpstreamName,
+    hostname: rancherClusterNetworkName,
     replicas: isK3d() ? 1 : 3,
     rancherImageTag: RANCHER_IMAGE_TAG,
     extraEnv: [{
         name: "CATTLE_SERVER_URL",
-        value: privateRancherUrl
+        value: rancherClusterNetworkURL
     },
     {
         name: "CATTLE_PROMETHEUS_METRICS",
@@ -105,13 +110,14 @@ helm_install("rancher", RANCHER_CHART, upstream, "cattle-system", {
     livenessProbe: {
         initialDelaySeconds: 30,
         periodSeconds: 3600
-    }
+    },
 })
 
-const localUpstreamName = upstream["local_name"]
-const publicUpstreamName = upstream["public_name"]
+const rancherName = upstreamAddresses.localNetwork.name
+const rancherURL = upstreamAddresses.localNetwork.httpsURL
 helm_install("rancher-ingress", dir("charts/rancher-ingress"), upstream, "default", {
-    sans: [localUpstreamName, privateUpstreamName, publicUpstreamName].filter(x => x),
+    sans: [rancherName, rancherClusterNetworkName].filter(x => x),
+    ingressClassName: upstream["ingress_class_name"],
 })
 
 const monitoringRestrictions = {
@@ -119,7 +125,8 @@ const monitoringRestrictions = {
     tolerations: [{key: "monitoring", operator: "Exists", effect: "NoSchedule"}],
 }
 
-install_rancher_monitoring(upstream, isK3d() ? {} : monitoringRestrictions, `http://${tester["private_name"]}/mimir/api/v1/push`)
+const mimirClusterNetworkURL = testerAddresses.clusterNetwork.httpURL
+install_rancher_monitoring(upstream, isK3d() ? {} : monitoringRestrictions, `${mimirClusterNetworkURL}/mimir/api/v1/push`)
 
 helm_install("cgroups-exporter", dir("charts/cgroups-exporter"), upstream, "cattle-monitoring-system", {})
 
@@ -129,10 +136,9 @@ run(`kubectl wait deployment/rancher --namespace cattle-system --for condition=A
 
 
 // Step 3: Import downstream clusters
-const localRancherUrl = `https://${localUpstreamName}:${upstream["local_https_port"]}`
 const importedClusters = Object.entries(clusters).filter(([k,v]) => k.startsWith("downstream"))
 const importedClusterNames = importedClusters.map(([name, cluster]) => name).join(",")
-k6_run(tester, { BASE_URL: privateRancherUrl, BOOTSTRAP_PASSWORD: BOOTSTRAP_PASSWORD, PASSWORD: ADMIN_PASSWORD, IMPORTED_CLUSTER_NAMES: importedClusterNames}, {}, "k6/rancher_setup.js")
+k6_run(tester, { BASE_URL: rancherClusterNetworkURL, BOOTSTRAP_PASSWORD: BOOTSTRAP_PASSWORD, PASSWORD: ADMIN_PASSWORD, IMPORTED_CLUSTER_NAMES: importedClusterNames}, {}, "k6/rancher_setup.js")
 
 for (const [name, cluster] of importedClusters) {
     const clusterId = await retryOnError(() =>
@@ -140,7 +146,7 @@ for (const [name, cluster] of importedClusters) {
     )
     const token = runCollectingJSONOutput(`kubectl get -n ${q(clusterId)} clusterregistrationtoken.management.cattle.io default-token -o json ${q(kuf)} ${q(cuf)}`)["status"]["token"]
 
-    const url = `${localRancherUrl}/v3/import/${token}_${clusterId}.yaml`
+    const url = `${rancherURL}/v3/import/${token}_${clusterId}.yaml`
     const yaml = runCollectingOutput(`curl --insecure -fL ${q(url)}`)
     run(`kubectl apply -f - --kubeconfig=${q(cluster["kubeconfig"])} --context=${q(cluster["context"])}`, {input: yaml})
 }
