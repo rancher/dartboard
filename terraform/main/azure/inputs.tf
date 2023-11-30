@@ -5,7 +5,7 @@ locals {
     name                        = "upstream"
     server_count                = 3
     agent_count                 = 2
-    distro_version              = "1.26.3"
+    distro_version              = "1.26.6"
     reserve_node_for_monitoring = true
 
     // azure-specific
