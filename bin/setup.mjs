@@ -10,7 +10,8 @@ import {
     runCollectingJSONOutput,
     runCollectingOutput,
     isK3d,
-    retryOnError, getAppAddressesFor,
+    retryOnError,
+    getAppAddressesFor,
 } from "./lib/common.mjs"
 import {k6_run} from "./lib/k6.mjs";
 import {install_rancher_monitoring} from "./lib/rancher_monitoring.mjs";
