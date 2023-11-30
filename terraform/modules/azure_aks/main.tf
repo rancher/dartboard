@@ -9,11 +9,16 @@ resource "azurerm_kubernetes_cluster" "cluster" {
     dns_zone_id = ""
   }
 
+  network_profile {
+    network_plugin    = "azure"
+    load_balancer_sku = "standard"
+  }
+
   default_node_pool {
-    name       = "system"
-    node_count = var.system_node_pool_count
-    vm_size    = var.vm_size
-    #    vnet_subnet_id = var.subnet_id
+    name           = "system"
+    node_count     = var.system_node_pool_count
+    vm_size        = var.vm_size
+    vnet_subnet_id = var.subnet_id
   }
 
   identity {
@@ -26,7 +31,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "main" {
   name                  = "main"
   node_count            = var.main_node_pool_count
   vm_size               = var.vm_size
-  #  vnet_subnet_id        = var.subnet_id
+  vnet_subnet_id        = var.subnet_id
 }
 
 resource "azurerm_kubernetes_cluster_node_pool" "secondary" {
@@ -36,7 +41,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "secondary" {
   node_count            = var.secondary_node_pool_count
   node_labels           = var.secondary_node_pool_labels
   node_taints           = var.secondary_node_pool_taints
-  #  vnet_subnet_id        = var.subnet_id
+  vnet_subnet_id        = var.subnet_id
 }
 
 resource "local_file" "kubeconfig" {
