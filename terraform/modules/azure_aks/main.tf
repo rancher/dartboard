@@ -15,23 +15,17 @@ resource "azurerm_kubernetes_cluster" "cluster" {
   }
 
   default_node_pool {
-    name           = "system"
-    node_count     = var.system_node_pool_count
-    vm_size        = var.vm_size
-    vnet_subnet_id = var.subnet_id
+    name            = "default"
+    node_count      = var.default_node_pool_count
+    vm_size         = var.vm_size
+    vnet_subnet_id  = var.subnet_id
+    os_disk_type    = var.os_disk_type
+    os_disk_size_gb = var.os_disk_size
   }
 
   identity {
     type = "SystemAssigned"
   }
-}
-
-resource "azurerm_kubernetes_cluster_node_pool" "main" {
-  kubernetes_cluster_id = azurerm_kubernetes_cluster.cluster.id
-  name                  = "main"
-  node_count            = var.main_node_pool_count
-  vm_size               = var.vm_size
-  vnet_subnet_id        = var.subnet_id
 }
 
 resource "azurerm_kubernetes_cluster_node_pool" "secondary" {
@@ -42,6 +36,8 @@ resource "azurerm_kubernetes_cluster_node_pool" "secondary" {
   node_labels           = var.secondary_node_pool_labels
   node_taints           = var.secondary_node_pool_taints
   vnet_subnet_id        = var.subnet_id
+  os_disk_type          = var.os_disk_type
+  os_disk_size_gb       = var.os_disk_size
 }
 
 resource "local_file" "kubeconfig" {

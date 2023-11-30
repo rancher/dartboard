@@ -18,14 +18,9 @@ variable "resource_group_name" {
   type        = string
 }
 
-variable "system_node_pool_count" {
+variable "default_node_pool_count" {
   description = "Number of nodes in the default (system) pool for this cluster"
   default     = 1
-}
-
-variable "main_node_pool_count" {
-  description = "Number of nodes in this cluster's main pool (for workloads)"
-  default     = 0
 }
 
 variable "secondary_node_pool_count" {
@@ -45,19 +40,19 @@ variable "secondary_node_pool_taints" {
   default     = []
 }
 
-variable "os_image" {
-  description = "Azure VM OS image for all nodes in this cluster"
-  type = object({
-    publisher = string
-    offer     = string
-    sku       = string
-    version   = string
-  })
-}
-
 variable "vm_size" {
   description = "Azure VM instance type of all nodes in this cluster"
   default     = "Standard_B2as_v2"
+}
+
+variable "os_disk_type" {
+  description = "Provisioned root disk type: 'Ephemeral' or 'Managed'"
+  default     = "Managed"
+}
+
+variable "os_disk_size" {
+  description = " The Size of the Internal OS Disk in GB"
+  default     = 30
 }
 
 variable "subnet_id" {

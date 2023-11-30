@@ -132,14 +132,14 @@ module "aks_cluster" {
   source                     = "../../modules/azure_aks"
   project_name               = local.project_name
   name                       = local.aks_clusters[count.index].name
-  system_node_pool_count     = local.aks_clusters[count.index].server_count
-  main_node_pool_count       = local.aks_clusters[count.index].agent_count
+  default_node_pool_count    = local.aks_clusters[count.index].agent_count - (local.aks_clusters[count.index].reserve_node_for_monitoring ? 1 : 0)
   secondary_node_pool_count  = local.aks_clusters[count.index].reserve_node_for_monitoring ? 1 : 0
-  secondary_node_pool_labels = local.aks_clusters[count.index].reserve_node_for_monitoring ? { monitoring : "true" } : {}
-  secondary_node_pool_taints = local.aks_clusters[count.index].reserve_node_for_monitoring ? ["monitoring=true:NoSchedule"] : []
+  secondary_node_pool_labels = { monitoring : "true" }
+  secondary_node_pool_taints = ["monitoring=true:NoSchedule"]
   distro_version             = local.aks_clusters[count.index].distro_version
-  os_image                   = local.aks_clusters[count.index].os_image
   vm_size                    = local.aks_clusters[count.index].size
+  os_disk_type               = local.aks_clusters[count.index].os_disk_type
+  os_disk_size               = local.aks_clusters[count.index].os_disk_size
 
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
