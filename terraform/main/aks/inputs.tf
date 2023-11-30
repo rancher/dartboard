@@ -3,20 +3,14 @@ locals {
 
   upstream_cluster = {
     name                        = "upstream"
-    server_count                = 3
-    agent_count                 = 1
-    distro_version              = "v1.24.4+rke2r1"
+    agent_count                 = 4
+    distro_version              = "1.26.6"
     reserve_node_for_monitoring = true
 
     // azure-specific
     size = "Standard_E2ads_v5"
-    os_image = {
-      publisher = "suse"
-      offer     = "opensuse-leap-15-5"
-      sku       = "gen2"
-      version   = "latest"
-    }
-    os_disk_type = "StandardSSD_LRS"
+
+    os_disk_type = "Managed"
     os_disk_size = 30
   }
 
