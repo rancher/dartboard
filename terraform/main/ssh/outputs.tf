@@ -10,7 +10,7 @@ output "clusters" {
       // addresses of applications running in this cluster
       app_addresses = {
         public = { // resolvable over the Internet
-          name       = module.cluster[i].public_dns
+          name       = module.cluster[i].first_server_private_name
           http_port  = 80
           https_port = 443
         }
