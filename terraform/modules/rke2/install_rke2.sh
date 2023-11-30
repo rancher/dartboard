@@ -6,6 +6,12 @@ set -xe
 sleep ${sleep_time}
 
 sudo -s <<SUDO
+# use data disk if available (see mount_ephemeral.sh)
+if [ -d /data ]; then
+  mkdir -p /data/rancher
+  ln -sf /data/rancher /var/lib/rancher
+fi
+
 # https://docs.rke2.io/known_issues/#networkmanager
 if systemctl status NetworkManager; then
   cat >/etc/NetworkManager/conf.d/rke2-canal.conf <<EOF
