@@ -16,7 +16,7 @@ import {k6_run} from "./lib/k6.mjs";
 import {install_rancher_monitoring} from "./lib/rancher_monitoring.mjs";
 
 // Parameters
-const RANCHER_VERSION = "2.7.6"
+const RANCHER_VERSION = "2.7.9"
 const RANCHER_CHART = `https://releases.rancher.com/server-charts/latest/rancher-${RANCHER_VERSION}.tgz`
 const RANCHER_IMAGE_TAG = `v${RANCHER_VERSION}`
 const CERT_MANAGER_CHART = "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"
