@@ -5,3 +5,5 @@
 image:
   name: grafana/mimir
   tag: 2.8.0
+
+ingressClassName: null

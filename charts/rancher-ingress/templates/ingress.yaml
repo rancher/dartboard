@@ -6,6 +6,7 @@ metadata:
    name: rancher-public-name-ingress
    namespace: cattle-system
 spec:
+ ingressClassName: {{ .Values.ingressClassName }}
  rules:
 {{- range .Values.sans }}
    - host: {{ . }}

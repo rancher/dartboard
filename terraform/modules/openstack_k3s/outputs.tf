@@ -14,11 +14,11 @@ output "context" {
   value = module.k3s.context
 }
 
-output "local_http_port" {
+output "tunnel_app_http_port" {
   value = 80
 }
 
-output "local_https_port" {
+output "tunnel_app_https_port" {
   value = 443
 }
 
@@ -32,4 +32,8 @@ output "node_access_commands" {
 
 output "public_dns" {
   value = module.server_nodes[0].public_name
+}
+
+output "ingress_class_name" {
+  value = module.k3s.ingress_class_name
 }

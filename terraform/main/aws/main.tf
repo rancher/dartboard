@@ -55,10 +55,10 @@ module "k3s_cluster" {
   ] : []
   distro_version = local.k3s_clusters[count.index].distro_version
 
-  sans                      = [local.k3s_clusters[count.index].local_name]
+  sans                      = ["${local.k3s_clusters[count.index].name}.local.gd"]
   local_kubernetes_api_port = local.first_local_kubernetes_api_port + count.index
-  local_http_port           = local.first_local_http_port + count.index
-  local_https_port          = local.first_local_https_port + count.index
+  tunnel_app_http_port      = local.first_tunnel_app_http_port + count.index
+  tunnel_app_https_port     = local.first_tunnel_app_https_port + count.index
   ami                       = local.k3s_clusters[count.index].ami
   instance_type             = local.k3s_clusters[count.index].instance_type
   availability_zone         = local.availability_zone
@@ -84,10 +84,10 @@ module "rke_cluster" {
   ] : []
   distro_version = local.rke_clusters[count.index].distro_version
 
-  sans                      = [local.rke_clusters[count.index].local_name]
+  sans                      = ["${local.rke_clusters[count.index].name}.local.gd"]
   local_kubernetes_api_port = local.first_local_kubernetes_api_port + length(local.k3s_clusters) + count.index
-  local_http_port           = local.first_local_http_port + length(local.k3s_clusters) + count.index
-  local_https_port          = local.first_local_https_port + length(local.k3s_clusters) + count.index
+  tunnel_app_http_port      = local.first_tunnel_app_http_port + length(local.k3s_clusters) + count.index
+  tunnel_app_https_port     = local.first_tunnel_app_https_port + length(local.k3s_clusters) + count.index
   ami                       = local.rke_clusters[count.index].ami
   instance_type             = local.rke_clusters[count.index].instance_type
   availability_zone         = local.availability_zone
@@ -113,10 +113,10 @@ module "rke2_cluster" {
   ] : []
   distro_version = local.rke2_clusters[count.index].distro_version
 
-  sans                      = [local.rke2_clusters[count.index].local_name]
+  sans                      = ["${local.rke2_clusters[count.index].name}.local.gd"]
   local_kubernetes_api_port = local.first_local_kubernetes_api_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
-  local_http_port           = local.first_local_http_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
-  local_https_port          = local.first_local_https_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
+  tunnel_app_http_port      = local.first_tunnel_app_http_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
+  tunnel_app_https_port     = local.first_tunnel_app_https_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
   ami                       = local.rke2_clusters[count.index].ami
   instance_type             = local.rke2_clusters[count.index].instance_type
   availability_zone         = local.availability_zone

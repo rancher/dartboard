@@ -9,7 +9,6 @@ locals {
     reserve_node_for_monitoring = true
 
     // aws-specific
-    local_name    = "upstream.local.gd"
     public_ip     = true
     instance_type = "i3.large"
     ami           = "ami-009fd8a4732ea789b" // openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
@@ -25,7 +24,6 @@ locals {
       reserve_node_for_monitoring = false
 
       // aws-specific
-      local_name    = "downstream-${i}.local.gd"
       public_ip     = false
       instance_type = "t4g.large"
       ami           = "ami-0e55a8b472a265e3f" // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
@@ -40,7 +38,6 @@ locals {
     reserve_node_for_monitoring = false
 
     // aws-specific
-    local_name    = "tester.local.gd"
     public_ip     = false
     instance_type = "t3a.large"
     ami           = "ami-009fd8a4732ea789b" // openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
@@ -50,8 +47,8 @@ locals {
 
   // aws-specific
   first_local_kubernetes_api_port = 7445
-  first_local_http_port           = 9080
-  first_local_https_port          = 9443
+  first_tunnel_app_http_port      = 9080
+  first_tunnel_app_https_port     = 9443
   region                          = "us-east-1"
   availability_zone               = "us-east-1a"
 }
