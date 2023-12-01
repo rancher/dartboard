@@ -128,8 +128,6 @@ const monitoringRestrictions = {
 const mimirClusterNetworkURL = testerAddresses.clusterNetwork.httpURL
 install_rancher_monitoring(upstream, isK3d() ? {} : monitoringRestrictions, `${mimirClusterNetworkURL}/mimir/api/v1/push`)
 
-helm_install("cgroups-exporter", dir("charts/cgroups-exporter"), upstream, "cattle-monitoring-system", {})
-
 const kuf = `--kubeconfig=${upstream["kubeconfig"]}`
 const cuf = `--context=${upstream["context"]}`
 run(`kubectl wait deployment/rancher --namespace cattle-system --for condition=Available=true --timeout=1h ${q(kuf)} ${q(cuf)}`)

@@ -27,43 +27,6 @@ export function install_rancher_monitoring(cluster, monitoringRestrictions, mimi
                 retentionSize: "50GiB",
                 scrapeInterval: "1m",
 
-                // configure scraping from cgroups-exporter
-                additionalScrapeConfigs: [
-                    {
-                        job_name: "node-cgroups-exporter",
-                        honor_labels: false,
-                        kubernetes_sd_configs: [{
-                                "role": "node"
-                        }],
-                        scheme: "http",
-                        relabel_configs: [
-                            {
-                                action: "labelmap",
-                                regex: "__meta_kubernetes_node_label_(.+)",
-                            },
-                            {
-                                source_labels: ["__address__"],
-                                action: "replace",
-                                target_label: "__address__",
-                                regex: "([^:;]+):(\\d+)",
-                                replacement: "${1}:9753"
-                            },
-                            {
-                                source_labels: ["__meta_kubernetes_node_name"],
-                                action: "keep",
-                                regex: ".*"
-                            },
-                            {
-                                source_labels: ["__meta_kubernetes_node_name"],
-                                action: "replace",
-                                target_label: "node",
-                                regex: "(.*)",
-                                replacement: "${1}"
-                            }
-                        ]
-                    }
-                ],
-
                 // configure writing metrics to mimir
                 remoteWrite: mimirUrl != null ? [{
                     url: mimirUrl,
@@ -71,7 +34,7 @@ export function install_rancher_monitoring(cluster, monitoringRestrictions, mimi
                         // drop all metrics except for the ones matching regex
                         {
                             sourceLabels: ['__name__'],
-                            regex: "(node_namespace_pod_container|node_cpu|node_load|node_memory|node_network_receive_bytes_total|container_network_receive_bytes_total|cgroups_).*",
+                            regex: "(node_namespace_pod_container|node_cpu|node_load|node_memory|node_network_receive_bytes_total|container_network_receive_bytes_total).*",
                             action: "keep",
                         }
                     ]
