@@ -13,9 +13,9 @@ import {k6_run} from "./lib/k6.mjs"
 
 
 // Parameters
-const ROLE_COUNT = 10
-const USER_COUNT = 5
-const PROJECT_COUNT = 20
+const ROLE_COUNT = 20
+const USER_COUNT = 50
+const PROJECT_COUNT = 50
 
 // Refresh k6 files on the tester cluster
 const clusters = runCollectingJSONOutput(`terraform -chdir=${terraformDir()} output -json`)["clusters"]["value"]
