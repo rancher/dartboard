@@ -45,14 +45,14 @@ variable "vm_size" {
   default     = "Standard_B2as_v2"
 }
 
-variable "os_disk_type" {
-  description = "Provisioned root disk type: 'Ephemeral' or 'Managed'"
-  default     = "Managed"
-}
-
 variable "os_disk_size" {
   description = " The Size of the Internal OS Disk in GB"
   default     = 30
+}
+
+variable "os_ephemeral_disk" {
+  description = "Whether to use ephemeral disk for the OS"
+  default     = false
 }
 
 variable "subnet_id" {
