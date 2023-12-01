@@ -44,6 +44,8 @@ k6_run(tester,
     "k6/create_projects.js", true
 )
 
+const testerAddresses = getAppAddressesFor(tester)
+
 // Output access details
 console.log("*** ACCESS DETAILS")
 console.log()
@@ -71,7 +73,6 @@ for (const [name, downstream] of downstreams) {
 }
 
 console.log(`*** TESTER CLUSTER`)
-const testerAddresses = getAppAddressesFor(tester)
 const grafanaURL = testerAddresses.localNetwork.httpURL
 console.log(`    Grafana UI: ${grafanaURL}/grafana/d/a1508c35-b2e6-47f4-94ab-fec400d1c243/test-results?orgId=1&refresh=5s&from=now-30m&to=now (admin/${ADMIN_PASSWORD})`)
 for (const [node, command] of Object.entries(tester["node_access_commands"])) {
