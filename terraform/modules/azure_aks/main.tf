@@ -4,6 +4,7 @@ resource "azurerm_kubernetes_cluster" "cluster" {
   resource_group_name = var.resource_group_name
   kubernetes_version  = var.distro_version
   dns_prefix          = "${var.project_name}-${var.name}"
+  sku_tier            = "Standard"
 
   web_app_routing {
     dns_zone_id = ""
