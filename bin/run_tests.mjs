@@ -75,6 +75,9 @@ for (const [name, downstream] of downstreams) {
 console.log(`*** TESTER CLUSTER`)
 const grafanaURL = testerAddresses.localNetwork.httpURL
 console.log(`    Grafana UI: ${grafanaURL}/grafana/d/a1508c35-b2e6-47f4-94ab-fec400d1c243/test-results?orgId=1&refresh=5s&from=now-30m&to=now (admin/${ADMIN_PASSWORD})`)
+console.log(`    Kubernetes API:`)
+console.log(`export KUBECONFIG=${q(tester["kubeconfig"])}`)
+console.log(`kubectl config use-context ${q(tester["context"])}`)
 for (const [node, command] of Object.entries(tester["node_access_commands"])) {
     console.log(`    Node ${node}: ${q(command)}`)
 }
