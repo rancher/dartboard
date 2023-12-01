@@ -81,4 +81,7 @@ console.log(`kubectl config use-context ${q(tester["context"])}`)
 for (const [node, command] of Object.entries(tester["node_access_commands"])) {
     console.log(`    Node ${node}: ${q(command)}`)
 }
+console.log(`    Interactive k6 benchmark run:`)
+console.log(`kubectl run -it --rm k6-manual-run --image=grafana/k6:latest --command sh`)
+console.log(`k6 run -e BASE_URL=${rancherClusterNetworkURL} -e USERNAME=admin -e PASSWORD=adminadminadmin ./steve_paginated_api_benchmark.js`)
 console.log()
