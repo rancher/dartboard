@@ -51,6 +51,11 @@ variable "os_disk_size" {
   default     = 30
 }
 
+variable "os_ephemeral_disk" {
+  description = "Whether to use ephemeral disk for the OS"
+  default     = false
+}
+
 variable "subnet_id" {
   description = "Azure Subnet id to attach the VM NIC"
   type        = string

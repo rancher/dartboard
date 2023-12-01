@@ -80,6 +80,7 @@ module "k3s_cluster" {
   is_spot                   = lookup(local.k3s_clusters[count.index], "is_spot", false)
   os_disk_type              = lookup(local.k3s_clusters[count.index], "os_disk_type", "Standard_LRS")
   os_disk_size              = lookup(local.k3s_clusters[count.index], "os_disk_size", 30)
+  os_ephemeral_disk         = lookup(local.k3s_clusters[count.index], "os_ephemeral_disk", false)
   resource_group_name       = azurerm_resource_group.rg.name
   location                  = azurerm_resource_group.rg.location
   ssh_public_key_path       = var.ssh_public_key_path
@@ -116,6 +117,7 @@ module "rke2_cluster" {
   is_spot                   = lookup(local.rke2_clusters[count.index], "is_spot", false)
   os_disk_type              = lookup(local.rke2_clusters[count.index], "os_disk_type", "Standard_LRS")
   os_disk_size              = lookup(local.rke2_clusters[count.index], "os_disk_size", 30)
+  os_ephemeral_disk         = lookup(local.rke2_clusters[count.index], "os_ephemeral_disk", false)
   resource_group_name       = azurerm_resource_group.rg.name
   location                  = azurerm_resource_group.rg.location
   ssh_public_key_path       = var.ssh_public_key_path
@@ -138,8 +140,8 @@ module "aks_cluster" {
   secondary_node_pool_taints = ["monitoring=true:NoSchedule"]
   distro_version             = local.aks_clusters[count.index].distro_version
   vm_size                    = local.aks_clusters[count.index].size
-  os_disk_type               = local.aks_clusters[count.index].os_disk_type
-  os_disk_size               = local.aks_clusters[count.index].os_disk_size
+  os_disk_size               = lookup(local.aks_clusters[count.index], "os_disk_size", 30)
+  os_ephemeral_disk          = lookup(local.aks_clusters[count.index], "os_ephemeral_disk", false)
 
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location

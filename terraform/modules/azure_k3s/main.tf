@@ -4,6 +4,7 @@ module "server_nodes" {
   os_image             = var.os_image
   os_disk_type         = var.os_disk_type
   os_disk_size         = var.os_disk_size
+  os_ephemeral_disk    = var.os_ephemeral_disk
   location             = var.location
   resource_group_name  = var.resource_group_name
   size                 = var.size
@@ -29,6 +30,7 @@ module "agent_nodes" {
   os_image                    = var.os_image
   os_disk_type                = var.os_disk_type
   os_disk_size                = var.os_disk_size
+  os_ephemeral_disk           = var.os_ephemeral_disk
   location                    = var.location
   resource_group_name         = var.resource_group_name
   size                        = var.size
