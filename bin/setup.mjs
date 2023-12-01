@@ -154,7 +154,3 @@ run(`kubectl wait clusters.management.cattle.io --all --for condition=ready=true
 if (importedClusters.length > 0) {
     run(`kubectl wait cluster.fleet.cattle.io --all --namespace fleet-default --for condition=ready=true --timeout=1h ${q(kuf)} ${q(cuf)}`)
 }
-
-for (const [_, cluster] of importedClusters) {
-    install_rancher_monitoring(cluster, {})
-}
