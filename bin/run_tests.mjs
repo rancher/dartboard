@@ -13,8 +13,6 @@ import {k6_run} from "./lib/k6.mjs"
 
 
 // Parameters
-const CONFIG_MAP_COUNT = 1000
-const SECRET_COUNT = 1000
 const ROLE_COUNT = 10
 const USER_COUNT = 5
 const PROJECT_COUNT = 20
@@ -27,13 +25,6 @@ helm_install("k6-files", dir("charts/k6-files"), tester, "tester", {})
 // Create config maps
 const commit = runCollectingOutput("git rev-parse --short HEAD").trim()
 const downstreams = Object.entries(clusters).filter(([k,v]) => k.startsWith("downstream"))
-for (const [name, downstream] of downstreams) {
-    k6_run(tester,
-        { BASE_URL: downstream["private_kubernetes_api_url"], KUBECONFIG: downstream["kubeconfig"], CONTEXT: downstream["context"], CONFIG_MAP_COUNT: CONFIG_MAP_COUNT, SECRET_COUNT: SECRET_COUNT},
-        {commit: commit, cluster: name, test: "create_load.mjs", ConfigMaps: CONFIG_MAP_COUNT, Secrets: SECRET_COUNT},
-        "k6/create_k8s_resources.js", true
-    )
-}
 
 const upstream = clusters["upstream"]
 
