@@ -9,7 +9,7 @@ const roleCount = Number(__ENV.ROLE_COUNT)
 const userCount = Number(__ENV.USER_COUNT)
 const vus = Math.min(10, userCount, roleCount)
 const resourcesPerRole = 5
-const bindingsPerUser = 5
+const bindingsPerUser = 1
 
 // Option setting
 const baseUrl = __ENV.BASE_URL
@@ -136,10 +136,7 @@ export function createRoles(cookies) {
 }
 
 const bindings = [
-    "user", "restricted-admin", "user-base", "authn-manage", "kontainerdrivers-manage",
-    "clustertemplaterevisions-create", "catalogs-use", "features-manage", "clusters-create", "catalogs-manage",
-    "settings-manage", "view-rancher-metrics", "nodedrivers-manage", "clustertemplates-create",
-    "podsecuritypolicytemplates-manage", "users-manage"
+    "restricted-admin",
 ]
 
 export function createUsers(cookies) {
