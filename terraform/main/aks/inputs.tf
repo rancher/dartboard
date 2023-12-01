@@ -8,10 +8,9 @@ locals {
     reserve_node_for_monitoring = true
 
     // azure-specific
-    size = "Standard_E2ads_v5"
+    size = "Standard_D8ds_v4"
 
-    os_disk_type = "Managed"
-    os_disk_size = 30
+    os_ephemeral_disk = true
   }
 
   downstream_clusters = [
@@ -24,13 +23,14 @@ locals {
       reserve_node_for_monitoring = false
 
       // azure-specific
-      size = "Standard_B2as_v2"
+      size = "Standard_B1ms"
       os_image = {
         publisher = "suse"
         offer     = "opensuse-leap-15-5"
         sku       = "gen2"
         version   = "latest"
       }
+      os_ephemeral_disk = false
     }
   ]
 
@@ -49,6 +49,7 @@ locals {
       sku       = "gen2"
       version   = "latest"
     }
+    os_ephemeral_disk = false
   }
 
   clusters = concat([local.upstream_cluster], local.downstream_clusters, [local.tester_cluster])

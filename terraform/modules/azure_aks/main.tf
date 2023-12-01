@@ -19,7 +19,7 @@ resource "azurerm_kubernetes_cluster" "cluster" {
     node_count      = var.default_node_pool_count
     vm_size         = var.vm_size
     vnet_subnet_id  = var.subnet_id
-    os_disk_type    = var.os_disk_type
+    os_disk_type    = var.os_ephemeral_disk ? "Ephemeral" : "Managed"
     os_disk_size_gb = var.os_disk_size
   }
 
@@ -36,7 +36,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "secondary" {
   node_labels           = var.secondary_node_pool_labels
   node_taints           = var.secondary_node_pool_taints
   vnet_subnet_id        = var.subnet_id
-  os_disk_type          = var.os_disk_type
+  os_disk_type          = var.os_ephemeral_disk ? "Ephemeral" : "Managed"
   os_disk_size_gb       = var.os_disk_size
 }
 

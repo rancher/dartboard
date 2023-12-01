@@ -60,6 +60,11 @@ variable "os_disk_size" {
   default     = 30
 }
 
+variable "os_ephemeral_disk" {
+  description = "Whether to use ephemeral disk for the OS"
+  default     = false
+}
+
 variable "size" {
   description = "Azure VM size"
   default     = "Standard_B2as_v2"
