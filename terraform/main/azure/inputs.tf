@@ -62,9 +62,9 @@ locals {
   clusters = concat([local.upstream_cluster], local.downstream_clusters, [local.tester_cluster])
 
   // azure-specific
-  first_local_kubernetes_api_port = 8445
-  first_tunnel_app_http_port      = 10080
-  first_tunnel_app_https_port     = 10443
+  first_local_kubernetes_api_port = 9445
+  first_tunnel_app_http_port      = 11080
+  first_tunnel_app_https_port     = 11443
   location                        = "Central India"
   tags = {
     Owner = local.project_name
