@@ -36,4 +36,4 @@ keys/*
 scripts/utils/*.txt
 
 # Misc Exceptions
-!test/utils/rancher-monitoring/files/configmaps/*.yaml
+!test/utils/rancher_monitoring/files/configmaps/*.yaml
