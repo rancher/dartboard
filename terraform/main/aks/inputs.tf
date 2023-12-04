@@ -58,7 +58,7 @@ locals {
   first_local_kubernetes_api_port = 8445
   first_tunnel_app_http_port      = 10080
   first_tunnel_app_https_port     = 10443
-  location                        = "West Europe"
+  location                        = "East US"
   tags = {
     Owner = local.project_name
   }
