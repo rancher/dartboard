@@ -45,6 +45,12 @@ In case Terraform returns an error with little context about what happened, use 
 export TF_LOG=debug
 ```
 
+### Forcibly stopping all SSH tunnels
+
+```shell
+pkill -f 'ssh .*-o IgnoreUnknown=TerraformCreatedThisTunnel.*'
+```
+
 ## Tips
 
 ### Use k3d targeting a remote machine running the Docker daemon
