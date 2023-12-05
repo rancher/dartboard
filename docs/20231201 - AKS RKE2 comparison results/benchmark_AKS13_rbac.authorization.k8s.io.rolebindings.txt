@@ -1,0 +1,118 @@
+
+          /\      |‾‾| /‾‾/   /‾‾/   
+     /\  /  \     |  |/  /   /  /    
+    /  \/    \    |     (   /   ‾‾\  
+   /          \   |  |\  \ |  (‾)  | 
+  / __________ \  |__| \__\ \_____/ .io
+
+  execution: local
+     script: ./steve_paginated_api_benchmark.js
+     output: -
+
+  scenarios: (100.00%) 1 scenario, 1 max VUs, 24h0m30s max duration (incl. graceful stop):
+           * list: 30 iterations for each of 1 VUs (maxDuration: 24h0m0s, exec: list, gracefulStop: 30s)
+
+
+running (0d00h00m01.0s), 1/1 VUs, 1 complete and 0 interrupted iterations
+list   [   3% ] 1 VUs  0d00h00m00.9s/24h0m0s  01/30 iters, 30 per VU
+
+running (0d00h00m02.0s), 1/1 VUs, 2 complete and 0 interrupted iterations
+list   [   7% ] 1 VUs  0d00h00m01.9s/24h0m0s  02/30 iters, 30 per VU
+
+running (0d00h00m03.0s), 1/1 VUs, 3 complete and 0 interrupted iterations
+list   [  10% ] 1 VUs  0d00h00m02.9s/24h0m0s  03/30 iters, 30 per VU
+
+running (0d00h00m04.0s), 1/1 VUs, 4 complete and 0 interrupted iterations
+list   [  13% ] 1 VUs  0d00h00m03.9s/24h0m0s  04/30 iters, 30 per VU
+
+running (0d00h00m05.0s), 1/1 VUs, 6 complete and 0 interrupted iterations
+list   [  20% ] 1 VUs  0d00h00m04.9s/24h0m0s  06/30 iters, 30 per VU
+
+running (0d00h00m06.0s), 1/1 VUs, 7 complete and 0 interrupted iterations
+list   [  23% ] 1 VUs  0d00h00m05.9s/24h0m0s  07/30 iters, 30 per VU
+
+running (0d00h00m07.0s), 1/1 VUs, 8 complete and 0 interrupted iterations
+list   [  27% ] 1 VUs  0d00h00m06.9s/24h0m0s  08/30 iters, 30 per VU
+
+running (0d00h00m08.0s), 1/1 VUs, 9 complete and 0 interrupted iterations
+list   [  30% ] 1 VUs  0d00h00m07.9s/24h0m0s  09/30 iters, 30 per VU
+
+running (0d00h00m09.0s), 1/1 VUs, 10 complete and 0 interrupted iterations
+list   [  33% ] 1 VUs  0d00h00m08.9s/24h0m0s  10/30 iters, 30 per VU
+
+running (0d00h00m10.0s), 1/1 VUs, 12 complete and 0 interrupted iterations
+list   [  40% ] 1 VUs  0d00h00m09.9s/24h0m0s  12/30 iters, 30 per VU
+
+running (0d00h00m11.0s), 1/1 VUs, 13 complete and 0 interrupted iterations
+list   [  43% ] 1 VUs  0d00h00m10.9s/24h0m0s  13/30 iters, 30 per VU
+
+running (0d00h00m12.0s), 1/1 VUs, 14 complete and 0 interrupted iterations
+list   [  47% ] 1 VUs  0d00h00m11.9s/24h0m0s  14/30 iters, 30 per VU
+
+running (0d00h00m13.0s), 1/1 VUs, 15 complete and 0 interrupted iterations
+list   [  50% ] 1 VUs  0d00h00m12.9s/24h0m0s  15/30 iters, 30 per VU
+
+running (0d00h00m14.0s), 1/1 VUs, 17 complete and 0 interrupted iterations
+list   [  57% ] 1 VUs  0d00h00m13.9s/24h0m0s  17/30 iters, 30 per VU
+
+running (0d00h00m15.0s), 1/1 VUs, 18 complete and 0 interrupted iterations
+list   [  60% ] 1 VUs  0d00h00m14.9s/24h0m0s  18/30 iters, 30 per VU
+
+running (0d00h00m16.0s), 1/1 VUs, 19 complete and 0 interrupted iterations
+list   [  63% ] 1 VUs  0d00h00m15.9s/24h0m0s  19/30 iters, 30 per VU
+
+running (0d00h00m17.0s), 1/1 VUs, 20 complete and 0 interrupted iterations
+list   [  67% ] 1 VUs  0d00h00m16.9s/24h0m0s  20/30 iters, 30 per VU
+
+running (0d00h00m18.0s), 1/1 VUs, 21 complete and 0 interrupted iterations
+list   [  70% ] 1 VUs  0d00h00m17.9s/24h0m0s  21/30 iters, 30 per VU
+
+running (0d00h00m19.0s), 1/1 VUs, 23 complete and 0 interrupted iterations
+list   [  77% ] 1 VUs  0d00h00m18.9s/24h0m0s  23/30 iters, 30 per VU
+
+running (0d00h00m20.0s), 1/1 VUs, 24 complete and 0 interrupted iterations
+list   [  80% ] 1 VUs  0d00h00m19.9s/24h0m0s  24/30 iters, 30 per VU
+
+running (0d00h00m21.0s), 1/1 VUs, 25 complete and 0 interrupted iterations
+list   [  83% ] 1 VUs  0d00h00m20.9s/24h0m0s  25/30 iters, 30 per VU
+
+running (0d00h00m22.0s), 1/1 VUs, 26 complete and 0 interrupted iterations
+list   [  87% ] 1 VUs  0d00h00m21.9s/24h0m0s  26/30 iters, 30 per VU
+
+running (0d00h00m23.0s), 1/1 VUs, 28 complete and 0 interrupted iterations
+list   [  93% ] 1 VUs  0d00h00m22.9s/24h0m0s  28/30 iters, 30 per VU
+
+running (0d00h00m23.2s), 1/1 VUs, 28 complete and 0 interrupted iterations
+list   [  93% ] 1 VUs  0d00h00m23.1s/24h0m0s  28/30 iters, 30 per VU
+
+running (0d00h00m24.0s), 1/1 VUs, 29 complete and 0 interrupted iterations
+list   [  97% ] 1 VUs  0d00h00m23.9s/24h0m0s  29/30 iters, 30 per VU
+
+     ✓ listing rbac.authorization.k8s.io.rolebindings from cluster local (k8s style pagination) succeeds
+     ✓ no slow pagination errors (410 Gone) detected
+
+     █ setup
+
+       ✓ logging in returns status 200
+
+   ✓ checks.........................: 100.00% ✓ 841       ✗ 0  
+     data_received..................: 111 MB  4.5 MB/s
+     data_sent......................: 336 kB  14 kB/s
+     http_req_blocked...............: avg=21.68µs  min=230ns   med=270ns   max=5.32ms   p(90)=341ns    p(95)=351ns  
+     http_req_connecting............: avg=5.7µs    min=0s      med=0s      max=1.43ms   p(90)=0s       p(95)=0s     
+     http_req_duration..............: avg=48.02ms  min=20.1ms  med=46.74ms max=170.66ms p(90)=62.65ms  p(95)=67.93ms
+       { expected_response:true }...: avg=48.02ms  min=20.1ms  med=46.74ms max=170.66ms p(90)=62.65ms  p(95)=67.93ms
+     http_req_failed................: 0.00%   ✓ 0         ✗ 421
+     http_req_receiving.............: avg=1.49ms   min=62.48µs med=1.44ms  max=6.25ms   p(90)=2.12ms   p(95)=2.27ms 
+     http_req_sending...............: avg=530.67µs min=34.09µs med=47.62µs max=6.42ms   p(90)=2.69ms   p(95)=3.83ms 
+     http_req_tls_handshaking.......: avg=13.26µs  min=0s      med=0s      max=2.98ms   p(90)=0s       p(95)=0s     
+     http_req_waiting...............: avg=45.99ms  min=19ms    med=44.86ms max=169.8ms  p(90)=59.8ms   p(95)=64.81ms
+     http_reqs......................: 421     17.151156/s
+     iteration_duration.............: avg=791.78ms min=80.5ms  med=812.6ms max=930.66ms p(90)=854.67ms p(95)=874.9ms
+     iterations.....................: 30      1.222173/s
+     vus............................: 1       min=1       max=1
+     vus_max........................: 1       min=1       max=1
+
+
+running (0d00h00m24.5s), 0/1 VUs, 30 complete and 0 interrupted iterations
+list ✓ [ 100% ] 1 VUs  0d00h00m24.5s/24h0m0s  30/30 iters, 30 per VU

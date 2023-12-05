@@ -1,0 +1,41 @@
+
+          /\      |‾‾| /‾‾/   /‾‾/   
+     /\  /  \     |  |/  /   /  /    
+    /  \/    \    |     (   /   ‾‾\  
+   /          \   |  |\  \ |  (‾)  | 
+  / __________ \  |__| \__\ \_____/ .io
+
+  execution: local
+     script: ./steve_paginated_api_benchmark.js
+     output: -
+
+  scenarios: (100.00%) 1 scenario, 1 max VUs, 24h0m30s max duration (incl. graceful stop):
+           * list: 30 iterations for each of 1 VUs (maxDuration: 24h0m0s, exec: list, gracefulStop: 30s)
+
+
+     ✓ listing management.cattle.io.clusters from cluster local (k8s style pagination) succeeds
+     ✓ no slow pagination errors (410 Gone) detected
+
+     █ setup
+
+       ✓ logging in returns status 200
+
+   ✓ checks.........................: 100.00% ✓ 61        ✗ 0 
+     data_received..................: 1.1 MB  1.7 MB/s
+     data_sent......................: 7.6 kB  12 kB/s
+     http_req_blocked...............: avg=358.65µs min=230ns   med=271ns    max=7.07ms   p(90)=351ns    p(95)=2.01ms  
+     http_req_connecting............: avg=67.9µs   min=0s      med=0s       max=1.38ms   p(90)=0s       p(95)=362.2µs 
+     http_req_duration..............: avg=19ms     min=12.66ms med=17.59ms  max=77.26ms  p(90)=19.9ms   p(95)=24.01ms 
+       { expected_response:true }...: avg=19ms     min=12.66ms med=17.59ms  max=77.26ms  p(90)=19.9ms   p(95)=24.01ms 
+     http_req_failed................: 0.00%   ✓ 0         ✗ 31
+     http_req_receiving.............: avg=262.8µs  min=46.33µs med=198.68µs max=878.56µs p(90)=460.38µs p(95)=666.82µs
+     http_req_sending...............: avg=70.08µs  min=29.63µs med=37.22µs  max=819.6µs  p(90)=65.05µs  p(95)=148.84µs
+     http_req_tls_handshaking.......: avg=266.44µs min=0s      med=0s       max=5.03ms   p(90)=0s       p(95)=1.61ms  
+     http_req_waiting...............: avg=18.67ms  min=12.49ms med=17.07ms  max=77.06ms  p(90)=19.67ms  p(95)=23.38ms 
+     http_reqs......................: 31      47.152576/s
+     iteration_duration.............: avg=21.18ms  min=14.22ms med=19.43ms  max=84.57ms  p(90)=21.86ms  p(95)=27.81ms 
+     iterations.....................: 30      45.631525/s
+
+
+running (0d00h00m00.7s), 0/1 VUs, 30 complete and 0 interrupted iterations
+list ✓ [ 100% ] 1 VUs  0d00h00m00.6s/24h0m0s  30/30 iters, 30 per VU

@@ -1,0 +1,5 @@
+RKE01	231204	benchmark_172.16.1.7.sslip.io		RKE2	2  downstream clusters	3 + 1 upstream Standard_D8ds_v4
+AKS01	231204	benchmark_40.91.88.186.sslip.io		AKS	2  downstream clusters	3 + 1 upstream Standard_D8ds_v4
+RKE02	231205	dead					RKE2	10 downstream clusters	3 + 1 upstream Standard_D4ds_v5	+500 secrets	+500 configmaps
+AKS02	231205	benchmark_20.236.44.113.sslip.io	AKS	10 downstream clusters	3 + 1 upstream Standard_D4ds_v5	+500 secrets	+500 configmaps
+
