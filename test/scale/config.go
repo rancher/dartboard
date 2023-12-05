@@ -1,20 +1,23 @@
 package scale
 
 import (
+	provV1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	"github.com/rancher/rancher/tests/framework/clients/rancher"
 	"github.com/rancher/rancher/tests/framework/extensions/kubeconfig"
 	"github.com/rancher/rancher/tests/framework/pkg/config"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
 	ConfigurationFileKey = "scaleInput"
-	MemProfileFileName   = "mem-profile.log"
-	CPUProfileFileName   = "cpu-profile.log"
+	MemProfileFileName   = "mem-profile"
+	CPUProfileFileName   = "cpu-profile"
+	ProfileFileExtension = ".log"
 	MemProfileCommand    = "curl -s http://localhost:6060/debug/pprof/heap -o " + MemProfileFileName
 	CPUProfileCommand    = "curl -s http://localhost:6060/debug/pprof/profile -o " + CPUProfileFileName
 	CustomTimeFormatCode = "2006-01-02_T15-04-05"
@@ -36,10 +39,20 @@ func cpuProfileCommand() []string {
 	}
 }
 
+func configMapGVR() schema.GroupVersionResource {
+	return corev1.SchemeGroupVersion.WithResource("configmaps")
+}
+
+func v1ClusterGVR() schema.GroupVersionResource {
+	return provV1.SchemeGroupVersion.WithResource("clusters")
+}
+
 type Config struct {
 	ClusterTarget int    `json:"clusterTarget" yaml:"clusterTarget"`
 	BatchSize     int    `json:"batchSize" yaml:"batchSize"`
+	BatchTimeout  int    `json:"batchTimeout" yaml:"batchTimeout"`
 	OutputDir     string `json:"outputDir" yaml:"outputDir"`
+	ConfigMapsDir string `json:"configMapsDir" yaml:"configMapsDir"`
 }
 
 func ScaleConfig() *Config {
@@ -48,55 +61,55 @@ func ScaleConfig() *Config {
 	return scaleConfig
 }
 
-func getAllRancherLogs(r *rancher.Client, c string, p string, t metav1.Time) (string, error) {
+func getAllRancherLogs(r *rancher.Client, clusterID string, podName string, since metav1.Time) (string, error) {
 	podLogOptions := &corev1.PodLogOptions{
 		Container:  "rancher",
 		Timestamps: true,
-		SinceTime:  &t,
+		SinceTime:  &since,
 	}
-	return kubeconfig.GetPodLogsWithOpts(r, c, p, "cattle-system", podLogOptions)
+	return kubeconfig.GetPodLogsWithOpts(r, clusterID, podName, "cattle-system", podLogOptions)
 }
 
-func generateRancherMemProfile(r restclient.Config, p string) (*kubeconfig.LogStreamer, error) {
+func generateRancherMemProfile(r restclient.Config, podName string) (*kubeconfig.LogStreamer, error) {
 	cmd := memProfileCommand()
-	streamer, err := kubeconfig.KubectlExec(&r, p, "cattle-system", cmd)
+	streamer, err := kubeconfig.KubectlExec(&r, podName, "cattle-system", cmd)
 	if err != nil {
 		log.Warnf("error executing memory profile command (%s): %v", cmd, err)
 	}
 	return streamer, err
 }
 
-func getRancherMemProfile(r restclient.Config, k clientcmd.ClientConfig, p string, dest string) (bool, error) {
-	_, err := generateRancherMemProfile(r, p)
+func getRancherMemProfile(r restclient.Config, k clientcmd.ClientConfig, podName string, dest string) (bool, error) {
+	_, err := generateRancherMemProfile(r, podName)
 	if err != nil {
 		return false, err
 	}
 
-	err = kubeconfig.CopyFileFromPod(&r, k, p, "cattle-system", MemProfileFileName, dest)
+	err = kubeconfig.CopyFileFromPod(&r, k, podName, "cattle-system", MemProfileFileName+ProfileFileExtension, dest)
 	if err != nil {
-		log.Warnf("error copying file (%s) from pod (%s) to dest (%s): %v", MemProfileFileName, p, dest, err)
+		log.Warnf("error copying file (%s) from pod (%s) to dest (%s): %v", MemProfileFileName+ProfileFileExtension, podName, dest, err)
 		return false, err
 	}
 	return true, nil
 }
 
-func generateRancherCPUProfile(r restclient.Config, p string) (*kubeconfig.LogStreamer, error) {
+func generateRancherCPUProfile(r restclient.Config, podName string) (*kubeconfig.LogStreamer, error) {
 	cmd := cpuProfileCommand()
-	streamer, err := kubeconfig.KubectlExec(&r, p, "cattle-system", cmd)
+	streamer, err := kubeconfig.KubectlExec(&r, podName, "cattle-system", cmd)
 	if err != nil {
 		log.Warnf("error executing cpu profile command (%s): %v", cmd, err)
 	}
 	return streamer, err
 }
 
-func getRancherCPUProfile(r restclient.Config, k clientcmd.ClientConfig, p string, dest string) (bool, error) {
-	_, err := generateRancherCPUProfile(r, p)
+func getRancherCPUProfile(r restclient.Config, k clientcmd.ClientConfig, podName string, dest string) (bool, error) {
+	_, err := generateRancherCPUProfile(r, podName)
 	if err != nil {
 		return false, err
 	}
-	err = kubeconfig.CopyFileFromPod(&r, k, p, "cattle-system", CPUProfileFileName, dest)
+	err = kubeconfig.CopyFileFromPod(&r, k, podName, "cattle-system", CPUProfileFileName+ProfileFileExtension, dest)
 	if err != nil {
-		log.Warnf("error copying file (%s) from pod (%s) to dest (%s): %v", CPUProfileFileName, p, dest, err)
+		log.Warnf("error copying file (%s) from pod (%s) to dest (%s): %v", CPUProfileFileName+ProfileFileExtension, podName, dest, err)
 		return false, err
 	}
 	return true, nil
