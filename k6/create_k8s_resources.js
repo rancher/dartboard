@@ -7,7 +7,7 @@ import * as k8s from './k8s.js'
 const namespace = "scalability-test"
 const configMapCount = Number(__ENV.CONFIG_MAP_COUNT)
 const secretCount = Number(__ENV.SECRET_COUNT)
-const data = encoding.b64encode("a".repeat(10*1024))
+const data = encoding.b64encode("a".repeat(1000*1024))
 const vus = 1
 
 // Option setting
