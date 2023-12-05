@@ -9,7 +9,7 @@ locals {
     reserve_node_for_monitoring = true
 
     // azure-specific
-    size = "Standard_D8ds_v4"
+    size = "Standard_D4ds_v5"
     os_image = {
       publisher = "suse"
       offer     = "opensuse-leap-15-5"
@@ -65,7 +65,7 @@ locals {
   first_local_kubernetes_api_port = 9445
   first_tunnel_app_http_port      = 11080
   first_tunnel_app_https_port     = 11443
-  location                        = "Central India"
+  location                        = "West US 2"
   tags = {
     Owner = local.project_name
   }

@@ -8,7 +8,7 @@ locals {
     reserve_node_for_monitoring = true
 
     // azure-specific
-    size = "Standard_D8ds_v4"
+    size = "Standard_D4ds_v5"
 
     os_ephemeral_disk = true
   }
