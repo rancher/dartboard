@@ -20,7 +20,7 @@ repeatedly sends queries to a service running on these pods via
 a service
 */
 
-package soak
+package main
 
 import (
 	"context"
