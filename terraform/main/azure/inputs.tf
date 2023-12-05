@@ -21,7 +21,7 @@ locals {
   }
 
   downstream_clusters = [
-    for i in range(2) :
+    for i in range(10) :
     {
       name                        = "downstream-${i}"
       server_count                = 1
