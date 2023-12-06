@@ -71,7 +71,7 @@ func NewDataSourceQueries(panels []gapi.DashboardPanel, from time.Time, to time.
 }
 
 func InjectPanelData(c *gapi.Client, dashboardModel *gapi.DashboardModel, queries []gapi.DataSourceQuery) error {
-	for pidx, _ := range (*dashboardModel).Panels {
+	for pidx := range (*dashboardModel).Panels {
 		dsqResults, err := c.QueryDataSource(queries[pidx])
 		if err != nil {
 			log.Infof("Error retrieving Grafana DataSource Query results for Query (%v): %v\n", queries[pidx], err)
@@ -88,8 +88,16 @@ func InjectPanelData(c *gapi.Client, dashboardModel *gapi.DashboardModel, querie
 				snapshotField2.Values = frame.Data.Values[1]
 				snapshotDataFields = append(snapshotDataFields, snapshotField1, snapshotField2)
 				var metaMap map[string]interface{}
-				metaJSON, _ := json.Marshal(frame.Schema.Meta)
-				json.Unmarshal(metaJSON, &metaMap)
+				metaJSON, err := json.Marshal(frame.Schema.Meta)
+				if err != nil {
+					log.Infof("Error marshalling frame.Schema.Meta for Frame (%v): %v\n", frame, err)
+					continue
+				}
+				err = json.Unmarshal(metaJSON, &metaMap)
+				if err != nil {
+					log.Infof("Error unmarshalling frame.Schema.Meta for Frame (%v): %v\n", frame, err)
+					continue
+				}
 
 				dashboardModel.Panels[pidx].SnapshotData = append(dashboardModel.Panels[pidx].SnapshotData, gapi.SnapshotData{
 					Fields: snapshotDataFields,
@@ -124,7 +132,11 @@ func GetDashboardSnapshot(c *gapi.Client, from time.Time, to time.Time, uid stri
 		},
 	}
 	dataSourceQueries := NewDataSourceQueries(dashboard.Model.Panels, from, to)
-	InjectPanelData(c, &dashboard.Model, dataSourceQueries)
+	err = InjectPanelData(c, &dashboard.Model, dataSourceQueries)
+	if err != nil {
+		log.Infof("Error injecting panel data into dashboard (%v) with datasource queries (%v): %v\n", dashboard, dataSourceQueries, err)
+		return res, err
+	}
 	s.DashboardModel = dashboard.Model
 
 	if expires > 0 {

@@ -342,7 +342,10 @@ func main() {
 	serviceWaitInterval := 10 * time.Second
 	serviceWaitTimeout := 5 * time.Minute
 	endpoints := len(nodes.Items) * *podsPerNode
-	e2e.WaitForServiceEndpointsNum(context.TODO(), client, ns, "serve-hostnames", endpoints, serviceWaitInterval, serviceWaitTimeout)
+	err = e2e.WaitForServiceEndpointsNum(context.TODO(), client, ns, "serve-hostnames", endpoints, serviceWaitInterval, serviceWaitTimeout)
+	if err != nil {
+		klog.Fatalf("Failed to wait for Service Endpoints (%v): %v", endpoints, err)
+	}
 	for start := time.Now(); time.Since(start) < endpointTimeout; time.Sleep(10 * time.Second) {
 		hostname, err := fullRequest.DoRaw(context.TODO())
 		klog.V(4).Infof("Response: %v", string(hostname))

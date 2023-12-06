@@ -1,4 +1,4 @@
-package rancher_performance_debugging
+package rancherperformancedebugging
 
 const (
 	UID                                              = "rancher-performance-debugging"

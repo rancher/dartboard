@@ -1,4 +1,4 @@
-package rancher_monitoring
+package ranchermonitoring
 
 import (
 	"bytes"
@@ -10,9 +10,9 @@ import (
 	"net/url"
 
 	"github.com/git-ival/dartboard/test/utils/grafanautils"
-	"github.com/git-ival/dartboard/test/utils/rancher_monitoring/dashboards/kubernetes_api_server"
-	"github.com/git-ival/dartboard/test/utils/rancher_monitoring/dashboards/rancher_cluster_nodes"
-	"github.com/git-ival/dartboard/test/utils/rancher_monitoring/dashboards/rancher_performance_debugging"
+	"github.com/git-ival/dartboard/test/utils/ranchermonitoring/dashboards/kubernetesapiserver"
+	"github.com/git-ival/dartboard/test/utils/ranchermonitoring/dashboards/rancherclusternodes"
+	"github.com/git-ival/dartboard/test/utils/ranchermonitoring/dashboards/rancherperformancedebugging"
 	gapi "github.com/grafana/grafana-api-golang-client"
 	promapi "github.com/prometheus/client_golang/api"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -94,52 +94,52 @@ func SetupClients(rancherHost string, adminToken string, adminPassword string) (
 }
 
 func CustomKubernetesAPIServerUIDs() []string {
-	return []string{kubernetes_api_server.UID1, kubernetes_api_server.UID2}
+	return []string{kubernetesapiserver.UID1, kubernetesapiserver.UID2}
 }
 
 func CustomRancherPerformanceDebuggingUIDs() []string {
-	return []string{rancher_performance_debugging.UIDFormatted1, rancher_performance_debugging.UIDFormatted2, rancher_performance_debugging.UIDFormatted3}
+	return []string{rancherperformancedebugging.UIDFormatted1, rancherperformancedebugging.UIDFormatted2, rancherperformancedebugging.UIDFormatted3}
 }
 
 func RancherClusterNodesExprs() []string {
 	return []string{
-		rancher_cluster_nodes.CPUUtilizationExpr,
-		rancher_cluster_nodes.LoadAverage1Expr,
-		rancher_cluster_nodes.LoadAverage5Expr,
-		rancher_cluster_nodes.LoadAverage15Expr,
-		rancher_cluster_nodes.MemUtilizationExpr,
-		rancher_cluster_nodes.DiskUtilizationExpr,
-		rancher_cluster_nodes.DiskReadBytesTotalExpr,
-		rancher_cluster_nodes.DiskWriteBytesTotalExpr,
-		rancher_cluster_nodes.NetworkReceiveErrorsTotalExpr,
-		rancher_cluster_nodes.NetworkReceivePacketsTotalExpr,
-		rancher_cluster_nodes.NetworkTransmitErrorsTotalExpr,
-		rancher_cluster_nodes.NetworkReceiveDropsTotalExpr,
-		rancher_cluster_nodes.NetworkTransmitDropsTotalExpr,
-		rancher_cluster_nodes.NetworkTransmitPacketsTotalExpr,
-		rancher_cluster_nodes.NetworkTransmitBytesTotalExpr,
-		rancher_cluster_nodes.NetworkReceiveBytesTotalExpr,
+		rancherclusternodes.CPUUtilizationExpr,
+		rancherclusternodes.LoadAverage1Expr,
+		rancherclusternodes.LoadAverage5Expr,
+		rancherclusternodes.LoadAverage15Expr,
+		rancherclusternodes.MemUtilizationExpr,
+		rancherclusternodes.DiskUtilizationExpr,
+		rancherclusternodes.DiskReadBytesTotalExpr,
+		rancherclusternodes.DiskWriteBytesTotalExpr,
+		rancherclusternodes.NetworkReceiveErrorsTotalExpr,
+		rancherclusternodes.NetworkReceivePacketsTotalExpr,
+		rancherclusternodes.NetworkTransmitErrorsTotalExpr,
+		rancherclusternodes.NetworkReceiveDropsTotalExpr,
+		rancherclusternodes.NetworkTransmitDropsTotalExpr,
+		rancherclusternodes.NetworkTransmitPacketsTotalExpr,
+		rancherclusternodes.NetworkTransmitBytesTotalExpr,
+		rancherclusternodes.NetworkReceiveBytesTotalExpr,
 	}
 }
 
 func RancherPerformanceDebuggingExprs() []string {
 	return []string{
-		rancher_performance_debugging.HandlerAverageExecutionTimesExpr,
-		rancher_performance_debugging.RancherAPIAverageRequestTimesExpr,
-		rancher_performance_debugging.SubscribeAverageRequestTimesExpr,
-		rancher_performance_debugging.LassoControllerWorkQueueDepthExpr,
-		rancher_performance_debugging.NumberOfRancherRequestsExpr,
-		rancher_performance_debugging.NumberOfFailedRancherRequestsExpr,
-		rancher_performance_debugging.K8sProxyStoreAverageRequestTimesExpr,
-		rancher_performance_debugging.K8sProxyClientAverageRequestTimesExpr,
-		rancher_performance_debugging.CachedObjectsByGroupVersionKindExpr,
-		rancher_performance_debugging.LassoHandlerExecutionsExpr,
-		rancher_performance_debugging.LassoHandlerExecutionsByClusterNameExpr,
-		rancher_performance_debugging.LassoHandlerExecutionsWithErrorExpr,
-		rancher_performance_debugging.LassoHandlerExecutionsWithErrorByClusterNameExpr,
-		rancher_performance_debugging.DataTransmittedByRemoteDialerSessionsExpr,
-		rancher_performance_debugging.ErrorsByRemoteDialerSessionsExpr,
-		rancher_performance_debugging.RemoteDialerConnectionsRemovedExpr,
-		rancher_performance_debugging.RemoteDialerConnectionsAddedByClientExpr,
+		rancherperformancedebugging.HandlerAverageExecutionTimesExpr,
+		rancherperformancedebugging.RancherAPIAverageRequestTimesExpr,
+		rancherperformancedebugging.SubscribeAverageRequestTimesExpr,
+		rancherperformancedebugging.LassoControllerWorkQueueDepthExpr,
+		rancherperformancedebugging.NumberOfRancherRequestsExpr,
+		rancherperformancedebugging.NumberOfFailedRancherRequestsExpr,
+		rancherperformancedebugging.K8sProxyStoreAverageRequestTimesExpr,
+		rancherperformancedebugging.K8sProxyClientAverageRequestTimesExpr,
+		rancherperformancedebugging.CachedObjectsByGroupVersionKindExpr,
+		rancherperformancedebugging.LassoHandlerExecutionsExpr,
+		rancherperformancedebugging.LassoHandlerExecutionsByClusterNameExpr,
+		rancherperformancedebugging.LassoHandlerExecutionsWithErrorExpr,
+		rancherperformancedebugging.LassoHandlerExecutionsWithErrorByClusterNameExpr,
+		rancherperformancedebugging.DataTransmittedByRemoteDialerSessionsExpr,
+		rancherperformancedebugging.ErrorsByRemoteDialerSessionsExpr,
+		rancherperformancedebugging.RemoteDialerConnectionsRemovedExpr,
+		rancherperformancedebugging.RemoteDialerConnectionsAddedByClientExpr,
 	}
 }

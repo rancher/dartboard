@@ -79,18 +79,18 @@ func generateRancherMemProfile(r restclient.Config, podName string) (*kubeconfig
 	return streamer, err
 }
 
-func getRancherMemProfile(r restclient.Config, k clientcmd.ClientConfig, podName string, dest string) (bool, error) {
+func getRancherMemProfile(r restclient.Config, k clientcmd.ClientConfig, podName string, dest string) error {
 	_, err := generateRancherMemProfile(r, podName)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	err = kubeconfig.CopyFileFromPod(&r, k, podName, "cattle-system", MemProfileFileName+ProfileFileExtension, dest)
 	if err != nil {
 		log.Warnf("error copying file (%s) from pod (%s) to dest (%s): %v", MemProfileFileName+ProfileFileExtension, podName, dest, err)
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 func generateRancherCPUProfile(r restclient.Config, podName string) (*kubeconfig.LogStreamer, error) {
@@ -102,15 +102,15 @@ func generateRancherCPUProfile(r restclient.Config, podName string) (*kubeconfig
 	return streamer, err
 }
 
-func getRancherCPUProfile(r restclient.Config, k clientcmd.ClientConfig, podName string, dest string) (bool, error) {
+func getRancherCPUProfile(r restclient.Config, k clientcmd.ClientConfig, podName string, dest string) error {
 	_, err := generateRancherCPUProfile(r, podName)
 	if err != nil {
-		return false, err
+		return err
 	}
 	err = kubeconfig.CopyFileFromPod(&r, k, podName, "cattle-system", CPUProfileFileName+ProfileFileExtension, dest)
 	if err != nil {
 		log.Warnf("error copying file (%s) from pod (%s) to dest (%s): %v", CPUProfileFileName+ProfileFileExtension, podName, dest, err)
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
