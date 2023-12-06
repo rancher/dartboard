@@ -1,4 +1,4 @@
-package rancher_cluster_nodes
+package rancherclusternodes
 
 import (
 	"fmt"

@@ -12,8 +12,8 @@ import (
 	"github.com/git-ival/dartboard/test/utils/grafanautils"
 	"github.com/git-ival/dartboard/test/utils/imageutils"
 
-	rancher_monitoring "github.com/git-ival/dartboard/test/utils/rancher_monitoring"
-	rancher_cluster_nodes "github.com/git-ival/dartboard/test/utils/rancher_monitoring/dashboards/rancher_cluster_nodes"
+	"github.com/git-ival/dartboard/test/utils/ranchermonitoring"
+	"github.com/git-ival/dartboard/test/utils/ranchermonitoring/dashboards/rancherclusternodes"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -78,9 +78,9 @@ func (s *ScaleChecksTestSuite) SetupSuite() {
 	}, "BatchSize must be a multiple of 5")
 
 	s.dashboards = []string{}
-	s.dashboards = append(s.dashboards, rancher_cluster_nodes.UID)
-	s.dashboards = append(s.dashboards, rancher_monitoring.CustomKubernetesAPIServerUIDs()...)
-	s.dashboards = append(s.dashboards, rancher_monitoring.CustomRancherPerformanceDebuggingUIDs()...)
+	s.dashboards = append(s.dashboards, rancherclusternodes.UID)
+	s.dashboards = append(s.dashboards, ranchermonitoring.CustomKubernetesAPIServerUIDs()...)
+	s.dashboards = append(s.dashboards, ranchermonitoring.CustomRancherPerformanceDebuggingUIDs()...)
 
 	rancherConfig := new(rancher.Config)
 	config.LoadConfig(rancher.ConfigurationFileKey, rancherConfig)
@@ -121,9 +121,10 @@ func (s *ScaleChecksTestSuite) SetupSuite() {
 	s.outputPath = fmt.Sprintf("%s/%s-%s", s.scaleConfig.OutputDir, strings.Split(s.client.RancherConfig.Host, ".")[0], formattedTimestamp)
 	err = os.MkdirAll(s.outputPath+"/", 0755)
 	require.NoError(s.T(), err)
-	s.promV1, s.gapiClient, err = rancher_monitoring.SetupClients(s.client.RancherConfig.Host, s.client.RancherConfig.AdminToken, s.client.RancherConfig.AdminPassword)
+	s.promV1, s.gapiClient, err = ranchermonitoring.SetupClients(s.client.RancherConfig.Host, s.client.RancherConfig.AdminToken, s.client.RancherConfig.AdminPassword)
 	require.NoError(s.T(), err)
-	s.createCustomDashboards()
+	err = s.createCustomDashboards()
+	require.NoError(s.T(), err)
 }
 
 func (s *ScaleChecksTestSuite) TestRKE1BatchScale() {
@@ -153,17 +154,30 @@ func (s *ScaleChecksTestSuite) TestRKE1BatchScale() {
 			require.NoError(s.T(), err)
 			// Get first cluster's provisioning time
 			if i == 1 && j == 1 {
-				clusters.WaitForActiveRKE1Cluster(s.client, clusterObject.ID)
-				s.logProvisioningTime(clusterObject, numClusters)
+				err = clusters.WaitForActiveRKE1Cluster(s.client, clusterObject.ID)
+				if err != nil {
+					log.Errorf("Cluster with Name (%s) and ID (%s) was not ready within the %d minute timeout: %v", clusterObject.Name, clusterObject.ID, 30, err)
+					continue
+				}
+				err = s.logProvisioningTime(clusterObject, numClusters)
+				if err != nil {
+					log.Errorf("Failed to log provisioning time for Cluster (%v): %v", clusterObject, err)
+					continue
+				}
 			}
 			// Wait for final cluster to be ready (all clusters in batch should have plenty of time to be ready by now)
 			// Collect provisioning time of this final batch cluster
 			if j == s.scaleConfig.BatchSize {
-				clusters.WaitForActiveRKE1Cluster(s.client, clusterObject.ID)
+				err = clusters.WaitForActiveRKE1Cluster(s.client, clusterObject.ID)
 				if err != nil {
 					log.Errorf("Cluster with Name (%s) and ID (%s) was not ready within the %d minute timeout: %v", clusterObject.Name, clusterObject.ID, 30, err)
+					continue
 				}
-				s.logProvisioningTime(clusterObject, numClusters)
+				err = s.logProvisioningTime(clusterObject, numClusters)
+				if err != nil {
+					log.Errorf("Failed to log provisioning time for Cluster (%v): %v", clusterObject, err)
+					continue
+				}
 				break
 			}
 			if j%5 == 0 {
@@ -225,10 +239,10 @@ func (s *ScaleChecksTestSuite) writeSnapshotsToPNGs(from time.Time, to time.Time
 		require.NoError(s.T(), err)
 		var cookies []string
 		imageutils.HttpCookiesToSlice(s.gapiClient.Cookies(), &cookies)
-		snapshotURL := "https://" + s.client.RancherConfig.Host + rancher_monitoring.GrafanaSnapshotRoute + snapshotResponse.Key
+		snapshotURL := "https://" + s.client.RancherConfig.Host + ranchermonitoring.GrafanaSnapshotRoute + snapshotResponse.Key
 		snapshotURLs = append(snapshotURLs, snapshotURL)
 		filePath := s.outputPath + "/" + d + suffix + ".png"
-		err = imageutils.URLScreenshotToPNG(snapshotURL, filePath, rancher_monitoring.PanelContentSelector, cookies...)
+		err = imageutils.URLScreenshotToPNG(snapshotURL, filePath, ranchermonitoring.PanelContentSelector, cookies...)
 		if err != nil {
 			log.Warnf("Failed to write snapshotURL (%s) to file (%s): %v", snapshotURL, filePath, err)
 		}
@@ -281,10 +295,18 @@ func (s *ScaleChecksTestSuite) collectMetricsAndArtifacts(numClusters int, start
 	for _, podName := range podNames {
 		log.Info("Getting mem profile for: ", podName)
 		memProfileDest := fmt.Sprintf("%s/%s-%s%s", s.outputPath, podName, MemProfileFileName, clustersSuffix+ProfileFileExtension)
-		getRancherMemProfile(*s.restClient, *s.clientConfig, podName, memProfileDest)
+		err = getRancherMemProfile(*s.restClient, *s.clientConfig, podName, memProfileDest)
+		if err != nil {
+			log.Errorf("Failed to get Rancher memory profile: %v", err)
+			continue
+		}
 		log.Info("Getting cpu profile for: ", podName)
 		cpuProfileDest := fmt.Sprintf("%s/%s-%s%s", s.outputPath, podName, CPUProfileFileName, clustersSuffix+ProfileFileExtension)
-		getRancherCPUProfile(*s.restClient, *s.clientConfig, podName, cpuProfileDest)
+		err = getRancherCPUProfile(*s.restClient, *s.clientConfig, podName, cpuProfileDest)
+		if err != nil {
+			log.Errorf("Failed to get Rancher CPU profile: %v", err)
+			continue
+		}
 		log.Info("Getting rancher logs for: ", podName)
 		logs, err := getAllRancherLogs(s.client, s.clusterID, podName, start)
 		if err != nil {

@@ -1,4 +1,4 @@
-package kubernetes_api_server
+package kubernetesapiserver
 
 const (
 	UID  = "kubernetes-api-server"
