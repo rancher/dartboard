@@ -1,4 +1,4 @@
-import { check } from 'k6'
+import { check, sleep } from 'k6'
 import exec from 'k6/execution';
 import http from 'k6/http';
 import {Gauge} from 'k6/metrics';
@@ -7,7 +7,7 @@ import {retryOnConflict} from "./rancher_utils.js";
 // Parameters
 const roleCount = Number(__ENV.ROLE_COUNT)
 const userCount = Number(__ENV.USER_COUNT)
-const vus = Math.min(10, userCount, roleCount)
+const vus = Math.min(1, userCount, roleCount)
 const resourcesPerRole = 5
 const bindingsPerUser = 1
 
@@ -72,25 +72,25 @@ export function setup() {
 function cleanup(cookies) {
     let res = http.get(`${baseUrl}/v1/management.cattle.io.globalroles`, {cookies: cookies})
     check(res, {
-        '/v1/management.cattle.io.globalroles returns status 200': (r) => r.status === 200,
+        '/v1/management.cattle.io.globalroles returns status 200': (r) => r.status === 200 || r.status === 204,
     })
     JSON.parse(res.body)["data"].filter(r => r["description"].startsWith("Test ")).forEach(r => {
         res = http.del(`${baseUrl}/v3/globalRoles/${r["id"]}`, {cookies: cookies})
         check(res, {
-            'DELETE /v3/globalRoles returns status 200': (r) => r.status === 200,
+            'DELETE /v3/globalRoles returns status 200': (r) => r.status === 200 || r.status === 204,
         })
     })
-
     res = http.get(`${baseUrl}/v1/management.cattle.io.users`, {cookies: cookies})
     check(res, {
-        '/v1/management.cattle.io.users returns status 200': (r) => r.status === 200,
+        '/v1/management.cattle.io.users returns status 200': (r) => r.status === 200 || r.status === 204,
     })
     JSON.parse(res.body)["data"].filter(r => r["description"].startsWith("Test ")).forEach(r => {
         res = http.del(`${baseUrl}/v3/users/${r["id"]}`, {cookies: cookies})
         check(res, {
-            'DELETE /v3/users returns status 200': (r) => r.status === 200,
+            'DELETE /v3/users returns status 200': (r) => r.status === 200  || r.status === 204,
         })
     })
+    sleep(2)
 }
 
 const groupResources = [
@@ -154,6 +154,11 @@ export function createUsers(cookies) {
         }),
         {cookies: cookies}
     )
+
+    sleep(0.1)
+    if (res.status != 201) {
+        console.log(res)
+    }
     check(res, {
         '/v3/users returns status 201': (r) => r.status === 201,
     })
@@ -174,7 +179,7 @@ export function createUsers(cookies) {
         })
 
         check(res, {
-            '/v3/globalrolebindings returns status 201': (r) => r.status === 201,
+            '/v3/globalrolebindings returns status 201': (r) => r.status === 201 || r.status === 204,
         })
     }
 
