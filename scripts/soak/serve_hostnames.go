@@ -321,17 +321,15 @@ func main() {
 		klog.Warningf("Failed to build restclient: %v", err)
 		klog.Warningf("Used Config: %v", config)
 		return
-	} else {
-		klog.Infof("restclient built successfully")
 	}
+	klog.Infof("restclient built successfully")
 
 	proxyRequest, errProxy := service.GetServicesProxyRequest(client, rclient.Get())
 	if errProxy != nil {
 		klog.Warningf("Get services proxy request failed: %v", errProxy)
 		return
-	} else {
-		klog.V(4).Infof("Get services proxy request succeeded")
 	}
+	klog.V(4).Infof("Get services proxy request succeeded")
 
 	fullRequest := proxyRequest.
 		Namespace(ns).
@@ -352,9 +350,8 @@ func main() {
 		if err != nil {
 			klog.Infof("After %v while making a proxy call got error %v", time.Since(start), err)
 			continue
-		} else {
-			klog.Infof("After %v successfully made proxy call to %v", time.Since(start), hostname)
 		}
+		klog.Infof("After %v successfully made proxy call to %v", time.Since(start), hostname)
 		var r metav1.Status
 		if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), hostname, &r); err != nil {
 			break
@@ -362,9 +359,8 @@ func main() {
 		if r.Status == metav1.StatusFailure {
 			klog.Infof("After %v got status %v", time.Since(start), string(r.Status))
 			continue
-		} else {
-			klog.Infof("After %v got status %v", time.Since(start), string(r.Status))
 		}
+		klog.Infof("After %v got status %v", time.Since(start), string(r.Status))
 		break
 	}
 

@@ -45,23 +45,21 @@ linters-settings:
     check-shadowing: false
   gofmt:
     simplify: false
-# issues:
-#   exclude-rules:
-#     # - linters: [govet]
-#     #   text: "^(nilness|structtag)"
-#     - linters: [revive]
-#       text: "should have comment"
-#     - linters: [revive]
-#       text: "should be of the form"
-#     - linters: [revive]
-#       text: "unused-parameter"
-#     - linters: [revive]
-#       text: "redefines-builtin-id"
-#     - linters: [revive]
-#       text: "superfluous-else"
+issues:
+  exclude-rules:
+    #     # - linters: [govet]
+    #     #   text: "^(nilness|structtag)"
+    #     - linters: [revive]
+    #       text: "should have comment"
+    #     - linters: [revive]
+    #       text: "should be of the form"
+    - linters: [revive]
+      text: "unused-parameter"
+    #     - linters: [revive]
+    #       text: "redefines-builtin-id"
+    # - linters: [revive]
+    #   text: "superfluous-else"
 #     - linters: [revive]
 #       text: "empty-block"
 #     - linters: [revive]
 #       text: "if-return: redundant if"
-#     - linters: [typecheck]
-#       text: "imported but not used as apierrors"
