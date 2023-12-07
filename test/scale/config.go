@@ -55,7 +55,7 @@ type Config struct {
 	ConfigMapsDir string `json:"configMapsDir" yaml:"configMapsDir"`
 }
 
-func ScaleConfig() *Config {
+func loadScaleConfig() *Config {
 	scaleConfig := new(Config)
 	config.LoadConfig(ConfigurationFileKey, scaleConfig)
 	return scaleConfig

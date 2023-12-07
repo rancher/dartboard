@@ -71,7 +71,7 @@ func (s *ScaleChecksTestSuite) SetupSuite() {
 	testSession := session.NewSession()
 	s.session = testSession
 
-	scaleConfig := ScaleConfig()
+	scaleConfig := loadScaleConfig()
 	s.scaleConfig = scaleConfig
 	require.Condition(s.T(), func() bool {
 		return s.scaleConfig.BatchSize%5 == 0
@@ -238,7 +238,7 @@ func (s *ScaleChecksTestSuite) writeSnapshotsToPNGs(from time.Time, to time.Time
 		snapshotResponse, err := grafanautils.GetDashboardSnapshot(s.gapiClient, from, to, d, 9000, false)
 		require.NoError(s.T(), err)
 		var cookies []string
-		imageutils.HttpCookiesToSlice(s.gapiClient.Cookies(), &cookies)
+		imageutils.HTTPCookiesToSlice(s.gapiClient.Cookies(), &cookies)
 		snapshotURL := "https://" + s.client.RancherConfig.Host + ranchermonitoring.GrafanaSnapshotRoute + snapshotResponse.Key
 		snapshotURLs = append(snapshotURLs, snapshotURL)
 		filePath := s.outputPath + "/" + d + suffix + ".png"

@@ -58,7 +58,7 @@ func LocalPNGFromURL(url string, imgFilePath string) error {
 	return nil
 }
 
-func HttpCookiesToSlice(cookies []*http.Cookie, list *[]string) {
+func HTTPCookiesToSlice(cookies []*http.Cookie, list *[]string) {
 	for _, cookie := range cookies {
 		*list = append(*list, cookie.Name, cookie.Value)
 	}
@@ -159,7 +159,7 @@ func URLScreenshotToPNG(url string, imgFilePath string, sel string, cookies ...s
 	var buf []byte
 	// capture entire browser viewport, returning png with quality=100
 	if len(cookies)%2 != 0 {
-		log.Fatal("Length of cookies must be divisible by 2. Proceeding without setting cookies.")
+		log.Warn("Length of cookies must be divisible by 2. Proceeding without setting cookies.")
 		if err = chromedp.Run(ctx, fullScreenshot(url, 100, &buf)); err != nil {
 			log.Fatal(err)
 			return err
