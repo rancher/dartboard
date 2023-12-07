@@ -37,3 +37,4 @@ scripts/utils/*.txt
 
 # Misc Exceptions
 !test/utils/ranchermonitoring/files/configmaps/*.yaml
+!.pre-commit-config.yaml
