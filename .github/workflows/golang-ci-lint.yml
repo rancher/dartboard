@@ -2,7 +2,7 @@ name: golangci-lint
 on:
   workflow_dispatch:
   push:
-    branches: ['!main']
+    branches-ignore: [main]
   pull_request:
 permissions:
   contents: read
