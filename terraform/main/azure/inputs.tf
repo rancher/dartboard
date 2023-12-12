@@ -1,5 +1,5 @@
 locals {
-  project_name = "st"
+  project_name = "st-rke2"
 
   upstream_cluster = {
     name                        = "upstream"
@@ -9,7 +9,7 @@ locals {
     reserve_node_for_monitoring = true
 
     // azure-specific
-    size = "Standard_D4ds_v5"
+    size = "Standard_D8ds_v4"
     os_image = {
       publisher = "suse"
       offer     = "opensuse-leap-15-5"
@@ -21,7 +21,7 @@ locals {
   }
 
   downstream_clusters = [
-    for i in range(10) :
+    for i in range(100) :
     {
       name                        = "downstream-${i}"
       server_count                = 1
@@ -37,7 +37,6 @@ locals {
         sku       = "gen2"
         version   = "latest"
       }
-      os_ephemeral_disk = false
     }
   ]
 
@@ -56,7 +55,6 @@ locals {
       sku       = "gen2"
       version   = "latest"
     }
-    os_ephemeral_disk = false
   }
 
   clusters = concat([local.upstream_cluster], local.downstream_clusters, [local.tester_cluster])
