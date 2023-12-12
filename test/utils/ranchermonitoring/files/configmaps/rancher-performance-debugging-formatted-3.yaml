@@ -5,7 +5,7 @@ metadata:
   labels:
     grafana_dashboard: "1"
 data:
-  rancher_performance_debugging_formatted_3.json: |
+  rancher_performance_debugging_formatted_3.json: |-
     {
       "annotations": {
         "list": [
