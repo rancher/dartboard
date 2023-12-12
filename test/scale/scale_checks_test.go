@@ -139,7 +139,7 @@ func (s *ScaleChecksTestSuite) TestRKE1BatchScale() {
 	scaleInStartTime = metav1.NewTime(time.Now()).Rfc3339Copy()
 	var clusterObject *mgmtV3.Cluster
 	var err error
-	numClusters := 0
+	numClusters := 1
 	/// Create clusters
 	for i = 1; i < numBatches; i++ {
 		j = 1
@@ -211,6 +211,8 @@ func (s *ScaleChecksTestSuite) logProvisioningTime(cluster *mgmtV3.Cluster, numC
 	for _, condition := range v1Cluster.Status.Conditions {
 		if condition.Type == "Ready" {
 			readyTime, err = time.Parse(time.RFC3339, condition.LastUpdateTime)
+			log.Infof("Cluster Created time is: %s", createdTime.Format(time.RFC3339))
+			log.Infof("Cluster Ready time is: %s", condition.LastUpdateTime)
 			break
 		}
 	}
