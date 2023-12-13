@@ -67,6 +67,12 @@ variable "public_ip_address_id" {
   default     = null
 }
 
+variable "storage_account_uri" {
+  description = "Storage account URI to attach to the VM to enable Boot Diagnostics, optional"
+  type        = string
+  default     = null
+}
+
 variable "host_configuration_commands" {
   description = "Commands to run when the host is deployed"
   default     = ["cat /etc/os-release"]

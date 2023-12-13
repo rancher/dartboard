@@ -18,6 +18,7 @@ locals {
     }
     os_disk_type      = "StandardSSD_LRS"
     os_ephemeral_disk = true
+    boot_diagnostics  = true
   }
 
   downstream_clusters = [
