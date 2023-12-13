@@ -14,6 +14,7 @@ module "server_nodes" {
   ssh_public_key_path  = var.ssh_public_key_path
   ssh_private_key_path = var.ssh_private_key_path
   subnet_id            = var.subnet_id
+  storage_account_uri  = var.storage_account_uri
 
   ssh_bastion_host = var.ssh_bastion_host
   ssh_tunnels = count.index == 0 ? [
@@ -40,6 +41,7 @@ module "agent_nodes" {
   ssh_public_key_path         = var.ssh_public_key_path
   ssh_private_key_path        = var.ssh_private_key_path
   subnet_id                   = var.subnet_id
+  storage_account_uri         = var.storage_account_uri
   ssh_bastion_host            = var.ssh_bastion_host
   host_configuration_commands = var.host_configuration_commands
 }

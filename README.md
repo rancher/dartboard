@@ -51,6 +51,16 @@ export TF_LOG=debug
 pkill -f 'ssh .*-o IgnoreUnknown=TerraformCreatedThisTunnel.*'
 ```
 
+### Troubleshooting inaccessible Azure VMs
+
+If an Azure VM is not accessible via SSH, try the following:
+- add the `boot_diagnostics = true` option in `inputs.tf`
+- apply or re-deploy
+- in the Azure Portal, click on Home -> Virtual Machines -> <name> -> Help -> Reset Password 
+- then Home -> Virtual Machines -> <name> -> Help -> Serial Console
+
+That should give you access to the VM's console, where you can log in with the new password and troubleshoot.
+
 ## Tips
 
 ### Use k3d targeting a remote machine running the Docker daemon

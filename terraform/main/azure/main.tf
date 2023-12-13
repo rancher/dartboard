@@ -52,6 +52,17 @@ module "network" {
 }
 
 
+resource "azurerm_storage_account" "storage_account" {
+  name                     = "${replace(local.project_name, "/[^0-9a-z]/", "")}sa"
+  resource_group_name      = azurerm_resource_group.rg.name
+  location                 = local.location
+  account_replication_type = "LRS"
+  account_tier             = "Standard"
+  tags = {
+    project = local.project_name
+  }
+}
+
 module "k3s_cluster" {
   // HACK: we need to wait for the module.network to complete before moving on to workaround
   // terraform issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
@@ -87,6 +98,7 @@ module "k3s_cluster" {
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
   subnet_id                 = module.network.private_subnet_id
+  storage_account_uri       = lookup(local.k3s_clusters[count.index], "boot_diagnostics", false) ? azurerm_storage_account.storage_account.primary_blob_endpoint : null
 }
 
 module "rke2_cluster" {
@@ -124,6 +136,7 @@ module "rke2_cluster" {
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
   subnet_id                 = module.network.private_subnet_id
+  storage_account_uri       = lookup(local.rke2_clusters[count.index], "boot_diagnostics", false) ? azurerm_storage_account.storage_account.primary_blob_endpoint : null
 }
 
 module "aks_cluster" {

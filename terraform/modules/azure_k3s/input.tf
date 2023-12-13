@@ -75,6 +75,12 @@ variable "is_spot" {
   default     = false
 }
 
+variable "storage_account_uri" {
+  description = "Storage account URI to attach to the VM to enable Boot Diagnostics, optional"
+  type        = string
+  default     = null
+}
+
 variable "ssh_user" {
   description = "Azure VM admin user name used for ssh access"
   default     = "azureuser"

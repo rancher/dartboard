@@ -46,6 +46,13 @@ resource "azurerm_linux_virtual_machine" "main" {
       }
     }
   }
+
+  dynamic "boot_diagnostics" {
+    for_each = var.storage_account_uri != null ? [1] : []
+    content {
+      storage_account_uri = var.storage_account_uri
+    }
+  }
 }
 
 resource "null_resource" "host_configuration" {
