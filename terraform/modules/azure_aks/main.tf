@@ -32,7 +32,7 @@ resource "azurerm_kubernetes_cluster" "cluster" {
 resource "azurerm_kubernetes_cluster_node_pool" "secondary" {
   kubernetes_cluster_id = azurerm_kubernetes_cluster.cluster.id
   name                  = "secondary"
-  vm_size               = var.vm_size
+  vm_size               = var.secondary_vm_size
   node_count            = var.secondary_node_pool_count
   node_labels           = var.secondary_node_pool_labels
   node_taints           = var.secondary_node_pool_taints
