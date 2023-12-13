@@ -41,8 +41,13 @@ variable "secondary_node_pool_taints" {
 }
 
 variable "vm_size" {
-  description = "Azure VM instance type of all nodes in this cluster"
-  default     = "Standard_B2as_v2"
+  description = "Azure VM instance type of nodes in the primary pool of this cluster"
+  default     = "Standard_D4ds_v5"
+}
+
+variable "secondary_vm_size" {
+  description = "Azure VM instance type of nodes in the secondary pool of this cluster"
+  default     = "Standard_D4ds_v5"
 }
 
 variable "os_disk_size" {
