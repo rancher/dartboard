@@ -142,7 +142,7 @@ k6_run(tester, { BASE_URL: rancherClusterNetworkURL, BOOTSTRAP_PASSWORD: BOOTSTR
 
 for (const [name, cluster] of importedClusters) {
     const clusterId = await retryOnError(() =>
-        runCollectingJSONOutput(`kubectl get -n fleet-default cluster ${q(name)} -o json ${q(kuf)} ${q(cuf)}`)["status"]["clusterName"]
+        runCollectingJSONOutput(`kubectl get -n fleet-default clusters.provisioning.cattle.io ${q(name)} -o json ${q(kuf)} ${q(cuf)}`)["status"]["clusterName"]
     )
     const token = runCollectingJSONOutput(`kubectl get -n ${q(clusterId)} clusterregistrationtoken.management.cattle.io default-token -o json ${q(kuf)} ${q(cuf)}`)["status"]["token"]
 
