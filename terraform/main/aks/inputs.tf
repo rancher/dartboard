@@ -1,20 +1,20 @@
 locals {
-  project_name = "st-aks"
+  project_name = "st-aks-hp"
 
   upstream_cluster = {
     name                        = "upstream"
-    agent_count                 = 4
+    agent_count                 = 2
     distro_version              = "1.26.6"
     reserve_node_for_monitoring = true
 
     // azure-specific
-    size = "Standard_D4ds_v5"
+    size = "Standard_E8ads_v5"
 
     os_ephemeral_disk = true
   }
 
   downstream_clusters = [
-    for i in range(50) :
+    for i in range(100) :
     {
       name                        = "downstream-${i}"
       server_count                = 1

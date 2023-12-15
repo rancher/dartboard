@@ -93,7 +93,7 @@ const rancherClusterNetworkURL = upstreamAddresses.clusterNetwork.httpsURL
 helm_install("rancher", RANCHER_CHART, upstream, "cattle-system", {
     bootstrapPassword: BOOTSTRAP_PASSWORD,
     hostname: rancherClusterNetworkName,
-    replicas: isK3d() ? 1 : 3,
+    replicas: 1,
     rancherImageTag: RANCHER_IMAGE_TAG,
     extraEnv: [{
         name: "CATTLE_SERVER_URL",

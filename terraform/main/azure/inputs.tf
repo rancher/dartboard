@@ -1,22 +1,22 @@
 locals {
-  project_name = "st-rke2"
+  project_name = "st-rke2-hp"
 
   upstream_cluster = {
     name                        = "upstream"
-    server_count                = 3
-    agent_count                 = 1
+    server_count                = 1
+    agent_count                 = 2
     distro_version              = "v1.24.4+rke2r1"
     reserve_node_for_monitoring = true
 
     // azure-specific
-    size = "Standard_D8ds_v4"
+    size = "Standard_E8ads_v5"
     os_image = {
       publisher = "suse"
       offer     = "opensuse-leap-15-5"
       sku       = "gen2"
       version   = "latest"
     }
-    os_disk_type      = "StandardSSD_LRS"
+    // os_disk_type      = "StandardSSD_LRS"
     os_ephemeral_disk = true
     boot_diagnostics  = true
   }
@@ -25,7 +25,7 @@ locals {
     for i in range(100) :
     {
       name                        = "downstream-${i}"
-      server_count                = 1
+      server_count                = 3
       agent_count                 = 0
       distro_version              = "v1.26.9+k3s1"
       reserve_node_for_monitoring = false
