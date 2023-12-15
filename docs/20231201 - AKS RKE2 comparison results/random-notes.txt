@@ -1,0 +1,120 @@
+
+10:36
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                                70844 root      20   0 7499612   5.6g  84596 S 287.1   8.9  58:18.80 rancher                                                              
+
+10:42
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                               190809 root      20   0 9505220   7.0g  83888 S 446.4  11.2  26:31.15 rancher                                                              
+
+10:49 (test was started 5 minutes before)
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                               190809 root      20   0    9.8g   6.3g  84464 S  26.2  10.1  59:11.79 rancher                                                              
+
+
+~10 minutes to digest the resource loading
+
+11:18
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                               190809 root      20   0    9.8g   6.4g  84528 S  30.2  10.3  72:18.08 rancher                                                              
+
+rancher cpu usage 5-30% constantly
+
+13:30
+$kubectl top nodes
+NAME                                CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%   
+aks-default-29626986-vmss000000     612m         7%     17885Mi         30%       
+aks-secondary-23983652-vmss000000   278m         7%     3617Mi          28%       
+
+
+----
+
+RKE11
+18:24
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                                
+ 9484 root      20   0  9.911g 7.919g  85044 S 410.0 12.61  58:39.62 rancher                                                                
+
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                                
+ 3924 root      20   0 9870032 7.080g  77564 S 551.5 11.28  72:20.38 kube-apiserver                                                         
+
+18:39
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                                
+ 9484 root      20   0 10.623g 6.578g  85044 S 8.000 10.48 120:07.15 rancher 
+ 9484 root      20   0 10.623g 6.806g  85044 S 31.89 10.84 120:22.08 rancher                                                                
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                                
+ 3924 root      20   0 9876420 6.753g  77756 S 410.0 10.75 133:26.49 kube-apiserver 
+ 3924 root      20   0 9876372 5.797g  77756 S 17.67 9.232 134:46.82 kube-apiserver                                                         
+
+rancher cpu stays 8-40% constantly (agent 1)
+kube-apiserver cpu stays loaded with spikes 30-400% (server 0)
+
+19:09
+$kubectl top nodes
+NAME                           CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%   
+st-rke2-hp-upstream-agent-0    315m         3%     2460Mi          3%        
+st-rke2-hp-upstream-agent-1    976m         12%    15202Mi         23%       
+st-rke2-hp-upstream-server-0   2026m        25%    10852Mi         16%
+
+----
+
+RKE16
+12:30
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                                
+ 5792 azureus+  20   0 1149356 376748  25172 S 3.987 0.572   0:05.17 cainjector                                                             
+ 2349 root      20   0  823404 118444  65436 S 1.993 0.180   1:01.40 kubelet                                                                
+ 7435 root      20   0 2825256 1.832g  84080 S 1.661 2.917   8:39.77 rancher   
+
+after 1st load
+ PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                                  7435 root      20   0 2825256 1.825g  84080 S 14.95 2.906   8:37.51 rancher 
+ 
+ PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                               
+ 2692 root      20   0 4958748 2.791g  77372 S 7.641 4.445  13:23.37 kube-apiserver 
+ 
+ load ends as soon as we stop loading resources
+ 
+ 
+ adding 190 more users
+ 
+ ----
+ RKE20
+ 
+   PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                               
+ 25167 root      20   0 3171836 1.601g  84212 S 16.94 2.549  36:47.78 rancher
+ 
+   PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+  6635 root      20   0 2435956 1.378g  75452 S 41.20 2.195  28:18.39 kube-apiserver
+ 
+ rancher ~10%, kube-apiserver on avg ~ 30%
+ 
+ kubectl top
+ NAME                           CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%   
+st-rke2-hp-upstream-agent-0    270m         3%     1622Mi          2%        
+st-rke2-hp-upstream-agent-1    280m         3%     3859Mi          6%        
+st-rke2-hp-upstream-server-0   439m         5%     2900Mi          4%        
+
+----
+RKE21
+
+14:16/14:19 (just before and just after finished loading resources)
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                               
+25167 root      20   0 7779692 5.102g  84340 S 408.6 8.125  53:47.61 rancher
+25167 root      20   0 7779948 6.075g  84404 S 275.4 9.674  60:58.89 rancher 
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                               
+ 6635 root      20   0 8785020 7.117g  75964 S 670.8 11.33  68:28.46 kube-apiserver
+ 6635 root      20   0 8785272 6.754g  76028 S 677.4 10.76  74:53.80 kube-apiserver
+ 
+ 
+14:39/14:55
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                               
+25167 root      20   0 10.518g 6.594g  84532 S 94.35 10.50 131:44.50 rancher
+25167 root      20   0 10.518g 6.651g  84532 S 226.9 10.59 134:07.41 rancher
+25167 root      20   0 10.518g 6.625g  84532 S 102.7 10.55 144:36.52 rancher
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                               
+ 6635 root      20   0 10.510g 6.620g  76284 S 448.8 10.54 181:14.33 kube-apiserver
+ 6635 root      20   0 10.510g 5.517g  76284 S 277.4 8.786 191:38.59 kube-apiserver
+ 6635 root      20   0 10.510g 5.775g  76348 S 519.6 9.197 241:29.61 kube-apiserver
+ 
+ 
+ 
+---
+NODE dimensioning
+https://ranchermanager.docs.rancher.com/v2.8/pages-for-subheaders/installation-requirements
+https://ranchermanager.docs.rancher.com/v2.5/pages-for-subheaders/installation-requirements

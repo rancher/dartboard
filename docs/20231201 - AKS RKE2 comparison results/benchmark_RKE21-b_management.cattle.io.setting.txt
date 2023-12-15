@@ -1,0 +1,52 @@
+
+          /\      |‾‾| /‾‾/   /‾‾/   
+     /\  /  \     |  |/  /   /  /    
+    /  \/    \    |     (   /   ‾‾\  
+   /          \   |  |\  \ |  (‾)  | 
+  / __________ \  |__| \__\ \_____/ .io
+
+  execution: local
+     script: ./steve_paginated_api_benchmark.js
+     output: -
+
+  scenarios: (100.00%) 1 scenario, 1 max VUs, 24h0m30s max duration (incl. graceful stop):
+           * list: 30 iterations for each of 1 VUs (maxDuration: 24h0m0s, exec: list, gracefulStop: 30s)
+
+
+running (0d00h00m01.0s), 1/1 VUs, 11 complete and 0 interrupted iterations
+list   [  37% ] 1 VUs  0d00h00m00.7s/24h0m0s  11/30 iters, 30 per VU
+
+running (0d00h00m02.0s), 1/1 VUs, 22 complete and 0 interrupted iterations
+list   [  73% ] 1 VUs  0d00h00m01.7s/24h0m0s  22/30 iters, 30 per VU
+
+running (0d00h00m03.0s), 1/1 VUs, 29 complete and 0 interrupted iterations
+list   [  97% ] 1 VUs  0d00h00m02.7s/24h0m0s  29/30 iters, 30 per VU
+
+     ✓ listing management.cattle.io.setting from cluster local (k8s style pagination) succeeds
+     ✓ no slow pagination errors (410 Gone) detected
+
+     █ setup
+
+       ✓ logging in returns status 200
+
+   ✓ checks.........................: 100.00% ✓ 121       ✗ 0  
+     data_received..................: 4.8 MB  1.5 MB/s
+     data_sent......................: 24 kB   7.4 kB/s
+     http_req_blocked...............: avg=2.87ms   min=240ns   med=270ns    max=171.36ms p(90)=381ns    p(95)=510ns   
+     http_req_connecting............: avg=26.34µs  min=0s      med=0s       max=917.16µs p(90)=0s       p(95)=0s      
+     http_req_duration..............: avg=46.28ms  min=14.38ms med=37.97ms  max=638.52ms p(90)=69.04ms  p(95)=84.13ms 
+       { expected_response:true }...: avg=46.28ms  min=14.38ms med=37.97ms  max=638.52ms p(90)=69.04ms  p(95)=84.13ms 
+     http_req_failed................: 0.00%   ✓ 0         ✗ 61 
+     http_req_receiving.............: avg=838.72µs min=48.82µs med=315.68µs max=9.05ms   p(90)=1.54ms   p(95)=1.68ms  
+     http_req_sending...............: avg=231.66µs min=32.85µs med=44.92µs  max=3.76ms   p(90)=107.01µs p(95)=912.42µs
+     http_req_tls_handshaking.......: avg=99.57µs  min=0s      med=0s       max=3.18ms   p(90)=0s       p(95)=0s      
+     http_req_waiting...............: avg=45.21ms  min=14.2ms  med=36.77ms  max=629.43ms p(90)=68.89ms  p(95)=83.86ms 
+     http_reqs......................: 61      18.917994/s
+     iteration_duration.............: avg=103.98ms min=58.81ms med=65.14ms  max=720.89ms p(90)=148.71ms p(95)=212.17ms
+     iterations.....................: 30      9.303932/s
+     vus............................: 1       min=1       max=1
+     vus_max........................: 1       min=1       max=1
+
+
+running (0d00h00m03.2s), 0/1 VUs, 30 complete and 0 interrupted iterations
+list ✓ [ 100% ] 1 VUs  0d00h00m03.0s/24h0m0s  30/30 iters, 30 per VU
