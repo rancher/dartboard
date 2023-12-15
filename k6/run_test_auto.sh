@@ -3,7 +3,6 @@
 
 RES="management.cattle.io.setting \
      management.cattle.io.clusters \
-     rbac.authorization.k8s.io.rolebindings \
      configmaps"
 
 
