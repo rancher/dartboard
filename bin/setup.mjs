@@ -25,7 +25,7 @@ const GRAFANA_CHART = "https://github.com/grafana/helm-charts/releases/download/
 
 // Step 1: Terraform
 run(`terraform -chdir=${q(terraformDir())} init -upgrade`)
-run(`terraform -chdir=${q(terraformDir())} apply -auto-approve -parallelism=50 ${q(terraformVar())}`)
+run(`terraform -chdir=${q(terraformDir())} apply -auto-approve ${q(terraformVar())}`)
 const clusters = runCollectingJSONOutput(`terraform -chdir=${q(terraformDir())} output -json`)["clusters"]["value"]
 
 
