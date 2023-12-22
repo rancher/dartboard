@@ -1,0 +1,15 @@
+RKE4x timeline
+
+9:55   Setup finished
+10:05   Get resources
+10:15   Start tests in battery
+10:35   Finished
+10:45   Load resources
+11:18   Get resources
+11:25   Start tests in battery
+12:52   Stop tests
+13:25   restart Rancher
+13:42   Get resources
+13:50   Start tests in battery
+14:15   Stop tests
+
