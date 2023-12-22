@@ -1,0 +1,15 @@
+RKE5x timeline
+
+8:10   Setup finished
+8:42   Get resources
+9:00   Start tests in battery
+9:22   Finished
+9:36   Load resources (ended ~ 10:46)
+9:55   Get resources
+10:10   Start tests in battery
+10:48   Stop tests
+16:00   restart Rancher
+16:05   Get resources
+16:20   Start tests in battery
+16:50   Stop tests
+
