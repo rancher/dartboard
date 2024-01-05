@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
-	"github.com/rancher/rancher/tests/framework/pkg/config"
-	namegen "github.com/rancher/rancher/tests/framework/pkg/namegenerator"
-	"github.com/rancher/rancher/tests/framework/pkg/session"
+	"github.com/rancher/shepherd/pkg/config"
+	namegen "github.com/rancher/shepherd/pkg/namegenerator"
+	"github.com/rancher/shepherd/pkg/session"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -26,8 +26,11 @@ type TfApplyDestroy struct {
 func (s *TfApplyDestroy) TearDownSuite() {
 	log.Info("TEARING DOWN")
 	s.TfDestroy()
-	err := os.Remove(s.config.PlanFilePath)
-	require.NoError(s.T(), err)
+	_, err := os.Stat(s.config.PlanFilePath)
+	if err == nil {
+		err := os.Remove(s.config.PlanFilePath)
+		require.NoError(s.T(), err)
+	}
 }
 
 func (s *TfApplyDestroy) SetupSuite() {
@@ -125,6 +128,10 @@ func (s *TfApplyDestroy) TestTfApplyPlanJSON() {
 }
 
 func (s *TfApplyDestroy) TestTfOutput() {
+	_, err := os.Stat(s.config.PlanFilePath)
+	if err != nil {
+		s.TfPlanJSON()
+	}
 	s.TfOutput()
 }
 

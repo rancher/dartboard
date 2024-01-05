@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	tfClient "github.com/rancher/rancher/tests/framework/clients/tfexec"
-	"github.com/rancher/rancher/tests/framework/pkg/session"
+	tfClient "github.com/rancher/shepherd/clients/tfexec"
+	"github.com/rancher/shepherd/pkg/session"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
