@@ -23,7 +23,7 @@ type TfApplyDestroy struct {
 	config  *Config
 }
 
-func (s *TfApplyDestroy) TearDownSuite() {
+func (s *TfApplyDestroy) TearDownTest() {
 	log.Info("TEARING DOWN")
 	s.TfDestroy()
 	_, err := os.Stat(s.config.PlanFilePath)
@@ -53,7 +53,7 @@ func (s *TfApplyDestroy) SetupSuite() {
 
 func (s *TfApplyDestroy) TfPlanJSON() {
 	if s.config.PlanFilePath == "" {
-		s.config.PlanFilePath = s.config.PlanOpts.OutDir + "tfexec_plan_" + time.Now().Format(time.RFC3339)
+		s.config.PlanFilePath = s.config.PlanOpts.OutDir + "/tfexec_plan_" + time.Now().Format(time.RFC3339) + ".tfplan"
 	}
 	outOpt := tfexec.PlanOption(tfexec.Out(s.config.PlanFilePath))
 	varFileOpt := tfexec.PlanOption(tfexec.VarFile(s.config.VarFilePath))

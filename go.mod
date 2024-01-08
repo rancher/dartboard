@@ -20,7 +20,7 @@ replace (
 	github.com/rancher/rancher => github.com/git-ival/rancher v0.0.0-20231205033045-71c696d088b1
 	github.com/rancher/rancher/pkg/apis => github.com/rancher/rancher/pkg/apis v0.0.0-20231201180637-a13c294666eb
 	github.com/rancher/rancher/pkg/client => github.com/rancher/rancher/pkg/client v0.0.0-20230912045906-b00bc5806579
-	github.com/rancher/shepherd => github.com/git-ival/shepherd v0.0.0-20240104232622-f4d2505ea4ca
+	github.com/rancher/shepherd => github.com/git-ival/shepherd v0.0.0-20240105171442-0e5a059b395c
 )
 
 require (
