@@ -83,6 +83,12 @@ If you access the Docker host via SSH, you might want to forward the Docker port
 ssh remotehost -L 2375:localhost:2375 -L 8443:localhost:8443 $(for KUBEPORT in $(seq 6445 1 6465); do echo " -L ${KUBEPORT}:localhost:${KUBEPORT}" ; done | tr -d "\n")
 ```
 
+### Use custom-built Rancher images on k3d
+
+When using `k3d`, change `RANCHER_IMAGE_TAG` and if an image with the same tag is found it will be added to relevant clusters.
+
+This is useful during Rancher development to test Rancher changes on k3d clusters.
+
 ## Passing custom Terraform variables
 
 Terraform variables can be overridden using `TERRAFORM_VAR_FILE` environment variable, to point to a [`.tfvars` file](https://developer.hashicorp.com/terraform/language/values/variables#variable-definitions-tfvars-files). The variable should contain a path to the file in json or tfvars format.
