@@ -240,8 +240,8 @@ github.com/git-ival/grafana-api-golang-client v0.26.1-0.20231204163350-5dfef652c
 github.com/git-ival/grafana-api-golang-client v0.26.1-0.20231204163350-5dfef652c1e1/go.mod h1:dz/SO7WgVFdBfSCXyWsAGxWjvaoeyJwjHmxMAMKgcys=
 github.com/git-ival/rancher v0.0.0-20231205033045-71c696d088b1 h1:L9fID8jlyfSZyQjhqGZ4MU1gJXqIQqOWXIYId76ncTw=
 github.com/git-ival/rancher v0.0.0-20231205033045-71c696d088b1/go.mod h1:/hIs9V04vxLWWMNZHt2TpnMjNUdOSizJBLD81lYidls=
-github.com/git-ival/shepherd v0.0.0-20240104232622-f4d2505ea4ca h1:TYC4APHXiOQhuWbVSIMpWNvTYgjJ0eVbjn0ZnL7ZdNc=
-github.com/git-ival/shepherd v0.0.0-20240104232622-f4d2505ea4ca/go.mod h1:fZTaFx4Xivt6b6kywsnpX7DR1nwcbXiAJdZr3ZEDSHM=
+github.com/git-ival/shepherd v0.0.0-20240105171442-0e5a059b395c h1:eTBJn1ffHTZ0XsVdgMQ5/7l03686R0NoiqcZrTvtfWA=
+github.com/git-ival/shepherd v0.0.0-20240105171442-0e5a059b395c/go.mod h1:fZTaFx4Xivt6b6kywsnpX7DR1nwcbXiAJdZr3ZEDSHM=
 github.com/go-errors/errors v1.0.1/go.mod h1:f4zRHt4oKfwPJE5k8C9vpYG+aDHdBFUsgrm6/TyX73Q=
 github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
 github.com/go-errors/errors v1.4.2/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3BopGUQ5a5Og=
