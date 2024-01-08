@@ -86,13 +86,14 @@ ssh remotehost -L 2375:localhost:2375 -L 8443:localhost:8443 $(for KUBEPORT in $
 ## Passing custom Terraform variables
 
 Terraform variables can be overridden using `TERRAFORM_VAR_FILE` environment variable, to point to a [`.tfvars` file](https://developer.hashicorp.com/terraform/language/values/variables#variable-definitions-tfvars-files). The variable should contain a path to the file in json or tfvars format.
-For example, for the `ssh` module, nodes' ip addresses, login name, etc. can be overridden cas follows:
+For example, for the `ssh` module, nodes' ip addresses, login name, etc. can be overridden as follows:
 
 ```shell
 export TERRAFORM_WORK_DIR=terraform/main/ssh
 export TERRAFORM_VAR_FILE=terraform/examples/ssh.tfvars.json
 ./bin/setup.mjs
 ./bin/run_tests.mjs
+./bin/get_access.mjs
 ./bin/teardown.mjs
 ```
 
