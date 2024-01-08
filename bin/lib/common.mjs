@@ -1,5 +1,5 @@
 import {spawnSync} from 'child_process'
-import {dirname, relative, join} from 'path'
+import {dirname, join, relative} from 'path'
 import {cwd, env} from 'process'
 import {fileURLToPath} from 'url'
 
@@ -123,4 +123,19 @@ export function guessAppFQDNFromLoadBalancer(cluster){
         .flat()
         .filter(x => x)
         .map(x => x["ip"] + ".sslip.io" || x["hostname"])[0]
+}
+
+// imports latest built rancher and rancher-agent images into clusters
+// only works for k3d at the moment
+export function importImage(image, ...clusters) {
+    if (isK3d()) {
+        const lines = runCollectingOutput(`docker images --filter='reference=${image}' --format=json`).trim().split("\n")
+        const images = lines.map(line => JSON.parse(line)).map(image => image.Repository + ":" + image.Tag)
+
+        if (images.length > 0) {
+            for (const cluster of clusters) {
+                run(`k3d image import --cluster ${cluster["context"].replace(/^k3d-/, "")} ${images[0]}`)
+            }
+        }
+    }
 }
