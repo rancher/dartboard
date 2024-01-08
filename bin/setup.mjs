@@ -12,6 +12,7 @@ import {
     isK3d,
     retryOnError,
     getAppAddressesFor,
+    importImage,
 } from "./lib/common.mjs"
 import {k6_run} from "./lib/k6.mjs";
 import {install_rancher_monitoring} from "./lib/rancher_monitoring.mjs";
@@ -28,9 +29,7 @@ run(`terraform -chdir=${q(terraformDir())} init -upgrade`)
 run(`terraform -chdir=${q(terraformDir())} apply -auto-approve ${q(terraformVar())}`)
 const clusters = runCollectingJSONOutput(`terraform -chdir=${q(terraformDir())} output -json`)["clusters"]["value"]
 
-
-
-// Step 2: Helm charts
+// Step 3: Helm charts
 // tester cluster
 const tester = clusters["tester"]
 helm_install("mimir", dir("charts/mimir"), tester, "tester", {ingressClassName: tester["ingress_class_name"]})
@@ -84,6 +83,7 @@ helm_install("grafana", GRAFANA_CHART, tester, "tester", {
 
 // upstream cluster
 const upstream = clusters["upstream"]
+importImage(`rancher/rancher:${RANCHER_IMAGE_TAG}`, upstream)
 helm_install("cert-manager", CERT_MANAGER_CHART, upstream, "cert-manager", {installCRDs: true})
 
 const BOOTSTRAP_PASSWORD = "admin"
@@ -135,9 +135,12 @@ const cuf = `--context=${upstream["context"]}`
 run(`kubectl wait deployment/rancher --namespace cattle-system --for condition=Available=true --timeout=1h ${q(kuf)} ${q(cuf)}`)
 
 
-// Step 3: Import downstream clusters
+// Step 4: Import downstream clusters
 const importedClusters = Object.entries(clusters).filter(([k,v]) => k.startsWith("downstream"))
 const importedClusterNames = importedClusters.map(([name, cluster]) => name).join(",")
+
+importImage(`rancher/rancher-agent:${RANCHER_IMAGE_TAG}`, ...importedClusters.map(([name, cluster]) => cluster))
+
 k6_run(tester, { BASE_URL: rancherClusterNetworkURL, BOOTSTRAP_PASSWORD: BOOTSTRAP_PASSWORD, PASSWORD: ADMIN_PASSWORD, IMPORTED_CLUSTER_NAMES: importedClusterNames}, {}, "k6/rancher_setup.js")
 
 for (const [name, cluster] of importedClusters) {
