@@ -1,6 +1,6 @@
 resource "azurerm_virtual_network" "main" {
   name                = "${var.project_name}-network"
-  address_space       = ["172.16.0.0/16"]
+  address_space       = ["172.16.0.0/12"]
   location            = var.location
   resource_group_name = var.resource_group_name
 }
@@ -18,7 +18,7 @@ resource "azurerm_subnet" "private" {
   name                 = "${var.project_name}-private-subnet"
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["172.16.1.0/24"]
+  address_prefixes     = ["172.20.0.0/16"]
 }
 
 resource "azurerm_public_ip" "public" {

@@ -43,12 +43,17 @@ variable "is_spot" {
 
 variable "os_disk_type" {
   description = "Provisioned root disk type: 'Standard_LRS', 'StandardSSD_LRS', 'Premium_LRS', 'StandardSSD_ZRS' and 'Premium_ZRS'"
-  default     = "Standard_LRS"
+  default     = "Premium_LRS"
 }
 
 variable "os_disk_size" {
   description = " The Size of the Internal OS Disk in GB"
   default     = 30
+}
+
+variable "os_ephemeral_disk" {
+  description = "Whether to use ephemeral disk for the OS"
+  default     = false
 }
 
 variable "subnet_id" {
@@ -58,6 +63,12 @@ variable "subnet_id" {
 
 variable "public_ip_address_id" {
   description = "Public IP to attach to the VM, optional"
+  type        = string
+  default     = null
+}
+
+variable "storage_account_uri" {
+  description = "Storage account URI to attach to the VM to enable Boot Diagnostics, optional"
   type        = string
   default     = null
 }

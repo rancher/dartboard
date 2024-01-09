@@ -3,7 +3,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "3.82.0"
+      version = "3.83.0"
     }
     tls = {
       source  = "hashicorp/tls"
@@ -52,6 +52,17 @@ module "network" {
 }
 
 
+resource "azurerm_storage_account" "storage_account" {
+  name                     = "${replace(local.project_name, "/[^0-9a-z]/", "")}sa"
+  resource_group_name      = azurerm_resource_group.rg.name
+  location                 = local.location
+  account_replication_type = "LRS"
+  account_tier             = "Standard"
+  tags = {
+    project = local.project_name
+  }
+}
+
 module "k3s_cluster" {
   // HACK: we need to wait for the module.network to complete before moving on to workaround
   // terraform issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
@@ -80,12 +91,14 @@ module "k3s_cluster" {
   is_spot                   = lookup(local.k3s_clusters[count.index], "is_spot", false)
   os_disk_type              = lookup(local.k3s_clusters[count.index], "os_disk_type", "Standard_LRS")
   os_disk_size              = lookup(local.k3s_clusters[count.index], "os_disk_size", 30)
+  os_ephemeral_disk         = lookup(local.k3s_clusters[count.index], "os_ephemeral_disk", false)
   resource_group_name       = azurerm_resource_group.rg.name
   location                  = azurerm_resource_group.rg.location
   ssh_public_key_path       = var.ssh_public_key_path
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
   subnet_id                 = module.network.private_subnet_id
+  storage_account_uri       = lookup(local.k3s_clusters[count.index], "boot_diagnostics", false) ? azurerm_storage_account.storage_account.primary_blob_endpoint : null
 }
 
 module "rke2_cluster" {
@@ -116,12 +129,14 @@ module "rke2_cluster" {
   is_spot                   = lookup(local.rke2_clusters[count.index], "is_spot", false)
   os_disk_type              = lookup(local.rke2_clusters[count.index], "os_disk_type", "Standard_LRS")
   os_disk_size              = lookup(local.rke2_clusters[count.index], "os_disk_size", 30)
+  os_ephemeral_disk         = lookup(local.rke2_clusters[count.index], "os_ephemeral_disk", false)
   resource_group_name       = azurerm_resource_group.rg.name
   location                  = azurerm_resource_group.rg.location
   ssh_public_key_path       = var.ssh_public_key_path
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
   subnet_id                 = module.network.private_subnet_id
+  storage_account_uri       = lookup(local.rke2_clusters[count.index], "boot_diagnostics", false) ? azurerm_storage_account.storage_account.primary_blob_endpoint : null
 }
 
 module "aks_cluster" {
@@ -138,8 +153,8 @@ module "aks_cluster" {
   secondary_node_pool_taints = ["monitoring=true:NoSchedule"]
   distro_version             = local.aks_clusters[count.index].distro_version
   vm_size                    = local.aks_clusters[count.index].size
-  os_disk_type               = local.aks_clusters[count.index].os_disk_type
-  os_disk_size               = local.aks_clusters[count.index].os_disk_size
+  os_disk_size               = lookup(local.aks_clusters[count.index], "os_disk_size", 30)
+  os_ephemeral_disk          = lookup(local.aks_clusters[count.index], "os_ephemeral_disk", false)
 
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location

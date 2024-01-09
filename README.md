@@ -45,6 +45,22 @@ In case Terraform returns an error with little context about what happened, use 
 export TF_LOG=debug
 ```
 
+### Forcibly stopping all SSH tunnels
+
+```shell
+pkill -f 'ssh .*-o IgnoreUnknown=TerraformCreatedThisTunnel.*'
+```
+
+### Troubleshooting inaccessible Azure VMs
+
+If an Azure VM is not accessible via SSH, try the following:
+- add the `boot_diagnostics = true` option in `inputs.tf`
+- apply or re-deploy
+- in the Azure Portal, click on Home -> Virtual Machines -> <name> -> Help -> Reset Password 
+- then Home -> Virtual Machines -> <name> -> Help -> Serial Console
+
+That should give you access to the VM's console, where you can log in with the new password and troubleshoot.
+
 ## Tips
 
 ### Use k3d targeting a remote machine running the Docker daemon
@@ -70,13 +86,14 @@ ssh remotehost -L 2375:localhost:2375 -L 8443:localhost:8443 $(for KUBEPORT in $
 ## Passing custom Terraform variables
 
 Terraform variables can be overridden using `TERRAFORM_VAR_FILE` environment variable, to point to a [`.tfvars` file](https://developer.hashicorp.com/terraform/language/values/variables#variable-definitions-tfvars-files). The variable should contain a path to the file in json or tfvars format.
-For example, for the `ssh` module, nodes' ip addresses, login name, etc. can be overridden cas follows:
+For example, for the `ssh` module, nodes' ip addresses, login name, etc. can be overridden as follows:
 
 ```shell
 export TERRAFORM_WORK_DIR=terraform/main/ssh
 export TERRAFORM_VAR_FILE=terraform/examples/ssh.tfvars.json
 ./bin/setup.mjs
 ./bin/run_tests.mjs
+./bin/get_access.mjs
 ./bin/teardown.mjs
 ```
 

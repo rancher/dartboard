@@ -27,6 +27,8 @@ helm_install("k6-files", dir("charts/k6-files"), tester, "tester", {})
 // Create config maps
 const commit = runCollectingOutput("git rev-parse --short HEAD").trim()
 const downstreams = Object.entries(clusters).filter(([k,v]) => k.startsWith("downstream"))
+const upstream = clusters["upstream"]
+
 for (const [name, downstream] of downstreams) {
     k6_run(tester,
         { BASE_URL: downstream["private_kubernetes_api_url"], KUBECONFIG: downstream["kubeconfig"], CONTEXT: downstream["context"], CONFIG_MAP_COUNT: CONFIG_MAP_COUNT, SECRET_COUNT: SECRET_COUNT},
@@ -35,7 +37,11 @@ for (const [name, downstream] of downstreams) {
     )
 }
 
-const upstream = clusters["upstream"]
+k6_run(tester,
+    { BASE_URL: upstream["private_kubernetes_api_url"], KUBECONFIG: upstream["kubeconfig"], CONTEXT: upstream["context"], CONFIG_MAP_COUNT: CONFIG_MAP_COUNT, SECRET_COUNT: SECRET_COUNT},
+    {commit: commit, cluster: "upstream", test: "create_load.mjs", ConfigMaps: CONFIG_MAP_COUNT, Secrets: SECRET_COUNT},
+    "k6/create_k8s_resources.js", true
+)
 
 // create users and roles
 const upstreamAddresses = getAppAddressesFor(upstream)
@@ -52,38 +58,3 @@ k6_run(tester,
     {commit: commit, cluster: "upstream", test: "create_projects.mjs", Projects: PROJECT_COUNT},
     "k6/create_projects.js", true
 )
-
-// Output access details
-console.log("*** ACCESS DETAILS")
-console.log()
-
-console.log(`*** UPSTREAM CLUSTER`)
-console.log(`    Rancher UI: ${rancherURL} (admin/${ADMIN_PASSWORD})`)
-
-console.log(`    Kubernetes API:`)
-console.log(`export KUBECONFIG=${q(upstream["kubeconfig"])}`)
-console.log(`kubectl config use-context ${q(upstream["context"])}`)
-for (const [node, command] of Object.entries(upstream["node_access_commands"])) {
-    console.log(`    Node ${node}: ${q(command)}`)
-}
-console.log()
-
-for (const [name, downstream] of downstreams) {
-    console.log(`*** ${name.toUpperCase()} CLUSTER`)
-    console.log(`    Kubernetes API:`)
-    console.log(`export KUBECONFIG=${q(downstream["kubeconfig"])}`)
-    console.log(`kubectl config use-context ${q(downstream["context"])}`)
-    for (const [node, command] of Object.entries(downstream["node_access_commands"])) {
-        console.log(`    Node ${node}: ${q(command)}`)
-    }
-    console.log()
-}
-
-console.log(`*** TESTER CLUSTER`)
-const testerAddresses = getAppAddressesFor(tester)
-const grafanaURL = testerAddresses.localNetwork.httpURL
-console.log(`    Grafana UI: ${grafanaURL}/grafana/d/a1508c35-b2e6-47f4-94ab-fec400d1c243/test-results?orgId=1&refresh=5s&from=now-30m&to=now (admin/${ADMIN_PASSWORD})`)
-for (const [node, command] of Object.entries(tester["node_access_commands"])) {
-    console.log(`    Node ${node}: ${q(command)}`)
-}
-console.log()

@@ -64,7 +64,7 @@ locals {
     context    = module.aks_cluster[i].context
 
     // same as the kubeconfig URL
-    private_kubernetes_api_url = "https://${module.aks_cluster[i].cluster_public_name}:6443"
+    private_kubernetes_api_url = "https://${module.aks_cluster[i].cluster_public_name}:443"
 
     // addresses of applications running in this cluster
     app_addresses = {
