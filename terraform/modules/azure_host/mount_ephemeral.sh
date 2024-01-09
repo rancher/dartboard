@@ -7,9 +7,13 @@ set -xe
 partition=$(findmnt -nM /mnt | awk '{print $2}')
 case "$partition" in
   "/dev/sd"*)
-    sudo umount /mnt
-    sudo /sbin/mkfs.xfs -f ${partition}
-    sudo mkdir -p /data
-    sudo mount ${partition} /data
+    # ensure the ephemeral disk is big enough, i.e., 8 GB, or skip
+    size=$(findmnt -nM /mnt -bo size)
+    if [ $size -gt $(( 8 * 1024*1024*1024)) ]; then
+      sudo umount /mnt
+      sudo /sbin/mkfs.xfs -f ${partition}
+      sudo mkdir -p /data
+      sudo mount ${partition} /data
+    fi
     ;;
 esac

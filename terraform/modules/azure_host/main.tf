@@ -34,9 +34,24 @@ resource "azurerm_linux_virtual_machine" "main" {
   }
 
   os_disk {
-    storage_account_type = var.os_disk_type
-    disk_size_gb         = var.os_disk_size
-    caching              = "ReadWrite"
+    storage_account_type = var.os_ephemeral_disk ? "Standard_LRS" : var.os_disk_type
+    disk_size_gb         = var.os_ephemeral_disk ? null : var.os_disk_size
+    caching              = var.os_ephemeral_disk ? "ReadOnly" : "ReadWrite"
+
+    dynamic "diff_disk_settings" {
+      for_each = var.os_ephemeral_disk ? [1] : []
+      content {
+        option = "Local"
+        placement = "ResourceDisk"
+      }
+    }
+  }
+
+  dynamic "boot_diagnostics" {
+    for_each = var.storage_account_uri != null ? [1] : []
+    content {
+      storage_account_uri = var.storage_account_uri
+    }
   }
 }
 

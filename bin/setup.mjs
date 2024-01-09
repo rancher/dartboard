@@ -151,10 +151,10 @@ for (const [name, cluster] of importedClusters) {
     run(`kubectl apply -f - --kubeconfig=${q(cluster["kubeconfig"])} --context=${q(cluster["context"])}`, {input: yaml})
 }
 
-run(`kubectl wait clusters.management.cattle.io --all --for condition=ready=true --timeout=1h ${q(kuf)} ${q(cuf)}`)
+run(`kubectl wait clusters.management.cattle.io --all --for condition=ready=true --timeout=15m ${q(kuf)} ${q(cuf)}`)
 
 if (importedClusters.length > 0) {
-    run(`kubectl wait cluster.fleet.cattle.io --all --namespace fleet-default --for condition=ready=true --timeout=1h ${q(kuf)} ${q(cuf)}`)
+    run(`kubectl wait cluster.fleet.cattle.io --all --namespace fleet-default --for condition=ready=true --timeout=15m ${q(kuf)} ${q(cuf)}`)
 }
 
 for (const [_, cluster] of importedClusters) {

@@ -60,6 +60,11 @@ variable "os_disk_size" {
   default     = 30
 }
 
+variable "os_ephemeral_disk" {
+  description = "Whether to use ephemeral disk for the OS"
+  default     = false
+}
+
 variable "size" {
   description = "Azure VM size"
   default     = "Standard_B2as_v2"
@@ -68,6 +73,12 @@ variable "size" {
 variable "is_spot" {
   description = "Wheter the VM should be allocated as a Spot instance (can cost 90% less of regular ones but could be evicted)"
   default     = false
+}
+
+variable "storage_account_uri" {
+  description = "Storage account URI to attach to the VM to enable Boot Diagnostics, optional"
+  type        = string
+  default     = null
 }
 
 variable "ssh_user" {

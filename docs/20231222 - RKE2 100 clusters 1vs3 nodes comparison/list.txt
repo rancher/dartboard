@@ -1,0 +1,17 @@
+NAME	Cluster	NodesXcluster	RancherClusterNodes	Azure VM size
+RKE10	100	1		2+1			E8ads_v5	fresh deployment
+RKE11	100	1		2+1			E8ads_v5	loaded resources
+RKE15	10	1		2+1			E8ads_v5	fresh deployment
+RKE16	10	1		2+1			E8ads_v5	loaded resources
+RKE17	10	1		2+1			E8ads_v5	very high load of resources
+RKE20	100	3		2+1			E8ads_v5	fresh deployment
+RKE21	100	3		2+1			E8ads_v5	loaded resources
+RKE30	100	1		3+1			E8ads_v5	fresh deployment
+RKE31	100	1		3+1			E8ads_v5	restarted Rancher
+RKE32	100	1		3+1			E8ads_v5	loaded resources (issues with missing namespaces)
+RKE40	100	1		3+1			E8ads_v5	fresh deployment
+RKE41	100	1		3+1			E8ads_v5	loaded resources
+RKE42	100	1		3+1			E8ads_v5	restarted Rancher
+RKE50	100	3		3+1			E8ads_v5	fresh deployment
+RKE51	100	3		3+1			E8ads_v5	loaded resources
+RKE52	100	3		3+1			E8ads_v5	restarted Rancher
