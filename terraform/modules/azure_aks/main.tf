@@ -16,12 +16,14 @@ resource "azurerm_kubernetes_cluster" "cluster" {
   }
 
   default_node_pool {
-    name            = "default"
-    node_count      = var.default_node_pool_count
-    vm_size         = var.vm_size
-    vnet_subnet_id  = var.subnet_id
-    os_disk_type    = var.os_ephemeral_disk ? "Ephemeral" : "Managed"
-    os_disk_size_gb = var.os_disk_size
+    name                        = "default"
+    temporary_name_for_rotation = "tempdefault"
+    node_count                  = var.default_node_pool_count
+    vm_size                     = var.vm_size
+    vnet_subnet_id              = var.subnet_id
+    os_disk_type                = var.os_ephemeral_disk ? "Ephemeral" : "Managed"
+    os_disk_size_gb             = var.os_disk_size
+    max_pods                    = 250
   }
 
   identity {
@@ -39,6 +41,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "secondary" {
   vnet_subnet_id        = var.subnet_id
   os_disk_type          = var.os_ephemeral_disk ? "Ephemeral" : "Managed"
   os_disk_size_gb       = var.os_disk_size
+  max_pods              = 250
 }
 
 resource "local_file" "kubeconfig" {
