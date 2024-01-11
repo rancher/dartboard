@@ -41,7 +41,7 @@ resource "azurerm_linux_virtual_machine" "main" {
     dynamic "diff_disk_settings" {
       for_each = var.os_ephemeral_disk ? [1] : []
       content {
-        option = "Local"
+        option    = "Local"
         placement = "ResourceDisk"
       }
     }
