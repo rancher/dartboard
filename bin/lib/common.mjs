@@ -129,7 +129,7 @@ export function guessAppFQDNFromLoadBalancer(cluster){
 // only works for k3d at the moment
 export function importImage(image, ...clusters) {
     if (isK3d()) {
-        const lines = runCollectingOutput(`docker images --filter='reference=${image}' --format=json`).trim().split("\n")
+        const lines = runCollectingOutput(`docker images --filter='reference=${image}' --format=json`).trim().split("\n").filter(x => x !== "")
         const images = lines.map(line => JSON.parse(line)).map(image => image.Repository + ":" + image.Tag)
 
         if (images.length > 0) {
