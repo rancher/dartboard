@@ -10,6 +10,7 @@ const password = __ENV.PASSWORD
 const token = __ENV.TOKEN
 const cluster = __ENV.CLUSTER || "local"
 const resource = __ENV.RESOURCE || "management.cattle.io.setting"
+const api = __ENV.API || "steve"
 const paginationStyle = __ENV.PAGINATION_STYLE || "k8s"
 const pageSize = __ENV.PAGE_SIZE || 100
 const urlSuffix = __ENV.URL_SUFFIX || ""
@@ -59,16 +60,30 @@ export function setup() {
     return {}
 }
 
-export function list(cookies) {
-    const url = cluster === "local"?
-        `${baseUrl}/v1/${resource}` :
-        `${baseUrl}/k8s/clusters/${cluster}/v1/${resource}`
 
-    if (paginationStyle === "k8s") {
-        listWithK8sStylePagination(url, cookies)
+
+export function list(cookies) {
+    if (api === "steve") {
+        const url = cluster === "local"?
+            `${baseUrl}/v1/${resource}` :
+            `${baseUrl}/k8s/clusters/${cluster}/v1/${resource}`
+
+        if (paginationStyle === "k8s") {
+            listWithK8sStylePagination(url, cookies)
+        }
+        else if (paginationStyle === "steve") {
+            listWithSteveStylePagination(url, cookies)
+        }
+        else {
+            fail("Invalid PAGINATION_STYLE value: " + paginationStyle)
+        }
     }
-    else if (paginationStyle === "steve") {
-        listWithSteveStylePagination(url, cookies)
+    else if (api === "norman") {
+        const url = `${baseUrl}/v3/${resource}`
+        listWithNormanStylePagination(url, cookies)
+    }
+    else {
+        fail("Invalid API value: " + api)
     }
 }
 
@@ -84,7 +99,7 @@ function listWithK8sStylePagination(url, cookies) {
         const res = http.get(fullUrl, {cookies: cookies})
 
         const criteria = {}
-        criteria[`listing ${resource} from cluster ${cluster} (k8s style pagination) succeeds`] = (r) => r.status === 200
+        criteria[`listing ${resource} from cluster ${cluster} (steve with k8s style pagination) succeeds`] = (r) => r.status === 200
         criteria[`no slow pagination errors (410 Gone) detected`] = (r) => r.status !== 410
         check(res, criteria)
 
@@ -132,6 +147,32 @@ function listWithSteveStylePagination(url, cookies) {
             i = i + 1
         }
         catch (e){
+            if (e instanceof SyntaxError) {
+                fail("Response body does not parse as JSON: " + res.body)
+            }
+            throw e
+        }
+    }
+}
+
+function listWithNormanStylePagination(url, cookies) {
+    let nextUrl = url + "?limit=" + pageSize
+    let partial = true
+    while (true) {
+        const res = http.get(nextUrl, {cookies: cookies})
+
+        const criteria = {}
+        criteria[`listing ${resource} from cluster ${cluster} (norman style pagination) succeeds`] = (r) => r.status === 200
+        criteria[`no slow pagination errors (410 Gone) detected`] = (r) => r.status !== 410
+        check(res, criteria)
+
+        try {
+            const body = JSON.parse(res.body)
+            if (body === undefined || body.pagination === undefined || body.pagination.partial === undefined || body.pagination.next === undefined) {
+                break
+            }
+            nextUrl = body.pagination.next
+        } catch (e) {
             if (e instanceof SyntaxError) {
                 fail("Response body does not parse as JSON: " + res.body)
             }
