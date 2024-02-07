@@ -24,6 +24,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
@@ -61,7 +62,8 @@ func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[str
 			if chart, err = loader.Load(chartPath); err != nil {
 				return err
 			}
-			_, err = installAction.Run(chart, vals)
+			r, err := installAction.Run(chart, vals)
+			return printNotes(r, err)
 		}
 		return err
 	}
@@ -76,7 +78,19 @@ func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[str
 	if chart, err = loader.Load(chartPath); err != nil {
 		return err
 	}
-	_, err = upgradeAction.Run(releaseName, chart, vals)
+	r, err := upgradeAction.Run(releaseName, chart, vals)
+	return printNotes(r, err)
+}
 
-	return err
+// printNotes prints the release notes to the log unless there was an error
+func printNotes(r *release.Release, err error) error {
+	if err != nil {
+		return err
+	}
+	if r.Info.Notes != "" {
+		log.Printf(r.Info.Notes)
+	} else {
+		log.Printf("No notes for release %s", r.Name)
+	}
+	return nil
 }
