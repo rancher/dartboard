@@ -40,8 +40,7 @@ func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[str
 	actionConfig := new(action.Configuration)
 
 	// TODO: use logger to provide debug logs
-	// var logger = func(format string, v ...interface{}) {}
-	logger := log.Printf
+	var logger = func(format string, v ...interface{}) {}
 	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), logger); err != nil {
 		return err
 	}
