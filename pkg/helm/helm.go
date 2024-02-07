@@ -30,6 +30,7 @@ import (
 func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[string]interface{}) error {
 	settings := cli.New()
 	settings.KubeConfig = kubecfg
+	settings.SetNamespace(namespace)
 
 	var chartPath string
 	var chart *chart.Chart
@@ -68,6 +69,7 @@ func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[str
 	// ...otherwise do an upgrade.
 	upgradeAction := action.NewUpgrade(actionConfig)
 	upgradeAction.Install = true
+	upgradeAction.Namespace = namespace
 	if chartPath, err = upgradeAction.LocateChart(chartLocation, settings); err != nil {
 		return err
 	}
