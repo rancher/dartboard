@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
@@ -60,6 +61,8 @@ func (t *Terraform) Init(dir string) error {
 	if err != nil {
 		return fmt.Errorf("error: terraform Init: %w", err)
 	}
+
+	t.tf.SetStdout(os.Stdout)
 
 	if err = t.tf.Init(context.Background(), tfexec.Upgrade(true)); err != nil {
 		return fmt.Errorf("error: terraform Init: %w", err)
