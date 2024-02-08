@@ -19,6 +19,7 @@ package helm
 import (
 	"log"
 	"os"
+	"time"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -27,6 +28,9 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
+
+// Timeout for chart installation, default is 1 minute but it could be not enough sometimes...
+const timeout = 3 * time.Minute
 
 func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[string]interface{}) error {
 	settings := cli.New()
@@ -55,6 +59,7 @@ func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[str
 			installAction.CreateNamespace = true
 			installAction.ReleaseName = releaseName
 			installAction.Namespace = namespace
+			installAction.Timeout = timeout
 			if chartPath, err = installAction.LocateChart(chartLocation, settings); err != nil {
 				return err
 			}
@@ -71,6 +76,7 @@ func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[str
 	upgradeAction := action.NewUpgrade(actionConfig)
 	upgradeAction.Install = true
 	upgradeAction.Namespace = namespace
+	upgradeAction.Timeout = timeout
 	if chartPath, err = upgradeAction.LocateChart(chartLocation, settings); err != nil {
 		return err
 	}
