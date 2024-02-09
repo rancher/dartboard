@@ -5,7 +5,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/moio/scalability-tests/pkg/kubectl"
 	"github.com/moio/scalability-tests/pkg/terraform"
 )
 
@@ -78,7 +80,41 @@ func main() {
 	if err := chartInstallCgroupsExporter(&upstream); err != nil {
 		log.Fatal(err)
 	}
-	// rancherURL := upstreamAdd.Local.HTTPSURL
+
+	// Step 4: Import downstream clusters
+
+	// TODO: Wait on the Rancher Deployment to be complete, or the import of downstream clusters may fail
+	cliTester := kubectl.Client{}
+	if err := cliTester.Init(tester.Kubeconfig); err != nil {
+		log.Fatal(err)
+	}
+
+	add, err := getAppAddressFor(upstream)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	downstreamClusters := []string{}
+
+	for clusterName := range clusters {
+		if strings.HasPrefix(clusterName, "downstream") {
+			downstreamClusters = append(downstreamClusters, clusterName)
+		}
+	}
+	importedClusterNames := strings.Join(downstreamClusters, ",")
+	fmt.Println(importedClusterNames)
+
+	envVars := map[string]string{
+		"BASE_URL":               add.Public.HTTPSURL,
+		"BOOTSTRAP_PASSWORD":     "admin",
+		"PASSWORD":               adminPassword,
+		"IMPORTED_CLUSTER_NAMES": importedClusterNames,
+	}
+
+	if err := cliTester.K6run(envVars, nil, "k6/rancher_setup.js", true, false); err != nil {
+		log.Fatal(err)
+	}
+
 }
 
 func terraformDir() string {
