@@ -9,3 +9,4 @@ terraform/main/*/config
 
 bin/out.json
 bin/results.csv
+bin/scli
