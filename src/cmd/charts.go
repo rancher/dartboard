@@ -109,7 +109,7 @@ func chartInstallRancher(cluster *terraform.Cluster) error {
 	rancherClusterURL := clusterAdd.Public.HTTPSURL
 	// TODO: extract the correct number of replicas from terraform state file
 	rancherClusterReplicas := 3
-	if filepath.Base(terraformDir()) == "k3d" {
+	if isProviderK3d() {
 		rancherClusterReplicas = 1
 	}
 	chartVals := getRancherValsJSON("admin", rancherClusterName, rancherClusterURL, rancherClusterReplicas)
@@ -176,7 +176,7 @@ func chartInstallRancherMonitoringOperator(cluster *terraform.Cluster) error {
 
 	nodeSelector := ""
 	tolerations := ""
-	if filepath.Base(terraformDir()) != "k3d" {
+	if isProviderK3d() {
 		nodeSelector = `{"monitoring": true}`
 		tolerations = `[{"key": "monitoring", "operator": "Exists", "effect": "NoSchedule"}]`
 	}
