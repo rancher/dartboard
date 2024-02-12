@@ -51,7 +51,7 @@ type Terraform struct {
 	tf *tfexec.Terraform
 }
 
-func (t *Terraform) Init(dir string) error {
+func (t *Terraform) Init(dir string, verbose bool) error {
 	tfBinary, err := exec.LookPath("terraform")
 	if err != nil {
 		return fmt.Errorf("error: terraform init: %w", err)
@@ -62,10 +62,25 @@ func (t *Terraform) Init(dir string) error {
 		return fmt.Errorf("error: terraform Init: %w", err)
 	}
 
-	t.tf.SetStdout(os.Stdout)
+	if verbose {
+		t.tf.SetStdout(os.Stdout)
+	}
 
 	if err = t.tf.Init(context.Background(), tfexec.Upgrade(true)); err != nil {
 		return fmt.Errorf("error: terraform Init: %w", err)
+	}
+
+	return nil
+}
+
+func (t *Terraform) Destroy(path string) error {
+	if len(path) > 0 {
+		if err := t.tf.Destroy(context.Background(), tfexec.VarFile(path)); err != nil {
+			return fmt.Errorf("error: terraform Destroy: %w", err)
+		}
+	}
+	if err := t.tf.Destroy(context.Background()); err != nil {
+		return fmt.Errorf("error: terraform Destroy: %w", err)
 	}
 
 	return nil
@@ -82,6 +97,19 @@ func (t *Terraform) Apply(path string) error {
 	}
 
 	return nil
+}
+
+func (t *Terraform) OutputClustersJson() (string, error) {
+	tfOutput, err := t.tf.Output(context.Background())
+	if err != nil {
+		return "", fmt.Errorf("error: terraform OutputClustersJson: %w", err)
+	}
+
+	if clusters, ok := tfOutput["clusters"]; ok {
+		return string(clusters.Value), nil
+	}
+
+	return "", fmt.Errorf("error: terraform OutputClustersJson: no cluster data")
 }
 
 func (t *Terraform) OutputClusters() (map[string]Cluster, error) {
@@ -109,10 +137,10 @@ func (t *Terraform) Version() (version string, providers map[string]string, err 
 		return
 	}
 
-	version = fmt.Sprintf("%s", tfVer)
+	version = tfVer.String()
 	providers = make(map[string]string)
 	for prov, ver := range tfProv {
-		providers[prov] = fmt.Sprintf("%s", ver)
+		providers[prov] = ver.String()
 	}
 
 	return
