@@ -24,7 +24,9 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -41,6 +43,7 @@ type Client struct {
 	kubeconfig string
 	config     *rest.Config
 	clientset  *kubernetes.Clientset
+	dynclient  *dynamic.DynamicClient
 }
 
 func (cl *Client) Init(kubePath string) error {
@@ -52,8 +55,31 @@ func (cl *Client) Init(kubePath string) error {
 	if cl.clientset, err = kubernetes.NewForConfig(cl.config); err != nil {
 		return err
 	}
-
+	if cl.dynclient, err = dynamic.NewForConfig(cl.config); err != nil {
+		return err
+	}
 	return nil
+}
+
+func (cl *Client) GetStatus(group, ver, res, name, namespace string) (map[string]interface{}, error) {
+	resource := schema.GroupVersionResource{
+		Group:    group,
+		Version:  ver,
+		Resource: res,
+	}
+
+	get, err := cl.dynclient.Resource(resource).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// expect status as map[string]interface{} or error
+	status, ok := get.UnstructuredContent()["status"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("error accessing '%s/%s' %s: 'Status' format not supported", namespace, name, res)
+	}
+
+	return status, nil
 }
 
 func (cl *Client) K6run(envVars, tags map[string]string, testPath string, printLogs, record bool) error {
@@ -176,7 +202,28 @@ func (cl *Client) isPodRunningOrSuccessful(name, namespace string) wait.Conditio
 		case v1.PodPending:
 			return false, nil
 		default:
-			return false, fmt.Errorf("pod failed, cannot retrieve logs")
+			// Pod failed
+			return false, fmt.Errorf("pod failed")
+		}
+	}
+}
+
+func (cl *Client) isPodSuccessful(name, namespace string) wait.ConditionWithContextFunc {
+	return func(ctx context.Context) (bool, error) {
+		podCli := cl.clientset.CoreV1().Pods(namespace)
+		pod, err := podCli.Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		switch pod.Status.Phase {
+		case v1.PodSucceeded:
+			return true, nil
+		case v1.PodPending, v1.PodRunning:
+			return false, nil
+		default:
+			// Pod failed
+			return false, fmt.Errorf("pod failed")
 		}
 	}
 }
