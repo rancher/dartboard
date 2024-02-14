@@ -48,8 +48,11 @@ type Cluster struct {
 }
 
 type Terraform struct {
-	tf *tfexec.Terraform
+	tf      *tfexec.Terraform
+	Threads int
 }
+
+const DefaultThreads = 10
 
 func (t *Terraform) Init(dir string, verbose bool) error {
 	tfBinary, err := exec.LookPath("terraform")
@@ -57,6 +60,9 @@ func (t *Terraform) Init(dir string, verbose bool) error {
 		return fmt.Errorf("error: terraform init: %w", err)
 	}
 
+	if t.Threads == 0 {
+		t.Threads = DefaultThreads
+	}
 	t.tf, err = tfexec.NewTerraform(dir, tfBinary)
 	if err != nil {
 		return fmt.Errorf("error: terraform Init: %w", err)
@@ -75,7 +81,8 @@ func (t *Terraform) Init(dir string, verbose bool) error {
 
 func (t *Terraform) Destroy(path string) error {
 	if len(path) > 0 {
-		if err := t.tf.Destroy(context.Background(), tfexec.VarFile(path)); err != nil {
+		if err := t.tf.Destroy(context.Background(),
+			tfexec.VarFile(path), tfexec.Parallelism(t.Threads)); err != nil {
 			return fmt.Errorf("error: terraform Destroy: %w", err)
 		}
 	}
@@ -88,7 +95,8 @@ func (t *Terraform) Destroy(path string) error {
 
 func (t *Terraform) Apply(path string) error {
 	if len(path) > 0 {
-		if err := t.tf.Apply(context.Background(), tfexec.VarFile(path)); err != nil {
+		if err := t.tf.Apply(context.Background(),
+			tfexec.VarFile(path), tfexec.Parallelism(t.Threads)); err != nil {
 			return fmt.Errorf("error: terraform Apply: %w", err)
 		}
 	}

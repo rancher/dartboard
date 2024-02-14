@@ -32,14 +32,17 @@ import (
 )
 
 const (
-	argTerraformDir     = "tf-dir"
-	argTerraformVarFile = "tf-var-file"
-	baseDir             = ""
-	adminPassword       = "adminadminadmin"
+	argTerraformDir         = "tf-dir"
+	argTerraformVarFile     = "tf-var-file"
+	argTerraformParallelism = "tf-parallelism"
+	argChartDir             = "chart-dir"
+	baseDir                 = ""
+	adminPassword           = "adminadminadmin"
 )
 
 var (
-	tfProvider = "unknown"
+	tfProvider = "k3d"
+	chartDir   string
 )
 
 func main() {
@@ -50,9 +53,12 @@ func main() {
 			&cli.StringFlag{
 				Name:    argTerraformDir,
 				Value:   filepath.Join(baseDir, "terraform", "main", "k3d"),
+				Usage:   "terraform working directory",
 				EnvVars: []string{"TERRAFORM_WORK_DIR"},
 				Action: func(cCtx *cli.Context, tfDir string) error {
-					tfProvider = filepath.Base(tfDir)
+					if len(tfDir) > 0 {
+						tfProvider = filepath.Base(tfDir)
+					}
 					return nil
 				},
 			},
@@ -66,7 +72,19 @@ func main() {
 					&cli.StringFlag{
 						Name:    argTerraformVarFile,
 						Value:   "",
+						Usage:   "terraform variable definition file",
 						EnvVars: []string{"TERRAFORM_VAR_FILE"},
+					},
+					&cli.IntFlag{
+						Name:  argTerraformParallelism,
+						Value: 10,
+						Usage: "terraform 'parallelism': number of concurrent threads",
+					},
+					&cli.StringFlag{
+						Name:        argChartDir,
+						Value:       filepath.Join(baseDir, "charts"),
+						Usage:       "charts directory",
+						Destination: &chartDir,
 					},
 				},
 				Action: actionCmdSetup,
@@ -121,6 +139,7 @@ func actionCmdDestroy(cCtx *cli.Context) error {
 func actionCmdSetup(cCtx *cli.Context) error {
 	// Terraform
 	tf := new(terraform.Terraform)
+	tf.Threads = cCtx.Int(argTerraformParallelism)
 
 	if err := tf.Init(cCtx.String(argTerraformDir), true); err != nil {
 		return err
