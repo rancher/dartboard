@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -154,10 +155,8 @@ func (cl *Client) K6run(envVars, tags map[string]string, testPath string, printL
 		return err
 	}
 
+	// Check the status of the Pod and wait it to be started (so that we can print logs if needed)
 	err = wait.PollUntilContextTimeout(context.TODO(), time.Second, 120*time.Second, false, cl.isPodRunningOrSuccessful(K6Name, K6Namespace))
-	if err != nil {
-		return fmt.Errorf("k6 pod not ready: %w", err)
-	}
 
 	if printLogs {
 		req := podCli.GetLogs(K6Name, &v1.PodLogOptions{Follow: true})
@@ -183,8 +182,22 @@ func (cl *Client) K6run(envVars, tags map[string]string, testPath string, printL
 			}
 		}
 	}
+	// Check if the Pod was in error state before printing the logs.
+	// If not, there is a chance it was running but still not ended, so we have to double check it is completed *and* successful.
+	if err == nil {
+		err = wait.PollUntilContextTimeout(context.TODO(), time.Second, 120*time.Second, false, cl.isPodSuccessful(K6Name, K6Namespace))
+	}
 
-	// wait/check it completed and delete it (k6 pod)
+	if err != nil {
+		return fmt.Errorf("k6 pod not ready: %w", err)
+	}
+
+	err = podCli.Delete(context.TODO(), K6Name, metav1.DeleteOptions{})
+	if err != nil {
+		// Don't fail, let's just log a warning
+		log.Printf("WARN: k6 pod deletion failed: %s\n", err.Error())
+	}
+
 	return nil
 }
 
