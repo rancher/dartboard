@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"strings"
 
 	"github.com/moio/scalability-tests/pkg/helm"
 	"github.com/moio/scalability-tests/pkg/terraform"
@@ -33,20 +34,18 @@ type chart struct {
 }
 
 var (
-	chartDir = filepath.Join(baseDir, "charts")
-
-	chartMimir                = chart{"mimir", "tester", filepath.Join(chartDir, "mimir")}
-	chartK6Files              = chart{"k6-files", "tester", filepath.Join(chartDir, "k6-files")}
-	chartGrafanaDashboards    = chart{"grafana-dashboards", "tester", filepath.Join(chartDir, "grafana-dashboards")}
-	chartGrafana              = chart{"grafana", "tester", filepath.Join(chartDir, "grafana")}
+	chartMimir                = chart{"mimir", "tester", "mimir"}
+	chartK6Files              = chart{"k6-files", "tester", "k6-files"}
+	chartGrafanaDashboards    = chart{"grafana-dashboards", "tester", "grafana-dashboards"}
+	chartGrafana              = chart{"grafana", "tester", "grafana"}
 	chartCertManager          = chart{"cert-manager", "cert-manager", "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"}
 	rancherVersion            = "2.7.9"
 	rancherImageTag           = "v" + rancherVersion
 	chartRancher              = chart{"rancher", "cattle-system", "https://releases.rancher.com/server-charts/latest/rancher-" + rancherVersion + ".tgz"}
-	chartRancherIngress       = chart{"rancher-ingress", "default", filepath.Join(chartDir, "rancher-ingress")}
+	chartRancherIngress       = chart{"rancher-ingress", "default", "rancher-ingress"}
 	chartRancherMonitoringCRD = chart{"rancher-monitoring-crd", "cattle-monitoring-system", "https://github.com/rancher/charts/raw/release-v2.7/assets/rancher-monitoring-crd/rancher-monitoring-crd-102.0.0%2Bup40.1.2.tgz"}
 	chartRancherMonitoring    = chart{"rancher-monitoring", "cattle-monitoring-system", "https://github.com/rancher/charts/raw/release-v2.7/assets/rancher-monitoring/rancher-monitoring-102.0.0%2Bup40.1.2.tgz"}
-	chartCgroupsExporter      = chart{"cgroups-exporter", "cattle-monitoring-system", filepath.Join(chartDir, "cgroups-exporter")}
+	chartCgroupsExporter      = chart{"cgroups-exporter", "cattle-monitoring-system", "cgroups-exporter"}
 )
 
 func chartInstall(kubeConf string, chart chart, jsonVals string) error {
@@ -56,6 +55,9 @@ func chartInstall(kubeConf string, chart chart, jsonVals string) error {
 	name := chart.name
 	namespace := chart.namespace
 	path := chart.path
+	if !strings.HasPrefix(path, "http") {
+		path = filepath.Join(chartDir, path)
+	}
 
 	log.Printf("Installing chart %q (%s)\n", namespace+"/"+name, path)
 
@@ -176,8 +178,8 @@ func chartInstallRancherMonitoringOperator(cluster *terraform.Cluster, noSchedTo
 
 	nodeSelector := ""
 	tolerations := ""
-	if noSchedToleration {
-		nodeSelector = `{"monitoring": true}`
+	if !noSchedToleration {
+		nodeSelector = `{"monitoring": "true"}`
 		tolerations = `[{"key": "monitoring", "operator": "Exists", "effect": "NoSchedule"}]`
 	}
 
@@ -190,12 +192,12 @@ func getRancherMonitoringValsJSON(nodeSelector, tolerations, mimirURL string) st
 
 	monitoringRestrictions := ""
 	if len(nodeSelector) > 0 {
-		monitoringRestrictions += fmt.Sprintf("%q: %s,", "nodeSelector", nodeSelector)
+		monitoringRestrictions += fmt.Sprintf("{%q: %s,\n", "nodeSelector", nodeSelector)
 	} else {
 		nodeSelector = `{}`
 	}
 	if len(tolerations) > 0 {
-		monitoringRestrictions += fmt.Sprintf("%q: %s,", "tolerations", tolerations)
+		monitoringRestrictions += fmt.Sprintf("%q: %s}", "tolerations", tolerations)
 	} else {
 		tolerations = `[]`
 	}
