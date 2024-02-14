@@ -142,11 +142,11 @@ func chartInstallRancherIngress(cluster *terraform.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartRancherIngress, chartVals)
 }
 
-func chartInstallRancherMonitoring(cluster *terraform.Cluster) error {
+func chartInstallRancherMonitoring(cluster *terraform.Cluster, noSchedToleration bool) error {
 	if err := chartInstallRancherMonitoringCRD(cluster); err != nil {
 		return err
 	}
-	return chartInstallRancherMonitoringOperator(cluster)
+	return chartInstallRancherMonitoringOperator(cluster, noSchedToleration)
 }
 
 func chartInstallCgroupsExporter(cluster *terraform.Cluster) error {
@@ -167,7 +167,7 @@ func chartInstallRancherMonitoringCRD(cluster *terraform.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartRancherMonitoringCRD, chartVals)
 }
 
-func chartInstallRancherMonitoringOperator(cluster *terraform.Cluster) error {
+func chartInstallRancherMonitoringOperator(cluster *terraform.Cluster, noSchedToleration bool) error {
 	clusterAdd, err := getAppAddressFor(*cluster)
 	if err != nil {
 		return fmt.Errorf("chart %s: %w", chartRancherMonitoring.name, err)
@@ -176,7 +176,7 @@ func chartInstallRancherMonitoringOperator(cluster *terraform.Cluster) error {
 
 	nodeSelector := ""
 	tolerations := ""
-	if isProviderK3d() {
+	if noSchedToleration {
 		nodeSelector = `{"monitoring": true}`
 		tolerations = `[{"key": "monitoring", "operator": "Exists", "effect": "NoSchedule"}]`
 	}

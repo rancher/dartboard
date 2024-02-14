@@ -164,7 +164,7 @@ func actionCmdSetup(cCtx *cli.Context) error {
 	if err := chartInstallRancherIngress(&upstream); err != nil {
 		return err
 	}
-	if err := chartInstallRancherMonitoring(&upstream); err != nil {
+	if err := chartInstallRancherMonitoring(&upstream, isProviderK3d()); err != nil {
 		return err
 	}
 	if err := chartInstallCgroupsExporter(&upstream); err != nil {
@@ -207,6 +207,10 @@ func importDownstreamClusters(clusters map[string]terraform.Cluster) error {
 		}
 
 		if err := kubectl.Apply(downstream.Kubeconfig, yamlFile.Name()); err != nil {
+			return err
+		}
+
+		if err := chartInstallRancherMonitoring(&downstream, false); err != nil {
 			return err
 		}
 	}
