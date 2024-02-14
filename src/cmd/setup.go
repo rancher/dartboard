@@ -17,8 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -170,13 +173,56 @@ func actionCmdSetup(cCtx *cli.Context) error {
 
 	// Import downstream clusters
 	// TODO: Wait on the Rancher Deployment to be complete, or the import of downstream clusters may fail
-	cliTester := kubectl.Client{}
-	if err := cliTester.Init(tester.Kubeconfig); err != nil {
+	if err := importDownstreamClusters(clusters); err != nil {
 		return err
 	}
 
-	add, err := getAppAddressFor(upstream)
+	return nil
+}
+
+func importDownstreamClusters(clusters map[string]terraform.Cluster) error {
+
+	if err := importDownstreamClustersRancherSetup(clusters); err != nil {
+		return err
+	}
+
+	for clusterName := range clusters {
+		if !strings.HasPrefix(clusterName, "downstream") {
+			continue
+		}
+
+		yamlFile, err := os.CreateTemp("", "scli-"+clusterName+"-*.yaml")
+		if err != nil {
+			return err
+		}
+		defer yamlFile.Close()
+
+		if err := importClustersDownstreamGetYAML(clusters, clusterName, yamlFile); err != nil {
+			return err
+		}
+
+		downstream, ok := clusters[clusterName]
+		if !ok {
+			return fmt.Errorf("error: cannot find access data for cluster %q", clusterName)
+		}
+
+		if err := kubectl.Apply(downstream.Kubeconfig, yamlFile.Name()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func importDownstreamClustersRancherSetup(clusters map[string]terraform.Cluster) error {
+	cliTester := kubectl.Client{}
+	tester := clusters["tester"]
+	upstream := clusters["upstream"]
+	upstreamAdd, err := getAppAddressFor(upstream)
 	if err != nil {
+		return err
+	}
+
+	if err := cliTester.Init(tester.Kubeconfig); err != nil {
 		return err
 	}
 
@@ -187,16 +233,69 @@ func actionCmdSetup(cCtx *cli.Context) error {
 		}
 	}
 	importedClusterNames := strings.Join(downstreamClusters, ",")
-	fmt.Println(importedClusterNames)
 
 	envVars := map[string]string{
-		"BASE_URL":               add.Public.HTTPSURL,
+		"BASE_URL":               upstreamAdd.Public.HTTPSURL,
 		"BOOTSTRAP_PASSWORD":     "admin",
 		"PASSWORD":               adminPassword,
 		"IMPORTED_CLUSTER_NAMES": importedClusterNames,
 	}
 
 	if err := cliTester.K6run(envVars, nil, "k6/rancher_setup.js", true, false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func importClustersDownstreamGetYAML(clusters map[string]terraform.Cluster, name string, yamlFile *os.File) error {
+	var err error = nil
+	var status map[string]interface{}
+
+	upstream := clusters["upstream"]
+	upstreamAdd, err := getAppAddressFor(upstream)
+	if err != nil {
+		return err
+	}
+
+	cliUpstream := kubectl.Client{}
+	if err := cliUpstream.Init(upstream.Kubeconfig); err != nil {
+		return err
+	}
+	namespace := "fleet-default"
+	resource := "clusters"
+	if status, err = cliUpstream.GetStatus("provisioning.cattle.io", "v1", resource, name, namespace); err != nil {
+		return err
+	}
+	clusterId, ok := status["clusterName"].(string)
+	if !ok {
+		return fmt.Errorf("error accessing %s/%s %s: no valid 'clusterName' in 'Status'", namespace, name, resource)
+	}
+
+	name = "default-token"
+	namespace = clusterId
+	resource = "clusterregistrationtokens"
+	if status, err = cliUpstream.GetStatus("management.cattle.io", "v3", resource, name, namespace); err != nil {
+		return err
+	}
+	token, ok := status["token"].(string)
+	if !ok {
+		return fmt.Errorf("error accessing %s/%s %s: no valid 'token' in 'Status'", namespace, name, resource)
+	}
+
+	url := fmt.Sprintf("%s/v3/import/%s_%s.yaml", upstreamAdd.Local.HTTPSURL, token, clusterId)
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	client := &http.Client{Transport: tr}
+	resp, err := client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	_, err = io.Copy(yamlFile, resp.Body)
+	if err != nil {
+		return err
+	}
+	if err := yamlFile.Sync(); err != nil {
 		return err
 	}
 
