@@ -172,8 +172,14 @@ func actionCmdSetup(cCtx *cli.Context) error {
 	}
 
 	// Import downstream clusters
-	// TODO: Wait on the Rancher Deployment to be complete, or the import of downstream clusters may fail
+	// Wait Rancher Deployment to be complete, or importing downstream clusters may fail
+	if err := kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
+		return err
+	}
 	if err := importDownstreamClusters(clusters); err != nil {
+		return err
+	}
+	if err := kubectl.WaitImportedClusters(upstream.Kubeconfig); err != nil {
 		return err
 	}
 
