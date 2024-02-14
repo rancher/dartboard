@@ -21,6 +21,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -45,6 +48,35 @@ type Client struct {
 	config     *rest.Config
 	clientset  *kubernetes.Clientset
 	dynclient  *dynamic.DynamicClient
+}
+
+func Exec(kubepath string, args ...string) error {
+	fullArgs := append([]string{"--kubeconfig=" + kubepath}, args...)
+	log.Printf("Exec: kubectl %s\n", strings.Join(fullArgs, " "))
+	cmd := exec.Command("kubectl", fullArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
+}
+
+func Apply(kubePath, filePath string) error {
+	return Exec(kubePath, "apply", "-f", filePath)
+}
+
+func WaitRancher(kubePath string) error {
+	return Exec(kubePath, "wait", "deployment/rancher",
+		"--namespace", "cattle-system",
+		"--for", "condition=Available=true", "--timeout=1h")
+}
+
+func WaitImportedClusters(kubePath string) error {
+	if err := Exec(kubePath, "wait", "clusters.management.cattle.io", "--all",
+		"--for", "condition=ready=true", "--timeout=15m"); err != nil {
+		return err
+	}
+	return Exec(kubePath, "wait", "cluster.fleet.cattle.io", "--all",
+		"--namespace", "fleet-default", "--for", "condition=ready=true", "--timeout=15m")
 }
 
 func (cl *Client) Init(kubePath string) error {
