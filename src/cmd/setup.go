@@ -244,6 +244,7 @@ func importDownstreamClusterDo(clusters map[string]terraform.Cluster, clusterNam
 		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
 		return
 	}
+	defer os.Remove(yamlFile.Name())
 	defer yamlFile.Close()
 
 	clusterId, err := importClustersDownstreamGetYAML(clusters, clusterName, yamlFile)
