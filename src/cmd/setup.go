@@ -210,44 +210,75 @@ func importDownstreamClusters(clusters map[string]terraform.Cluster) error {
 		return err
 	}
 
+	buffer := 10
+	clustersChan := make(chan string, buffer)
+	errorChan := make(chan error)
+	clustersCount := 0
+
 	for clusterName := range clusters {
 		if !strings.HasPrefix(clusterName, "downstream") {
 			continue
 		}
-		log.Print("Import cluster " + clusterName)
-		yamlFile, err := os.CreateTemp("", "scli-"+clusterName+"-*.yaml")
-		if err != nil {
-			return err
-		}
-		defer yamlFile.Close()
+		clustersCount++
+		go importDownstreamClusterDo(clusters, clusterName, clustersChan, errorChan)
+	}
 
-		clusterId, err := importClustersDownstreamGetYAML(clusters, clusterName, yamlFile)
-		if err != nil {
+	for {
+		select {
+		case err := <-errorChan:
 			return err
-		}
-
-		downstream, ok := clusters[clusterName]
-		if !ok {
-			return fmt.Errorf("error: cannot find access data for cluster %q", clusterName)
-		}
-
-		if err := kubectl.Apply(downstream.Kubeconfig, yamlFile.Name()); err != nil {
-			return err
-		}
-
-		if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
-			"clusters.management.cattle.io", clusterId, "", 10); err != nil {
-			return err
-		}
-		if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
-			"cluster.fleet.cattle.io", clusterName, "fleet-default", 10); err != nil {
-			return err
-		}
-		if err := chartInstallRancherMonitoring(&downstream, true); err != nil {
-			return err
+		case completed := <-clustersChan:
+			log.Printf("Cluster %q imported successfully.\n", completed)
+			clustersCount--
+			if clustersCount == 0 {
+				return nil
+			}
 		}
 	}
-	return nil
+}
+
+func importDownstreamClusterDo(clusters map[string]terraform.Cluster, clusterName string, ch chan<- string, errCh chan<- error) {
+	log.Print("Import cluster " + clusterName)
+	yamlFile, err := os.CreateTemp("", "scli-"+clusterName+"-*.yaml")
+	if err != nil {
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+	defer yamlFile.Close()
+
+	clusterId, err := importClustersDownstreamGetYAML(clusters, clusterName, yamlFile)
+	if err != nil {
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+
+	downstream, ok := clusters[clusterName]
+	if !ok {
+		err := fmt.Errorf("error: cannot find access data for cluster %q", clusterName)
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+
+	if err := kubectl.Apply(downstream.Kubeconfig, yamlFile.Name()); err != nil {
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+
+	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
+		"clusters.management.cattle.io", clusterId, "", 10); err != nil {
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
+		"cluster.fleet.cattle.io", clusterName, "fleet-default", 10); err != nil {
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+	if err := chartInstallRancherMonitoring(&downstream, true); err != nil {
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+	ch <- clusterName
 }
 
 func importDownstreamClustersRancherSetup(clusters map[string]terraform.Cluster) error {
