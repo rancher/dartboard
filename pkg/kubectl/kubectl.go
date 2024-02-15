@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -54,10 +53,15 @@ func Exec(kubepath string, args ...string) error {
 	fullArgs := append([]string{"--kubeconfig=" + kubepath}, args...)
 	log.Printf("Exec: kubectl %s\n", strings.Join(fullArgs, " "))
 	cmd := exec.Command("kubectl", fullArgs...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
-	return cmd.Run()
+	var errStream strings.Builder
+	cmd.Stdout = log.Writer()
+	cmd.Stderr = &errStream
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf(errStream.String())
+	}
+	return nil
 }
 
 func Apply(kubePath, filePath string) error {
@@ -71,12 +75,29 @@ func WaitRancher(kubePath string) error {
 }
 
 func WaitForReadyCondition(kubePath, resource, name, namespace string, minutes int) error {
+	var err error
+	args := []string{"wait", resource, name}
+
 	if len(namespace) > 0 {
-		return Exec(kubePath, "wait", resource, name, "--namespace", namespace,
-			"--for", "condition=ready=true", fmt.Sprintf("--timeout=%dm", minutes))
+		args = append(args, "--namespace", namespace)
 	}
-	return Exec(kubePath, "wait", resource, name,
-		"--for", "condition=ready=true", fmt.Sprintf("--timeout=%dm", minutes))
+	args = append(args, "--for", "condition=ready=true", fmt.Sprintf("--timeout=%dm", minutes))
+
+	maxRetries := 10
+	for i := 1; i < maxRetries; i++ {
+		err = Exec(kubePath, args...)
+		if err == nil {
+			return nil
+		}
+		// Check if by chance the resource is not yet available
+		if strings.Contains(err.Error(), fmt.Sprintf("%q not found", name)) {
+			log.Printf("resource %s/%s not available yet, retry %d/%d\n", namespace, name, i, maxRetries)
+		} else {
+			return err
+		}
+	}
+
+	return err
 }
 
 func WaitImportedClusters(kubePath string) error {
