@@ -70,6 +70,15 @@ func WaitRancher(kubePath string) error {
 		"--for", "condition=Available=true", "--timeout=1h")
 }
 
+func WaitForReadyCondition(kubePath, resource, name, namespace string, minutes int) error {
+	if len(namespace) > 0 {
+		return Exec(kubePath, "wait", resource, name, "--namespace", namespace,
+			"--for", "condition=ready=true", fmt.Sprintf("--timeout=%dm", minutes))
+	}
+	return Exec(kubePath, "wait", resource, name,
+		"--for", "condition=ready=true", fmt.Sprintf("--timeout=%dm", minutes))
+}
+
 func WaitImportedClusters(kubePath string) error {
 	if err := Exec(kubePath, "wait", "clusters.management.cattle.io", "--all",
 		"--for", "condition=ready=true", "--timeout=15m"); err != nil {
