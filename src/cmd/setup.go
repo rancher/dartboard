@@ -179,14 +179,13 @@ func actionCmdSetup(cCtx *cli.Context) error {
 	if err := importDownstreamClusters(clusters); err != nil {
 		return err
 	}
-	if err := kubectl.WaitImportedClusters(upstream.Kubeconfig); err != nil {
-		return err
-	}
 
 	return nil
 }
 
 func importDownstreamClusters(clusters map[string]terraform.Cluster) error {
+
+	log.Print("Import downstream clusters")
 
 	if err := importDownstreamClustersRancherSetup(clusters); err != nil {
 		return err
@@ -196,14 +195,15 @@ func importDownstreamClusters(clusters map[string]terraform.Cluster) error {
 		if !strings.HasPrefix(clusterName, "downstream") {
 			continue
 		}
-
+		log.Print("Import cluster " + clusterName)
 		yamlFile, err := os.CreateTemp("", "scli-"+clusterName+"-*.yaml")
 		if err != nil {
 			return err
 		}
 		defer yamlFile.Close()
 
-		if err := importClustersDownstreamGetYAML(clusters, clusterName, yamlFile); err != nil {
+		clusterId, err := importClustersDownstreamGetYAML(clusters, clusterName, yamlFile)
+		if err != nil {
 			return err
 		}
 
@@ -216,7 +216,15 @@ func importDownstreamClusters(clusters map[string]terraform.Cluster) error {
 			return err
 		}
 
-		if err := chartInstallRancherMonitoring(&downstream, false); err != nil {
+		if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
+			"clusters.management.cattle.io", clusterId, "", 10); err != nil {
+			return err
+		}
+		if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
+			"cluster.fleet.cattle.io", clusterName, "fleet-default", 10); err != nil {
+			return err
+		}
+		if err := chartInstallRancherMonitoring(&downstream, true); err != nil {
 			return err
 		}
 	}
@@ -257,39 +265,40 @@ func importDownstreamClustersRancherSetup(clusters map[string]terraform.Cluster)
 	return nil
 }
 
-func importClustersDownstreamGetYAML(clusters map[string]terraform.Cluster, name string, yamlFile *os.File) error {
-	var err error = nil
+func importClustersDownstreamGetYAML(clusters map[string]terraform.Cluster, name string, yamlFile *os.File) (clusterId string, err error) {
 	var status map[string]interface{}
 
 	upstream := clusters["upstream"]
 	upstreamAdd, err := getAppAddressFor(upstream)
 	if err != nil {
-		return err
+		return
 	}
 
 	cliUpstream := kubectl.Client{}
-	if err := cliUpstream.Init(upstream.Kubeconfig); err != nil {
-		return err
+	if err = cliUpstream.Init(upstream.Kubeconfig); err != nil {
+		return
 	}
 	namespace := "fleet-default"
 	resource := "clusters"
 	if status, err = cliUpstream.GetStatus("provisioning.cattle.io", "v1", resource, name, namespace); err != nil {
-		return err
+		return
 	}
 	clusterId, ok := status["clusterName"].(string)
 	if !ok {
-		return fmt.Errorf("error accessing %s/%s %s: no valid 'clusterName' in 'Status'", namespace, name, resource)
+		err = fmt.Errorf("error accessing %s/%s %s: no valid 'clusterName' in 'Status'", namespace, name, resource)
+		return
 	}
 
 	name = "default-token"
 	namespace = clusterId
 	resource = "clusterregistrationtokens"
 	if status, err = cliUpstream.GetStatus("management.cattle.io", "v3", resource, name, namespace); err != nil {
-		return err
+		return
 	}
 	token, ok := status["token"].(string)
 	if !ok {
-		return fmt.Errorf("error accessing %s/%s %s: no valid 'token' in 'Status'", namespace, name, resource)
+		err = fmt.Errorf("error accessing %s/%s %s: no valid 'token' in 'Status'", namespace, name, resource)
+		return
 	}
 
 	url := fmt.Sprintf("%s/v3/import/%s_%s.yaml", upstreamAdd.Local.HTTPSURL, token, clusterId)
@@ -297,19 +306,19 @@ func importClustersDownstreamGetYAML(clusters map[string]terraform.Cluster, name
 	client := &http.Client{Transport: tr}
 	resp, err := client.Get(url)
 	if err != nil {
-		return err
+		return
 	}
 	defer resp.Body.Close()
 
 	_, err = io.Copy(yamlFile, resp.Body)
 	if err != nil {
-		return err
+		return
 	}
-	if err := yamlFile.Sync(); err != nil {
-		return err
+	if err = yamlFile.Sync(); err != nil {
+		return
 	}
 
-	return nil
+	return
 }
 
 func isProviderK3d() bool {
