@@ -43,7 +43,7 @@ type Cluster struct {
 	Context                 string              `json:"context"`
 	IngressClassName        string              `json:"ingress_class_name"`
 	Kubeconfig              string              `json:"kubeconfig"`
-	NodeAccessCommands      []string            `json:"node_access_commands"`
+	NodeAccessCommands      map[string]string   `json:"node_access_commands"`
 	PrivateKubernetesAPIURL string              `json:"private_kubernetes_api_url"`
 }
 
