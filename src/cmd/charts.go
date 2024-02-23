@@ -37,7 +37,7 @@ var (
 	chartMimir                = chart{"mimir", "tester", "mimir"}
 	chartK6Files              = chart{"k6-files", "tester", "k6-files"}
 	chartGrafanaDashboards    = chart{"grafana-dashboards", "tester", "grafana-dashboards"}
-	chartGrafana              = chart{"grafana", "tester", "grafana"}
+	chartGrafana              = chart{"grafana", "tester", "https://github.com/grafana/helm-charts/releases/download/grafana-6.56.5/grafana-6.56.5.tgz"}
 	chartCertManager          = chart{"cert-manager", "cert-manager", "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"}
 	rancherVersion            = "2.7.9"
 	rancherImageTag           = "v" + rancherVersion
