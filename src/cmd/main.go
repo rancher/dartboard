@@ -35,6 +35,7 @@ const (
 	argTerraformDir         = "tf-dir"
 	argTerraformVarFile     = "tf-var-file"
 	argTerraformParallelism = "tf-parallelism"
+	argTerraformSkip        = "tf-skip"
 	argChartDir             = "chart-dir"
 	baseDir                 = ""
 	adminPassword           = "adminadminadmin"
@@ -79,6 +80,11 @@ func main() {
 						Name:  argTerraformParallelism,
 						Value: 10,
 						Usage: "terraform 'parallelism': number of concurrent threads",
+					},
+					&cli.BoolFlag{
+						Name:  argTerraformSkip,
+						Value: false,
+						Usage: "skip terraform apply, start from current terraform state",
 					},
 					&cli.StringFlag{
 						Name:        argChartDir,
@@ -146,8 +152,11 @@ func actionCmdSetup(cCtx *cli.Context) error {
 	}
 	terraformVersionPrint(tf)
 
-	if err := tf.Apply(cCtx.String(argTerraformVarFile)); err != nil {
-		return err
+	doTerraformApply := !cCtx.Bool(argTerraformSkip)
+	if doTerraformApply {
+		if err := tf.Apply(cCtx.String(argTerraformVarFile)); err != nil {
+			return err
+		}
 	}
 
 	clusters, err := tf.OutputClusters()
