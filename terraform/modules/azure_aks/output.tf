@@ -11,7 +11,7 @@ output "cluster_public_name" {
 }
 
 output "node_access_commands" {
-  value = []
+  value = {}
 }
 
 output "ingress_class_name" {
