@@ -17,7 +17,9 @@ limitations under the License.
 package kubectl
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -49,13 +51,13 @@ type Client struct {
 	dynclient  *dynamic.DynamicClient
 }
 
-func Exec(kubepath string, args ...string) error {
+func Exec(kubepath string, output io.Writer, args ...string) error {
 	fullArgs := append([]string{"--kubeconfig=" + kubepath}, args...)
 	log.Printf("Exec: kubectl %s\n", strings.Join(fullArgs, " "))
 	cmd := exec.Command("kubectl", fullArgs...)
 
 	var errStream strings.Builder
-	cmd.Stdout = log.Writer()
+	cmd.Stdout = output
 	cmd.Stderr = &errStream
 
 	if err := cmd.Run(); err != nil {
@@ -65,11 +67,11 @@ func Exec(kubepath string, args ...string) error {
 }
 
 func Apply(kubePath, filePath string) error {
-	return Exec(kubePath, "apply", "-f", filePath)
+	return Exec(kubePath, log.Writer(), "apply", "-f", filePath)
 }
 
 func WaitRancher(kubePath string) error {
-	return Exec(kubePath, "wait", "deployment/rancher",
+	return Exec(kubePath, log.Writer(), "wait", "deployment/rancher",
 		"--namespace", "cattle-system",
 		"--for", "condition=Available=true", "--timeout=1h")
 }
@@ -85,7 +87,7 @@ func WaitForReadyCondition(kubePath, resource, name, namespace string, minutes i
 
 	maxRetries := 10
 	for i := 1; i < maxRetries; i++ {
-		err = Exec(kubePath, args...)
+		err = Exec(kubePath, log.Writer(), args...)
 		if err == nil {
 			return nil
 		}
@@ -101,12 +103,34 @@ func WaitForReadyCondition(kubePath, resource, name, namespace string, minutes i
 }
 
 func WaitImportedClusters(kubePath string) error {
-	if err := Exec(kubePath, "wait", "clusters.management.cattle.io", "--all",
+	if err := Exec(kubePath, log.Writer(), "wait", "clusters.management.cattle.io", "--all",
 		"--for", "condition=ready=true", "--timeout=15m"); err != nil {
 		return err
 	}
-	return Exec(kubePath, "wait", "cluster.fleet.cattle.io", "--all",
+	return Exec(kubePath, log.Writer(), "wait", "cluster.fleet.cattle.io", "--all",
 		"--namespace", "fleet-default", "--for", "condition=ready=true", "--timeout=15m")
+}
+
+func GetRancherFQDNFromLoadBalancer(kubePath string) (string, error) {
+	output := new(bytes.Buffer)
+	if err := Exec(kubePath, output, "get", "services", "--all-namespaces",
+		"-o", "jsonpath={.items[0].status.loadBalancer.ingress[0]}"); err != nil {
+		return "", fmt.Errorf("failed to fetch loadBalancer data: %w", err)
+	}
+
+	ingress := map[string]string{}
+	if err := json.Unmarshal(output.Bytes(), &ingress); err != nil {
+		return "", fmt.Errorf("cannot unmarshal ingress data: %w\n%s", err, string(output.Bytes()))
+	}
+
+	if ip, ok := ingress["ip"]; ok {
+		return ip + ".sslip.io", nil
+	}
+	if hostname, ok := ingress["hostname"]; ok {
+		return hostname, nil
+	}
+
+	return "", nil
 }
 
 func (cl *Client) Init(kubePath string) error {

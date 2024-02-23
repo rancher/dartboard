@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/moio/scalability-tests/pkg/kubectl"
 	"github.com/moio/scalability-tests/pkg/terraform"
 )
 
@@ -39,14 +40,16 @@ func getAppAddressFor(cluster terraform.Cluster) (clusterAddresses, error) {
 
 	addresses := clusterAddresses{}
 
+	// ignore error if we are not able to get the Rancher FQDN from the LoadBalancer
+	loadBalancerName, _ := kubectl.GetRancherFQDNFromLoadBalancer(cluster.Kubeconfig)
+
 	// addresses meant to be resolved from the machine running Terraform
 	// use tunnel if available, otherwise public, otherwise go through the load balancer
 	localNetworkName := add.Tunnel.Name
 	if len(localNetworkName) == 0 {
 		localNetworkName = add.Public.Name
 		if len(localNetworkName) == 0 {
-			// TODO: retrieve address from the LoadBalancer
-			return addresses, fmt.Errorf("getAppAddressFor: cannot find cluster local name")
+			localNetworkName = loadBalancerName
 		}
 	}
 	localNetworkHTTPPort := add.Tunnel.HTTPPort
@@ -70,8 +73,7 @@ func getAppAddressFor(cluster terraform.Cluster) (clusterAddresses, error) {
 	if len(clusterNetworkName) == 0 {
 		clusterNetworkName = add.Private.Name
 		if len(clusterNetworkName) == 0 {
-			// TODO: retrieve address from the LoadBalancer
-			return addresses, fmt.Errorf("getAppAddressFor: cannot find cluster network name")
+			clusterNetworkName = loadBalancerName
 		}
 	}
 	clusterNetworkHTTPPort := add.Public.HTTPPort
