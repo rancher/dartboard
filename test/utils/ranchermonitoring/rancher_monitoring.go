@@ -21,10 +21,14 @@ import (
 )
 
 const (
-	PrometheusRoute      = "/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-prometheus:9090/proxy"
-	GrafanaRoute         = "/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy"
-	GrafanaSnapshotRoute = GrafanaRoute + "/" + "dashboard/snapshot/"
-	PanelContentSelector = "div.panel-content"
+	PrometheusRoute            = "/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-prometheus:9090/proxy"
+	GrafanaRoute               = "/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy"
+	GrafanaSnapshotRoute       = GrafanaRoute + "/" + "dashboard/snapshot/"
+	PanelContentSelector       = "div.panel-content"
+	IngressConfigMapName       = "ingress-nginx-controller"
+	GrafanaConfigMapName       = "grafana-nginx-proxy-config"
+	GrafanaDeploymentName      = "rancher-monitoring-grafana"
+	RancherMonitoringNamespace = "cattle-monitoring-system"
 )
 
 func SetupClients(rancherHost string, adminToken string, adminPassword string) (*promv1.API, *gapi.Client, error) {
