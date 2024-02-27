@@ -102,7 +102,7 @@ func (s *TfApplyDestroy) TfSetupWorkspace() {
 			err = s.client.WorkspaceNew(context.Background(), s.config.WorkspaceName)
 		}
 	} else {
-		s.config.WorkspaceName = "dartboard-" + namegen.RandStringLower(5)
+		s.config.WorkspaceName = "dartboard-tfexec_test-" + namegen.RandStringLower(5)
 		err = s.client.WorkspaceNew(context.Background(), s.config.WorkspaceName)
 	}
 	require.NoError(s.T(), err)

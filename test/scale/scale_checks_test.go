@@ -17,17 +17,17 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/rancher/rancher/tests/framework/clients/rancher"
-	mgmtV3 "github.com/rancher/rancher/tests/framework/clients/rancher/generated/management/v3"
-	"github.com/rancher/rancher/tests/framework/extensions/clusters"
-	"github.com/rancher/rancher/tests/framework/extensions/clusters/kubernetesversions"
-	"github.com/rancher/rancher/tests/framework/extensions/kubeconfig"
-	"github.com/rancher/rancher/tests/framework/extensions/kubectl"
-	"github.com/rancher/rancher/tests/framework/extensions/provisioning"
-	"github.com/rancher/rancher/tests/framework/extensions/provisioninginput"
-	"github.com/rancher/rancher/tests/framework/extensions/rke1/nodetemplates"
-	"github.com/rancher/rancher/tests/framework/pkg/config"
-	"github.com/rancher/rancher/tests/framework/pkg/session"
+	"github.com/rancher/shepherd/clients/rancher"
+	mgmtV3 "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	"github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/clusters/kubernetesversions"
+	"github.com/rancher/shepherd/extensions/kubeconfig"
+	"github.com/rancher/shepherd/extensions/kubectl"
+	"github.com/rancher/shepherd/extensions/provisioning"
+	"github.com/rancher/shepherd/extensions/provisioninginput"
+	"github.com/rancher/shepherd/extensions/rke1/nodetemplates"
+	"github.com/rancher/shepherd/pkg/config"
+	"github.com/rancher/shepherd/pkg/session"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -71,7 +71,7 @@ func (s *ScaleChecksTestSuite) SetupSuite() {
 	testSession := session.NewSession()
 	s.session = testSession
 
-	scaleConfig := loadScaleConfig()
+	scaleConfig := LoadScaleConfig()
 	s.scaleConfig = scaleConfig
 	require.Condition(s.T(), func() bool {
 		return s.scaleConfig.BatchSize%5 == 0
@@ -244,7 +244,7 @@ func (s *ScaleChecksTestSuite) writeSnapshotsToPNGs(from time.Time, to time.Time
 		snapshotURL := "https://" + s.client.RancherConfig.Host + ranchermonitoring.GrafanaSnapshotRoute + snapshotResponse.Key
 		snapshotURLs = append(snapshotURLs, snapshotURL)
 		filePath := s.outputPath + "/" + d + suffix + ".png"
-		err = imageutils.URLScreenshotToPNG(snapshotURL, filePath, ranchermonitoring.PanelContentSelector, cookies...)
+		err = imageutils.URLScreenshotToPNG(snapshotURL, filePath, ranchermonitoring.PanelContentSelector, nil, 25, cookies...)
 		if err != nil {
 			log.Warnf("Failed to write snapshotURL (%s) to file (%s): %v", snapshotURL, filePath, err)
 		}

@@ -2,9 +2,9 @@ package scale
 
 import (
 	provV1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
-	"github.com/rancher/rancher/tests/framework/clients/rancher"
-	"github.com/rancher/rancher/tests/framework/extensions/kubeconfig"
-	"github.com/rancher/rancher/tests/framework/pkg/config"
+	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/kubeconfig"
+	"github.com/rancher/shepherd/pkg/config"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +55,7 @@ type Config struct {
 	ConfigMapsDir string `json:"configMapsDir" yaml:"configMapsDir"`
 }
 
-func loadScaleConfig() *Config {
+func LoadScaleConfig() *Config {
 	scaleConfig := new(Config)
 	config.LoadConfig(ConfigurationFileKey, scaleConfig)
 	return scaleConfig

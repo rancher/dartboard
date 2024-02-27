@@ -134,7 +134,7 @@ func GetDashboardSnapshot(c *gapi.Client, from time.Time, to time.Time, uid stri
 	dataSourceQueries := NewDataSourceQueries(dashboard.Model.Panels, from, to)
 	err = InjectPanelData(c, &dashboard.Model, dataSourceQueries)
 	if err != nil {
-		log.Infof("Error injecting panel data into dashboard (%v) with datasource queries (%v): %v\n", dashboard, dataSourceQueries, err)
+		log.Infof("Error injecting panel data into dashboard (%v) with datasource queries (%v) from %v to %v: %v\n", dashboard, dataSourceQueries, from, to, err)
 		return res, err
 	}
 	s.DashboardModel = dashboard.Model
@@ -146,7 +146,7 @@ func GetDashboardSnapshot(c *gapi.Client, from time.Time, to time.Time, uid stri
 	resp, err := c.NewSnapshot(s)
 
 	if err != nil {
-		log.Infof("Error creating Grafana Snapshot for Dashboard with uid (%s): %v\n", uid, err)
+		log.Infof("Error creating Grafana Snapshot for Dashboard with uid (%s) from %v to %v: %v\n", uid, fromRFC3339, toRFC3339, err)
 		return res, err
 	}
 	if resp == nil {
