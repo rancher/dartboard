@@ -94,6 +94,7 @@ func WaitForReadyCondition(kubePath, resource, name, namespace string, minutes i
 		// Check if by chance the resource is not yet available
 		if strings.Contains(err.Error(), fmt.Sprintf("%q not found", name)) {
 			log.Printf("resource %s/%s not available yet, retry %d/%d\n", namespace, name, i, maxRetries)
+			time.Sleep(time.Second)
 		} else {
 			return err
 		}
