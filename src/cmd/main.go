@@ -37,13 +37,15 @@ const (
 	argTerraformParallelism = "tf-parallelism"
 	argTerraformSkip        = "tf-skip"
 	argChartDir             = "chart-dir"
+	argChartRancherReplicas = "rancher-replicas"
 	baseDir                 = ""
 	adminPassword           = "adminadminadmin"
 )
 
 var (
-	tfProvider = "k3d"
-	chartDir   string
+	tfProvider           = "k3d"
+	chartDir             string
+	chartRancherReplicas int
 )
 
 func main() {
@@ -91,6 +93,12 @@ func main() {
 						Value:       filepath.Join(baseDir, "charts"),
 						Usage:       "charts directory",
 						Destination: &chartDir,
+					},
+					&cli.IntFlag{
+						Name:        argChartRancherReplicas,
+						Usage:       "number of Rancher replicas",
+						DefaultText: "1 for k3d tf provider, otherwise 3",
+						Destination: &chartRancherReplicas,
 					},
 				},
 				Action: actionCmdSetup,
@@ -186,7 +194,13 @@ func actionCmdSetup(cCtx *cli.Context) error {
 	if err := chartInstallCertManager(&upstream); err != nil {
 		return err
 	}
-	if err := chartInstallRancher(&upstream); err != nil {
+	if !cCtx.IsSet(argChartRancherReplicas) {
+		chartRancherReplicas = 3
+		if isProviderK3d() {
+			chartRancherReplicas = 1
+		}
+	}
+	if err := chartInstallRancher(&upstream, int(chartRancherReplicas)); err != nil {
 		return err
 	}
 	if err := chartInstallRancherIngress(&upstream); err != nil {

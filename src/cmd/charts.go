@@ -102,7 +102,7 @@ func chartInstallCertManager(cluster *terraform.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartCertManager, `{"installCRDs": true}`)
 }
 
-func chartInstallRancher(cluster *terraform.Cluster) error {
+func chartInstallRancher(cluster *terraform.Cluster, replicas int) error {
 	clusterAdd, err := getAppAddressFor(*cluster)
 	if err != nil {
 		return fmt.Errorf("chart %s: %w", chartRancher.name, err)
@@ -110,10 +110,7 @@ func chartInstallRancher(cluster *terraform.Cluster) error {
 	rancherClusterName := clusterAdd.Public.Name
 	rancherClusterURL := clusterAdd.Public.HTTPSURL
 	// TODO: extract the correct number of replicas from terraform state file
-	rancherClusterReplicas := 3
-	if isProviderK3d() {
-		rancherClusterReplicas = 1
-	}
+	rancherClusterReplicas := replicas
 	chartVals := getRancherValsJSON("admin", rancherClusterName, rancherClusterURL, rancherClusterReplicas)
 
 	return chartInstall(cluster.Kubeconfig, chartRancher, chartVals)
