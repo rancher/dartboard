@@ -32,20 +32,22 @@ import (
 )
 
 const (
-	argTerraformDir         = "tf-dir"
-	argTerraformVarFile     = "tf-var-file"
-	argTerraformParallelism = "tf-parallelism"
-	argTerraformSkip        = "tf-skip"
-	argChartDir             = "chart-dir"
-	argChartRancherReplicas = "rancher-replicas"
-	baseDir                 = ""
-	adminPassword           = "adminadminadmin"
+	argTerraformDir                  = "tf-dir"
+	argTerraformVarFile              = "tf-var-file"
+	argTerraformParallelism          = "tf-parallelism"
+	argTerraformSkip                 = "tf-skip"
+	argChartDir                      = "chart-dir"
+	argChartRancherReplicas          = "rancher-replicas"
+	argChartSkipDownstreamMonitoring = "skip-downstream-monitoring"
+	baseDir                          = ""
+	adminPassword                    = "adminadminadmin"
 )
 
 var (
-	tfProvider           = "k3d"
-	chartDir             string
-	chartRancherReplicas int
+	tfProvider               = "k3d"
+	chartDir                 string
+	chartRancherReplicas     int
+	skipDownstreamMonitoring bool = true
 )
 
 func main() {
@@ -99,6 +101,12 @@ func main() {
 						Usage:       "number of Rancher replicas",
 						DefaultText: "1 for k3d tf provider, otherwise 3",
 						Destination: &chartRancherReplicas,
+					},
+					&cli.BoolFlag{
+						Name:        argChartSkipDownstreamMonitoring,
+						Value:       false,
+						Usage:       "skip installing rancher-monitoring chart on downstream clusters",
+						Destination: &skipDownstreamMonitoring,
 					},
 				},
 				Action: actionCmdSetup,
@@ -298,9 +306,11 @@ func importDownstreamClusterDo(clusters map[string]terraform.Cluster, clusterNam
 		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
 		return
 	}
-	if err := chartInstallRancherMonitoring(&downstream, true); err != nil {
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
+	if !skipDownstreamMonitoring {
+		if err := chartInstallRancherMonitoring(&downstream, true); err != nil {
+			errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+			return
+		}
 	}
 	ch <- clusterName
 }
