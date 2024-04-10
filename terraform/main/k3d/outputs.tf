@@ -26,7 +26,7 @@ output "clusters" {
         }
       }
 
-      node_access_commands = []
+      node_access_commands = {}
       ingress_class_name   = null
     }
   }
