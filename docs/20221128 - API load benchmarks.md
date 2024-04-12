@@ -25,7 +25,7 @@ Following conclusions are taken from result data:
  - **PostgreSQL is consistently faster than MariaDB although still importantly slower than etcd. Polynomal time growth is observed in PostgreSQL as well**
    - Distance between PostgreSQL and etcd is less when resources are big, although etcd is still consistently faster
 
-[Details in Excel format](https://mysuse-my.sharepoint.com/:x:/g/personal/moio_suse_com/Ee7ylp4PVz1GvDOzFpaVlR0BBpeEfjgPre2qu7_ROu0XMg?e=KF458b) are available to SUSE employees.
+[Details in spreadsheet format](https://docs.google.com/spreadsheets/d/1dj3J6k1hlWRDFRgTNY1J3lx-a1UMv4Dr/edit?usp=sharing&ouid=100903400512894386615&rtpof=true&sd=true) are available to SUSE employees.
 
 ## Methodology notes
 
