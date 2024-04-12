@@ -2,8 +2,7 @@
 
 ## Results
 
-## Results
-
+Context:
 - Rancher is installed onto various 3-node "medium sized" k3s and RKE2 clusters, with different data stores (etcd, mariadb and postgres)
 - 1k to 256k resources (secrets or configmaps, big or small data payload sizes) are created on them
 - benchmarks are run to determine performance of the k8s API and Rancher's Steve to retrieve all created resources, specifically:
