@@ -3,7 +3,7 @@ set -e
 
 oldPWD="$(pwd)"
 
-dirs=("./clients" "./extensions" "./pkg")
+dirs=("./scripts/soak" "./utils" "./test")
 
 for dir in "${dirs[@]}"; do
     echo "Building $dir"
