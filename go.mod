@@ -1,6 +1,8 @@
 module github.com/git-ival/dartboard
 
-go 1.21
+go 1.22
+
+toolchain go1.22.2
 
 // needed for serve_hostnames.go
 replace (
@@ -14,7 +16,8 @@ replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible // rancher-machine requires a replace is set
 	github.com/docker/docker => github.com/docker/docker v20.10.25+incompatible // rancher-machine requires a repalce is set
 	github.com/grafana/grafana-api-golang-client => github.com/git-ival/grafana-api-golang-client v0.26.1-0.20231204163350-5dfef652c1e1
-	github.com/rancher/shepherd => github.com/git-ival/shepherd v0.0.0-20240227052943-bd3174838b73
+	github.com/rancher/shepherd => github.com/git-ival/shepherd v0.0.0-20240412200641-444750a22637
+	helm.sh/helm/v3 => github.com/rancher/helm/v3 v3.12.3-rancher1
 	oras.land/oras-go => oras.land/oras-go v1.2.2 // for docker 20.10.x compatibility
 )
 
@@ -46,13 +49,13 @@ require (
 	github.com/hashicorp/terraform-exec v0.20.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/common v0.44.0
-	github.com/rancher/rancher/pkg/apis v0.0.0-20230915232223-a9ea4ce4a5ba
+	github.com/rancher/rancher/pkg/apis v0.0.0-20231012231324-73fed4503c08
 	github.com/rancher/shepherd v0.0.0-00010101000000-000000000000
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/oauth2 v0.11.0
 	gopkg.in/yaml.v2 v2.4.0
-	helm.sh/helm/v3 v3.12.3
+	helm.sh/helm/v3 v3.9.0
 	k8s.io/klog/v2 v2.100.1
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -194,7 +197,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/hc-install v0.6.2 // indirect
-	github.com/hashicorp/terraform-json v0.20.0 // indirect
+	github.com/hashicorp/terraform-json v0.21.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -268,7 +271,7 @@ require (
 	google.golang.org/genproto v0.0.0-20230803162519-f966b187b2e5 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230803162519-f966b187b2e5 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230807174057-1744710a1577 // indirect
-	google.golang.org/grpc v1.57.0 // indirect
+	google.golang.org/grpc v1.58.3 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

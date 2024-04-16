@@ -1,7 +1,7 @@
 package examples
 
 const (
-	ConfigurationFileKey = "tfexecInput"
+	ConfigurationFileKey = "tfexec"
 )
 
 type PlanOptions struct {

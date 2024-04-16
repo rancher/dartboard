@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/git-ival/dartboard/test/utils/grafanautils"
+	"github.com/git-ival/dartboard/test/utils/helpers"
 	"github.com/git-ival/dartboard/test/utils/imageutils"
+	"github.com/git-ival/dartboard/test/utils/rancherprofiling"
 
 	"github.com/git-ival/dartboard/test/utils/ranchermonitoring"
 	"github.com/git-ival/dartboard/test/utils/ranchermonitoring/dashboards/rancherclusternodes"
@@ -297,20 +299,20 @@ func (s *ScaleChecksTestSuite) collectMetricsAndArtifacts(numClusters int, start
 	for _, podName := range podNames {
 		log.Info("Getting mem profile for: ", podName)
 		memProfileDest := fmt.Sprintf("%s/%s-%s%s", s.outputPath, podName, MemProfileFileName, clustersSuffix+ProfileFileExtension)
-		err = getRancherMemProfile(*s.restClient, *s.clientConfig, podName, memProfileDest)
+		err = rancherprofiling.GetRancherMemProfile(*s.restClient, *s.clientConfig, podName, memProfileDest)
 		if err != nil {
 			log.Errorf("Failed to get Rancher memory profile: %v", err)
 			continue
 		}
 		log.Info("Getting cpu profile for: ", podName)
 		cpuProfileDest := fmt.Sprintf("%s/%s-%s%s", s.outputPath, podName, CPUProfileFileName, clustersSuffix+ProfileFileExtension)
-		err = getRancherCPUProfile(*s.restClient, *s.clientConfig, podName, cpuProfileDest)
+		err = rancherprofiling.GetRancherCPUProfile(*s.restClient, *s.clientConfig, podName, cpuProfileDest)
 		if err != nil {
 			log.Errorf("Failed to get Rancher CPU profile: %v", err)
 			continue
 		}
 		log.Info("Getting rancher logs for: ", podName)
-		logs, err := getAllRancherLogs(s.client, s.clusterID, podName, start)
+		logs, err := helpers.GetAllRancherLogs(s.client, s.clusterID, podName, start)
 		if err != nil {
 			log.Warnf("error getting pod logs for pod (%s): %v", podName, err)
 		}
