@@ -2,8 +2,6 @@ module github.com/git-ival/dartboard
 
 go 1.22
 
-toolchain go1.22.2
-
 // needed for serve_hostnames.go
 replace (
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.35.0
