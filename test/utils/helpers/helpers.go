@@ -84,7 +84,7 @@ func GetAllRancherLogs(r *rancher.Client, clusterID string, podName string, sinc
 		SinceTime:  &since,
 	}
 	log.Infof("Collecting Rancher logs since: %s", since.String())
-	return kubeconfig.GetPodLogsWithOpts(r, clusterID, podName, "cattle-system", podLogOptions)
+	return kubeconfig.GetPodLogsWithOpts(r, clusterID, podName, "cattle-system", "", podLogOptions)
 }
 
 func CreateCustomMonitoringDashboards(t *testing.T, ts *session.Session, client *rancher.Client, configMapsDir string) error {
@@ -298,7 +298,7 @@ func CollectRancherMetricsAndArtifacts(t *testing.T, ts *session.Session, client
 		go func(ctx context.Context, podName, logFileDest string, podLogOptions *corev1.PodLogOptions) {
 			defer func() { done <- podName }() // Signal completion of goroutine
 			log.Info("Getting pod logs")
-			_, err := kubeconfig.GetPodLogsWithContext(ctx, client, "local", podName, "cattle-system", logFileDest, podLogOptions)
+			_, err := kubeconfig.GetPodLogsWithContext(ctx, client, "local", podName, "cattle-system", "", logFileDest, true, podLogOptions)
 			if err != nil {
 				log.Warnf("error getting pod logs for pod (%s): %v", podName, err)
 			}
