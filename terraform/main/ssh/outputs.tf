@@ -19,7 +19,7 @@ output "clusters" {
           http_port  = null
           https_port = null
         }
-        tunnel = {          // resolvable from the host running Terraform
+        tunnel = {          // resolvable from the host running OpenTofu
           name       = null // tunnels not supported
           http_port  = null
           https_port = null

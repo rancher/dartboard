@@ -24,10 +24,10 @@ const RANCHER_IMAGE_TAG = `v${RANCHER_VERSION}`
 const CERT_MANAGER_CHART = "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"
 const GRAFANA_CHART = "https://github.com/grafana/helm-charts/releases/download/grafana-6.56.5/grafana-6.56.5.tgz"
 
-// Step 1: Terraform
-run(`terraform -chdir=${q(terraformDir())} init -upgrade`)
-run(`terraform -chdir=${q(terraformDir())} apply -auto-approve ${q(terraformVar())}`)
-const clusters = runCollectingJSONOutput(`terraform -chdir=${q(terraformDir())} output -json`)["clusters"]["value"]
+// Step 1: OpenTofu
+run(`tofu -chdir=${q(terraformDir())} init -upgrade`)
+run(`tofu -chdir=${q(terraformDir())} apply -auto-approve ${q(terraformVar())}`)
+const clusters = runCollectingJSONOutput(`tofu -chdir=${q(terraformDir())} output -json`)["clusters"]["value"]
 
 // Step 3: Helm charts
 // tester cluster

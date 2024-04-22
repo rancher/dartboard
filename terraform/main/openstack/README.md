@@ -18,7 +18,7 @@
 ## Not yet implemented
 Octavia (loadbalancer) server nodes. Currently, floating IPs are attached to the first server node only.
 
-This set of Terraform files has been tested so far on the OVHcloud OpenStack implementation.
+This set of OpenTofu files has been tested so far on the OVHcloud OpenStack implementation.
 
 ## Usage
 
@@ -26,5 +26,5 @@ Deployment only:
 ```shell
 source ./openrc.bash # OpenStack Credentials
 vim input.tf         # Tweak parameters
-terraform apply      # Deploy (Terraform only). ./bin/setup.mjs can be used to set up the test suite
+tofu apply      # Deploy (Terraform only). ./bin/setup.mjs can be used to set up the test suite
 ```
