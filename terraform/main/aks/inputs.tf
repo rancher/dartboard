@@ -4,7 +4,7 @@ locals {
   upstream_cluster = {
     name                        = "upstream"
     agent_count                 = 4
-    distro_version              = "1.26.6"
+    distro_version              = "1.26.12"
     reserve_node_for_monitoring = true
 
     // azure-specific
