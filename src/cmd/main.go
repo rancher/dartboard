@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/moio/scalability-tests/pkg/kubectl"
@@ -39,6 +40,12 @@ const (
 	argChartDir                      = "chart-dir"
 	argChartRancherReplicas          = "rancher-replicas"
 	argChartSkipDownstreamMonitoring = "skip-downstream-monitoring"
+	argLoadConfigMapCnt              = "config-maps"
+	argLoadProjectCnt                = "projects"
+	argLoadRoleCnt                   = "roles"
+	argLoadSecretCnt                 = "secrets"
+	argLoadUserCnt                   = "users"
+	argForce                         = "force"
 	baseDir                          = ""
 	adminPassword                    = "adminadminadmin"
 )
@@ -66,6 +73,13 @@ func main() {
 					}
 					return nil
 				},
+			},
+			&cli.BoolFlag{
+				Name:    argForce,
+				Aliases: []string{"f"},
+				Value:   false,
+				Usage:   "kill running commands on the test cluster before executing a new one",
+				EnvVars: []string{"SCLI_FORCE"},
 			},
 		},
 		Commands: []*cli.Command{
@@ -123,6 +137,44 @@ func main() {
 				Usage:       "Tears down the test environment (all the clusters)",
 				Description: "destroy all the provisioned clusters",
 				Action:      actionCmdDestroy,
+			},
+			{
+				Name:        "load",
+				Usage:       "Creates K8s resources on upstream and downstream clusters",
+				Description: "Loads ConfigMaps and Secrets on all the deployed K8s cluster; Roles, Users and Projects on the Rancher cluster",
+				Flags: []cli.Flag{
+					&cli.IntFlag{
+						Name:    argLoadConfigMapCnt,
+						Value:   1000,
+						Usage:   "number of ConfigMap resources to create",
+						EnvVars: []string{"SCLI_CONFIGMAP_COUNT"},
+					},
+					&cli.IntFlag{
+						Name:    argLoadSecretCnt,
+						Value:   1000,
+						Usage:   "number of Secret resources to create",
+						EnvVars: []string{"SCLI_SECRET_COUNT"},
+					},
+					&cli.IntFlag{
+						Name:    argLoadRoleCnt,
+						Value:   10,
+						Usage:   "number of Role resources to create",
+						EnvVars: []string{"SCLI_ROLE_COUNT"},
+					},
+					&cli.IntFlag{
+						Name:    argLoadUserCnt,
+						Value:   5,
+						Usage:   "number of User resources to create",
+						EnvVars: []string{"SCLI_USER_COUNT"},
+					},
+					&cli.IntFlag{
+						Name:    argLoadProjectCnt,
+						Value:   20,
+						Usage:   "number of Project resources to create",
+						EnvVars: []string{"SCLI_PROJECT_COUNT"},
+					},
+				},
+				Action: actionCmdLoad,
 			},
 		},
 	}
@@ -230,6 +282,47 @@ func actionCmdSetup(cCtx *cli.Context) error {
 		return err
 	}
 
+	return nil
+}
+
+func actionCmdLoad(cCtx *cli.Context) error {
+	tf := new(terraform.Terraform)
+
+	if err := tf.Init(cCtx.String(argTerraformDir), false); err != nil {
+		return err
+	}
+
+	clusters, err := tf.OutputClusters()
+	if err != nil {
+		return err
+	}
+
+	// Create ConfigMaps and Secrets
+	tester := clusters["tester"]
+	cliTester := &kubectl.Client{}
+	if err := cliTester.Init(tester.Kubeconfig); err != nil {
+		return err
+	}
+
+	// Create ConfigMaps and Secrets on Rancher and all the downstream clusters
+	for clusterName, clusterData := range clusters {
+		// NOTE: we may change the condition with 'cluster == "tester"', but better to stay on the safe side
+		if clusterName != "upstream" && !strings.HasPrefix(clusterName, "downstream") {
+			continue
+		}
+		if err := loadConfigMapAndSecrets(cCtx, cliTester, clusterName, clusterData); err != nil {
+			return err
+		}
+	}
+
+	// Create Users and Roles
+	if err := loadRolesAndUsers(cCtx, cliTester, "upstream", clusters["upstream"]); err != nil {
+		return err
+	}
+	// Create Projects
+	if err := loadProjects(cCtx, cliTester, "upstream", clusters["upstream"]); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -343,7 +436,7 @@ func importDownstreamClustersRancherSetup(clusters map[string]terraform.Cluster)
 		"IMPORTED_CLUSTER_NAMES": importedClusterNames,
 	}
 
-	if err := cliTester.K6run(envVars, nil, "k6/rancher_setup.js", true, false); err != nil {
+	if err := cliTester.K6run(envVars, nil, "k6/rancher_setup.js", true, false, true); err != nil {
 		return err
 	}
 	return nil
@@ -407,6 +500,89 @@ func importClustersDownstreamGetYAML(clusters map[string]terraform.Cluster, name
 
 func isProviderK3d() bool {
 	return tfProvider == "k3d"
+}
+
+func loadConfigMapAndSecrets(cCtx *cli.Context, cli *kubectl.Client, clusterName string, clusterData terraform.Cluster) error {
+	configMapCount := strconv.Itoa(cCtx.Int(argLoadConfigMapCnt))
+	secretCount := strconv.Itoa(cCtx.Int(argLoadSecretCnt))
+	force := cCtx.Bool(argForce)
+
+	envVars := map[string]string{
+		"BASE_URL":         clusterData.PrivateKubernetesAPIURL,
+		"KUBECONFIG":       clusterData.Kubeconfig,
+		"CONTEXT":          clusterData.Context,
+		"CONFIG_MAP_COUNT": configMapCount,
+		"SECRET_COUNT":     secretCount,
+	}
+	tags := map[string]string{
+		"cluster":    clusterName,
+		"test":       "create_k8s_resources.js",
+		"ConfigMaps": configMapCount,
+		"Secrets":    secretCount,
+	}
+
+	log.Printf("Load resources on cluster %q (#ConfigMaps: %s, #Secrets: %s)\n", clusterName, configMapCount, secretCount)
+	if err := cli.K6run(envVars, tags, "k6/create_k8s_resources.js", true, false, force); err != nil {
+		return fmt.Errorf("failed loading ConfigMaps and Secrets on cluster %q: %w", clusterName, err)
+	}
+	return nil
+}
+
+func loadRolesAndUsers(cCtx *cli.Context, cli *kubectl.Client, clusterName string, clusterData terraform.Cluster) error {
+	roleCount := strconv.Itoa(cCtx.Int(argLoadRoleCnt))
+	userCount := strconv.Itoa(cCtx.Int(argLoadUserCnt))
+	force := cCtx.Bool(argForce)
+	clusterAdd, err := getAppAddressFor(clusterData)
+	if err != nil {
+		return fmt.Errorf("failed loading Roles and Users on cluster %q: %w", clusterName, err)
+	}
+	envVars := map[string]string{
+		"BASE_URL":   clusterAdd.Public.HTTPSURL,
+		"USERNAME":   "admin",
+		"PASSWORD":   adminPassword,
+		"ROLE_COUNT": roleCount,
+		"USER_COUNT": userCount,
+	}
+	tags := map[string]string{
+		"cluster": clusterName,
+		"test":    "create_roles_users.mjs",
+		"Roles":   roleCount,
+		"Users":   userCount,
+	}
+
+	log.Printf("Load resources on cluster %q (#Roles: %s, #Users: %s)\n", clusterName, roleCount, userCount)
+
+	if err := cli.K6run(envVars, tags, "k6/create_roles_users.js", true, false, force); err != nil {
+		return fmt.Errorf("failed loading Roles and Users on cluster %q: %w", clusterName, err)
+	}
+	return nil
+}
+
+func loadProjects(cCtx *cli.Context, cli *kubectl.Client, clusterName string, clusterData terraform.Cluster) error {
+	projectCount := strconv.Itoa(cCtx.Int(argLoadProjectCnt))
+	force := cCtx.Bool(argForce)
+	clusterAdd, err := getAppAddressFor(clusterData)
+	if err != nil {
+		return fmt.Errorf("failed loading Projects on cluster %q: %w", clusterName, err)
+	}
+	envVars := map[string]string{
+		"BASE_URL":      clusterAdd.Public.HTTPSURL,
+		"USERNAME":      "admin",
+		"PASSWORD":      adminPassword,
+		"PROJECT_COUNT": projectCount,
+	}
+	tags := map[string]string{
+		"cluster":  clusterName,
+		"test":     "create_projects.mjs",
+		"Projects": projectCount,
+	}
+
+	log.Printf("Load resources on cluster %q (#Projects: %s)\n", clusterName, projectCount)
+
+	if err := cli.K6run(envVars, tags, "k6/create_projects.js", true, false, force); err != nil {
+		return fmt.Errorf("failed loading Projects on cluster %q: %w", clusterName, err)
+	}
+	return nil
 }
 
 func terraformVersionPrint(tf *terraform.Terraform) error {
