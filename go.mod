@@ -10,9 +10,9 @@ replace (
 
 // needed for dartboard tests
 replace (
-	github.com/containerd/containerd => github.com/containerd/containerd v1.6.22 // for compatibilty with docker 20.10.x
+	github.com/containerd/containerd => github.com/containerd/containerd v1.6.27 // for compatibilty with docker 20.10.x
 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible // rancher-machine requires a replace is set
-	github.com/docker/docker => github.com/docker/docker v20.10.25+incompatible // rancher-machine requires a repalce is set
+	github.com/docker/docker => github.com/docker/docker v20.10.27+incompatible // rancher-machine requires a repalce is set
 	github.com/grafana/grafana-api-golang-client => github.com/git-ival/grafana-api-golang-client v0.26.1-0.20231204163350-5dfef652c1e1
 	github.com/rancher/shepherd => github.com/git-ival/shepherd v0.0.0-20240412200641-444750a22637
 	helm.sh/helm/v3 => github.com/rancher/helm/v3 v3.12.3-rancher1
@@ -21,11 +21,11 @@ replace (
 
 // needed for serve_hostnames.go compatibility with dartboard rancher tests
 replace (
-	k8s.io/api => k8s.io/api v0.27.4
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.27.4
-	k8s.io/apimachinery => k8s.io/apimachinery v0.27.4
-	k8s.io/apiserver => k8s.io/apiserver v0.27.4
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.27.4
+	k8s.io/api => k8s.io/api v0.27.9
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.27.9
+	k8s.io/apimachinery => k8s.io/apimachinery v0.27.9
+	k8s.io/apiserver => k8s.io/apiserver v0.27.9
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.27.9
 	k8s.io/client-go => github.com/rancher/client-go v1.27.4-rancher1
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f
 	k8s.io/kubernetes => k8s.io/kubernetes v1.27.4
@@ -145,6 +145,7 @@ require (
 	github.com/chromedp/sysutil v1.0.0 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/containerd/containerd v1.7.1 // indirect
+	github.com/containerd/log v0.1.0 // indirect
 	github.com/creasty/defaults v1.5.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect

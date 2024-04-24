@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
+	"path/filepath"
 
 	"github.com/git-ival/dartboard/test/utils/grafanautils"
 	"github.com/git-ival/dartboard/test/utils/ranchermonitoring/dashboards/kubernetesapiserver"
@@ -146,4 +148,22 @@ func RancherPerformanceDebuggingExprs() []string {
 		rancherperformancedebugging.RemoteDialerConnectionsRemovedExpr,
 		rancherperformancedebugging.RemoteDialerConnectionsAddedByClientExpr,
 	}
+}
+
+func GrafanaNginxYAML(relPath string) (string, error) {
+	files, err := os.ReadDir(relPath)
+	if err != nil {
+		return "", err
+	}
+	path, err := filepath.Abs(relPath)
+	if err != nil {
+		return "", err
+	}
+
+	for _, file := range files {
+		if file.Name() == "nginx.yaml" {
+			return filepath.Join(path, file.Name()), nil
+		}
+	}
+	return "", fmt.Errorf("did not find `nginx.yaml` in path (%s)", path)
 }
