@@ -15,6 +15,11 @@ const (
 	MemProfileCommand    = "curl -s http://localhost:6060/debug/pprof/heap -o " + MemProfileFileName
 	CPUProfileCommand    = "curl -s http://localhost:6060/debug/pprof/profile -o " + CPUProfileFileName
 	CustomTimeFormatCode = "2006-01-02_T15-04-05"
+	PreScaleInOutputDir  = "pre-scale"
+	PreUpgradeOutputDir  = "pre-upgrade"
+	HalftimeOutputDir    = "halftime"
+	PostScaleInOutputDir = "post-scale"
+	PostUpgradeOutputDir = "post-upgrade"
 )
 
 func memProfileCommand() []string {

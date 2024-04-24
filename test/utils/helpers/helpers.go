@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/rancher/shepherd/pkg/config"
 
 	"github.com/git-ival/dartboard/test/utils/grafanautils"
 	"github.com/git-ival/dartboard/test/utils/imageutils"
@@ -18,8 +20,12 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	mgmtV3 "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/clusters/kubernetesversions"
 	"github.com/rancher/shepherd/extensions/kubeconfig"
 	"github.com/rancher/shepherd/extensions/kubectl"
+	"github.com/rancher/shepherd/extensions/provisioning"
+	"github.com/rancher/shepherd/extensions/provisioninginput"
+	"github.com/rancher/shepherd/extensions/rke1/nodetemplates"
 	"github.com/rancher/shepherd/pkg/session"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
@@ -48,6 +54,10 @@ type ScreenshotParams struct {
 	Selector      string
 	Timeout       int
 	Cookies       []string
+}
+
+type GenericProvider interface {
+	provisioning.RKE1Provider | provisioning.Provider
 }
 
 // endpoints for the different pprof visualizations
@@ -85,6 +95,125 @@ func GetAllRancherLogs(r *rancher.Client, clusterID string, podName string, sinc
 	}
 	log.Infof("Collecting Rancher logs since: %s", since.String())
 	return kubeconfig.GetPodLogsWithOpts(r, clusterID, podName, "cattle-system", "", podLogOptions)
+}
+
+func SetupProvisioningReqs(t *testing.T, ts *session.Session, client *rancher.Client,
+	provisioningConfig *provisioninginput.Config) (string, *provisioning.RKE1Provider, *provisioning.Provider, *clusters.ClusterConfig, *nodetemplates.NodeTemplate) {
+	k8sVersions := append(provisioningConfig.RKE1KubernetesVersions, provisioningConfig.RKE2KubernetesVersions...)
+	k8sVersions = append(k8sVersions, provisioningConfig.K3SKubernetesVersions...)
+	require.Condition(t, func() bool { return len(k8sVersions) == 1 })
+	k8sVersion := k8sVersions[0]
+
+	var err error
+	var clusterConfig *clusters.ClusterConfig
+	var nodeTemplate *nodetemplates.NodeTemplate
+	var rke1Provider *provisioning.RKE1Provider
+	var provider *provisioning.Provider
+
+	switch {
+	case strings.Contains(k8sVersion, "rancher"): //RKE1
+		// only used if provisioning RKE1 clusters
+		nodeTemplate = new(nodetemplates.NodeTemplate)
+		config.LoadConfig(nodetemplates.NodeTemplateConfigurationFileKey, nodeTemplate)
+		tempProvider := provisioning.CreateRKE1Provider(provisioninginput.AWSProviderName.String())
+		rke1Provider = &tempProvider
+		nodeTemplate, err = rke1Provider.NodeTemplateFunc(client)
+		require.NoError(t, err)
+		provisioningConfig.RKE1KubernetesVersions, err = kubernetesversions.Default(
+			client, clusters.RKE1ClusterType.String(), provisioningConfig.RKE1KubernetesVersions)
+		require.NoError(t, err)
+		clusterConfig = clusters.ConvertConfigToClusterConfig(provisioningConfig)
+		clusterConfig.KubernetesVersion = provisioningConfig.RKE1KubernetesVersions[0]
+	case strings.Contains(k8sVersion, "rke2"):
+		tempProvider := provisioning.CreateProvider(provisioninginput.AWSProviderName.String())
+		provider = &tempProvider
+		provisioningConfig.RKE2KubernetesVersions, err = kubernetesversions.Default(
+			client, clusters.RKE2ClusterType.String(), provisioningConfig.RKE2KubernetesVersions)
+		require.NoError(t, err)
+		clusterConfig = clusters.ConvertConfigToClusterConfig(provisioningConfig)
+		clusterConfig.KubernetesVersion = provisioningConfig.RKE2KubernetesVersions[0]
+	case strings.Contains(k8sVersion, "k3s"):
+		t.Log("Setting up k3s config")
+		tempProvider := provisioning.CreateProvider(provisioninginput.AWSProviderName.String())
+		provider = &tempProvider
+		provisioningConfig.K3SKubernetesVersions, err = kubernetesversions.Default(
+			client, clusters.K3SClusterType.String(), provisioningConfig.K3SKubernetesVersions)
+		require.NoError(t, err)
+		clusterConfig = clusters.ConvertConfigToClusterConfig(provisioningConfig)
+		clusterConfig.KubernetesVersion = provisioningConfig.K3SKubernetesVersions[0]
+		t.Log("Finished setting up k3s config")
+	}
+	return k8sVersion, rke1Provider, provider, clusterConfig, nodeTemplate
+}
+
+func BatchScaleUpClusters(t *testing.T, ts *session.Session, client *rancher.Client, batchSize int, timeout time.Duration,
+	rke1Provider *provisioning.RKE1Provider, provider *provisioning.Provider, k8sVersion string, clusterConfig *clusters.ClusterConfig, nodeTemplate *nodetemplates.NodeTemplate) {
+	numClusters := 0
+	batchStart := time.Now()
+	timer := time.NewTimer(timeout)
+	for i := 1; i <= batchSize; i++ {
+		select {
+		case <-timer.C:
+			logrus.Info("Timeout reached")
+			return
+		default:
+		}
+
+		switch {
+		case strings.Contains(k8sVersion, "rancher"): //RKE1
+			if rke1Provider == nil {
+				log.Errorf("Got RKE1 Kubernetes version, but RKE1Provider is nil!")
+				panic(rke1Provider)
+			}
+			t.Logf("Provisioning %s cluster #%d", k8sVersion, numClusters+1)
+			provisioningStart := time.Now()
+			rke1ClusterObject, err := provisioning.CreateProvisioningRKE1Cluster(client, *rke1Provider, clusterConfig, nodeTemplate)
+			if err != nil {
+				log.Errorf("Failed to provision Cluster: %v", err)
+			} else {
+				// Wait for final cluster to be ready (all clusters in batch should have plenty of time to be ready by now)
+				// Collect provisioning time of this final batch cluster
+				if i == batchSize {
+					timePassed := time.Since(provisioningStart)
+					remainingTime := int(timeout.Minutes() - timePassed.Minutes())
+					t.Logf("Provisioning time until forced timeout %dm", remainingTime)
+					err = clusters.WaitForActiveRKE1ClusterWithTimeout(client, rke1ClusterObject.ID, remainingTime)
+					if err != nil {
+						log.Errorf("Cluster with Name (%s) and ID (%s) was not ready within the %d minute timeout: %v", rke1ClusterObject.Name, rke1ClusterObject.ID, 30, err)
+					}
+					t.Logf("Batch %d complete! Cluster became ready after %v!", i, time.Since(provisioningStart))
+				}
+			}
+		case strings.Contains(k8sVersion, "rke2"), strings.Contains(k8sVersion, "k3s"):
+			if provider == nil {
+				log.Errorf("Got RKE2 or K3s Kubernetes version, but Provider is nil!")
+				panic(provider)
+			}
+			t.Logf("Provisioning %s cluster #%d", k8sVersion, numClusters+1)
+			provisioningStart := time.Now()
+			clusterObject, err := provisioning.CreateProvisioningCluster(client, *provider, clusterConfig, nil)
+			if err != nil {
+				log.Errorf("Failed to provision Cluster: %v", err)
+			} else {
+				// Wait for final cluster to be ready (all clusters in batch should have plenty of time to be ready by now)
+				// Collect provisioning time of this final batch cluster
+				if i == batchSize {
+					steveID := fmt.Sprintf("%s/%s", clusterObject.Namespace, clusterObject.Name)
+					timePassed := time.Since(batchStart)
+					remainingTime := int64(timeout.Minutes() - timePassed.Minutes())
+					remainingSeconds := int64(remainingTime * 60)
+					t.Logf("Provisioning time until forced timeout: %dm", remainingTime)
+					err = clusters.WatchAndWaitForClusterWithTimeout(client, steveID, &remainingSeconds)
+					if err != nil {
+						log.Errorf("Cluster with Name (%s) and ID (%s) was not ready within the %d minute timeout: %v", clusterObject.Name, clusterObject.ID, 30, err)
+					}
+					t.Logf("Batch %d complete! Cluster became ready after %v!", i, time.Since(provisioningStart))
+				}
+			}
+		}
+		time.Sleep(24 * time.Second)
+		numClusters = numClusters + 1
+	}
 }
 
 func CreateCustomMonitoringDashboards(t *testing.T, ts *session.Session, client *rancher.Client, configMapsDir string) error {
