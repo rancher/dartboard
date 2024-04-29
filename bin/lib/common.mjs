@@ -86,7 +86,7 @@ export function getAppAddressesFor(cluster) {
     const addresses = cluster["app_addresses"]
     const loadBalancerName = guessAppFQDNFromLoadBalancer(cluster)
 
-    // addresses meant to be resolved from the machine running Terraform
+    // addresses meant to be resolved from the machine running OpenTofu
     // use tunnel if available, otherwise public, otherwise go through the load balancer
     const localNetworkName = addresses["tunnel"]["name"] || addresses["public"]["name"] || loadBalancerName
     const localNetworkHTTPPort = addresses["tunnel"]["http_port"] || addresses["public"]["http_port"] || 80

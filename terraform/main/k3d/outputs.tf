@@ -19,7 +19,7 @@ output "clusters" {
           http_port  = 80
           https_port = 443
         }
-        tunnel = { // resolvable from the host running Terraform
+        tunnel = { // resolvable from the host running OpenTofu
           name       = "${cluster.name}.local.gd"
           http_port  = module.cluster[i].app_http_port
           https_port = module.cluster[i].app_https_port

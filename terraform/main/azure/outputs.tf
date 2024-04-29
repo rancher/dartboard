@@ -18,7 +18,7 @@ locals {
         http_port  = 80
         https_port = 443
       }
-      tunnel = { // resolvable from the host running Terraform
+      tunnel = { // resolvable from the host running OpenTofu
         name       = "${cluster.name}.local.gd"
         http_port  = module.k3s_cluster[i].tunnel_app_http_port
         https_port = module.k3s_cluster[i].tunnel_app_https_port
@@ -48,7 +48,7 @@ locals {
         http_port  = 80
         https_port = 443
       }
-      tunnel = { // resolvable from the host running Terraform
+      tunnel = { // resolvable from the host running OpenTofu
         name       = "${cluster.name}.local.gd"
         http_port  = module.rke2_cluster[i].tunnel_app_http_port
         https_port = module.rke2_cluster[i].tunnel_app_https_port
@@ -69,7 +69,7 @@ locals {
     // addresses of applications running in this cluster
     app_addresses = {
       public = {          // resolvable over the Internet
-        name       = null // not known at the Terraform stage, will depend on LoadBalancers in Kubernetes
+        name       = null // not known at the OpenTofu stage, will depend on LoadBalancers in Kubernetes
         http_port  = null
         https_port = null
       }
@@ -78,7 +78,7 @@ locals {
         http_port  = null
         https_port = null
       }
-      tunnel = {          // resolvable from the host running Terraform
+      tunnel = {          // resolvable from the host running OpenTofu
         name       = null // tunnels not supported
         http_port  = null
         https_port = null
