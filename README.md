@@ -10,7 +10,7 @@ See the [docs](docs) directory for a list of tests and their usage specifics.
 
 ### k3d: cluster not created
 
-If you get this error from `terraform apply`:
+If you get this error from `tofu apply`:
 ```
 Error: Failed Cluster Start: Failed to add one or more agents: Node k3d-... failed to get ready: error waiting for log line `successfully registered node` from node 'k3d-st-upstream-agent-0': stopped returning log lines: node k3d-... is running=true in status=restarting
 ```
@@ -28,7 +28,7 @@ echo "fs.inotify.max_user_instances = 256" > /etc/sysctl.d/99-inotify-mui.conf
 
 ### Kubernetes cluster unreachable
 
-If you get this error from `terraform apply`:
+If you get this error from `tofu apply`:
 ```
 │ Error: Kubernetes cluster unreachable: Get "https://upstream.local.gd:6443/version": dial tcp 127.0.0.1:6443: connect: connection refused
 ```
@@ -38,9 +38,9 @@ SSH tunnels might be broken. Reopen them via:
 ./config/open-tunnels-to-upstream-*.sh
 ```
 
-### Terraform extended logging
+### OpenTofu extended logging
 
-In case Terraform returns an error with little context about what happened, use the following to get more complete debugging output:
+In case OpenTofu returns an error with little context about what happened, use the following to get more complete debugging output:
 ```shell
 export TF_LOG=debug
 ```
@@ -89,9 +89,9 @@ When using `k3d`, change `RANCHER_IMAGE_TAG` and if an image with the same tag i
 
 This is useful during Rancher development to test Rancher changes on k3d clusters.
 
-## Passing custom Terraform variables
+## Passing custom OpenTofu variables
 
-Terraform variables can be overridden using `TERRAFORM_VAR_FILE` environment variable, to point to a [`.tfvars` file](https://developer.hashicorp.com/terraform/language/values/variables#variable-definitions-tfvars-files). The variable should contain a path to the file in json or tfvars format.
+OpenTofu variables can be overridden using `TERRAFORM_VAR_FILE` environment variable, to point to a [`.tfvars` file](https://developer.hashicorp.com/tofu/language/values/variables#variable-definitions-tfvars-files). The variable should contain a path to the file in json or tfvars format.
 For example, for the `ssh` module, nodes' ip addresses, login name, etc. can be overridden as follows:
 
 ```shell

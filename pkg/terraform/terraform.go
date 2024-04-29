@@ -55,7 +55,7 @@ type Terraform struct {
 const DefaultThreads = 10
 
 func (t *Terraform) Init(dir string, verbose bool) error {
-	tfBinary, err := exec.LookPath("terraform")
+	tfBinary, err := exec.LookPath("tofu")
 	if err != nil {
 		return fmt.Errorf("error: terraform init: %w", err)
 	}
