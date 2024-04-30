@@ -77,8 +77,8 @@ func main() {
 			&cli.BoolFlag{
 				Name:    argForce,
 				Aliases: []string{"f"},
-				Value:   false,
-				Usage:   "kill running commands on the test cluster before executing a new one",
+				Value:   true,
+				Usage:   "remove pending K6 pod on the test cluster before executing a new one",
 				EnvVars: []string{"SCLI_FORCE"},
 			},
 		},
