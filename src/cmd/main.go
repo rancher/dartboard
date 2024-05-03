@@ -450,7 +450,7 @@ func importDownstreamClusterDo(clusters map[string]terraform.Cluster, clusterNam
 	}
 	if !skipDownstreamMonitoring {
 		if err := chartInstallRancherMonitoring(&downstream, true); err != nil {
-			errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+			errCh <- fmt.Errorf("downstream monitoring installation on cluster %s failed: %w", clusterName, err)
 			return
 		}
 	}
