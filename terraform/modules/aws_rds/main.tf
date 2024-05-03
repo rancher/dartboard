@@ -29,7 +29,7 @@ resource "aws_db_parameter_group" "db_parameter_group_postgres" {
 }
 
 resource "aws_db_instance" "instance" {
-  depends_on        = [
+  depends_on = [
     aws_db_parameter_group.db_parameter_group_mariadb, aws_db_parameter_group.db_parameter_group_postgres
   ]
   identifier        = "${var.project_name}-${var.name}"
