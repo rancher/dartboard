@@ -38,10 +38,11 @@ import (
 )
 
 const (
-	k6Image     = "grafana/k6:0.46.0"
-	K6Name      = "k6"
-	K6Namespace = "tester"
-	mimirURL    = "http://mimir.tester:9009/mimir"
+	k6Image          = "grafana/k6:0.46.0"
+	K6Name           = "k6"
+	K6Namespace      = "tester"
+	K6KubeSecretName = "kube"
+	mimirURL         = "http://mimir.tester:9009/mimir"
 )
 
 type Client struct {
@@ -121,7 +122,7 @@ func GetRancherFQDNFromLoadBalancer(kubePath string) (string, error) {
 
 	ingress := map[string]string{}
 	if err := json.Unmarshal(output.Bytes(), &ingress); err != nil {
-		return "", fmt.Errorf("cannot unmarshal ingress data: %w\n%s", err, string(output.Bytes()))
+		return "", fmt.Errorf("cannot unmarshal ingress data: %w\n%s", err, output.String())
 	}
 
 	if ip, ok := ingress["ip"]; ok {
@@ -170,12 +171,51 @@ func (cl *Client) GetStatus(group, ver, res, name, namespace string) (map[string
 	return status, nil
 }
 
-func (cl *Client) K6run(envVars, tags map[string]string, testPath string, printLogs, record bool) error {
+func fillK6TestFilesVols(vol *[]v1.Volume, volMount *[]v1.VolumeMount) {
+	*vol = append(*vol,
+		v1.Volume{
+			Name: "k6-test-files",
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{Name: "k6-test-files"},
+				},
+			},
+		},
+		v1.Volume{
+			Name: "k6-lib-files",
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{Name: "k6-lib-files"},
+				},
+			},
+		},
+	)
 
+	*volMount = append(*volMount,
+		v1.VolumeMount{Name: "k6-test-files", MountPath: "/k6"},
+		v1.VolumeMount{Name: "k6-lib-files", MountPath: "/k6/lib"},
+	)
+}
+
+func (cl *Client) K6run(envVars, tags map[string]string, testPath string, printLogs, record bool, force bool) error {
+
+	podVolumes := []v1.Volume{}
+	podVolumeMounts := []v1.VolumeMount{}
 	paramEnvVars := []string{}
 	for key, val := range envVars {
+		if key == "KUBECONFIG" {
+			Exec(cl.kubeconfig, nil, "--namespace="+K6Namespace, "delete", "secret", K6KubeSecretName, "--ignore-not-found")
+			Exec(cl.kubeconfig, nil, "--namespace="+K6Namespace, "create", "secret", "generic", K6KubeSecretName,
+				"--from-file=config="+val)
+			val = "/kube/config"
+			podVolumeMounts = []v1.VolumeMount{{Name: K6KubeSecretName, MountPath: "/kube"}}
+			podVolumes = []v1.Volume{{Name: K6KubeSecretName,
+				VolumeSource: v1.VolumeSource{Secret: &v1.SecretVolumeSource{SecretName: K6KubeSecretName}}}}
+		}
 		paramEnvVars = append(paramEnvVars, "-e", fmt.Sprintf("%s=%s", key, val))
 	}
+
+	fillK6TestFilesVols(&podVolumes, &podVolumeMounts)
 
 	paramTags := []string{}
 	for key, val := range tags {
@@ -208,37 +248,20 @@ func (cl *Client) K6run(envVars, tags map[string]string, testPath string, printL
 						{Name: "K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM", Value: "true"},
 						{Name: "K6_PROMETHEUS_RW_STALE_MARKERS", Value: "true"},
 					},
-					VolumeMounts: []v1.VolumeMount{
-						{Name: "k6-test-files", MountPath: "/k6"},
-						{Name: "k6-lib-files", MountPath: "/k6-lib"},
-						// TODO: add & manage KUBECONFIG env variable
-					},
+					VolumeMounts: podVolumeMounts,
 				},
 			},
-			Volumes: []v1.Volume{
-				{
-					Name: "k6-test-files",
-					VolumeSource: v1.VolumeSource{
-						ConfigMap: &v1.ConfigMapVolumeSource{
-							LocalObjectReference: v1.LocalObjectReference{Name: "k6-test-files"},
-						},
-					},
-				},
-				{
-					Name: "k6-lib-files",
-					VolumeSource: v1.VolumeSource{
-						ConfigMap: &v1.ConfigMapVolumeSource{
-							LocalObjectReference: v1.LocalObjectReference{Name: "k6-lib-files"},
-						},
-					},
-				},
-			},
+			Volumes: podVolumes,
 		},
 	}
 
 	podCli := cl.clientset.CoreV1().Pods(K6Namespace)
+	if force {
+		_ = podCli.Delete(context.TODO(), K6Name, metav1.DeleteOptions{})
+	}
 	_, err := podCli.Create(context.TODO(), pod, metav1.CreateOptions{})
 	if err != nil {
+
 		return err
 	}
 
