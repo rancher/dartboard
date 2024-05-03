@@ -126,6 +126,12 @@ func main() {
 				Action: actionCmdSetup,
 			},
 			{
+				Name:        "get-access",
+				Usage:       "Retrieves information to access the deployed clusters",
+				Description: "print out links and access information for the deployed clusters",
+				Action:      actionCmdGetAccess,
+			},
+			{
 				Name:        "state",
 				Usage:       "Retrieves information of the deployed clusters",
 				Description: "print out the state of the provisioned clusters",
@@ -324,6 +330,60 @@ func actionCmdLoad(cCtx *cli.Context) error {
 		return err
 	}
 	return nil
+}
+
+func actionCmdGetAccess(cCtx *cli.Context) error {
+	tf := new(terraform.Terraform)
+
+	if err := tf.Init(cCtx.String(argTerraformDir), false); err != nil {
+		return err
+	}
+
+	clusters, err := tf.OutputClusters()
+	if err != nil {
+		return err
+	}
+
+	upstream := clusters["upstream"]
+	tester := clusters["tester"]
+
+	downstreams := make(map[string]terraform.Cluster)
+	for k, v := range clusters {
+		if strings.HasPrefix(k, "downstream") {
+			downstreams[k] = v
+		}
+	}
+
+	fmt.Println("*** ACCESS DETAILS")
+	fmt.Println()
+
+	printAccessDetails("UPSTREAM", upstream)
+	for name, downstream := range downstreams {
+		printAccessDetails(strings.ToUpper(name), downstream)
+	}
+	printAccessDetails("TESTER", tester)
+
+	return nil
+}
+
+func printAccessDetails(name string, cluster terraform.Cluster) {
+	if name == "UPSTREAM" {
+		upstreamAddresses, err := getAppAddressFor(cluster)
+		if err == nil {
+			rancherURL := upstreamAddresses.Local.HTTPSURL
+			fmt.Printf("    Rancher UI: %s (admin/%s)\n", rancherURL, adminPassword)
+		} else {
+			fmt.Printf("Error getting addresses for cluster %q: %v\n", name, err)
+		}
+	}
+	fmt.Printf("*** %s CLUSTER\n", name)
+	fmt.Println("    Kubernetes API:")
+	fmt.Printf("export KUBECONFIG=%q\n", cluster.Kubeconfig)
+	fmt.Printf("kubectl config use-context %q\n", cluster.Context)
+	for node, command := range cluster.NodeAccessCommands {
+		fmt.Printf("    Node %s: %q\n", node, command)
+	}
+	fmt.Println()
 }
 
 func importDownstreamClusters(clusters map[string]terraform.Cluster) error {
