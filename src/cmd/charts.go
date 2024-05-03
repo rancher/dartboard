@@ -39,7 +39,7 @@ var (
 	chartGrafanaDashboards    = chart{"grafana-dashboards", "tester", "grafana-dashboards"}
 	chartGrafana              = chart{"grafana", "tester", "https://github.com/grafana/helm-charts/releases/download/grafana-6.56.5/grafana-6.56.5.tgz"}
 	chartCertManager          = chart{"cert-manager", "cert-manager", "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"}
-	rancherVersion            = "2.7.9"
+	rancherVersion            = "2.8.3"
 	rancherImageTag           = "v" + rancherVersion
 	chartRancher              = chart{"rancher", "cattle-system", "https://releases.rancher.com/server-charts/latest/rancher-" + rancherVersion + ".tgz"}
 	chartRancherIngress       = chart{"rancher-ingress", "default", "rancher-ingress"}
