@@ -132,12 +132,6 @@ func main() {
 				Action:      actionCmdGetAccess,
 			},
 			{
-				Name:        "state",
-				Usage:       "Retrieves information of the deployed clusters",
-				Description: "print out the state of the provisioned clusters",
-				Action:      actionCmdState,
-			},
-			{
 				Name:        "teardown",
 				Aliases:     []string{"destroy"},
 				Usage:       "Tears down the test environment (all the clusters)",
@@ -188,22 +182,6 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func actionCmdState(cCtx *cli.Context) error {
-	tf := new(terraform.Terraform)
-
-	if err := tf.Init(cCtx.String(argTerraformDir), false); err != nil {
-		return err
-	}
-
-	clusters, err := tf.OutputClustersJson()
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(clusters)
-	return nil
 }
 
 func actionCmdDestroy(cCtx *cli.Context) error {
