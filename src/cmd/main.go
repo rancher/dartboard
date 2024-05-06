@@ -143,6 +143,12 @@ func main() {
 				Usage:       "Creates K8s resources on upstream and downstream clusters",
 				Description: "Loads ConfigMaps and Secrets on all the deployed K8s cluster; Roles, Users and Projects on the Rancher cluster",
 				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        argChartDir,
+						Value:       filepath.Join(baseDir, "charts"),
+						Usage:       "charts directory",
+						Destination: &chartDir,
+					},
 					&cli.IntFlag{
 						Name:    argLoadConfigMapCnt,
 						Value:   1000,
@@ -281,8 +287,13 @@ func actionCmdLoad(cCtx *cli.Context) error {
 		return err
 	}
 
-	// Create ConfigMaps and Secrets
+	// Refresh k6 files
 	tester := clusters["tester"]
+	if err := chartInstallK6Files(&tester); err != nil {
+		return err
+	}
+
+	// Create ConfigMaps and Secrets
 	cliTester := &kubectl.Client{}
 	if err := cliTester.Init(tester.Kubeconfig); err != nil {
 		return err
