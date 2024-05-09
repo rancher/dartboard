@@ -157,7 +157,6 @@ function listWithSteveStylePagination(url, cookies) {
 
 function listWithNormanStylePagination(url, cookies) {
     let nextUrl = url + "?limit=" + pageSize
-    let partial = true
     while (true) {
         const res = http.get(nextUrl, {cookies: cookies})
 
