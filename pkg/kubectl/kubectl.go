@@ -105,15 +105,6 @@ func WaitForReadyCondition(kubePath, resource, name, namespace string, minutes i
 	return err
 }
 
-func WaitImportedClusters(kubePath string) error {
-	if err := Exec(kubePath, log.Writer(), "wait", "clusters.management.cattle.io", "--all",
-		"--for", "condition=ready=true", "--timeout=15m"); err != nil {
-		return err
-	}
-	return Exec(kubePath, log.Writer(), "wait", "cluster.fleet.cattle.io", "--all",
-		"--namespace", "fleet-default", "--for", "condition=ready=true", "--timeout=15m")
-}
-
 func GetRancherFQDNFromLoadBalancer(kubePath string) (string, error) {
 	output := new(bytes.Buffer)
 	if err := Exec(kubePath, output, "get", "services", "--all-namespaces",
