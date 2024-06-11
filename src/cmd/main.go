@@ -45,7 +45,6 @@ const (
 	argLoadRoleCnt                   = "roles"
 	argLoadSecretCnt                 = "secrets"
 	argLoadUserCnt                   = "users"
-	argForce                         = "force"
 	baseDir                          = ""
 	adminPassword                    = "adminadminadmin"
 )
@@ -73,13 +72,6 @@ func main() {
 					}
 					return nil
 				},
-			},
-			&cli.BoolFlag{
-				Name:    argForce,
-				Aliases: []string{"f"},
-				Value:   true,
-				Usage:   "remove pending K6 pod on the test cluster before executing a new one",
-				EnvVars: []string{"SCLI_FORCE"},
 			},
 		},
 		Commands: []*cli.Command{
@@ -485,7 +477,7 @@ func importDownstreamClustersRancherSetup(clusters map[string]terraform.Cluster)
 		"IMPORTED_CLUSTER_NAMES": importedClusterNames,
 	}
 
-	if err := cliTester.K6run(envVars, nil, "k6/rancher_setup.js", true, false, true); err != nil {
+	if err := cliTester.K6run("rancher-setup", "k6/rancher_setup.js", envVars, nil, true, false); err != nil {
 		return err
 	}
 	return nil
@@ -554,7 +546,6 @@ func isProviderK3d() bool {
 func loadConfigMapAndSecrets(cCtx *cli.Context, cli *kubectl.Client, clusterName string, clusterData terraform.Cluster) error {
 	configMapCount := strconv.Itoa(cCtx.Int(argLoadConfigMapCnt))
 	secretCount := strconv.Itoa(cCtx.Int(argLoadSecretCnt))
-	force := cCtx.Bool(argForce)
 
 	envVars := map[string]string{
 		"BASE_URL":         clusterData.PrivateKubernetesAPIURL,
@@ -571,7 +562,7 @@ func loadConfigMapAndSecrets(cCtx *cli.Context, cli *kubectl.Client, clusterName
 	}
 
 	log.Printf("Load resources on cluster %q (#ConfigMaps: %s, #Secrets: %s)\n", clusterName, configMapCount, secretCount)
-	if err := cli.K6run(envVars, tags, "k6/create_k8s_resources.js", true, false, force); err != nil {
+	if err := cli.K6run("create-k8s-resources", "k6/create_k8s_resources.js", envVars, tags, true, false); err != nil {
 		return fmt.Errorf("failed loading ConfigMaps and Secrets on cluster %q: %w", clusterName, err)
 	}
 	return nil
@@ -580,7 +571,6 @@ func loadConfigMapAndSecrets(cCtx *cli.Context, cli *kubectl.Client, clusterName
 func loadRolesAndUsers(cCtx *cli.Context, cli *kubectl.Client, clusterName string, clusterData terraform.Cluster) error {
 	roleCount := strconv.Itoa(cCtx.Int(argLoadRoleCnt))
 	userCount := strconv.Itoa(cCtx.Int(argLoadUserCnt))
-	force := cCtx.Bool(argForce)
 	clusterAdd, err := getAppAddressFor(clusterData)
 	if err != nil {
 		return fmt.Errorf("failed loading Roles and Users on cluster %q: %w", clusterName, err)
@@ -601,7 +591,7 @@ func loadRolesAndUsers(cCtx *cli.Context, cli *kubectl.Client, clusterName strin
 
 	log.Printf("Load resources on cluster %q (#Roles: %s, #Users: %s)\n", clusterName, roleCount, userCount)
 
-	if err := cli.K6run(envVars, tags, "k6/create_roles_users.js", true, false, force); err != nil {
+	if err := cli.K6run("create-roles-users", "k6/create_roles_users.js", envVars, tags, true, false); err != nil {
 		return fmt.Errorf("failed loading Roles and Users on cluster %q: %w", clusterName, err)
 	}
 	return nil
@@ -609,7 +599,6 @@ func loadRolesAndUsers(cCtx *cli.Context, cli *kubectl.Client, clusterName strin
 
 func loadProjects(cCtx *cli.Context, cli *kubectl.Client, clusterName string, clusterData terraform.Cluster) error {
 	projectCount := strconv.Itoa(cCtx.Int(argLoadProjectCnt))
-	force := cCtx.Bool(argForce)
 	clusterAdd, err := getAppAddressFor(clusterData)
 	if err != nil {
 		return fmt.Errorf("failed loading Projects on cluster %q: %w", clusterName, err)
@@ -628,7 +617,7 @@ func loadProjects(cCtx *cli.Context, cli *kubectl.Client, clusterName string, cl
 
 	log.Printf("Load resources on cluster %q (#Projects: %s)\n", clusterName, projectCount)
 
-	if err := cli.K6run(envVars, tags, "k6/create_projects.js", true, false, force); err != nil {
+	if err := cli.K6run("create-projects", "k6/create_projects.js", envVars, tags, true, false); err != nil {
 		return fmt.Errorf("failed loading Projects on cluster %q: %w", clusterName, err)
 	}
 	return nil
