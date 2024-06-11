@@ -264,7 +264,7 @@ func actionCmdSetup(cCtx *cli.Context) error {
 		return err
 	}
 
-	return nil
+	return actionCmdGetAccess(cCtx)
 }
 
 func actionCmdLoad(cCtx *cli.Context) error {
@@ -335,29 +335,31 @@ func actionCmdGetAccess(cCtx *cli.Context) error {
 		}
 	}
 
-	fmt.Println("*** ACCESS DETAILS")
+	upstreamAddresses, err := getAppAddressFor(upstream)
+	rancherURL := ""
+	if err == nil {
+		rancherURL = upstreamAddresses.Local.HTTPSURL
+	} else {
+		fmt.Printf("Error getting application addresses for cluster upstream: %v\n", err)
+	}
+
+	fmt.Println("\n\n\n*** ACCESS DETAILS")
 	fmt.Println()
 
-	printAccessDetails("UPSTREAM", upstream)
+	printAccessDetails("UPSTREAM", upstream, rancherURL)
 	for name, downstream := range downstreams {
-		printAccessDetails(strings.ToUpper(name), downstream)
+		printAccessDetails(strings.ToUpper(name), downstream, "")
 	}
-	printAccessDetails("TESTER", tester)
+	printAccessDetails("TESTER", tester, "")
 
 	return nil
 }
 
-func printAccessDetails(name string, cluster terraform.Cluster) {
-	if name == "UPSTREAM" {
-		upstreamAddresses, err := getAppAddressFor(cluster)
-		if err == nil {
-			rancherURL := upstreamAddresses.Local.HTTPSURL
-			fmt.Printf("    Rancher UI: %s (admin/%s)\n", rancherURL, adminPassword)
-		} else {
-			fmt.Printf("Error getting addresses for cluster %q: %v\n", name, err)
-		}
-	}
+func printAccessDetails(name string, cluster terraform.Cluster, rancherURL string) {
 	fmt.Printf("*** %s CLUSTER\n", name)
+	if rancherURL != "" {
+		fmt.Printf("    Rancher UI: %s (admin/%s)\n", rancherURL, adminPassword)
+	}
 	fmt.Println("    Kubernetes API:")
 	fmt.Printf("export KUBECONFIG=%q\n", cluster.Kubeconfig)
 	fmt.Printf("kubectl config use-context %q\n", cluster.Context)
