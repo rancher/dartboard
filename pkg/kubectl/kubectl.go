@@ -28,6 +28,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -197,7 +198,7 @@ func fillK6TestFilesVols(vol *[]v1.Volume, volMount *[]v1.VolumeMount) {
 	)
 }
 
-func (cl *Client) K6run(envVars, tags map[string]string, testPath string, printLogs, record bool, force bool) error {
+func (cl *Client) K6run(name, testPath string, envVars, tags map[string]string, printLogs, record bool) error {
 
 	podVolumes := []v1.Volume{}
 	podVolumeMounts := []v1.VolumeMount{}
@@ -229,9 +230,11 @@ func (cl *Client) K6run(envVars, tags map[string]string, testPath string, printL
 		args = append(args, "-o", "experimental-prometheus-rw")
 	}
 
+	podName := fmt.Sprintf("%s-%s", K6Name, name)
+
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: K6Name,
+			Name: podName,
 		},
 		Spec: v1.PodSpec{
 			RestartPolicy: v1.RestartPolicyNever,
@@ -256,20 +259,23 @@ func (cl *Client) K6run(envVars, tags map[string]string, testPath string, printL
 	}
 
 	podCli := cl.clientset.CoreV1().Pods(K6Namespace)
-	if force {
-		_ = podCli.Delete(context.TODO(), K6Name, metav1.DeleteOptions{})
+	err := podCli.Delete(context.TODO(), podName, metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		// Don't fail, let's just log a warning
+		log.Printf("WARN: k6 pod deletion failed: %s\n", err.Error())
 	}
-	_, err := podCli.Create(context.TODO(), pod, metav1.CreateOptions{})
+
+	_, err = podCli.Create(context.TODO(), pod, metav1.CreateOptions{})
 	if err != nil {
 
 		return err
 	}
 
 	// Check the status of the Pod and wait it to be started (so that we can print logs if needed)
-	err = wait.PollUntilContextTimeout(context.TODO(), time.Second, 120*time.Second, false, cl.isPodRunningOrSuccessful(K6Name, K6Namespace))
+	err = wait.PollUntilContextTimeout(context.TODO(), time.Second, 120*time.Second, false, cl.isPodRunningOrSuccessful(podName, K6Namespace))
 
 	if printLogs {
-		req := podCli.GetLogs(K6Name, &v1.PodLogOptions{Follow: true})
+		req := podCli.GetLogs(podName, &v1.PodLogOptions{Follow: true})
 		stream, err := req.Stream(context.TODO())
 		if err != nil {
 			return fmt.Errorf("error retrieving logs: %w", err)
@@ -295,17 +301,11 @@ func (cl *Client) K6run(envVars, tags map[string]string, testPath string, printL
 	// Check if the Pod was in error state before printing the logs.
 	// If not, there is a chance it was running but still not ended, so we have to double check it is completed *and* successful.
 	if err == nil {
-		err = wait.PollUntilContextTimeout(context.TODO(), time.Second, 120*time.Second, false, cl.isPodSuccessful(K6Name, K6Namespace))
+		err = wait.PollUntilContextTimeout(context.TODO(), time.Second, 120*time.Second, false, cl.isPodSuccessful(podName, K6Namespace))
 	}
 
 	if err != nil {
 		return fmt.Errorf("k6 pod not ready: %w", err)
-	}
-
-	err = podCli.Delete(context.TODO(), K6Name, metav1.DeleteOptions{})
-	if err != nil {
-		// Don't fail, let's just log a warning
-		log.Printf("WARN: k6 pod deletion failed: %s\n", err.Error())
 	}
 
 	return nil
