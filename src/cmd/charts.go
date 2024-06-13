@@ -34,18 +34,25 @@ type chart struct {
 }
 
 var (
-	chartMimir                = chart{"mimir", "tester", "mimir"}
-	chartK6Files              = chart{"k6-files", "tester", "k6-files"}
-	chartGrafanaDashboards    = chart{"grafana-dashboards", "tester", "grafana-dashboards"}
-	chartGrafana              = chart{"grafana", "tester", "https://github.com/grafana/helm-charts/releases/download/grafana-6.56.5/grafana-6.56.5.tgz"}
-	chartCertManager          = chart{"cert-manager", "cert-manager", "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"}
-	rancherVersion            = "2.8.3"
-	rancherImageTag           = "v" + rancherVersion
-	chartRancher              = chart{"rancher", "cattle-system", "https://releases.rancher.com/server-charts/latest/rancher-" + rancherVersion + ".tgz"}
-	chartRancherIngress       = chart{"rancher-ingress", "default", "rancher-ingress"}
-	chartRancherMonitoringCRD = chart{"rancher-monitoring-crd", "cattle-monitoring-system", "https://github.com/rancher/charts/raw/release-v2.7/assets/rancher-monitoring-crd/rancher-monitoring-crd-102.0.0%2Bup40.1.2.tgz"}
-	chartRancherMonitoring    = chart{"rancher-monitoring", "cattle-monitoring-system", "https://github.com/rancher/charts/raw/release-v2.7/assets/rancher-monitoring/rancher-monitoring-102.0.0%2Bup40.1.2.tgz"}
-	chartCgroupsExporter      = chart{"cgroups-exporter", "cattle-monitoring-system", "cgroups-exporter"}
+	chartMimir             = chart{"mimir", "tester", "mimir"}
+	chartK6Files           = chart{"k6-files", "tester", "k6-files"}
+	chartGrafanaDashboards = chart{"grafana-dashboards", "tester", "grafana-dashboards"}
+	chartGrafana           = chart{"grafana", "tester", "https://github.com/grafana/helm-charts/releases/download/grafana-6.56.5/grafana-6.56.5.tgz"}
+	chartCertManager       = chart{"cert-manager", "cert-manager", "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"}
+	rancherMinor           = "2.9"
+	rancherVersion         = rancherMinor + ".0-alpha5"
+	rancherImageTag        = "v" + rancherVersion
+	// one of "alpha", "latest" or "stable"
+	rancherRepo         = "alpha"
+	chartRancher        = chart{"rancher", "cattle-system", "https://releases.rancher.com/server-charts/" + rancherRepo + "/rancher-" + rancherVersion + ".tgz"}
+	chartRancherIngress = chart{"rancher-ingress", "default", "rancher-ingress"}
+
+	// see https://github.com/rancher/charts/tree/release-v2.9/assets/rancher-monitoring-crd
+	chartRancherMonitoringCRD = chart{"rancher-monitoring-crd", "cattle-monitoring-system", "https://github.com/rancher/charts/raw/release-v2.9/assets/rancher-monitoring-crd/rancher-monitoring-crd-103.0.0+up45.31.1.tgz"}
+
+	// see https://github.com/rancher/charts/tree/release-v2.9/assets/rancher-monitoring
+	chartRancherMonitoring = chart{"rancher-monitoring", "cattle-monitoring-system", "https://github.com/rancher/charts/raw/release-v2.9/assets/rancher-monitoring/rancher-monitoring-103.0.0+up45.31.1.tgz"}
+	chartCgroupsExporter   = chart{"cgroups-exporter", "cattle-monitoring-system", "cgroups-exporter"}
 )
 
 func chartInstall(kubeConf string, chart chart, jsonVals string) error {
