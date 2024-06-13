@@ -23,7 +23,7 @@ locals {
       reserve_node_for_monitoring = false
 
       // azure-specific
-      size = "Standard_B1ms"
+      size = "Standard_B2as_v2"
       os_image = {
         publisher = "suse"
         offer     = "opensuse-leap-15-5"
