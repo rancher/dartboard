@@ -32,4 +32,5 @@ module "cluster" {
   app_https_port      = local.first_app_https_port + count.index
   network_name        = module.network.name
   registry            = module.network.registry
+  enable_audit_log    = local.clusters[count.index].name == "upstream"
 }

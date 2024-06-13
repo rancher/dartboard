@@ -65,6 +65,11 @@ variable "subnet_id" {
   type        = string
 }
 
+variable "enable_audit_log" {
+  description = "Enable Kubernetes API audit log to a Log Analitycs workspace"
+  default     = false
+}
+
 variable "distro_version" {
   description = "Kubernetes version for AKS to use"
   default     = "1.26.3"

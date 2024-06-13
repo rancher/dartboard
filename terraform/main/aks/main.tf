@@ -146,4 +146,5 @@ module "aks_cluster" {
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   subnet_id           = module.network.private_subnet_id
+  enable_audit_log    = local.aks_clusters[count.index].enable_audit_log
 }

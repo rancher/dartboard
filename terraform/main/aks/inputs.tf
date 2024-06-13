@@ -11,6 +11,7 @@ locals {
     size = "Standard_D8ds_v4"
 
     os_ephemeral_disk = true
+    enable_audit_log  = true
   }
 
   downstream_k3s_clusters = [

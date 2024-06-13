@@ -29,6 +29,13 @@ resource "azurerm_kubernetes_cluster" "cluster" {
   identity {
     type = "SystemAssigned"
   }
+
+  dynamic "oms_agent" {
+    for_each = var.enable_audit_log ? [1] : []
+    content {
+      log_analytics_workspace_id = azurerm_log_analytics_workspace.audit_log_workspace[0].id
+    }
+  }
 }
 
 resource "azurerm_kubernetes_cluster_node_pool" "secondary" {
@@ -49,4 +56,24 @@ resource "local_file" "kubeconfig" {
 
   filename        = "${path.root}/config/${var.name}.yaml"
   file_permission = "0700"
+}
+
+resource "azurerm_log_analytics_workspace" "audit_log_workspace" {
+  count               = var.enable_audit_log ? 1 : 0
+  name                = "${var.project_name}-${var.name}-audit-log"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+}
+
+resource "azurerm_monitor_diagnostic_setting" "audit_log_setting" {
+  count                          = var.enable_audit_log ? 1 : 0
+  name                           = "${var.project_name}-${var.name}-audit-log"
+  target_resource_id             = azurerm_kubernetes_cluster.cluster.id
+  log_analytics_workspace_id     = azurerm_log_analytics_workspace.audit_log_workspace[0].id
+  log_analytics_destination_type = "Dedicated"
+
+  enabled_log {
+    # see https://learn.microsoft.com/en-us/azure/aks/monitor-aks-reference
+    category = "kube-audit"
+  }
 }
