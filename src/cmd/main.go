@@ -52,7 +52,6 @@ const (
 )
 
 var (
-	tfProvider               = "k3d"
 	chartDir                 string
 	chartRancherReplicas     int
 	skipDownstreamMonitoring bool = true
@@ -68,12 +67,6 @@ func main() {
 				Value:   filepath.Join(baseDir, "terraform", "main", "k3d"),
 				Usage:   "terraform working directory",
 				EnvVars: []string{"TERRAFORM_WORK_DIR"},
-				Action: func(cCtx *cli.Context, tfDir string) error {
-					if len(tfDir) > 0 {
-						tfProvider = filepath.Base(tfDir)
-					}
-					return nil
-				},
 			},
 		},
 		Commands: []*cli.Command{
@@ -107,7 +100,7 @@ func main() {
 					&cli.IntFlag{
 						Name:        argChartRancherReplicas,
 						Usage:       "number of Rancher replicas",
-						DefaultText: "1 for k3d tf provider, otherwise 3",
+						Value:       1,
 						Destination: &chartRancherReplicas,
 					},
 					&cli.BoolFlag{
@@ -241,19 +234,13 @@ func actionCmdSetup(cCtx *cli.Context) error {
 	if err := chartInstallCertManager(&upstream); err != nil {
 		return err
 	}
-	if !cCtx.IsSet(argChartRancherReplicas) {
-		chartRancherReplicas = 3
-		if isProviderK3d() {
-			chartRancherReplicas = 1
-		}
-	}
 	if err := chartInstallRancher(&upstream, int(chartRancherReplicas)); err != nil {
 		return err
 	}
 	if err := chartInstallRancherIngress(&upstream); err != nil {
 		return err
 	}
-	if err := chartInstallRancherMonitoring(&upstream, isProviderK3d()); err != nil {
+	if err := chartInstallRancherMonitoring(&upstream, tf.IsK3d()); err != nil {
 		return err
 	}
 	if err := chartInstallCgroupsExporter(&upstream); err != nil {
@@ -552,10 +539,6 @@ func importClustersDownstreamGetYAML(clusters map[string]terraform.Cluster, name
 	}
 
 	return
-}
-
-func isProviderK3d() bool {
-	return tfProvider == "k3d"
 }
 
 func loadConfigMapAndSecrets(cCtx *cli.Context, cli *kubectl.Client, clusterName string, clusterData terraform.Cluster) error {
