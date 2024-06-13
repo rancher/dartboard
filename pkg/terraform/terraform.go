@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
@@ -49,12 +50,15 @@ type Cluster struct {
 
 type Terraform struct {
 	tf      *tfexec.Terraform
+	dir     string
 	Threads int
 }
 
 const DefaultThreads = 10
 
 func (t *Terraform) Init(dir string, verbose bool) error {
+	t.dir = dir
+
 	tfBinary, err := exec.LookPath("tofu")
 	if err != nil {
 		return fmt.Errorf("error: terraform init: %w", err)
@@ -152,4 +156,10 @@ func (t *Terraform) Version() (version string, providers map[string]string, err 
 	}
 
 	return
+}
+
+// IsK3d determines if the current backend is k3d
+func (t *Terraform) IsK3d() bool {
+	_, f := filepath.Split(t.dir)
+	return f == "k3d"
 }

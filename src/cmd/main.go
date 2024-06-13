@@ -27,6 +27,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/moio/scalability-tests/pkg/docker"
+	"github.com/moio/scalability-tests/pkg/k3d"
 	"github.com/moio/scalability-tests/pkg/kubectl"
 	"github.com/moio/scalability-tests/pkg/terraform"
 	"github.com/urfave/cli/v2"
@@ -231,7 +233,10 @@ func actionCmdSetup(cCtx *cli.Context) error {
 	}
 
 	upstream := clusters["upstream"]
-	// TODO: implement "importImage" function
+	err = importImageIntoK3d(tf, "rancher/rancher:"+rancherImageTag, upstream)
+	if err != nil {
+		return err
+	}
 
 	if err := chartInstallCertManager(&upstream); err != nil {
 		return err
@@ -260,7 +265,7 @@ func actionCmdSetup(cCtx *cli.Context) error {
 	if err := kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
 		return err
 	}
-	if err := importDownstreamClusters(clusters); err != nil {
+	if err := importDownstreamClusters(tf, clusters); err != nil {
 		return err
 	}
 
@@ -369,7 +374,7 @@ func printAccessDetails(name string, cluster terraform.Cluster, rancherURL strin
 	fmt.Println()
 }
 
-func importDownstreamClusters(clusters map[string]terraform.Cluster) error {
+func importDownstreamClusters(tf *terraform.Terraform, clusters map[string]terraform.Cluster) error {
 
 	log.Print("Import downstream clusters")
 
@@ -387,7 +392,7 @@ func importDownstreamClusters(clusters map[string]terraform.Cluster) error {
 			continue
 		}
 		clustersCount++
-		go importDownstreamClusterDo(clusters, clusterName, clustersChan, errorChan)
+		go importDownstreamClusterDo(tf, clusters, clusterName, clustersChan, errorChan)
 	}
 
 	for {
@@ -404,7 +409,7 @@ func importDownstreamClusters(clusters map[string]terraform.Cluster) error {
 	}
 }
 
-func importDownstreamClusterDo(clusters map[string]terraform.Cluster, clusterName string, ch chan<- string, errCh chan<- error) {
+func importDownstreamClusterDo(tf *terraform.Terraform, clusters map[string]terraform.Cluster, clusterName string, ch chan<- string, errCh chan<- error) {
 	log.Print("Import cluster " + clusterName)
 	yamlFile, err := os.CreateTemp("", "scli-"+clusterName+"-*.yaml")
 	if err != nil {
@@ -424,6 +429,11 @@ func importDownstreamClusterDo(clusters map[string]terraform.Cluster, clusterNam
 	if !ok {
 		err := fmt.Errorf("error: cannot find access data for cluster %q", clusterName)
 		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+	err = importImageIntoK3d(tf, "rancher/rancher-agent:"+rancherImageTag, downstream)
+	if err != nil {
+		errCh <- fmt.Errorf("%s downstream k3d image import failed: %w", clusterName, err)
 		return
 	}
 
@@ -638,6 +648,26 @@ func terraformVersionPrint(tf *terraform.Terraform) error {
 	log.Printf("provider list:")
 	for prov, ver := range providers {
 		log.Printf("- %s (%s)", prov, ver)
+	}
+	return nil
+}
+
+// importImageIntoK3d uses k3d import to import the specified image in the specified cluster, if such image
+// is known by the docker installation. This is for testing custom Rancher images (built via make quick) locally
+// in k3d
+func importImageIntoK3d(tf *terraform.Terraform, image string, cluster terraform.Cluster) error {
+	if tf.IsK3d() {
+		images, err := docker.Images(image)
+		if err != nil {
+			return err
+		}
+
+		if len(images) > 0 {
+			err = k3d.ImageImport(cluster, images[0])
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
