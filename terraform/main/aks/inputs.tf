@@ -13,7 +13,7 @@ locals {
     os_ephemeral_disk = true
   }
 
-  downstream_clusters = [
+  downstream_k3s_clusters = [
     for i in range(2) :
     {
       name                        = "downstream-${i}"
@@ -31,6 +31,21 @@ locals {
         version   = "latest"
       }
       os_ephemeral_disk = false
+    }
+  ]
+
+  downstream_aks_clusters = [
+    for i in range(length(local.downstream_k3s_clusters), length(local.downstream_k3s_clusters) + 0) :
+    {
+      name                        = "downstream-${i}"
+      agent_count                 = 1
+      distro_version              = "1.27.7"
+      reserve_node_for_monitoring = false
+
+      // azure-specific
+      size              = "Standard_B2as_v2"
+      os_ephemeral_disk = false
+      enable_audit_log  = false
     }
   ]
 
@@ -52,7 +67,7 @@ locals {
     os_ephemeral_disk = false
   }
 
-  clusters = concat([local.upstream_cluster], local.downstream_clusters, [local.tester_cluster])
+  clusters = concat([local.upstream_cluster], local.downstream_k3s_clusters, local.downstream_aks_clusters, [local.tester_cluster])
 
   // azure-specific
   first_local_kubernetes_api_port = 8445
