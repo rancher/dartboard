@@ -8,8 +8,7 @@ locals {
     reserve_node_for_monitoring = true
 
     // azure-specific
-    size = "Standard_D8ds_v4"
-
+    size              = "Standard_D8ds_v4"
     os_ephemeral_disk = true
     enable_audit_log  = true
   }
