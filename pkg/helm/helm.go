@@ -17,6 +17,7 @@ limitations under the License.
 package helm
 
 import (
+	"errors"
 	"log"
 	"os"
 	"time"
@@ -29,16 +30,17 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
-// Timeout for chart installation, default is 1 minute but it could be not enough sometimes...
-const timeout = 3 * time.Minute
+// Timeout for chart installation. Helm default is 1 minute, but there were timeouts with Rancher Monitoring on AKS
+const timeout = 5 * time.Minute
 
 func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[string]interface{}) error {
 	settings := cli.New()
 	settings.KubeConfig = kubecfg
+	settings.Debug = true
 	settings.SetNamespace(namespace)
 
 	var chartPath string
-	var chart *chart.Chart
+	var c *chart.Chart
 	var err error
 
 	actionConfig := new(action.Configuration)
@@ -53,8 +55,8 @@ func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[str
 	hCli := action.NewHistory(actionConfig)
 	hCli.Max = 1
 	// ...if not, install it...
-	if _, err = hCli.Run(releaseName); err == driver.ErrReleaseNotFound {
-		if err == driver.ErrReleaseNotFound {
+	if _, err = hCli.Run(releaseName); errors.Is(err, driver.ErrReleaseNotFound) {
+		if errors.Is(err, driver.ErrReleaseNotFound) {
 			installAction := action.NewInstall(actionConfig)
 			installAction.CreateNamespace = true
 			installAction.ReleaseName = releaseName
@@ -63,10 +65,10 @@ func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[str
 			if chartPath, err = installAction.LocateChart(chartLocation, settings); err != nil {
 				return err
 			}
-			if chart, err = loader.Load(chartPath); err != nil {
+			if c, err = loader.Load(chartPath); err != nil {
 				return err
 			}
-			r, err := installAction.Run(chart, vals)
+			r, err := installAction.Run(c, vals)
 			return printNotes(r, err)
 		}
 		return err
@@ -80,10 +82,10 @@ func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[str
 	if chartPath, err = upgradeAction.LocateChart(chartLocation, settings); err != nil {
 		return err
 	}
-	if chart, err = loader.Load(chartPath); err != nil {
+	if c, err = loader.Load(chartPath); err != nil {
 		return err
 	}
-	r, err := upgradeAction.Run(releaseName, chart, vals)
+	r, err := upgradeAction.Run(releaseName, c, vals)
 	return printNotes(r, err)
 }
 
