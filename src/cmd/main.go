@@ -391,15 +391,15 @@ func importDownstreamClusters(clusters map[string]terraform.Cluster) error {
 	}
 
 	for {
+		if clustersCount == 0 {
+			return nil
+		}
 		select {
 		case err := <-errorChan:
 			return err
 		case completed := <-clustersChan:
 			log.Printf("Cluster %q imported successfully.\n", completed)
 			clustersCount--
-			if clustersCount == 0 {
-				return nil
-			}
 		}
 	}
 }
@@ -469,6 +469,9 @@ func importDownstreamClustersRancherSetup(clusters map[string]terraform.Cluster)
 		if strings.HasPrefix(clusterName, "downstream") {
 			downstreamClusters = append(downstreamClusters, clusterName)
 		}
+	}
+	if len(downstreamClusters) == 0 {
+		return nil
 	}
 	importedClusterNames := strings.Join(downstreamClusters, ",")
 
