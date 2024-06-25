@@ -194,13 +194,13 @@ resource "k3d_cluster" "cluster" {
 
   k3s {
     dynamic "extra_args" {
-      for_each = concat([
-        {
-          // https://github.com/kubernetes/kubernetes/issues/104459
-          arg          = "--disable=metrics-server",
-          node_filters = ["server:*"]
-        }
-        ],
+      for_each = concat(
+        var.enable_metrics == false ? [
+          {
+            arg          = "--disable=metrics-server",
+            node_filters = ["server:*"]
+          }
+        ] : [],
         // if datastore requires an external kine instance, point to it
         var.datastore == "mariadb" || var.datastore == "postgres" ? [
           {
@@ -295,19 +295,44 @@ resource "k3d_cluster" "cluster" {
     host_port = var.kubernetes_api_port
   }
 
-  port {
-    host_port      = var.app_http_port
-    container_port = 80
-    node_filters = [
-      "server:0:direct",
-    ]
-  }
-
-  port {
-    host_port      = var.app_https_port
-    container_port = 443
-    node_filters = [
-      "server:0:direct",
-    ]
+  dynamic "port" {
+    for_each = concat([
+      {
+        host_port : var.app_http_port,
+        container_port : 80,
+        node_filters : ["server:0:direct"]
+      },
+      {
+        host_port : var.app_https_port,
+        container_port : 443,
+        node_filters : ["server:0:direct"]
+      },
+      ],
+      var.enable_metrics ?
+      [
+        for i in range(0, var.server_count) :
+        {
+          host_port : var.first_metrics_port + i,
+          container_port : 10250,
+          node_filters = ["server:${i}:direct"]
+        }
+      ] : [],
+      var.enable_metrics ?
+      [
+        for i in range(0, var.agent_count) :
+        [
+          {
+            host_port : var.first_metrics_port + var.server_count + i,
+            container_port : 10250,
+            node_filters = ["agent:${i}:direct"]
+          }
+        ]
+      ] : [],
+    )
+    content {
+      host_port      = port.value["host_port"]
+      container_port = port.value["container_port"]
+      node_filters   = port.value["node_filters"]
+    }
   }
 }

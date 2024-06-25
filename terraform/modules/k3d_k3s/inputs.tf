@@ -73,6 +73,16 @@ variable "app_https_port" {
   default     = 8443
 }
 
+variable "enable_metrics" {
+  description = "Metrics are disabled by default due to https://github.com/kubernetes/kubernetes/issues/104459"
+  default     = false
+}
+
+variable "first_metrics_port" {
+  description = "Starting port to publish cluster nodes' metric endpoints"
+  default     = 10250
+}
+
 variable "log_level" {
   description = "Change the logging level (up to 6 for trace)"
   type        = number
