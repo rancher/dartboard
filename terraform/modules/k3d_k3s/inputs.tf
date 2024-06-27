@@ -53,9 +53,9 @@ variable "network_name" {
   default     = null
 }
 
-variable "registry" {
-  description = "Name of the k3d registry for docker.io to use"
-  type        = string
+variable "pull_proxy_registries" {
+  description = "k3d pull proxy registry descriptors, see the k3d_network module"
+  type        = list(object({ name : string, address : string }))
 }
 
 variable "kubernetes_api_port" {
