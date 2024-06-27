@@ -195,7 +195,7 @@ func actionCmdSetup(cCtx *cli.Context) error {
 	if err := tf.Init(cCtx.String(argTerraformDir), true); err != nil {
 		return err
 	}
-	terraformVersionPrint(tf)
+	tofuVersionPrint(tf)
 
 	doTerraformApply := !cCtx.Bool(argTerraformSkip)
 	if doTerraformApply {
@@ -621,13 +621,13 @@ func loadProjects(cCtx *cli.Context, cli *kubectl.Client, clusterName string, cl
 	return nil
 }
 
-func terraformVersionPrint(tf *tofu.Tofu) error {
-	ver, providers, err := tf.Version()
+func tofuVersionPrint(tofu *tofu.Tofu) error {
+	ver, providers, err := tofu.Version()
 	if err != nil {
 		return err
 	}
 
-	log.Printf("Tofu version: %s", ver)
+	log.Printf("OpenTofu version: %s", ver)
 	log.Printf("provider list:")
 	for prov, ver := range providers {
 		log.Printf("- %s (%s)", prov, ver)
