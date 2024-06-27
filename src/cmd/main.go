@@ -66,7 +66,7 @@ func main() {
 				Name:    argTerraformDir,
 				Value:   filepath.Join(baseDir, "tofu", "main", "k3d"),
 				Usage:   "tofu working directory",
-				EnvVars: []string{"TERRAFORM_WORK_DIR"},
+				EnvVars: []string{"TOFU_WORK_DIR"},
 			},
 		},
 		Commands: []*cli.Command{

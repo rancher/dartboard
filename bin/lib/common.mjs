@@ -19,7 +19,7 @@ export function isK3d() {
 
 export function tofuDir(){
     const default_dir = dir(join("tofu", "main", "k3d"))
-    return env.TERRAFORM_WORK_DIR ?? default_dir
+    return env.TOFU_WORK_DIR ?? default_dir
 }
 
 export function tofuVar() {
