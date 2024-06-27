@@ -35,10 +35,10 @@ import (
 )
 
 const (
-	argTerraformDir                  = "tf-dir"
-	argTerraformVarFile              = "tf-var-file"
-	argTerraformParallelism          = "tf-parallelism"
-	argTerraformSkip                 = "tf-skip"
+	argTofuDir                       = "tf-dir"
+	argTofuVarFile                   = "tf-var-file"
+	argTofuParallelism               = "tf-parallelism"
+	argTofuSkip                      = "tf-skip"
 	argChartDir                      = "chart-dir"
 	argChartRancherReplicas          = "rancher-replicas"
 	argChartSkipDownstreamMonitoring = "skip-downstream-monitoring"
@@ -63,7 +63,7 @@ func main() {
 		Copyright: "(c) 2024 SUSE LLC",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    argTerraformDir,
+				Name:    argTofuDir,
 				Value:   filepath.Join(baseDir, "tofu", "main", "k3d"),
 				Usage:   "tofu working directory",
 				EnvVars: []string{"TOFU_WORK_DIR"},
@@ -76,18 +76,18 @@ func main() {
 				Description: "prepares the test environment deploying the clusters and installing the required charts",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:    argTerraformVarFile,
+						Name:    argTofuVarFile,
 						Value:   "",
 						Usage:   "tofu variable definition file",
 						EnvVars: []string{"TOFU_VAR_FILE"},
 					},
 					&cli.IntFlag{
-						Name:  argTerraformParallelism,
+						Name:  argTofuParallelism,
 						Value: 10,
 						Usage: "tofu 'parallelism': number of concurrent threads",
 					},
 					&cli.BoolFlag{
-						Name:  argTerraformSkip,
+						Name:  argTofuSkip,
 						Value: false,
 						Usage: "skip tofu apply, start from current tofu state",
 					},
@@ -180,26 +180,26 @@ func main() {
 func actionCmdDestroy(cCtx *cli.Context) error {
 	tf := new(tofu.Tofu)
 
-	if err := tf.Init(cCtx.String(argTerraformDir), true); err != nil {
+	if err := tf.Init(cCtx.String(argTofuDir), true); err != nil {
 		return err
 	}
 
-	return tf.Destroy(cCtx.String(argTerraformVarFile))
+	return tf.Destroy(cCtx.String(argTofuVarFile))
 }
 
 func actionCmdSetup(cCtx *cli.Context) error {
 	// Tofu
 	tf := new(tofu.Tofu)
-	tf.Threads = cCtx.Int(argTerraformParallelism)
+	tf.Threads = cCtx.Int(argTofuParallelism)
 
-	if err := tf.Init(cCtx.String(argTerraformDir), true); err != nil {
+	if err := tf.Init(cCtx.String(argTofuDir), true); err != nil {
 		return err
 	}
 	tofuVersionPrint(tf)
 
-	doTerraformApply := !cCtx.Bool(argTerraformSkip)
-	if doTerraformApply {
-		if err := tf.Apply(cCtx.String(argTerraformVarFile)); err != nil {
+	apply := !cCtx.Bool(argTofuSkip)
+	if apply {
+		if err := tf.Apply(cCtx.String(argTofuVarFile)); err != nil {
 			return err
 		}
 	}
@@ -262,7 +262,7 @@ func actionCmdSetup(cCtx *cli.Context) error {
 func actionCmdLoad(cCtx *cli.Context) error {
 	tf := new(tofu.Tofu)
 
-	if err := tf.Init(cCtx.String(argTerraformDir), false); err != nil {
+	if err := tf.Init(cCtx.String(argTofuDir), false); err != nil {
 		return err
 	}
 
@@ -308,7 +308,7 @@ func actionCmdLoad(cCtx *cli.Context) error {
 func actionCmdGetAccess(cCtx *cli.Context) error {
 	tf := new(tofu.Tofu)
 
-	if err := tf.Init(cCtx.String(argTerraformDir), false); err != nil {
+	if err := tf.Init(cCtx.String(argTofuDir), false); err != nil {
 		return err
 	}
 
