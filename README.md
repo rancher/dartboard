@@ -91,12 +91,12 @@ This is useful during Rancher development to test Rancher changes on k3d cluster
 
 ## Passing custom OpenTofu variables
 
-OpenTofu variables can be overridden using `TERRAFORM_VAR_FILE` environment variable, to point to a [`.tfvars` file](https://developer.hashicorp.com/tofu/language/values/variables#variable-definitions-tfvars-files). The variable should contain a path to the file in json or tfvars format.
+OpenTofu variables can be overridden using `TOFU_VAR_FILE` environment variable, to point to a [`.tfvars` file](https://developer.hashicorp.com/tofu/language/values/variables#variable-definitions-tfvars-files). The variable should contain a path to the file in json or tfvars format.
 For example, for the `ssh` module, nodes' ip addresses, login name, etc. can be overridden as follows:
 
 ```shell
 export TOFU_WORK_DIR=tofu/main/ssh
-export TERRAFORM_VAR_FILE=tofu/examples/ssh.tfvars.json
+export TOFU_VAR_FILE=tofu/examples/ssh.tfvars.json
 ./bin/setup.mjs
 ./bin/run_tests.mjs
 ./bin/get_access.mjs
