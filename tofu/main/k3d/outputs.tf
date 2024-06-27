@@ -1,6 +1,6 @@
 output "clusters" {
   value = {
-    for i, cluster in local.clusters : cluster.name => {
+    for i, cluster in local.all_clusters : cluster.name => {
       kubeconfig = module.cluster[i].kubeconfig
       context    = module.cluster[i].context
 
