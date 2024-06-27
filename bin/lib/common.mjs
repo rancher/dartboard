@@ -14,10 +14,10 @@ export function dir(dir){
 }
 
 export function isK3d() {
-    return terraformDir().endsWith("k3d")
+    return tofuDir().endsWith("k3d")
 }
 
-export function terraformDir(){
+export function tofuDir(){
     const default_dir = dir(join("terraform", "main", "k3d"))
     return env.TERRAFORM_WORK_DIR ?? default_dir
 }

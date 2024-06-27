@@ -2,7 +2,7 @@
 import {
     ADMIN_PASSWORD,
     dir,
-    terraformDir,
+    tofuDir,
     terraformVar,
     helm_install,
     q,
@@ -25,9 +25,9 @@ const CERT_MANAGER_CHART = "https://charts.jetstack.io/charts/cert-manager-v1.8.
 const GRAFANA_CHART = "https://github.com/grafana/helm-charts/releases/download/grafana-6.56.5/grafana-6.56.5.tgz"
 
 // Step 1: OpenTofu
-run(`tofu -chdir=${q(terraformDir())} init -upgrade`)
-run(`tofu -chdir=${q(terraformDir())} apply -auto-approve ${q(terraformVar())}`)
-const clusters = runCollectingJSONOutput(`tofu -chdir=${q(terraformDir())} output -json`)["clusters"]["value"]
+run(`tofu -chdir=${q(tofuDir())} init -upgrade`)
+run(`tofu -chdir=${q(tofuDir())} apply -auto-approve ${q(terraformVar())}`)
+const clusters = runCollectingJSONOutput(`tofu -chdir=${q(tofuDir())} output -json`)["clusters"]["value"]
 
 // Step 3: Helm charts
 // tester cluster
