@@ -43,7 +43,7 @@ func getAppAddressFor(cluster tofu.Cluster) (clusterAddresses, error) {
 	// ignore error if we are not able to get the Rancher FQDN from the LoadBalancer
 	loadBalancerName, _ := kubectl.GetRancherFQDNFromLoadBalancer(cluster.Kubeconfig)
 
-	// addresses meant to be resolved from the machine running Terraform
+	// addresses meant to be resolved from the machine running Tofu
 	// use tunnel if available, otherwise public, otherwise go through the load balancer
 	localNetworkName := add.Tunnel.Name
 	if len(localNetworkName) == 0 {
