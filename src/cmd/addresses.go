@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/moio/scalability-tests/pkg/kubectl"
-	"github.com/moio/scalability-tests/pkg/terraform"
+	"github.com/moio/scalability-tests/pkg/tofu"
 )
 
 type clusterAddress struct {
@@ -35,7 +35,7 @@ type clusterAddresses struct {
 }
 
 // getAppAddressFor returns local cluster address data, public cluster address data and an error
-func getAppAddressFor(cluster terraform.Cluster) (clusterAddresses, error) {
+func getAppAddressFor(cluster tofu.Cluster) (clusterAddresses, error) {
 	add := cluster.AppAddresses
 
 	addresses := clusterAddresses{}
