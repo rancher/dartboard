@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/moio/scalability-tests/pkg/helm"
-	"github.com/moio/scalability-tests/pkg/terraform"
+	"github.com/moio/scalability-tests/pkg/tofu"
 )
 
 type chart struct {
@@ -80,19 +80,19 @@ func chartInstall(kubeConf string, chart chart, jsonVals string) error {
 	return nil
 }
 
-func chartInstallMimir(cluster *terraform.Cluster) error {
+func chartInstallMimir(cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartMimir, "")
 }
 
-func chartInstallK6Files(cluster *terraform.Cluster) error {
+func chartInstallK6Files(cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartK6Files, "")
 }
 
-func chartInstallGrafanaDashboard(cluster *terraform.Cluster) error {
+func chartInstallGrafanaDashboard(cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartGrafanaDashboards, "")
 }
 
-func chartInstallGrafana(cluster *terraform.Cluster) error {
+func chartInstallGrafana(cluster *tofu.Cluster) error {
 	clusterAdd, err := getAppAddressFor(*cluster)
 	if err != nil {
 		return fmt.Errorf("chart %s: %w", chartGrafana.name, err)
@@ -105,11 +105,11 @@ func chartInstallGrafana(cluster *terraform.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartGrafana, chartVals)
 }
 
-func chartInstallCertManager(cluster *terraform.Cluster) error {
+func chartInstallCertManager(cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartCertManager, `{"installCRDs": true}`)
 }
 
-func chartInstallRancher(cluster *terraform.Cluster, replicas int) error {
+func chartInstallRancher(cluster *tofu.Cluster, replicas int) error {
 	clusterAdd, err := getAppAddressFor(*cluster)
 	if err != nil {
 		return fmt.Errorf("chart %s: %w", chartRancher.name, err)
@@ -123,7 +123,7 @@ func chartInstallRancher(cluster *terraform.Cluster, replicas int) error {
 	return chartInstall(cluster.Kubeconfig, chartRancher, chartVals)
 }
 
-func chartInstallRancherIngress(cluster *terraform.Cluster) error {
+func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 	clusterAdd, err := getAppAddressFor(*cluster)
 	if err != nil {
 		return fmt.Errorf("chart %s: %w", chartRancherIngress.name, err)
@@ -148,18 +148,18 @@ func chartInstallRancherIngress(cluster *terraform.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartRancherIngress, chartVals)
 }
 
-func chartInstallRancherMonitoring(cluster *terraform.Cluster, noSchedToleration bool) error {
+func chartInstallRancherMonitoring(cluster *tofu.Cluster, noSchedToleration bool) error {
 	if err := chartInstallRancherMonitoringCRD(cluster); err != nil {
 		return err
 	}
 	return chartInstallRancherMonitoringOperator(cluster, noSchedToleration)
 }
 
-func chartInstallCgroupsExporter(cluster *terraform.Cluster) error {
+func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartCgroupsExporter, "")
 }
 
-func chartInstallRancherMonitoringCRD(cluster *terraform.Cluster) error {
+func chartInstallRancherMonitoringCRD(cluster *tofu.Cluster) error {
 	chartVals := `{
 		"global": {
 			"cattle": {
@@ -173,7 +173,7 @@ func chartInstallRancherMonitoringCRD(cluster *terraform.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartRancherMonitoringCRD, chartVals)
 }
 
-func chartInstallRancherMonitoringOperator(cluster *terraform.Cluster, noSchedToleration bool) error {
+func chartInstallRancherMonitoringOperator(cluster *tofu.Cluster, noSchedToleration bool) error {
 	clusterAdd, err := getAppAddressFor(*cluster)
 	if err != nil {
 		return fmt.Errorf("chart %s: %w", chartRancherMonitoring.name, err)

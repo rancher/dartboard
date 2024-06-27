@@ -23,10 +23,10 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/moio/scalability-tests/pkg/terraform"
+	"github.com/moio/scalability-tests/pkg/tofu"
 )
 
-func ImageImport(cluster terraform.Cluster, image string) error {
+func ImageImport(cluster tofu.Cluster, image string) error {
 	args := append([]string{"image", "import", "--cluster", strings.Replace(cluster.Context, "k3d-", "", -1), image})
 	log.Printf("Exec: docker %s\n", strings.Join(args, " "))
 
