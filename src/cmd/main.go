@@ -64,8 +64,8 @@ func main() {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    argTerraformDir,
-				Value:   filepath.Join(baseDir, "terraform", "main", "k3d"),
-				Usage:   "terraform working directory",
+				Value:   filepath.Join(baseDir, "tofu", "main", "k3d"),
+				Usage:   "tofu working directory",
 				EnvVars: []string{"TERRAFORM_WORK_DIR"},
 			},
 		},
@@ -78,18 +78,18 @@ func main() {
 					&cli.StringFlag{
 						Name:    argTerraformVarFile,
 						Value:   "",
-						Usage:   "terraform variable definition file",
+						Usage:   "tofu variable definition file",
 						EnvVars: []string{"TERRAFORM_VAR_FILE"},
 					},
 					&cli.IntFlag{
 						Name:  argTerraformParallelism,
 						Value: 10,
-						Usage: "terraform 'parallelism': number of concurrent threads",
+						Usage: "tofu 'parallelism': number of concurrent threads",
 					},
 					&cli.BoolFlag{
 						Name:  argTerraformSkip,
 						Value: false,
-						Usage: "skip terraform apply, start from current terraform state",
+						Usage: "skip tofu apply, start from current tofu state",
 					},
 					&cli.StringFlag{
 						Name:        argChartDir,

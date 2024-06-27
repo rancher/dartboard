@@ -61,7 +61,7 @@ func (t *Terraform) Init(dir string, verbose bool) error {
 
 	tfBinary, err := exec.LookPath("tofu")
 	if err != nil {
-		return fmt.Errorf("error: terraform init: %w", err)
+		return fmt.Errorf("error: tofu init: %w", err)
 	}
 
 	if t.Threads == 0 {
@@ -69,7 +69,7 @@ func (t *Terraform) Init(dir string, verbose bool) error {
 	}
 	t.tf, err = tfexec.NewTerraform(dir, tfBinary)
 	if err != nil {
-		return fmt.Errorf("error: terraform Init: %w", err)
+		return fmt.Errorf("error: tofu Init: %w", err)
 	}
 
 	if verbose {
@@ -77,7 +77,7 @@ func (t *Terraform) Init(dir string, verbose bool) error {
 	}
 
 	if err = t.tf.Init(context.Background(), tfexec.Upgrade(true)); err != nil {
-		return fmt.Errorf("error: terraform Init: %w", err)
+		return fmt.Errorf("error: tofu Init: %w", err)
 	}
 
 	return nil
@@ -87,11 +87,11 @@ func (t *Terraform) Destroy(path string) error {
 	if len(path) > 0 {
 		if err := t.tf.Destroy(context.Background(),
 			tfexec.VarFile(path), tfexec.Parallelism(t.Threads)); err != nil {
-			return fmt.Errorf("error: terraform Destroy: %w", err)
+			return fmt.Errorf("error: tofu Destroy: %w", err)
 		}
 	}
 	if err := t.tf.Destroy(context.Background()); err != nil {
-		return fmt.Errorf("error: terraform Destroy: %w", err)
+		return fmt.Errorf("error: tofu Destroy: %w", err)
 	}
 
 	return nil
@@ -101,11 +101,11 @@ func (t *Terraform) Apply(path string) error {
 	if len(path) > 0 {
 		if err := t.tf.Apply(context.Background(),
 			tfexec.VarFile(path), tfexec.Parallelism(t.Threads)); err != nil {
-			return fmt.Errorf("error: terraform Apply: %w", err)
+			return fmt.Errorf("error: tofu Apply: %w", err)
 		}
 	}
 	if err := t.tf.Apply(context.Background()); err != nil {
-		return fmt.Errorf("error: terraform Apply: %w", err)
+		return fmt.Errorf("error: tofu Apply: %w", err)
 	}
 
 	return nil
@@ -114,25 +114,25 @@ func (t *Terraform) Apply(path string) error {
 func (t *Terraform) OutputClustersJson() (string, error) {
 	tfOutput, err := t.tf.Output(context.Background())
 	if err != nil {
-		return "", fmt.Errorf("error: terraform OutputClustersJson: %w", err)
+		return "", fmt.Errorf("error: tofu OutputClustersJson: %w", err)
 	}
 
 	if clusters, ok := tfOutput["clusters"]; ok {
 		return string(clusters.Value), nil
 	}
 
-	return "", fmt.Errorf("error: terraform OutputClustersJson: no cluster data")
+	return "", fmt.Errorf("error: tofu OutputClustersJson: no cluster data")
 }
 
 func (t *Terraform) OutputClusters() (map[string]Cluster, error) {
 	tfOutput, err := t.tf.Output(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("error: terraform OutputClusters: %w", err)
+		return nil, fmt.Errorf("error: tofu OutputClusters: %w", err)
 	}
 
 	clusters := map[string]Cluster{}
 	if err := json.Unmarshal(tfOutput["clusters"].Value, &clusters); err != nil {
-		return nil, fmt.Errorf("error: terraform OutputClusters: %w", err)
+		return nil, fmt.Errorf("error: tofu OutputClusters: %w", err)
 	}
 
 	return clusters, nil
@@ -145,7 +145,7 @@ func (t *Terraform) OutputClusters() (map[string]Cluster, error) {
 func (t *Terraform) Version() (version string, providers map[string]string, err error) {
 	tfVer, tfProv, err := t.tf.Version(context.Background(), false)
 	if err != nil {
-		err = fmt.Errorf("error: terraform GetVersion: %w", err)
+		err = fmt.Errorf("error: tofu GetVersion: %w", err)
 		return
 	}
 
