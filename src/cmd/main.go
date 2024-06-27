@@ -178,7 +178,7 @@ func main() {
 }
 
 func actionCmdDestroy(cCtx *cli.Context) error {
-	tf := new(tofu.Terraform)
+	tf := new(tofu.Tofu)
 
 	if err := tf.Init(cCtx.String(argTerraformDir), true); err != nil {
 		return err
@@ -188,8 +188,8 @@ func actionCmdDestroy(cCtx *cli.Context) error {
 }
 
 func actionCmdSetup(cCtx *cli.Context) error {
-	// Terraform
-	tf := new(tofu.Terraform)
+	// Tofu
+	tf := new(tofu.Tofu)
 	tf.Threads = cCtx.Int(argTerraformParallelism)
 
 	if err := tf.Init(cCtx.String(argTerraformDir), true); err != nil {
@@ -260,7 +260,7 @@ func actionCmdSetup(cCtx *cli.Context) error {
 }
 
 func actionCmdLoad(cCtx *cli.Context) error {
-	tf := new(tofu.Terraform)
+	tf := new(tofu.Tofu)
 
 	if err := tf.Init(cCtx.String(argTerraformDir), false); err != nil {
 		return err
@@ -306,7 +306,7 @@ func actionCmdLoad(cCtx *cli.Context) error {
 }
 
 func actionCmdGetAccess(cCtx *cli.Context) error {
-	tf := new(tofu.Terraform)
+	tf := new(tofu.Tofu)
 
 	if err := tf.Init(cCtx.String(argTerraformDir), false); err != nil {
 		return err
@@ -361,7 +361,7 @@ func printAccessDetails(name string, cluster tofu.Cluster, rancherURL string) {
 	fmt.Println()
 }
 
-func importDownstreamClusters(tf *tofu.Terraform, clusters map[string]tofu.Cluster) error {
+func importDownstreamClusters(tf *tofu.Tofu, clusters map[string]tofu.Cluster) error {
 
 	log.Print("Import downstream clusters")
 
@@ -396,7 +396,7 @@ func importDownstreamClusters(tf *tofu.Terraform, clusters map[string]tofu.Clust
 	}
 }
 
-func importDownstreamClusterDo(tf *tofu.Terraform, clusters map[string]tofu.Cluster, clusterName string, ch chan<- string, errCh chan<- error) {
+func importDownstreamClusterDo(tf *tofu.Tofu, clusters map[string]tofu.Cluster, clusterName string, ch chan<- string, errCh chan<- error) {
 	log.Print("Import cluster " + clusterName)
 	yamlFile, err := os.CreateTemp("", "scli-"+clusterName+"-*.yaml")
 	if err != nil {
@@ -621,13 +621,13 @@ func loadProjects(cCtx *cli.Context, cli *kubectl.Client, clusterName string, cl
 	return nil
 }
 
-func terraformVersionPrint(tf *tofu.Terraform) error {
+func terraformVersionPrint(tf *tofu.Tofu) error {
 	ver, providers, err := tf.Version()
 	if err != nil {
 		return err
 	}
 
-	log.Printf("Terraform version: %s", ver)
+	log.Printf("Tofu version: %s", ver)
 	log.Printf("provider list:")
 	for prov, ver := range providers {
 		log.Printf("- %s (%s)", prov, ver)
@@ -638,7 +638,7 @@ func terraformVersionPrint(tf *tofu.Terraform) error {
 // importImageIntoK3d uses k3d import to import the specified image in the specified cluster, if such image
 // is known by the docker installation. This is for testing custom Rancher images (built via make quick) locally
 // in k3d
-func importImageIntoK3d(tf *tofu.Terraform, image string, cluster tofu.Cluster) error {
+func importImageIntoK3d(tf *tofu.Tofu, image string, cluster tofu.Cluster) error {
 	if tf.IsK3d() {
 		images, err := docker.Images(image)
 		if err != nil {

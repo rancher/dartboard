@@ -48,7 +48,7 @@ type Cluster struct {
 	PrivateKubernetesAPIURL string              `json:"private_kubernetes_api_url"`
 }
 
-type Terraform struct {
+type Tofu struct {
 	tf      *tfexec.Terraform
 	dir     string
 	Threads int
@@ -56,7 +56,7 @@ type Terraform struct {
 
 const DefaultThreads = 10
 
-func (t *Terraform) Init(dir string, verbose bool) error {
+func (t *Tofu) Init(dir string, verbose bool) error {
 	t.dir = dir
 
 	tfBinary, err := exec.LookPath("tofu")
@@ -83,7 +83,7 @@ func (t *Terraform) Init(dir string, verbose bool) error {
 	return nil
 }
 
-func (t *Terraform) Destroy(path string) error {
+func (t *Tofu) Destroy(path string) error {
 	if len(path) > 0 {
 		if err := t.tf.Destroy(context.Background(),
 			tfexec.VarFile(path), tfexec.Parallelism(t.Threads)); err != nil {
@@ -97,7 +97,7 @@ func (t *Terraform) Destroy(path string) error {
 	return nil
 }
 
-func (t *Terraform) Apply(path string) error {
+func (t *Tofu) Apply(path string) error {
 	if len(path) > 0 {
 		if err := t.tf.Apply(context.Background(),
 			tfexec.VarFile(path), tfexec.Parallelism(t.Threads)); err != nil {
@@ -111,7 +111,7 @@ func (t *Terraform) Apply(path string) error {
 	return nil
 }
 
-func (t *Terraform) OutputClustersJson() (string, error) {
+func (t *Tofu) OutputClustersJson() (string, error) {
 	tfOutput, err := t.tf.Output(context.Background())
 	if err != nil {
 		return "", fmt.Errorf("error: tofu OutputClustersJson: %w", err)
@@ -124,7 +124,7 @@ func (t *Terraform) OutputClustersJson() (string, error) {
 	return "", fmt.Errorf("error: tofu OutputClustersJson: no cluster data")
 }
 
-func (t *Terraform) OutputClusters() (map[string]Cluster, error) {
+func (t *Tofu) OutputClusters() (map[string]Cluster, error) {
 	tfOutput, err := t.tf.Output(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("error: tofu OutputClusters: %w", err)
@@ -139,10 +139,10 @@ func (t *Terraform) OutputClusters() (map[string]Cluster, error) {
 
 }
 
-// Version queries Terraform version and the provider list.
+// Version queries Tofu version and the provider list.
 // It returns the version as a string, the provider list as a map of strings
 // and any error encountered.
-func (t *Terraform) Version() (version string, providers map[string]string, err error) {
+func (t *Tofu) Version() (version string, providers map[string]string, err error) {
 	tfVer, tfProv, err := t.tf.Version(context.Background(), false)
 	if err != nil {
 		err = fmt.Errorf("error: tofu GetVersion: %w", err)
@@ -159,7 +159,7 @@ func (t *Terraform) Version() (version string, providers map[string]string, err 
 }
 
 // IsK3d determines if the current backend is k3d
-func (t *Terraform) IsK3d() bool {
+func (t *Tofu) IsK3d() bool {
 	_, f := filepath.Split(t.dir)
 	return f == "k3d"
 }
