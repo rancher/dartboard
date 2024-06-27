@@ -3,7 +3,25 @@ variable "project_name" {
   default     = "st"
 }
 
-variable "docker_io_proxy_directory" {
-  description = "Directory in which to save docker.io's pull proxy registry data"
-  default     = "/tmp/docker-io-registry"
+variable "first_proxy_port" {
+  description = "Port to publish k3d's internal registry for registry-1.docker.io"
+  default     = 5001
+}
+
+variable "registry_pull_proxies" {
+  description = "URLs of registries to create k3d pull proxies for"
+  default = [
+    {
+      name = "docker.io"
+      url  = "https://registry-1.docker.io"
+    },
+    {
+      name = "quay.io"
+      url  = "https://quay.io"
+    },
+    {
+      name = "registry.suse.com"
+      url  = "https://registry.suse.com"
+    },
+  ]
 }
