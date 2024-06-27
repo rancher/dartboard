@@ -95,7 +95,7 @@ OpenTofu variables can be overridden using `TERRAFORM_VAR_FILE` environment vari
 For example, for the `ssh` module, nodes' ip addresses, login name, etc. can be overridden as follows:
 
 ```shell
-export TERRAFORM_WORK_DIR=tofu/main/ssh
+export TOFU_WORK_DIR=tofu/main/ssh
 export TERRAFORM_VAR_FILE=tofu/examples/ssh.tfvars.json
 ./bin/setup.mjs
 ./bin/run_tests.mjs

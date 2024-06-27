@@ -28,10 +28,10 @@ Created clusters may or may not be directly reachable from the machine running O
 
 `node_access_commands` are an optional convenience mechanism to allow a user to SSH into a particular node directly.
 
-A particular deployment platform can be selected using `TERRAFORM_WORK_DIR` environment variable, eg.
+A particular deployment platform can be selected using `TOFU_WORK_DIR` environment variable, eg.
 
 ```shell
-export TERRAFORM_WORK_DIR=./tofu/main/aws
+export TOFU_WORK_DIR=./tofu/main/aws
 ./bin/teardown.mjs && ./bin/setup.mjs && ./bin/run_tests.mjs
 ```
 
