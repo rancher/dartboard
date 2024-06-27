@@ -48,7 +48,7 @@ export TF_LOG=debug
 ### Forcibly stopping all SSH tunnels
 
 ```shell
-pkill -f 'ssh .*-o IgnoreUnknown=TerraformCreatedThisTunnel.*'
+pkill -f 'ssh .*-o IgnoreUnknown=TofuCreatedThisTunnel.*'
 ```
 
 ### Troubleshooting inaccessible Azure VMs
