@@ -1,0 +1,13 @@
+terraform {
+  required_version = "1.6.2"
+  required_providers {
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "2.23.1"
+    }
+    k3d = {
+      source  = "moio/k3d"
+      version = "0.0.10"
+    }
+  }
+}
