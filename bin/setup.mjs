@@ -3,7 +3,7 @@ import {
     ADMIN_PASSWORD,
     dir,
     tofuDir,
-    terraformVar,
+    tofuVar,
     helm_install,
     q,
     run,
@@ -26,7 +26,7 @@ const GRAFANA_CHART = "https://github.com/grafana/helm-charts/releases/download/
 
 // Step 1: OpenTofu
 run(`tofu -chdir=${q(tofuDir())} init -upgrade`)
-run(`tofu -chdir=${q(tofuDir())} apply -auto-approve ${q(terraformVar())}`)
+run(`tofu -chdir=${q(tofuDir())} apply -auto-approve ${q(tofuVar())}`)
 const clusters = runCollectingJSONOutput(`tofu -chdir=${q(tofuDir())} output -json`)["clusters"]["value"]
 
 // Step 3: Helm charts

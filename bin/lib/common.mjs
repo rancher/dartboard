@@ -22,7 +22,7 @@ export function tofuDir(){
     return env.TERRAFORM_WORK_DIR ?? default_dir
 }
 
-export function terraformVar() {
+export function tofuVar() {
     if (env.TERRAFORM_VAR_FILE) {
         return `-var-file=${env.TERRAFORM_VAR_FILE}`
     }
