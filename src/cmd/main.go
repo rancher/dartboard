@@ -79,7 +79,7 @@ func main() {
 						Name:    argTerraformVarFile,
 						Value:   "",
 						Usage:   "tofu variable definition file",
-						EnvVars: []string{"TERRAFORM_VAR_FILE"},
+						EnvVars: []string{"TOFU_VAR_FILE"},
 					},
 					&cli.IntFlag{
 						Name:  argTerraformParallelism,

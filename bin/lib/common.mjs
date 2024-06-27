@@ -23,8 +23,8 @@ export function tofuDir(){
 }
 
 export function tofuVar() {
-    if (env.TERRAFORM_VAR_FILE) {
-        return `-var-file=${env.TERRAFORM_VAR_FILE}`
+    if (env.TOFU_VAR_FILE) {
+        return `-var-file=${env.TOFU_VAR_FILE}`
     }
     return ""
 }
