@@ -2,11 +2,11 @@
 
 # Kill any previously created tunnels
 %{ for tunnel in ssh_tunnels ~}
-pkill -f 'ssh .*-o IgnoreUnknown=TerraformCreatedThisTunnel.*-L ${tunnel[0]}:localhost:[0-9]+.*'
+pkill -f 'ssh .*-o IgnoreUnknown=TofuCreatedThisTunnel.*-L ${tunnel[0]}:localhost:[0-9]+.*'
 %{ endfor ~}
 
 # Create tunnels
-nohup ssh -o IgnoreUnknown=TerraformCreatedThisTunnel \
+nohup ssh -o IgnoreUnknown=TofuCreatedThisTunnel \
   -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
   -i ${ssh_private_key_path} \
   -N \
