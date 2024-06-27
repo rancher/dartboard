@@ -2,7 +2,7 @@
 import {
     ADMIN_PASSWORD,
     dir,
-    terraformDir,
+    tofuDir,
     helm_install,
     q,
     runCollectingJSONOutput,
@@ -11,7 +11,7 @@ import {
 } from "./lib/common.mjs"
 import {k6_run} from "./lib/k6.mjs"
 
-const clusters = runCollectingJSONOutput(`tofu -chdir=${terraformDir()} output -json`)["clusters"]["value"]
+const clusters = runCollectingJSONOutput(`tofu -chdir=${tofuDir()} output -json`)["clusters"]["value"]
 
 const upstream = clusters["upstream"]
 const upstreamAddresses = getAppAddressesFor(upstream)

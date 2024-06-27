@@ -2,7 +2,7 @@
 import {
     ADMIN_PASSWORD,
     dir,
-    terraformDir,
+    tofuDir,
     helm_install,
     q,
     runCollectingJSONOutput,
@@ -20,7 +20,7 @@ const USER_COUNT = 5
 const PROJECT_COUNT = 20
 
 // Refresh k6 files on the tester cluster
-const clusters = runCollectingJSONOutput(`tofu -chdir=${terraformDir()} output -json`)["clusters"]["value"]
+const clusters = runCollectingJSONOutput(`tofu -chdir=${tofuDir()} output -json`)["clusters"]["value"]
 const tester = clusters["tester"]
 helm_install("k6-files", dir("charts/k6-files"), tester, "tester", {})
 
