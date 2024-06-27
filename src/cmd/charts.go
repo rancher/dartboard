@@ -116,7 +116,7 @@ func chartInstallRancher(cluster *terraform.Cluster, replicas int) error {
 	}
 	rancherClusterName := clusterAdd.Public.Name
 	rancherClusterURL := clusterAdd.Public.HTTPSURL
-	// TODO: extract the correct number of replicas from terraform state file
+	// TODO: extract the correct number of replicas from tofu state file
 	rancherClusterReplicas := replicas
 	chartVals := getRancherValsJSON("admin", rancherClusterName, rancherClusterURL, rancherClusterReplicas)
 

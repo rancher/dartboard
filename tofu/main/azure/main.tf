@@ -3,7 +3,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "3.82.0"
+      version = "3.83.0"
     }
     tls = {
       source  = "hashicorp/tls"
@@ -52,9 +52,20 @@ module "network" {
 }
 
 
+resource "azurerm_storage_account" "storage_account" {
+  name                     = "${replace(local.project_name, "/[^0-9a-z]/", "")}sa"
+  resource_group_name      = azurerm_resource_group.rg.name
+  location                 = local.location
+  account_replication_type = "LRS"
+  account_tier             = "Standard"
+  tags = {
+    project = local.project_name
+  }
+}
+
 module "k3s_cluster" {
   // HACK: we need to wait for the module.network to complete before moving on to workaround
-  // terraform issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
+  // provider issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
   depends_on = [module.network]
 
   count        = length(local.k3s_clusters)
@@ -87,11 +98,12 @@ module "k3s_cluster" {
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
   subnet_id                 = module.network.private_subnet_id
+  storage_account_uri       = lookup(local.k3s_clusters[count.index], "boot_diagnostics", false) ? azurerm_storage_account.storage_account.primary_blob_endpoint : null
 }
 
 module "rke2_cluster" {
   // HACK: we need to wait for the module.network to complete before moving on to workaround
-  // terraform issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
+  // provider issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
   depends_on = [module.network]
 
   count        = length(local.rke2_clusters)
@@ -124,11 +136,12 @@ module "rke2_cluster" {
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
   subnet_id                 = module.network.private_subnet_id
+  storage_account_uri       = lookup(local.rke2_clusters[count.index], "boot_diagnostics", false) ? azurerm_storage_account.storage_account.primary_blob_endpoint : null
 }
 
 module "aks_cluster" {
   // HACK: we need to wait for the module.network to complete before moving on to workaround
-  // terraform issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
+  // provider issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
   depends_on                 = [module.network]
   count                      = length(local.aks_clusters)
   source                     = "../../modules/azure_aks"
@@ -146,5 +159,4 @@ module "aks_cluster" {
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   subnet_id           = module.network.private_subnet_id
-  enable_audit_log    = local.aks_clusters[count.index].enable_audit_log
 }

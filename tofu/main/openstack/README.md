@@ -26,5 +26,5 @@ Deployment only:
 ```shell
 source ./openrc.bash # OpenStack Credentials
 vim input.tf         # Tweak parameters
-tofu apply      # Deploy (Terraform only). ./bin/setup.mjs can be used to set up the test suite
+tofu apply           # Deploy (Tofu only). ./bin/setup.mjs can be used to set up the test suite
 ```

@@ -1,11 +1,11 @@
 .DS_Store
 .idea
 
-terraform/main/*/.terraform
-terraform/main/*/.terraform.lock.hcl
-terraform/main/*/terraform.tfstate
-terraform/main/*/terraform.tfstate.*
-terraform/main/*/config
+tofu/main/*/.terraform
+tofu/main/*/.terraform.lock.hcl
+tofu/main/*/terraform.tfstate
+tofu/main/*/terraform.tfstate.*
+tofu/main/*/config
 
 bin/out.json
 bin/results.csv

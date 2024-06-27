@@ -47,6 +47,6 @@ variable "ssh_private_key_path" {
 }
 
 variable "nodes" {
-  description = "Node names and FQDNs in per-cluster lists, see terraform/examples/ssh.tfvars"
+  description = "Node names and FQDNs in per-cluster lists, see tofu/examples/ssh.tfvars"
   type        = list(list(object({ fqdn : string, name : string })))
 }
