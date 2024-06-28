@@ -27,10 +27,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/moio/scalability-tests/pkg/docker"
-	"github.com/moio/scalability-tests/pkg/k3d"
-	"github.com/moio/scalability-tests/pkg/kubectl"
-	"github.com/moio/scalability-tests/pkg/tofu"
+	"github.com/moio/scalability-tests/internal/docker"
+	"github.com/moio/scalability-tests/internal/k3d"
+	"github.com/moio/scalability-tests/internal/kubectl"
+	"github.com/moio/scalability-tests/internal/tofu"
 	"github.com/urfave/cli/v2"
 )
 

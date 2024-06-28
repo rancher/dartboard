@@ -23,8 +23,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/moio/scalability-tests/pkg/helm"
-	"github.com/moio/scalability-tests/pkg/tofu"
+	"github.com/moio/scalability-tests/internal/helm"
+	"github.com/moio/scalability-tests/internal/tofu"
 )
 
 type chart struct {

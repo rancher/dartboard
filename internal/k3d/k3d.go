@@ -23,7 +23,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/moio/scalability-tests/pkg/tofu"
+	"github.com/moio/scalability-tests/internal/tofu"
 )
 
 func ImageImport(cluster tofu.Cluster, image string) error {

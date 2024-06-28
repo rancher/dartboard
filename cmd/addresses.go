@@ -19,8 +19,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/moio/scalability-tests/pkg/kubectl"
-	"github.com/moio/scalability-tests/pkg/tofu"
+	"github.com/moio/scalability-tests/internal/kubectl"
+	"github.com/moio/scalability-tests/internal/tofu"
 )
 
 type clusterAddress struct {
