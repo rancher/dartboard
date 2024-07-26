@@ -29,6 +29,18 @@ variable "ssh_private_key_path" {
   type        = string
 }
 
+variable "ssh_user" {
+  description = "User name to use for the SSH connection"
+  type        = string
+  default     = "root"
+}
+
+variable "ssh_bastion_host" {
+  description = "Public name of the SSH bastion host. Leave null for publicly accessible instances"
+  type        = string
+  default     = null
+}
+
 variable "bastion_host_ami" {
   description = "AMI ID"
   default     = "ami-0e55a8b472a265e3f"

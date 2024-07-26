@@ -8,9 +8,11 @@ module "server_nodes" {
   name                  = "${var.name}-node-${count.index}"
   ssh_key_name          = var.ssh_key_name
   ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
   subnet_id             = var.subnet_id
   vpc_security_group_id = var.vpc_security_group_id
   ssh_bastion_host      = var.ssh_bastion_host
+  ssh_bastion_user      = var.ssh_bastion_user
   ssh_tunnels           = count.index == 0 ? var.additional_ssh_tunnels : []
 }
 

@@ -10,7 +10,7 @@ resource "aws_instance" "instance" {
     volume_size = var.root_volume_size_gb
   }
 
-  user_data = templatefile("${path.module}/user_data.yaml", {})
+  user_data = templatefile("${path.module}/user_data.yaml", { ssh_user = var.ssh_user })
 
   tags = {
     Project = var.project_name
@@ -24,16 +24,24 @@ resource "null_resource" "host_configuration" {
   connection {
     host        = var.ssh_bastion_host == null ? aws_instance.instance.public_dns : aws_instance.instance.private_dns
     private_key = file(var.ssh_private_key_path)
-    user        = "root"
+    user        = var.ssh_user
 
     bastion_host        = var.ssh_bastion_host
-    bastion_user        = "root"
+    bastion_user        = var.ssh_bastion_user
     bastion_private_key = file(var.ssh_private_key_path)
     timeout             = "120s"
   }
 
+  provisioner "file" {
+    source      = "${path.module}/mount_ephemeral.sh"
+    destination = "/tmp/mount_ephemeral.sh"
+  }
+
   provisioner "remote-exec" {
-    script = "${path.module}/mount_ephemeral.sh"
+    inline = [
+      "chmod +x /tmp/mount_ephemeral.sh",
+      "sudo /tmp/mount_ephemeral.sh"
+    ]
   }
 
   provisioner "remote-exec" {
@@ -51,6 +59,7 @@ module "ssh_access" {
   ssh_tunnels          = var.ssh_tunnels
   private_name         = aws_instance.instance.private_dns
   public_name          = aws_instance.instance.public_dns
-  ssh_user             = "root"
+  ssh_user             = var.ssh_user
+  ssh_bastion_user     = var.ssh_bastion_user
   ssh_private_key_path = var.ssh_private_key_path
 }

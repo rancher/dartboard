@@ -42,19 +42,26 @@ variable "sans" {
   default     = []
 }
 
-variable "ssh_user" {
-  description = "User name for SSH access"
-  default     = "root"
-}
-
 variable "ssh_private_key_path" {
   description = "Path of private ssh key used to access the instance"
   type        = string
 }
 
+variable "ssh_user" {
+  description = "User name to use for the SSH connection"
+  type        = string
+  default     = "root"
+}
+
 variable "ssh_bastion_host" {
   description = "Public name of the SSH bastion host. Leave null for publicly accessible instances"
+  type        = string
   default     = null
+}
+
+variable "ssh_bastion_user" {
+  description = "User name for the SSH bastion host's OS"
+  default     = "root"
 }
 
 variable "local_kubernetes_api_port" {

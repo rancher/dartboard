@@ -15,7 +15,7 @@ terraform {
     }
     ssh = {
       source  = "loafoe/ssh"
-      version = "2.2.1"
+      version = "2.7.0"
     }
   }
 }
