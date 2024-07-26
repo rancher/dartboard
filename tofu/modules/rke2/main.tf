@@ -12,6 +12,7 @@ resource "ssh_sensitive_resource" "first_server_installation" {
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
   bastion_host = var.ssh_bastion_host
+  bastion_user = var.ssh_bastion_user
   timeout      = "600s"
 
   file {
@@ -59,6 +60,7 @@ resource "ssh_resource" "additional_server_installation" {
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
   bastion_host = var.ssh_bastion_host
+  bastion_user = var.ssh_bastion_user
   timeout      = "600s"
 
   file {
@@ -98,6 +100,7 @@ resource "ssh_resource" "agent_installation" {
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
   bastion_host = var.ssh_bastion_host
+  bastion_user = var.ssh_bastion_user
   timeout      = "600s"
 
   file {

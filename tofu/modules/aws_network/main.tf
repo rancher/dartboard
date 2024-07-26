@@ -241,6 +241,7 @@ module "bastion" {
   instance_type         = var.bastion_host_instance_type
   ssh_key_name          = aws_key_pair.key_pair.key_name
   ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
   subnet_id             = aws_subnet.public.id
   vpc_security_group_id = aws_security_group.public.id
 }

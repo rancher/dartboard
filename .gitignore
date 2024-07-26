@@ -6,5 +6,6 @@ tofu/main/*/.terraform.lock.hcl
 tofu/main/*/terraform.tfstate
 tofu/main/*/terraform.tfstate.*
 tofu/main/*/config
+*.tfvars
 
 ./dartboard
