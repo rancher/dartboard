@@ -11,6 +11,12 @@ module "cluster" {
   server_count   = local.all_clusters[count.index].server_count
   agent_count    = local.all_clusters[count.index].agent_count
   distro_version = local.all_clusters[count.index].distro_version
+  agent_labels = local.all_clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true" }]
+  ] : []
+  agent_taints = local.all_clusters[count.index].reserve_node_for_monitoring ? [
+    [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
+  ] : []
 
   sans                  = ["${local.all_clusters[count.index].name}.local.gd"]
   kubernetes_api_port   = var.first_kubernetes_api_port + count.index
