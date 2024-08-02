@@ -1,0 +1,6 @@
+# Deploys a single k3d (k3s cluster) without any Rancher or other applications
+# use the `apply` subcommand to deploy
+
+tofu_main_directory: ./tofu/main/k3d
+tofu_variables:
+  deploy_tester_cluster: false

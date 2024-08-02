@@ -1,0 +1,13 @@
+# Deploys Rancher from (mostly) defaults
+# see k3d_full.yaml for more configuration options
+
+tofu_main_directory: ./tofu/main/k3d
+
+tofu_variables:
+  downstream_cluster_count: 1
+  distro_version: v1.26.9+k3s1
+
+chart_variables:
+  rancher_replicas: 1
+  rancher_version: 2.8.5
+  rancher_monitoring_version: 103.1.1+up45.31.1
