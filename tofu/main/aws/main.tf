@@ -1,44 +1,15 @@
-terraform {
-  required_version = "1.6.2"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "4.31.0"
-    }
-    tls = {
-      source  = "hashicorp/tls"
-      version = "4.0.3"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "2.7.1"
-    }
-    ssh = {
-      source  = "loafoe/ssh"
-      version = "2.2.1"
-    }
-  }
-}
-
-locals {
-  k3s_clusters  = [for cluster in local.clusters : cluster if strcontains(cluster.distro_version, "k3s")]
-  rke_clusters  = [for cluster in local.clusters : cluster if strcontains(cluster.distro_version, "rke_")]
-  rke2_clusters = [for cluster in local.clusters : cluster if strcontains(cluster.distro_version, "rke2")]
-}
-
 provider "aws" {
-  region = local.region
+  region = var.region
 }
 
 module "network" {
   source               = "../../modules/aws_network"
-  project_name         = local.project_name
-  region               = local.region
-  availability_zone    = local.availability_zone
+  project_name         = var.project_name
+  region               = var.region
+  availability_zone    = var.availability_zone
   ssh_public_key_path  = var.ssh_public_key_path
   ssh_private_key_path = var.ssh_private_key_path
 }
-
 
 module "k3s_cluster" {
   count        = length(local.k3s_clusters)
@@ -56,12 +27,12 @@ module "k3s_cluster" {
   distro_version = local.k3s_clusters[count.index].distro_version
 
   sans                      = ["${local.k3s_clusters[count.index].name}.local.gd"]
-  local_kubernetes_api_port = local.first_local_kubernetes_api_port + count.index
-  tunnel_app_http_port      = local.first_tunnel_app_http_port + count.index
-  tunnel_app_https_port     = local.first_tunnel_app_https_port + count.index
+  local_kubernetes_api_port = var.first_kubernetes_api_port + count.index
+  tunnel_app_http_port      = var.first_app_http_port + count.index
+  tunnel_app_https_port     = var.first_app_https_port + count.index
   ami                       = local.k3s_clusters[count.index].ami
   instance_type             = local.k3s_clusters[count.index].instance_type
-  availability_zone         = local.availability_zone
+  availability_zone         = var.availability_zone
   ssh_key_name              = module.network.key_name
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
@@ -85,12 +56,12 @@ module "rke_cluster" {
   distro_version = local.rke_clusters[count.index].distro_version
 
   sans                      = ["${local.rke_clusters[count.index].name}.local.gd"]
-  local_kubernetes_api_port = local.first_local_kubernetes_api_port + length(local.k3s_clusters) + count.index
-  tunnel_app_http_port      = local.first_tunnel_app_http_port + length(local.k3s_clusters) + count.index
-  tunnel_app_https_port     = local.first_tunnel_app_https_port + length(local.k3s_clusters) + count.index
+  local_kubernetes_api_port = var.first_kubernetes_api_port + length(local.k3s_clusters) + count.index
+  tunnel_app_http_port      = var.first_app_http_port + length(local.k3s_clusters) + count.index
+  tunnel_app_https_port     = var.first_app_https_port + length(local.k3s_clusters) + count.index
   ami                       = local.rke_clusters[count.index].ami
   instance_type             = local.rke_clusters[count.index].instance_type
-  availability_zone         = local.availability_zone
+  availability_zone         = var.availability_zone
   ssh_key_name              = module.network.key_name
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
@@ -114,12 +85,12 @@ module "rke2_cluster" {
   distro_version = local.rke2_clusters[count.index].distro_version
 
   sans                      = ["${local.rke2_clusters[count.index].name}.local.gd"]
-  local_kubernetes_api_port = local.first_local_kubernetes_api_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
-  tunnel_app_http_port      = local.first_tunnel_app_http_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
-  tunnel_app_https_port     = local.first_tunnel_app_https_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
+  local_kubernetes_api_port = var.first_kubernetes_api_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
+  tunnel_app_http_port      = var.first_app_http_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
+  tunnel_app_https_port     = var.first_app_https_port + length(local.k3s_clusters) + length(local.rke_clusters) + count.index
   ami                       = local.rke2_clusters[count.index].ami
   instance_type             = local.rke2_clusters[count.index].instance_type
-  availability_zone         = local.availability_zone
+  availability_zone         = var.availability_zone
   ssh_key_name              = module.network.key_name
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_bastion_host          = module.network.bastion_public_name
