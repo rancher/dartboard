@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/moio/scalability-tests/internal/helm"
+	"github.com/moio/scalability-tests/internal/recipe"
 	"github.com/moio/scalability-tests/internal/tofu"
 )
 
@@ -33,28 +34,6 @@ type chart struct {
 	path      string
 }
 
-var (
-	chartMimir             = chart{"mimir", "tester", "mimir"}
-	chartK6Files           = chart{"k6-files", "tester", "k6-files"}
-	chartGrafanaDashboards = chart{"grafana-dashboards", "tester", "grafana-dashboards"}
-	chartGrafana           = chart{"grafana", "tester", "https://github.com/grafana/helm-charts/releases/download/grafana-6.56.5/grafana-6.56.5.tgz"}
-	chartCertManager       = chart{"cert-manager", "cert-manager", "https://charts.jetstack.io/charts/cert-manager-v1.8.0.tgz"}
-	rancherMinor           = "2.9"
-	rancherVersion         = rancherMinor + ".0-alpha5"
-	rancherImageTag        = "v" + rancherVersion
-	// one of "alpha", "latest" or "stable"
-	rancherRepo         = "alpha"
-	chartRancher        = chart{"rancher", "cattle-system", "https://releases.rancher.com/server-charts/" + rancherRepo + "/rancher-" + rancherVersion + ".tgz"}
-	chartRancherIngress = chart{"rancher-ingress", "default", "rancher-ingress"}
-
-	// see https://github.com/rancher/charts/tree/release-v2.9/assets/rancher-monitoring-crd
-	chartRancherMonitoringCRD = chart{"rancher-monitoring-crd", "cattle-monitoring-system", "https://github.com/rancher/charts/raw/release-v2.9/assets/rancher-monitoring-crd/rancher-monitoring-crd-103.0.0+up45.31.1.tgz"}
-
-	// see https://github.com/rancher/charts/tree/release-v2.9/assets/rancher-monitoring
-	chartRancherMonitoring = chart{"rancher-monitoring", "cattle-monitoring-system", "https://github.com/rancher/charts/raw/release-v2.9/assets/rancher-monitoring/rancher-monitoring-103.0.0+up45.31.1.tgz"}
-	chartCgroupsExporter   = chart{"cgroups-exporter", "cattle-monitoring-system", "cgroups-exporter"}
-)
-
 func chartInstall(kubeConf string, chart chart, jsonVals string) error {
 	var vals map[string]interface{} = nil
 	var err error
@@ -63,7 +42,7 @@ func chartInstall(kubeConf string, chart chart, jsonVals string) error {
 	namespace := chart.namespace
 	path := chart.path
 	if !strings.HasPrefix(path, "http") {
-		path = filepath.Join(chartDir, path)
+		path = filepath.Join("charts", path)
 	}
 
 	log.Printf("Installing chart %q (%s)\n", namespace+"/"+name, path)
@@ -80,19 +59,13 @@ func chartInstall(kubeConf string, chart chart, jsonVals string) error {
 	return nil
 }
 
-func chartInstallMimir(cluster *tofu.Cluster) error {
-	return chartInstall(cluster.Kubeconfig, chartMimir, "")
-}
+func chartInstallGrafana(r *recipe.Recipe, cluster *tofu.Cluster) error {
+	chartGrafana := chart{
+		name:      "grafana",
+		namespace: "tester",
+		path:      fmt.Sprintf("https://github.com/grafana/helm-charts/releases/download/grafana-%[1]s/grafana-%[1]s.tgz", r.ChartVariables.TesterGrafanaVersion),
+	}
 
-func chartInstallK6Files(cluster *tofu.Cluster) error {
-	return chartInstall(cluster.Kubeconfig, chartK6Files, "")
-}
-
-func chartInstallGrafanaDashboard(cluster *tofu.Cluster) error {
-	return chartInstall(cluster.Kubeconfig, chartGrafanaDashboards, "")
-}
-
-func chartInstallGrafana(cluster *tofu.Cluster) error {
 	clusterAdd, err := getAppAddressFor(*cluster)
 	if err != nil {
 		return fmt.Errorf("chart %s: %w", chartGrafana.name, err)
@@ -100,30 +73,51 @@ func chartInstallGrafana(cluster *tofu.Cluster) error {
 
 	grafanaName := clusterAdd.Local.Name
 	grafanaURL := clusterAdd.Local.HTTPURL
-	chartVals := getGrafanaValsJSON(grafanaName, grafanaURL, cluster.IngressClassName)
+	chartVals := getGrafanaValsJSON(r, grafanaName, grafanaURL, cluster.IngressClassName)
 
 	return chartInstall(cluster.Kubeconfig, chartGrafana, chartVals)
 }
 
-func chartInstallCertManager(cluster *tofu.Cluster) error {
+func chartInstallCertManager(r *recipe.Recipe, cluster *tofu.Cluster) error {
+	chartCertManager := chart{
+		name:      "cert-manager",
+		namespace: "cert-manager",
+		path:      fmt.Sprintf("https://charts.jetstack.io/charts/cert-manager-v%s.tgz", r.ChartVariables.CertManagerVersion),
+	}
 	return chartInstall(cluster.Kubeconfig, chartCertManager, `{"installCRDs": true}`)
 }
 
-func chartInstallRancher(cluster *tofu.Cluster, replicas int) error {
+func chartInstallRancher(r *recipe.Recipe, rancherImageTag string, cluster *tofu.Cluster) error {
+
+	// one of "alpha", "latest" or "stable"
+	rancherRepo := "latest"
+	if strings.Contains(r.ChartVariables.RancherVersion, "alpha") {
+		rancherRepo = "alpha"
+	}
+	chartRancher := chart{
+		name:      "rancher",
+		namespace: "cattle-system",
+		path:      "https://releases.rancher.com/server-charts/" + rancherRepo + "/rancher-" + r.ChartVariables.RancherVersion + ".tgz",
+	}
+
 	clusterAdd, err := getAppAddressFor(*cluster)
 	if err != nil {
 		return fmt.Errorf("chart %s: %w", chartRancher.name, err)
 	}
 	rancherClusterName := clusterAdd.Public.Name
 	rancherClusterURL := clusterAdd.Public.HTTPSURL
-	// TODO: extract the correct number of replicas from tofu state file
-	rancherClusterReplicas := replicas
-	chartVals := getRancherValsJSON("admin", rancherClusterName, rancherClusterURL, rancherClusterReplicas)
+	chartVals := getRancherValsJSON(rancherImageTag, r.ChartVariables.AdminPassword, rancherClusterName, rancherClusterURL, r.ChartVariables.RancherReplicas)
 
 	return chartInstall(cluster.Kubeconfig, chartRancher, chartVals)
 }
 
 func chartInstallRancherIngress(cluster *tofu.Cluster) error {
+	chartRancherIngress := chart{
+		name:      "rancher-ingress",
+		namespace: "default",
+		path:      "rancher-ingress",
+	}
+
 	clusterAdd, err := getAppAddressFor(*cluster)
 	if err != nil {
 		return fmt.Errorf("chart %s: %w", chartRancherIngress.name, err)
@@ -148,18 +142,15 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartRancherIngress, chartVals)
 }
 
-func chartInstallRancherMonitoring(cluster *tofu.Cluster, noSchedToleration bool) error {
-	if err := chartInstallRancherMonitoringCRD(cluster); err != nil {
-		return err
+func chartInstallRancherMonitoring(r *recipe.Recipe, cluster *tofu.Cluster, noSchedToleration bool) error {
+	rancherMinorVersion := strings.Join(strings.Split(r.ChartVariables.RancherVersion, ".")[0:2], ".")
+
+	chartRancherMonitoringCRD := chart{
+		name:      "rancher-monitoring-crd",
+		namespace: "cattle-monitoring-system",
+		path:      fmt.Sprintf("https://github.com/rancher/charts/raw/release-v%s/assets/rancher-monitoring-crd/rancher-monitoring-crd-%s.tgz", rancherMinorVersion, r.ChartVariables.RancherMonitoringVersion),
 	}
-	return chartInstallRancherMonitoringOperator(cluster, noSchedToleration)
-}
 
-func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
-	return chartInstall(cluster.Kubeconfig, chartCgroupsExporter, "")
-}
-
-func chartInstallRancherMonitoringCRD(cluster *tofu.Cluster) error {
 	chartVals := `{
 		"global": {
 			"cattle": {
@@ -170,10 +161,17 @@ func chartInstallRancherMonitoringCRD(cluster *tofu.Cluster) error {
 		},
 		"systemDefaultRegistry": ""
 	}`
-	return chartInstall(cluster.Kubeconfig, chartRancherMonitoringCRD, chartVals)
-}
+	err := chartInstall(cluster.Kubeconfig, chartRancherMonitoringCRD, chartVals)
+	if err != nil {
+		return err
+	}
 
-func chartInstallRancherMonitoringOperator(cluster *tofu.Cluster, noSchedToleration bool) error {
+	chartRancherMonitoring := chart{
+		name:      "rancher-monitoring",
+		namespace: "cattle-monitoring-system",
+		path:      fmt.Sprintf("https://github.com/rancher/charts/raw/release-v%s/assets/rancher-monitoring/rancher-monitoring-%s.tgz", rancherMinorVersion, r.ChartVariables.RancherMonitoringVersion),
+	}
+
 	clusterAdd, err := getAppAddressFor(*cluster)
 	if err != nil {
 		return fmt.Errorf("chart %s: %w", chartRancherMonitoring.name, err)
@@ -187,9 +185,13 @@ func chartInstallRancherMonitoringOperator(cluster *tofu.Cluster, noSchedTolerat
 		tolerations = `[{"key": "monitoring", "operator": "Exists", "effect": "NoSchedule"}]`
 	}
 
-	chartVals := getRancherMonitoringValsJSON(nodeSelector, tolerations, mimirURL)
+	chartVals = getRancherMonitoringValsJSON(nodeSelector, tolerations, mimirURL)
 
 	return chartInstall(cluster.Kubeconfig, chartRancherMonitoring, chartVals)
+}
+
+func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
+	return chartInstall(cluster.Kubeconfig, chart{"cgroups-exporter", "cattle-monitoring-system", "cgroups-exporter"}, "")
 }
 
 func getRancherMonitoringValsJSON(nodeSelector, tolerations, mimirURL string) string {
@@ -298,7 +300,7 @@ func jsonToMap(jsonVals string) (map[string]interface{}, error) {
 	return mapVals, err
 }
 
-func getGrafanaValsJSON(name, url, ingressClass string) string {
+func getGrafanaValsJSON(r *recipe.Recipe, name, url, ingressClass string) string {
 	return `{
 		"datasources": {
 			"datasources.yaml": {
@@ -338,11 +340,11 @@ func getGrafanaValsJSON(name, url, ingressClass string) string {
 			"GF_SERVER_ROOT_URL": ` + fmt.Sprintf("\"%s/grafana\"", url) + `,
 			"GF_SERVER_SERVE_FROM_SUB_PATH": "true"
 		},
-		"adminPassword": ` + fmt.Sprintf("%q", adminPassword) + `
+		"adminPassword": ` + fmt.Sprintf("%q", r.ChartVariables.AdminPassword) + `
 	}`
 }
 
-func getRancherValsJSON(bootPwd, hostname, serverURL string, replicas int) string {
+func getRancherValsJSON(rancherImageTag, bootPwd, hostname, serverURL string, replicas int) string {
 	return `
 	{
 		"bootstrapPassword": ` + fmt.Sprintf("%q", bootPwd) + `,

@@ -49,70 +49,71 @@ type Cluster struct {
 }
 
 type Tofu struct {
-	tf      *tfexec.Terraform
-	dir     string
-	Threads int
+	tf        *tfexec.Terraform
+	dir       string
+	threads   int
+	variables []*tfexec.VarOption
 }
 
-const DefaultThreads = 10
-
-func (t *Tofu) Init(dir string, verbose bool) error {
-	t.dir = dir
-
+func New(ctx context.Context, variableMap map[string]string, dir string, parallelism int, verbose bool) (*Tofu, error) {
 	tfBinary, err := exec.LookPath("tofu")
 	if err != nil {
-		return fmt.Errorf("error: tofu init: %w", err)
+		return nil, fmt.Errorf("error: tofu not found: %w", err)
 	}
 
-	if t.Threads == 0 {
-		t.Threads = DefaultThreads
-	}
-	t.tf, err = tfexec.NewTerraform(dir, tfBinary)
+	tf, err := tfexec.NewTerraform(dir, tfBinary)
 	if err != nil {
-		return fmt.Errorf("error: tofu Init: %w", err)
+		return nil, fmt.Errorf("tfexec.NewTerraform error: %w", err)
 	}
 
 	if verbose {
-		t.tf.SetStdout(os.Stdout)
+		tf.SetStdout(os.Stdout)
 	}
 
-	if err = t.tf.Init(context.Background(), tfexec.Upgrade(true)); err != nil {
-		return fmt.Errorf("error: tofu Init: %w", err)
+	if err = tf.Init(ctx, tfexec.Upgrade(true)); err != nil {
+		return nil, fmt.Errorf("error: tofu Init: %w", err)
+	}
+
+	var variables []*tfexec.VarOption
+	for k, v := range variableMap {
+		variables = append(variables, tfexec.Var(fmt.Sprintf("%v=%v", k, v)))
+	}
+
+	return &Tofu{
+		tf:        tf,
+		dir:       dir,
+		threads:   parallelism,
+		variables: variables,
+	}, nil
+}
+
+func (t *Tofu) Apply(ctx context.Context) error {
+	options := []tfexec.ApplyOption{tfexec.Parallelism(t.threads)}
+	for _, variable := range t.variables {
+		options = append(options, variable)
+	}
+
+	if err := t.tf.Apply(ctx, options...); err != nil {
+		return fmt.Errorf("error: tofu apply failed: %w", err)
+	}
+	return nil
+}
+
+func (t *Tofu) Destroy(ctx context.Context) error {
+	options := []tfexec.DestroyOption{tfexec.Parallelism(t.threads)}
+	for _, variable := range t.variables {
+		options = append(options, variable)
+	}
+
+	if err := t.tf.Destroy(ctx, options...); err != nil {
+		return fmt.Errorf("error: tofu destroy failed: %w", err)
 	}
 
 	return nil
 }
 
-func (t *Tofu) Destroy(path string) error {
-	if len(path) > 0 {
-		if err := t.tf.Destroy(context.Background(),
-			tfexec.VarFile(path), tfexec.Parallelism(t.Threads)); err != nil {
-			return fmt.Errorf("error: tofu Destroy: %w", err)
-		}
-	}
-	if err := t.tf.Destroy(context.Background()); err != nil {
-		return fmt.Errorf("error: tofu Destroy: %w", err)
-	}
-
-	return nil
-}
-
-func (t *Tofu) Apply(path string) error {
-	if len(path) > 0 {
-		if err := t.tf.Apply(context.Background(),
-			tfexec.VarFile(path), tfexec.Parallelism(t.Threads)); err != nil {
-			return fmt.Errorf("error: tofu Apply: %w", err)
-		}
-	}
-	if err := t.tf.Apply(context.Background()); err != nil {
-		return fmt.Errorf("error: tofu Apply: %w", err)
-	}
-
-	return nil
-}
-
-func (t *Tofu) OutputClustersJson() (string, error) {
-	tfOutput, err := t.tf.Output(context.Background())
+func (t *Tofu) OutputClustersJson(ctx context.Context) (string, error) {
+	tfOutput, err := t.tf.Output(ctx)
 	if err != nil {
 		return "", fmt.Errorf("error: tofu OutputClustersJson: %w", err)
 	}
@@ -124,8 +125,8 @@ func (t *Tofu) OutputClustersJson() (string, error) {
 	return "", fmt.Errorf("error: tofu OutputClustersJson: no cluster data")
 }
 
-func (t *Tofu) OutputClusters() (map[string]Cluster, error) {
-	tfOutput, err := t.tf.Output(context.Background())
+func (t *Tofu) OutputClusters(ctx context.Context) (map[string]Cluster, error) {
+	tfOutput, err := t.tf.Output(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error: tofu OutputClusters: %w", err)
 	}
@@ -142,8 +143,8 @@ func (t *Tofu) OutputClusters() (map[string]Cluster, error) {
 // Version queries Tofu version and the provider list.
 // It returns the version as a string, the provider list as a map of strings
 // and any error encountered.
-func (t *Tofu) Version() (version string, providers map[string]string, err error) {
-	tfVer, tfProv, err := t.tf.Version(context.Background(), false)
+func (t *Tofu) Version(ctx context.Context) (version string, providers map[string]string, err error) {
+	tfVer, tfProv, err := t.tf.Version(ctx, false)
 	if err != nil {
 		err = fmt.Errorf("error: tofu GetVersion: %w", err)
 		return
