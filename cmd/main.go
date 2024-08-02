@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -30,144 +31,66 @@ import (
 	"github.com/moio/scalability-tests/internal/docker"
 	"github.com/moio/scalability-tests/internal/k3d"
 	"github.com/moio/scalability-tests/internal/kubectl"
+	"github.com/moio/scalability-tests/internal/recipe"
 	"github.com/moio/scalability-tests/internal/tofu"
 	"github.com/urfave/cli/v2"
 )
 
 const (
-	argTofuDir                       = "tf-dir"
-	argTofuVarFile                   = "tf-var-file"
-	argTofuParallelism               = "tf-parallelism"
-	argTofuSkip                      = "tf-skip"
-	argChartDir                      = "chart-dir"
-	argChartRancherReplicas          = "rancher-replicas"
-	argChartSkipDownstreamMonitoring = "skip-downstream-monitoring"
-	argLoadConfigMapCnt              = "config-maps"
-	argLoadProjectCnt                = "projects"
-	argLoadRoleCnt                   = "roles"
-	argLoadSecretCnt                 = "secrets"
-	argLoadUserCnt                   = "users"
-	baseDir                          = ""
-	adminPassword                    = "adminadminadmin"
-)
-
-var (
-	chartDir                 string
-	chartRancherReplicas     int
-	skipDownstreamMonitoring bool = true
+	argRecipe    = "recipe"
+	argSkipApply = "skip-apply"
 )
 
 func main() {
 	app := &cli.App{
-		Usage:     "test Rancher at scale",
+		Usage:     "setup and test Rancher (at scale if needed)",
 		Copyright: "(c) 2024 SUSE LLC",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    argTofuDir,
-				Value:   filepath.Join(baseDir, "tofu", "main", "k3d"),
-				Usage:   "tofu working directory",
-				EnvVars: []string{"TOFU_WORK_DIR"},
+				Name:    argRecipe,
+				Aliases: []string{"r"},
+				Value:   filepath.Join("recipes", "k3d_full.yaml"),
+				Usage:   "recipe to use",
+				EnvVars: []string{"RECIPE"},
 			},
 		},
 		Commands: []*cli.Command{
 			{
-				Name:        "setup",
-				Usage:       "Deploys the test environment",
-				Description: "prepares the test environment deploying the clusters and installing the required charts",
+				Name:        "apply",
+				Usage:       "Deploys Kubernetes clusters for testing",
+				Description: "runs `tofu apply` to prepare infrastructure and Kubernetes clusters for tests",
+				Action:      cmdApply,
+			},
+			{
+				Name:        "deploy",
+				Usage:       "Deploys Rancher and other charts on top of clusters",
+				Description: "prepares the test environment installing all required charts",
+				Action:      cmdDeploy,
 				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    argTofuVarFile,
-						Value:   "",
-						Usage:   "tofu variable definition file",
-						EnvVars: []string{"TOFU_VAR_FILE"},
-					},
-					&cli.IntFlag{
-						Name:  argTofuParallelism,
-						Value: 10,
-						Usage: "tofu 'parallelism': number of concurrent threads",
-					},
 					&cli.BoolFlag{
-						Name:  argTofuSkip,
+						Name:  argSkipApply,
 						Value: false,
-						Usage: "skip tofu apply, start from current tofu state",
-					},
-					&cli.StringFlag{
-						Name:        argChartDir,
-						Value:       filepath.Join(baseDir, "charts"),
-						Usage:       "charts directory",
-						Destination: &chartDir,
-					},
-					&cli.IntFlag{
-						Name:        argChartRancherReplicas,
-						Usage:       "number of Rancher replicas",
-						Value:       1,
-						Destination: &chartRancherReplicas,
-					},
-					&cli.BoolFlag{
-						Name:        argChartSkipDownstreamMonitoring,
-						Value:       false,
-						Usage:       "skip installing rancher-monitoring chart on downstream clusters",
-						Destination: &skipDownstreamMonitoring,
+						Usage: "skip tofu apply, assume apply was already called",
 					},
 				},
-				Action: actionCmdSetup,
-			},
-			{
-				Name:        "get-access",
-				Usage:       "Retrieves information to access the deployed clusters",
-				Description: "print out links and access information for the deployed clusters",
-				Action:      actionCmdGetAccess,
-			},
-			{
-				Name:        "teardown",
-				Aliases:     []string{"destroy"},
-				Usage:       "Tears down the test environment (all the clusters)",
-				Description: "destroy all the provisioned clusters",
-				Action:      actionCmdDestroy,
 			},
 			{
 				Name:        "load",
 				Usage:       "Creates K8s resources on upstream and downstream clusters",
 				Description: "Loads ConfigMaps and Secrets on all the deployed K8s cluster; Roles, Users and Projects on the Rancher cluster",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:        argChartDir,
-						Value:       filepath.Join(baseDir, "charts"),
-						Usage:       "charts directory",
-						Destination: &chartDir,
-					},
-					&cli.IntFlag{
-						Name:    argLoadConfigMapCnt,
-						Value:   1000,
-						Usage:   "number of ConfigMap resources to create",
-						EnvVars: []string{"SCLI_CONFIGMAP_COUNT"},
-					},
-					&cli.IntFlag{
-						Name:    argLoadSecretCnt,
-						Value:   1000,
-						Usage:   "number of Secret resources to create",
-						EnvVars: []string{"SCLI_SECRET_COUNT"},
-					},
-					&cli.IntFlag{
-						Name:    argLoadRoleCnt,
-						Value:   10,
-						Usage:   "number of Role resources to create",
-						EnvVars: []string{"SCLI_ROLE_COUNT"},
-					},
-					&cli.IntFlag{
-						Name:    argLoadUserCnt,
-						Value:   5,
-						Usage:   "number of User resources to create",
-						EnvVars: []string{"SCLI_USER_COUNT"},
-					},
-					&cli.IntFlag{
-						Name:    argLoadProjectCnt,
-						Value:   20,
-						Usage:   "number of Project resources to create",
-						EnvVars: []string{"SCLI_PROJECT_COUNT"},
-					},
-				},
-				Action: actionCmdLoad,
+				Action:      cmdLoad,
+			},
+			{
+				Name:        "get-access",
+				Usage:       "Retrieves information to access the deployed clusters",
+				Description: "print out links and access information for the deployed clusters",
+				Action:      cmdGetAccess,
+			},
+			{
+				Name:        "destroy",
+				Usage:       "Tears down the test environment (all the clusters)",
+				Description: "runs `tofu destroy` to destroy all the provisioned clusters",
+				Action:      cmdDestroy,
 			},
 		},
 	}
@@ -177,34 +100,39 @@ func main() {
 	}
 }
 
-func actionCmdDestroy(cCtx *cli.Context) error {
-	tf := new(tofu.Tofu)
-
-	if err := tf.Init(cCtx.String(argTofuDir), true); err != nil {
+func cmdApply(cli *cli.Context) error {
+	tf, _, err := prepare(cli)
+	if err != nil {
 		return err
 	}
 
-	return tf.Destroy(cCtx.String(argTofuVarFile))
+	if err = tofuVersionPrint(cli.Context, tf); err != nil {
+		return err
+	}
+	if err = tf.Apply(cli.Context); err != nil {
+		return err
+	}
+
+	return cmdGetAccess(cli)
 }
 
-func actionCmdSetup(cCtx *cli.Context) error {
+func cmdDeploy(cli *cli.Context) error {
 	// Tofu
-	tf := new(tofu.Tofu)
-	tf.Threads = cCtx.Int(argTofuParallelism)
-
-	if err := tf.Init(cCtx.String(argTofuDir), true); err != nil {
+	tf, r, err := prepare(cli)
+	if err != nil {
 		return err
 	}
-	tofuVersionPrint(tf)
 
-	apply := !cCtx.Bool(argTofuSkip)
-	if apply {
-		if err := tf.Apply(cCtx.String(argTofuVarFile)); err != nil {
+	if !cli.Bool(argSkipApply) {
+		if err = tofuVersionPrint(cli.Context, tf); err != nil {
+			return err
+		}
+		if err = tf.Apply(cli.Context); err != nil {
 			return err
 		}
 	}
 
-	clusters, err := tf.OutputClusters()
+	clusters, err := tf.OutputClusters(cli.Context)
 	if err != nil {
 		return err
 	}
@@ -212,68 +140,72 @@ func actionCmdSetup(cCtx *cli.Context) error {
 	// Helm charts
 	tester := clusters["tester"]
 
-	if err := chartInstallMimir(&tester); err != nil {
+	if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, ""); err != nil {
 		return err
 	}
-	if err := chartInstallK6Files(&tester); err != nil {
+	if err = chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, ""); err != nil {
 		return err
 	}
-	if err := chartInstallGrafanaDashboard(&tester); err != nil {
+	if err = chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, ""); err != nil {
 		return err
 	}
-	if err := chartInstallGrafana(&tester); err != nil {
+	if err = chartInstallGrafana(r, &tester); err != nil {
 		return err
 	}
 
 	upstream := clusters["upstream"]
+	rancherVersion := r.ChartVariables.RancherVersion
+	rancherImageTag := "v" + rancherVersion
+	if r.ChartVariables.RancherImageTagOverride != "" {
+		rancherImageTag = r.ChartVariables.RancherImageTagOverride
+	}
 	err = importImageIntoK3d(tf, "rancher/rancher:"+rancherImageTag, upstream)
 	if err != nil {
 		return err
 	}
 
-	if err := chartInstallCertManager(&upstream); err != nil {
+	if err = chartInstallCertManager(r, &upstream); err != nil {
 		return err
 	}
-	if err := chartInstallRancher(&upstream, int(chartRancherReplicas)); err != nil {
+	if err = chartInstallRancher(r, rancherImageTag, &upstream); err != nil {
 		return err
 	}
-	if err := chartInstallRancherIngress(&upstream); err != nil {
+	if err = chartInstallRancherIngress(&upstream); err != nil {
 		return err
 	}
-	if err := chartInstallRancherMonitoring(&upstream, tf.IsK3d()); err != nil {
+	if err = chartInstallRancherMonitoring(r, &upstream, tf.IsK3d()); err != nil {
 		return err
 	}
-	if err := chartInstallCgroupsExporter(&upstream); err != nil {
+	if err = chartInstallCgroupsExporter(&upstream); err != nil {
 		return err
 	}
 
 	// Import downstream clusters
 	// Wait Rancher Deployment to be complete, or importing downstream clusters may fail
-	if err := kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
+	if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
 		return err
 	}
-	if err := importDownstreamClusters(tf, clusters); err != nil {
+	if err = importDownstreamClusters(r, rancherImageTag, tf, clusters); err != nil {
 		return err
 	}
 
-	return actionCmdGetAccess(cCtx)
+	return cmdGetAccess(cli)
 }
 
-func actionCmdLoad(cCtx *cli.Context) error {
-	tf := new(tofu.Tofu)
-
-	if err := tf.Init(cCtx.String(argTofuDir), false); err != nil {
+func cmdLoad(cli *cli.Context) error {
+	tf, r, err := prepare(cli)
+	if err != nil {
 		return err
 	}
 
-	clusters, err := tf.OutputClusters()
+	clusters, err := tf.OutputClusters(cli.Context)
 	if err != nil {
 		return err
 	}
 
 	// Refresh k6 files
 	tester := clusters["tester"]
-	if err := chartInstallK6Files(&tester); err != nil {
+	if err := chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, ""); err != nil {
 		return err
 	}
 
@@ -289,30 +221,29 @@ func actionCmdLoad(cCtx *cli.Context) error {
 		if clusterName != "upstream" && !strings.HasPrefix(clusterName, "downstream") {
 			continue
 		}
-		if err := loadConfigMapAndSecrets(cCtx, cliTester, clusterName, clusterData); err != nil {
+		if err := loadConfigMapAndSecrets(r, cliTester, clusterName, clusterData); err != nil {
 			return err
 		}
 	}
 
 	// Create Users and Roles
-	if err := loadRolesAndUsers(cCtx, cliTester, "upstream", clusters["upstream"]); err != nil {
+	if err := loadRolesAndUsers(r, cliTester, "upstream", clusters["upstream"]); err != nil {
 		return err
 	}
 	// Create Projects
-	if err := loadProjects(cCtx, cliTester, "upstream", clusters["upstream"]); err != nil {
+	if err := loadProjects(r, cliTester, "upstream", clusters["upstream"]); err != nil {
 		return err
 	}
 	return nil
 }
 
-func actionCmdGetAccess(cCtx *cli.Context) error {
-	tf := new(tofu.Tofu)
-
-	if err := tf.Init(cCtx.String(argTofuDir), false); err != nil {
+func cmdGetAccess(cli *cli.Context) error {
+	tf, r, err := prepare(cli)
+	if err != nil {
 		return err
 	}
 
-	clusters, err := tf.OutputClusters()
+	clusters, err := tf.OutputClusters(cli.Context)
 	if err != nil {
 		return err
 	}
@@ -338,19 +269,44 @@ func actionCmdGetAccess(cCtx *cli.Context) error {
 	fmt.Println("\n\n\n*** ACCESS DETAILS")
 	fmt.Println()
 
-	printAccessDetails("UPSTREAM", upstream, rancherURL)
+	printAccessDetails(r, "UPSTREAM", upstream, rancherURL)
 	for name, downstream := range downstreams {
-		printAccessDetails(strings.ToUpper(name), downstream, "")
+		printAccessDetails(r, strings.ToUpper(name), downstream, "")
 	}
-	printAccessDetails("TESTER", tester, "")
+	printAccessDetails(r, "TESTER", tester, "")
 
 	return nil
 }
 
-func printAccessDetails(name string, cluster tofu.Cluster, rancherURL string) {
+func cmdDestroy(cli *cli.Context) error {
+	tf, _, err := prepare(cli)
+	if err != nil {
+		return err
+	}
+
+	return tf.Destroy(cli.Context)
+}
+
+func prepare(cli *cli.Context) (*tofu.Tofu, *recipe.Recipe, error) {
+	rp := cli.String(argRecipe)
+	r, err := recipe.Parse(rp)
+	if err != nil {
+		return nil, nil, err
+	}
+	fmt.Printf("Using recipe: %s\n", rp)
+	fmt.Printf("Terraform main directory: %s\n", r.TofuMainDirectory)
+
+	tf, err := tofu.New(cli.Context, r.TofuVariables, r.TofuMainDirectory, r.TofuParallelism, true)
+	if err != nil {
+		return nil, nil, err
+	}
+	return tf, r, nil
+}
+
+func printAccessDetails(r *recipe.Recipe, name string, cluster tofu.Cluster, rancherURL string) {
 	fmt.Printf("*** %s CLUSTER\n", name)
 	if rancherURL != "" {
-		fmt.Printf("    Rancher UI: %s (admin/%s)\n", rancherURL, adminPassword)
+		fmt.Printf("    Rancher UI: %s (admin/%s)\n", rancherURL, r.ChartVariables.AdminPassword)
 	}
 	fmt.Println("    Kubernetes API:")
 	fmt.Printf("export KUBECONFIG=%q\n", cluster.Kubeconfig)
@@ -361,11 +317,11 @@ func printAccessDetails(name string, cluster tofu.Cluster, rancherURL string) {
 	fmt.Println()
 }
 
-func importDownstreamClusters(tf *tofu.Tofu, clusters map[string]tofu.Cluster) error {
+func importDownstreamClusters(r *recipe.Recipe, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster) error {
 
 	log.Print("Import downstream clusters")
 
-	if err := importDownstreamClustersRancherSetup(clusters); err != nil {
+	if err := importDownstreamClustersRancherSetup(r, clusters); err != nil {
 		return err
 	}
 
@@ -379,7 +335,7 @@ func importDownstreamClusters(tf *tofu.Tofu, clusters map[string]tofu.Cluster) e
 			continue
 		}
 		clustersCount++
-		go importDownstreamClusterDo(tf, clusters, clusterName, clustersChan, errorChan)
+		go importDownstreamClusterDo(r, rancherImageTag, tf, clusters, clusterName, clustersChan, errorChan)
 	}
 
 	for {
@@ -396,7 +352,7 @@ func importDownstreamClusters(tf *tofu.Tofu, clusters map[string]tofu.Cluster) e
 	}
 }
 
-func importDownstreamClusterDo(tf *tofu.Tofu, clusters map[string]tofu.Cluster, clusterName string, ch chan<- string, errCh chan<- error) {
+func importDownstreamClusterDo(r *recipe.Recipe, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster, clusterName string, ch chan<- string, errCh chan<- error) {
 	log.Print("Import cluster " + clusterName)
 	yamlFile, err := os.CreateTemp("", "scli-"+clusterName+"-*.yaml")
 	if err != nil {
@@ -439,8 +395,8 @@ func importDownstreamClusterDo(tf *tofu.Tofu, clusters map[string]tofu.Cluster, 
 		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
 		return
 	}
-	if !skipDownstreamMonitoring {
-		if err := chartInstallRancherMonitoring(&downstream, true); err != nil {
+	if r.ChartVariables.DownstreamRancherMonitoring {
+		if err := chartInstallRancherMonitoring(r, &downstream, true); err != nil {
 			errCh <- fmt.Errorf("downstream monitoring installation on cluster %s failed: %w", clusterName, err)
 			return
 		}
@@ -448,7 +404,7 @@ func importDownstreamClusterDo(tf *tofu.Tofu, clusters map[string]tofu.Cluster, 
 	ch <- clusterName
 }
 
-func importDownstreamClustersRancherSetup(clusters map[string]tofu.Cluster) error {
+func importDownstreamClustersRancherSetup(r *recipe.Recipe, clusters map[string]tofu.Cluster) error {
 	cliTester := kubectl.Client{}
 	tester := clusters["tester"]
 	upstream := clusters["upstream"]
@@ -457,7 +413,7 @@ func importDownstreamClustersRancherSetup(clusters map[string]tofu.Cluster) erro
 		return err
 	}
 
-	if err := cliTester.Init(tester.Kubeconfig); err != nil {
+	if err = cliTester.Init(tester.Kubeconfig); err != nil {
 		return err
 	}
 
@@ -475,11 +431,11 @@ func importDownstreamClustersRancherSetup(clusters map[string]tofu.Cluster) erro
 	envVars := map[string]string{
 		"BASE_URL":               upstreamAdd.Public.HTTPSURL,
 		"BOOTSTRAP_PASSWORD":     "admin",
-		"PASSWORD":               adminPassword,
+		"PASSWORD":               r.ChartVariables.AdminPassword,
 		"IMPORTED_CLUSTER_NAMES": importedClusterNames,
 	}
 
-	if err := cliTester.K6run("rancher-setup", "k6/rancher_setup.js", envVars, nil, true, false); err != nil {
+	if err = cliTester.K6run("rancher-setup", "k6/rancher_setup.js", envVars, nil, true, false); err != nil {
 		return err
 	}
 	return nil
@@ -541,9 +497,9 @@ func importClustersDownstreamGetYAML(clusters map[string]tofu.Cluster, name stri
 	return
 }
 
-func loadConfigMapAndSecrets(cCtx *cli.Context, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
-	configMapCount := strconv.Itoa(cCtx.Int(argLoadConfigMapCnt))
-	secretCount := strconv.Itoa(cCtx.Int(argLoadSecretCnt))
+func loadConfigMapAndSecrets(r *recipe.Recipe, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
+	configMapCount := strconv.Itoa(r.TestVariables.TestConfigMaps)
+	secretCount := strconv.Itoa(r.TestVariables.TestSecrets)
 
 	envVars := map[string]string{
 		"BASE_URL":         clusterData.PrivateKubernetesAPIURL,
@@ -566,9 +522,9 @@ func loadConfigMapAndSecrets(cCtx *cli.Context, cli *kubectl.Client, clusterName
 	return nil
 }
 
-func loadRolesAndUsers(cCtx *cli.Context, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
-	roleCount := strconv.Itoa(cCtx.Int(argLoadRoleCnt))
-	userCount := strconv.Itoa(cCtx.Int(argLoadUserCnt))
+func loadRolesAndUsers(r *recipe.Recipe, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
+	roleCount := strconv.Itoa(r.TestVariables.TestRoles)
+	userCount := strconv.Itoa(r.TestVariables.TestUsers)
 	clusterAdd, err := getAppAddressFor(clusterData)
 	if err != nil {
 		return fmt.Errorf("failed loading Roles and Users on cluster %q: %w", clusterName, err)
@@ -576,7 +532,7 @@ func loadRolesAndUsers(cCtx *cli.Context, cli *kubectl.Client, clusterName strin
 	envVars := map[string]string{
 		"BASE_URL":   clusterAdd.Public.HTTPSURL,
 		"USERNAME":   "admin",
-		"PASSWORD":   adminPassword,
+		"PASSWORD":   r.ChartVariables.AdminPassword,
 		"ROLE_COUNT": roleCount,
 		"USER_COUNT": userCount,
 	}
@@ -595,8 +551,8 @@ func loadRolesAndUsers(cCtx *cli.Context, cli *kubectl.Client, clusterName strin
 	return nil
 }
 
-func loadProjects(cCtx *cli.Context, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
-	projectCount := strconv.Itoa(cCtx.Int(argLoadProjectCnt))
+func loadProjects(r *recipe.Recipe, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
+	projectCount := strconv.Itoa(r.TestVariables.TestProjects)
 	clusterAdd, err := getAppAddressFor(clusterData)
 	if err != nil {
 		return fmt.Errorf("failed loading Projects on cluster %q: %w", clusterName, err)
@@ -604,7 +560,7 @@ func loadProjects(cCtx *cli.Context, cli *kubectl.Client, clusterName string, cl
 	envVars := map[string]string{
 		"BASE_URL":      clusterAdd.Public.HTTPSURL,
 		"USERNAME":      "admin",
-		"PASSWORD":      adminPassword,
+		"PASSWORD":      r.ChartVariables.AdminPassword,
 		"PROJECT_COUNT": projectCount,
 	}
 	tags := map[string]string{
@@ -621,8 +577,8 @@ func loadProjects(cCtx *cli.Context, cli *kubectl.Client, clusterName string, cl
 	return nil
 }
 
-func tofuVersionPrint(tofu *tofu.Tofu) error {
-	ver, providers, err := tofu.Version()
+func tofuVersionPrint(ctx context.Context, tofu *tofu.Tofu) error {
+	ver, providers, err := tofu.Version(ctx)
 	if err != nil {
 		return err
 	}
