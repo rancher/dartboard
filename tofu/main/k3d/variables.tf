@@ -23,6 +23,11 @@ variable "upstream_agent_count" {
   default     = 0
 }
 
+variable "upstream_reserve_node_for_monitoring" {
+  description = "Set a 'monitoring' label and taint on one node of the upstream cluster to reserve it for monitoring"
+  default = false
+}
+
 
 # Downstream cluster specifics
 
