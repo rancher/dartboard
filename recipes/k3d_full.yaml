@@ -26,6 +26,7 @@ chart_variables:
   downstream_rancher_monitoring: true
 #  admin_password: adminadminadmin
   rancher_version: 2.8.5
+#  rancher_image_override: rancher/rancher
 #  rancher_image_tag_override: v2.8.5-debug-1
 #  force_prime_registry: false
 # see https://github.com/rancher/charts/tree/release-v2.8/assets/rancher-monitoring-crd

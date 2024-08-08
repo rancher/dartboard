@@ -114,7 +114,8 @@ func chartInstallRancher(r *recipe.Recipe, rancherImageTag string, cluster *tofu
 	}
 	rancherClusterName := clusterAdd.Public.Name
 	rancherClusterURL := clusterAdd.Public.HTTPSURL
-	chartVals := getRancherValsJSON(rancherImageTag, r.ChartVariables.AdminPassword, rancherClusterName, rancherClusterURL, r.ChartVariables.RancherReplicas)
+
+	chartVals := getRancherValsJSON(r.ChartVariables.RancherImageOverride, rancherImageTag, r.ChartVariables.AdminPassword, rancherClusterName, rancherClusterURL, r.ChartVariables.RancherReplicas)
 
 	return chartInstall(cluster.Kubeconfig, chartRancher, chartVals)
 }
@@ -352,28 +353,39 @@ func getGrafanaValsJSON(r *recipe.Recipe, name, url, ingressClass string) string
 	}`
 }
 
-func getRancherValsJSON(rancherImageTag, bootPwd, hostname, serverURL string, replicas int) string {
-	return `
-	{
-		"bootstrapPassword": ` + fmt.Sprintf("%q", bootPwd) + `,
-		"hostname": ` + fmt.Sprintf("%q", hostname) + `,
-		"replicas": ` + fmt.Sprintf("%d", replicas) + `,
-		"rancherImageTag": ` + fmt.Sprintf("%q", rancherImageTag) + `,
-		"extraEnv": [{
-				"name": "CATTLE_SERVER_URL",
-				"value": ` + fmt.Sprintf("%q", serverURL) + `
+func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname, serverURL string, replicas int) string {
+	vals := map[string]any{
+		"bootstrapPassword": bootPwd,
+		"hostname":          hostname,
+		"replicas":          replicas,
+		"rancherImageTag":   rancherImageTag,
+		"extraEnv": []map[string]any{
+			{
+				"name":  "CATTLE_SERVER_URL",
+				"value": serverURL,
+			},
+			{
+				"name":  "CATTLE_PROMETHEUS_METRICS",
+				"value": "true",
+			},
+			{
+				"name":  "CATTLE_DEV_MODE",
+				"value": "true",
+			},
 		},
-		{
-				"name": "CATTLE_PROMETHEUS_METRICS",
-				"value": "true"
+		"livenessProbe": map[string]any{
+			"initialDelaySeconds": 30,
+			"periodSeconds":       3600,
 		},
-		{
-				"name": "CATTLE_DEV_MODE",
-				"value": "true"
-		}],
-		"livenessProbe": {
-				"initialDelaySeconds": 30,
-				"periodSeconds": 3600
-		}
-	}`
+	}
+
+	if rancherImageOverride != "" {
+		vals["rancherImage"] = rancherImageOverride
+	}
+
+	result, err := json.Marshal(vals)
+	if err != nil {
+		panic(err)
+	}
+	return string(result)
 }
