@@ -70,7 +70,7 @@ func main() {
 					&cli.BoolFlag{
 						Name:  argSkipApply,
 						Value: false,
-						Usage: "skip tofu apply, assume apply was already called",
+						Usage: "skip `tofu apply`, assume apply was already called",
 					},
 				},
 			},
