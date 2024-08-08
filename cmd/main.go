@@ -164,10 +164,10 @@ func cmdDeploy(cli *cli.Context) error {
 	rancherImageTag := "v" + rancherVersion
 	if r.ChartVariables.RancherImageTagOverride != "" {
 		rancherImageTag = r.ChartVariables.RancherImageTagOverride
-	}
-	err = importImageIntoK3d(tf, "rancher/rancher:"+rancherImageTag, upstream)
-	if err != nil {
-		return err
+		err = importImageIntoK3d(tf, "rancher/rancher:"+rancherImageTag, upstream)
+		if err != nil {
+			return err
+		}
 	}
 
 	if err = chartInstallCertManager(r, &upstream); err != nil {
@@ -389,10 +389,12 @@ func importDownstreamClusterDo(r *recipe.Recipe, rancherImageTag string, tf *tof
 		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
 		return
 	}
-	err = importImageIntoK3d(tf, "rancher/rancher-agent:"+rancherImageTag, downstream)
-	if err != nil {
-		errCh <- fmt.Errorf("%s downstream k3d image import failed: %w", clusterName, err)
-		return
+	if r.ChartVariables.RancherImageTagOverride != "" {
+		err = importImageIntoK3d(tf, "rancher/rancher-agent:"+rancherImageTag, downstream)
+		if err != nil {
+			errCh <- fmt.Errorf("%s downstream k3d image import failed: %w", clusterName, err)
+			return
+		}
 	}
 
 	if err := kubectl.Apply(downstream.Kubeconfig, yamlFile.Name()); err != nil {
