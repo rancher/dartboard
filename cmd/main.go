@@ -92,6 +92,12 @@ func main() {
 				Description: "runs `tofu destroy` to destroy all the provisioned clusters",
 				Action:      cmdDestroy,
 			},
+			{
+				Name:        "redeploy",
+				Usage:       "Tears down the test environment (all the clusters) and redeploys them from scratch",
+				Description: "runs `tofu destroy` and then deploys all the provisioned clusters",
+				Action:      cmdRedeploy,
+			},
 		},
 	}
 
@@ -285,6 +291,15 @@ func cmdDestroy(cli *cli.Context) error {
 	}
 
 	return tf.Destroy(cli.Context)
+}
+
+func cmdRedeploy(c *cli.Context) error {
+	err := cmdDestroy(c)
+	if err != nil {
+		return err
+	}
+
+	return cmdDeploy(c)
 }
 
 func prepare(cli *cli.Context) (*tofu.Tofu, *recipe.Recipe, error) {
