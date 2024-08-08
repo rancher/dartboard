@@ -3,6 +3,8 @@ package recipe
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -21,6 +23,7 @@ type ChartVariables struct {
 	DownstreamRancherMonitoring bool   `yaml:"downstream_rancher_monitoring"`
 	AdminPassword               string `yaml:"admin_password"`
 	RancherVersion              string `yaml:"rancher_version"`
+	ForcePrimeRegistry          bool   `yaml:"force_prime_registry"`
 	RancherImageTagOverride     string `yaml:"rancher_image_tag_override"`
 	RancherMonitoringVersion    string `yaml:"rancher_monitoring_version"`
 	CertManagerVersion          string `yaml:"cert_manager_version"`
@@ -64,6 +67,7 @@ func Parse(path string) (*Recipe, error) {
 	result.ChartVariables.RancherMonitoringVersion = normalizeVersion(result.ChartVariables.RancherMonitoringVersion)
 	result.ChartVariables.CertManagerVersion = normalizeVersion(result.ChartVariables.CertManagerVersion)
 	result.ChartVariables.TesterGrafanaVersion = normalizeVersion(result.ChartVariables.TesterGrafanaVersion)
+	result.ChartVariables.ForcePrimeRegistry = result.ChartVariables.ForcePrimeRegistry || needsPrime(result.ChartVariables.RancherVersion)
 
 	return &result, nil
 }
@@ -71,4 +75,14 @@ func Parse(path string) (*Recipe, error) {
 // normalizeVersion tolerates versions with an initial spurious v
 func normalizeVersion(version string) string {
 	return strings.TrimPrefix(version, "v")
+}
+
+// needsPrime returns true if the Rancher version is known to require use of the Prime registry
+func needsPrime(version string) bool {
+	versionSplits := regexp.MustCompile("[.-]").Split(version, -1)
+	major, _ := strconv.Atoi(versionSplits[0])
+	minor, _ := strconv.Atoi(versionSplits[1])
+	patch, _ := strconv.Atoi(versionSplits[2])
+	return (major == 2 && minor == 7 && patch >= 11) ||
+		(major == 2 && minor == 8 && patch >= 6)
 }
