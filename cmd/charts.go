@@ -88,16 +88,24 @@ func chartInstallCertManager(r *recipe.Recipe, cluster *tofu.Cluster) error {
 }
 
 func chartInstallRancher(r *recipe.Recipe, rancherImageTag string, cluster *tofu.Cluster) error {
+	rancherRepo := "https://releases.rancher.com/server-charts/"
 
 	// one of "alpha", "latest" or "stable"
-	rancherRepo := "latest"
 	if strings.Contains(r.ChartVariables.RancherVersion, "alpha") {
-		rancherRepo = "alpha"
+		rancherRepo += "alpha"
+	} else {
+		rancherRepo += "latest"
 	}
+
+	// or "prime"
+	if r.ChartVariables.ForcePrimeRegistry {
+		rancherRepo = "https://charts.rancher.com/server-charts/prime"
+	}
+
 	chartRancher := chart{
 		name:      "rancher",
 		namespace: "cattle-system",
-		path:      "https://releases.rancher.com/server-charts/" + rancherRepo + "/rancher-" + r.ChartVariables.RancherVersion + ".tgz",
+		path:      rancherRepo + "/rancher-" + r.ChartVariables.RancherVersion + ".tgz",
 	}
 
 	clusterAdd, err := getAppAddressFor(*cluster)
