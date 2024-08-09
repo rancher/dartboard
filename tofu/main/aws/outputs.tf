@@ -29,36 +29,6 @@ locals {
     ingress_class_name   = module.k3s_cluster[i].ingress_class_name
     }
   }
-  rke_outputs = { for i, cluster in local.rke_clusters : cluster.name => {
-    kubeconfig = module.rke_cluster[i].kubeconfig
-    context    = module.rke_cluster[i].context
-
-    // alternative URL to reach the API from the same network this cluster is in
-    private_kubernetes_api_url = "https://${module.rke_cluster[i].first_server_private_name}:6443"
-
-    // addresses of applications running in this cluster
-    app_addresses = {
-      public = { // resolvable over the Internet
-        name       = module.rke_cluster[i].first_server_public_name
-        http_port  = 80
-        https_port = 443
-      }
-      private = { // resolvable from the network this cluster runs in
-        name       = module.rke_cluster[i].first_server_private_name
-        http_port  = 80
-        https_port = 443
-      }
-      tunnel = { // resolvable from the host running OpenTofu
-        name       = "${cluster.name}.local.gd"
-        http_port  = module.rke_cluster[i].tunnel_app_http_port
-        https_port = module.rke_cluster[i].tunnel_app_https_port
-      }
-    }
-
-    node_access_commands = module.rke_cluster[i].node_access_commands
-    ingress_class_name   = module.rke_cluster[i].ingress_class_name
-    }
-  }
   rke2_outputs = { for i, cluster in local.rke2_clusters : cluster.name => {
     kubeconfig = module.rke2_cluster[i].kubeconfig
     context    = module.rke2_cluster[i].context
@@ -92,5 +62,5 @@ locals {
 }
 
 output "clusters" {
-  value = merge(local.k3s_outputs, local.rke_outputs, local.rke2_outputs)
+  value = merge(local.k3s_outputs, local.rke2_outputs)
 }

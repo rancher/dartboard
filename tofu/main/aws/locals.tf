@@ -33,6 +33,5 @@ locals {
   )
 
   k3s_clusters  = [for cluster in local.all_clusters : cluster if strcontains(cluster.distro_version, "k3s")]
-  rke_clusters  = [for cluster in local.all_clusters : cluster if strcontains(cluster.distro_version, "rke_")]
   rke2_clusters = [for cluster in local.all_clusters : cluster if strcontains(cluster.distro_version, "rke2")]
 }
