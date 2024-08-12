@@ -28,16 +28,16 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/moio/scalability-tests/internal/dart"
 	"github.com/moio/scalability-tests/internal/docker"
 	"github.com/moio/scalability-tests/internal/k3d"
 	"github.com/moio/scalability-tests/internal/kubectl"
-	"github.com/moio/scalability-tests/internal/recipe"
 	"github.com/moio/scalability-tests/internal/tofu"
 	"github.com/urfave/cli/v2"
 )
 
 const (
-	argRecipe    = "recipe"
+	argDart      = "dart"
 	argSkipApply = "skip-apply"
 )
 
@@ -47,11 +47,11 @@ func main() {
 		Copyright: "(c) 2024 SUSE LLC",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    argRecipe,
+				Name:    argDart,
 				Aliases: []string{"r"},
-				Value:   filepath.Join("recipes", "k3d_full.yaml"),
-				Usage:   "recipe to use",
-				EnvVars: []string{"RECIPE"},
+				Value:   filepath.Join("darts", "k3d_full.yaml"),
+				Usage:   "dart to use",
+				EnvVars: []string{"DART"},
 			},
 		},
 		Commands: []*cli.Command{
@@ -302,13 +302,13 @@ func cmdRedeploy(c *cli.Context) error {
 	return cmdDeploy(c)
 }
 
-func prepare(cli *cli.Context) (*tofu.Tofu, *recipe.Recipe, error) {
-	rp := cli.String(argRecipe)
-	r, err := recipe.Parse(rp)
+func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
+	rp := cli.String(argDart)
+	r, err := dart.Parse(rp)
 	if err != nil {
 		return nil, nil, err
 	}
-	fmt.Printf("Using recipe: %s\n", rp)
+	fmt.Printf("Using dart: %s\n", rp)
 	fmt.Printf("Terraform main directory: %s\n", r.TofuMainDirectory)
 
 	tf, err := tofu.New(cli.Context, r.TofuVariables, r.TofuMainDirectory, r.TofuParallelism, true)
@@ -318,7 +318,7 @@ func prepare(cli *cli.Context) (*tofu.Tofu, *recipe.Recipe, error) {
 	return tf, r, nil
 }
 
-func printAccessDetails(r *recipe.Recipe, name string, cluster tofu.Cluster, rancherURL string) {
+func printAccessDetails(r *dart.Dart, name string, cluster tofu.Cluster, rancherURL string) {
 	fmt.Printf("*** %s CLUSTER\n", name)
 	if rancherURL != "" {
 		fmt.Printf("    Rancher UI: %s (admin/%s)\n", rancherURL, r.ChartVariables.AdminPassword)
@@ -332,7 +332,7 @@ func printAccessDetails(r *recipe.Recipe, name string, cluster tofu.Cluster, ran
 	fmt.Println()
 }
 
-func importDownstreamClusters(r *recipe.Recipe, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster) error {
+func importDownstreamClusters(r *dart.Dart, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster) error {
 
 	log.Print("Import downstream clusters")
 
@@ -367,7 +367,7 @@ func importDownstreamClusters(r *recipe.Recipe, rancherImageTag string, tf *tofu
 	}
 }
 
-func importDownstreamClusterDo(r *recipe.Recipe, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster, clusterName string, ch chan<- string, errCh chan<- error) {
+func importDownstreamClusterDo(r *dart.Dart, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster, clusterName string, ch chan<- string, errCh chan<- error) {
 	log.Print("Import cluster " + clusterName)
 	yamlFile, err := os.CreateTemp("", "scli-"+clusterName+"-*.yaml")
 	if err != nil {
@@ -421,7 +421,7 @@ func importDownstreamClusterDo(r *recipe.Recipe, rancherImageTag string, tf *tof
 	ch <- clusterName
 }
 
-func importDownstreamClustersRancherSetup(r *recipe.Recipe, clusters map[string]tofu.Cluster) error {
+func importDownstreamClustersRancherSetup(r *dart.Dart, clusters map[string]tofu.Cluster) error {
 	cliTester := kubectl.Client{}
 	tester := clusters["tester"]
 	upstream := clusters["upstream"]
@@ -514,7 +514,7 @@ func importClustersDownstreamGetYAML(clusters map[string]tofu.Cluster, name stri
 	return
 }
 
-func loadConfigMapAndSecrets(r *recipe.Recipe, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
+func loadConfigMapAndSecrets(r *dart.Dart, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
 	configMapCount := strconv.Itoa(r.TestVariables.TestConfigMaps)
 	secretCount := strconv.Itoa(r.TestVariables.TestSecrets)
 
@@ -539,7 +539,7 @@ func loadConfigMapAndSecrets(r *recipe.Recipe, cli *kubectl.Client, clusterName 
 	return nil
 }
 
-func loadRolesAndUsers(r *recipe.Recipe, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
+func loadRolesAndUsers(r *dart.Dart, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
 	roleCount := strconv.Itoa(r.TestVariables.TestRoles)
 	userCount := strconv.Itoa(r.TestVariables.TestUsers)
 	clusterAdd, err := getAppAddressFor(clusterData)
@@ -568,7 +568,7 @@ func loadRolesAndUsers(r *recipe.Recipe, cli *kubectl.Client, clusterName string
 	return nil
 }
 
-func loadProjects(r *recipe.Recipe, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
+func loadProjects(r *dart.Dart, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
 	projectCount := strconv.Itoa(r.TestVariables.TestProjects)
 	clusterAdd, err := getAppAddressFor(clusterData)
 	if err != nil {

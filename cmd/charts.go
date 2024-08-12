@@ -23,8 +23,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/moio/scalability-tests/internal/dart"
 	"github.com/moio/scalability-tests/internal/helm"
-	"github.com/moio/scalability-tests/internal/recipe"
 	"github.com/moio/scalability-tests/internal/tofu"
 )
 
@@ -59,7 +59,7 @@ func chartInstall(kubeConf string, chart chart, jsonVals string) error {
 	return nil
 }
 
-func chartInstallGrafana(r *recipe.Recipe, cluster *tofu.Cluster) error {
+func chartInstallGrafana(r *dart.Dart, cluster *tofu.Cluster) error {
 	chartGrafana := chart{
 		name:      "grafana",
 		namespace: "tester",
@@ -78,7 +78,7 @@ func chartInstallGrafana(r *recipe.Recipe, cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartGrafana, chartVals)
 }
 
-func chartInstallCertManager(r *recipe.Recipe, cluster *tofu.Cluster) error {
+func chartInstallCertManager(r *dart.Dart, cluster *tofu.Cluster) error {
 	chartCertManager := chart{
 		name:      "cert-manager",
 		namespace: "cert-manager",
@@ -87,7 +87,7 @@ func chartInstallCertManager(r *recipe.Recipe, cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartCertManager, `{"installCRDs": true}`)
 }
 
-func chartInstallRancher(r *recipe.Recipe, rancherImageTag string, cluster *tofu.Cluster) error {
+func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Cluster) error {
 	rancherRepo := "https://releases.rancher.com/server-charts/"
 
 	// one of "alpha", "latest" or "stable"
@@ -151,7 +151,7 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartRancherIngress, chartVals)
 }
 
-func chartInstallRancherMonitoring(r *recipe.Recipe, cluster *tofu.Cluster, noSchedToleration bool) error {
+func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster, noSchedToleration bool) error {
 	rancherMinorVersion := strings.Join(strings.Split(r.ChartVariables.RancherVersion, ".")[0:2], ".")
 
 	chartRancherMonitoringCRD := chart{
@@ -309,7 +309,7 @@ func jsonToMap(jsonVals string) (map[string]interface{}, error) {
 	return mapVals, err
 }
 
-func getGrafanaValsJSON(r *recipe.Recipe, name, url, ingressClass string) string {
+func getGrafanaValsJSON(r *dart.Dart, name, url, ingressClass string) string {
 	return `{
 		"datasources": {
 			"datasources.yaml": {
