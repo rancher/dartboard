@@ -12,11 +12,11 @@ import (
 
 // Dart is a "recipe" that encodes all parameters for a test run
 type Dart struct {
-	TofuMainDirectory string            `yaml:"tofu_main_directory"`
-	TofuParallelism   int               `yaml:"tofu_parallelism"`
-	TofuVariables     map[string]string `yaml:"tofu_variables"`
-	ChartVariables    ChartVariables    `yaml:"chart_variables"`
-	TestVariables     TestVariables     `yaml:"test_variables"`
+	TofuMainDirectory string         `yaml:"tofu_main_directory"`
+	TofuParallelism   int            `yaml:"tofu_parallelism"`
+	TofuVariables     map[string]any `yaml:"tofu_variables"`
+	ChartVariables    ChartVariables `yaml:"chart_variables"`
+	TestVariables     TestVariables  `yaml:"test_variables"`
 }
 
 type ChartVariables struct {
@@ -42,7 +42,7 @@ type TestVariables struct {
 
 var defaultDart = Dart{
 	TofuParallelism: 10,
-	TofuVariables:   map[string]string{},
+	TofuVariables:   map[string]any{},
 	ChartVariables: ChartVariables{
 		RancherReplicas:             1,
 		DownstreamRancherMonitoring: false,
@@ -64,6 +64,11 @@ func Parse(path string) (*Dart, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal dart file: %w", err)
 	}
+	tofuVars, err := yaml.Marshal(result.TofuVariables)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal recipe's tofu variables: %w", err)
+	}
+	fmt.Printf("RECIPE TOFU VARIABLES YAML: \n%v", string(tofuVars))
 
 	result.ChartVariables.RancherVersion = normalizeVersion(result.ChartVariables.RancherVersion)
 	result.ChartVariables.RancherMonitoringVersion = normalizeVersion(result.ChartVariables.RancherMonitoringVersion)
