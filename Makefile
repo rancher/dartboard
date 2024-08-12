@@ -1,4 +1,4 @@
-BIN_NAME := scli
+BIN_NAME := dartboard
 LDFLAGS := -w -s
 
 .PHONY: build

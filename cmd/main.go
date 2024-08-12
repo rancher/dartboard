@@ -48,7 +48,7 @@ func main() {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    argDart,
-				Aliases: []string{"r"},
+				Aliases: []string{"d"},
 				Value:   filepath.Join("darts", "k3d_full.yaml"),
 				Usage:   "dart to use",
 				EnvVars: []string{"DART"},
