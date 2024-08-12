@@ -30,7 +30,7 @@ tofu_variables:
 #  tester_distro_version: v1.26.9+k3s1
 #  tester_public_ip: false
 #  tester_instance_type: t3a.large
-#  tester: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
+#  tester_ami: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
 #  project_name: st
 #  first_kubernetes_api_port: 7445
 #  first_app_http_port: 9080

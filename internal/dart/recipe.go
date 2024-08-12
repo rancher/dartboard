@@ -2,6 +2,7 @@ package dart
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
@@ -68,7 +69,7 @@ func Parse(path string) (*Dart, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal recipe's tofu variables: %w", err)
 	}
-	fmt.Printf("RECIPE TOFU VARIABLES YAML: \n%v", string(tofuVars))
+	log.Printf("\nTofu variables: \n%v\n", string(tofuVars))
 
 	result.ChartVariables.RancherVersion = normalizeVersion(result.ChartVariables.RancherVersion)
 	result.ChartVariables.RancherMonitoringVersion = normalizeVersion(result.ChartVariables.RancherMonitoringVersion)

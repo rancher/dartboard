@@ -23,10 +23,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type ClusterAddress struct {
@@ -57,44 +58,67 @@ type Tofu struct {
 	variables []*tfexec.VarOption
 }
 
-// HACK: this converts a golang map[string]interface{} into HCL format
-func convertMapToHCL(m map[string]interface{}) string {
-	var attributes []string
-	for key, value := range m {
-		attributes = append(attributes, fmt.Sprintf(`%s=%s`, key, convertValueToHCL(value)))
+// converts a golang map[string]interface{} into map[string]cty.Value
+func convertMapToCty(m map[string]interface{}) map[string]cty.Value {
+	attributes := map[string]cty.Value{}
+	for k, v := range m {
+		attributes[k] = convertValueToHCL(v)
 	}
-	sort.Strings(attributes)
-	return fmt.Sprintf("{%s}", strings.Join(attributes, ","))
+	return attributes
 }
 
-// HACK: converts golang types into HCL format
-func convertValueToHCL(value interface{}) string {
+// converts golang types into HCL format utilizing the hclwrite and cty packages
+// reference: https://pkg.go.dev/github.com/hashicorp/hcl/v2/hclwrite#example-package-GenerateFromScratch
+func convertValueToHCL(value interface{}) cty.Value {
 	switch v := value.(type) {
 	case string:
-		escapedValue := strings.ReplaceAll(v, `"`, `\"`)
-		return fmt.Sprintf(`"%s"`, escapedValue)
-	case map[string]interface{}:
-		return convertMapToHCL(v)
-	case []interface{}:
-		var elements []string
-		for _, mapVal := range v {
-			elements = append(elements, convertValueToHCL(mapVal))
+		return cty.StringVal(value.(string))
+	case bool:
+		return cty.BoolVal(v)
+	case int, int32, int64:
+		// explicitly convert to int64 if needed
+		vInt64, ok := v.(int64)
+		if !ok {
+			vInt32, ok := v.(int32)
+			if !ok {
+				vInt64 = int64(v.(int))
+			} else {
+				vInt64 = int64(vInt32)
+			}
 		}
-		sort.Strings(elements)
-		return fmt.Sprintf("[%s]", strings.Join(elements, ","))
+		return cty.NumberIntVal(vInt64)
+	case float32, float64:
+		// explicitly convert to float64 if needed
+		vFloat64, ok := v.(float64)
+		if !ok {
+			vFloat64 = float64(v.(float32))
+		}
+		return cty.NumberFloatVal(vFloat64)
+		// maps and objects in HCL are equivalent to cty.ObjectVals
+	case map[string]interface{}:
+		return cty.ObjectVal(convertMapToCty(v))
+		// if we have a list/slice, loop through it and make recursive calls
+	case []interface{}:
+		var elements []cty.Value
+		for _, sliceVal := range v {
+			elements = append(elements, convertValueToHCL(sliceVal))
+		}
+		return cty.ListVal(elements)
 	default:
-		return fmt.Sprintf(`%v`, v)
+		return cty.UnknownAsNull(cty.StringVal(""))
 	}
 }
 
 func appendVariables(variables []*tfexec.VarOption, variableMap map[string]any) []*tfexec.VarOption {
-	var assignment string
 	for k, v := range variableMap {
-		fmt.Printf("\nKEY: %s\nVALUE: %T\n", k, v)
-		assignment = fmt.Sprintf("%s=%s", k, convertValueToHCL(v))
+		f := hclwrite.NewEmptyFile()
+		body := f.Body()
+		ctyVal := convertValueToHCL(v)
+		body.SetAttributeValue(k, ctyVal)
+		assignment := strings.ReplaceAll(string(f.Bytes()), " ", "")
 		variables = append(variables, tfexec.Var(assignment))
-		fmt.Printf("\n\nVARIABLE:\n%s\n\n", assignment)
 	}
+
 	return variables
 }
 
@@ -116,14 +140,8 @@ func New(ctx context.Context, variableMap map[string]any, dir string, parallelis
 	if err = tf.Init(ctx, tfexec.Upgrade(true)); err != nil {
 		return nil, fmt.Errorf("error: tofu Init: %w", err)
 	}
-	fmt.Printf("PRE PARSED TOFU VARIABLES:\n%v", variableMap)
 
 	variables := appendVariables(nil, variableMap)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("error: failed to parse variables: %w", err)
-	// }
-
-	fmt.Printf("POST PARSED TOFU VARIABLES:\n%v", variableMap)
 
 	return &Tofu{
 		tf:        tf,
