@@ -5,19 +5,18 @@
  - OpenTofu is used to deploy infrastructure. That includes all is necessary in order to launch Kubernetes clusters - modules should conclude producing a kubeconfig file and context
    - `tf` files in `tofu/main/` specify whole testing environments
    - `tf` files in `tofu/modules/` implement components (platform-specific or platform-agnostic)
- - the `bin/setup.mjs ` node.js script runs OpenTofu to create Kubernetes clusters, then Helm/kubectl to deploy and configure software under test (Rancher and/or any other component). It is designed to be idempotent
- - the `bin/run_tests.mjs ` node.js script runs `k6` scripts in `k6/`, generating load. It is designed to be idempotent
+ - the `dartboard` Golang program runs OpenTofu to create Kubernetes clusters, then Helm/kubectl to deploy and configure software under test (Rancher and/or any other component). It is designed to be idempotent
  - a Mimir-backed Grafana instance in an own cluster displays results and acts as long-term result storage
 
 ## Porting OpenTofu files to new platforms
 
  - create a new `tofu/main` subdirectory copying over `tf` files from `aws`
- - edit `inputs.tf` to include any platform-specific information
+ - edit `variables.tf` to include any platform-specific information
  - edit `main.tf` to use platform-specific providers, add modules as appropriate
    - platform-specific modules are prefixed with the platform name (eg. `tofu/modules/aws_*`)
    - platform-agnostic modules are not prefixed
    - platform-specific wrappers are normally created for platform-agnostic modules (eg. `aws_k3s` wraps `k3s`)
- - adapt `outputs.tf` - please note the exact structure is expected by scripts in `bin/` - change with care
+ - adapt `outputs.tf` - please note the exact structure is expected by `dartboard` - change with care
 
 It is assumed all created clusters will be able to reach one another with the same domain names, from the same network. That network might not be the same network of the machine running OpenTofu.
 
@@ -27,15 +26,6 @@ Created clusters may or may not be directly reachable from the machine running O
  - values may coincide.
 
 `node_access_commands` are an optional convenience mechanism to allow a user to SSH into a particular node directly.
-
-A particular deployment platform can be selected using `TOFU_WORK_DIR` environment variable, eg.
-
-```shell
-export TOFU_WORK_DIR=./tofu/main/aws
-./bin/teardown.mjs && ./bin/setup.mjs && ./bin/run_tests.mjs
-```
-
-See `tofu/main` subdirectories for the currently available platforms.
 
 ## Hacks and workarounds
 
