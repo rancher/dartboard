@@ -14,7 +14,7 @@ module "network" {
 module "k3s_cluster" {
   count        = length(local.k3s_clusters)
   source       = "../../modules/aws_k3s"
-  project_name = local.project_name
+  project_name = var.project_name
   name         = local.k3s_clusters[count.index].name
   server_count = local.k3s_clusters[count.index].server_count
   agent_count  = local.k3s_clusters[count.index].agent_count
@@ -43,7 +43,7 @@ module "k3s_cluster" {
 module "rke2_cluster" {
   count        = length(local.rke2_clusters)
   source       = "../../modules/aws_rke2"
-  project_name = local.project_name
+  project_name = var.project_name
   name         = local.rke2_clusters[count.index].name
   server_count = local.rke2_clusters[count.index].server_count
   agent_count  = local.rke2_clusters[count.index].agent_count
