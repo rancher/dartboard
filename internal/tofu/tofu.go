@@ -23,6 +23,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
@@ -55,7 +57,48 @@ type Tofu struct {
 	variables []*tfexec.VarOption
 }
 
-func New(ctx context.Context, variableMap map[string]string, dir string, parallelism int, verbose bool) (*Tofu, error) {
+// HACK: this converts a golang map[string]interface{} into HCL format
+func convertMapToHCL(m map[string]interface{}) string {
+	var attributes []string
+	for key, value := range m {
+		attributes = append(attributes, fmt.Sprintf(`%s=%s`, key, convertValueToHCL(value)))
+	}
+	sort.Strings(attributes)
+	return fmt.Sprintf("{%s}", strings.Join(attributes, ","))
+}
+
+// HACK: converts golang types into HCL format
+func convertValueToHCL(value interface{}) string {
+	switch v := value.(type) {
+	case string:
+		escapedValue := strings.ReplaceAll(v, `"`, `\"`)
+		return fmt.Sprintf(`"%s"`, escapedValue)
+	case map[string]interface{}:
+		return convertMapToHCL(v)
+	case []interface{}:
+		var elements []string
+		for _, mapVal := range v {
+			elements = append(elements, convertValueToHCL(mapVal))
+		}
+		sort.Strings(elements)
+		return fmt.Sprintf("[%s]", strings.Join(elements, ","))
+	default:
+		return fmt.Sprintf(`%v`, v)
+	}
+}
+
+func appendVariables(variables []*tfexec.VarOption, variableMap map[string]any) []*tfexec.VarOption {
+	var assignment string
+	for k, v := range variableMap {
+		fmt.Printf("\nKEY: %s\nVALUE: %T\n", k, v)
+		assignment = fmt.Sprintf("%s=%s", k, convertValueToHCL(v))
+		variables = append(variables, tfexec.Var(assignment))
+		fmt.Printf("\n\nVARIABLE:\n%s\n\n", assignment)
+	}
+	return variables
+}
+
+func New(ctx context.Context, variableMap map[string]any, dir string, parallelism int, verbose bool) (*Tofu, error) {
 	tfBinary, err := exec.LookPath("tofu")
 	if err != nil {
 		return nil, fmt.Errorf("error: tofu not found: %w", err)
@@ -73,11 +116,14 @@ func New(ctx context.Context, variableMap map[string]string, dir string, paralle
 	if err = tf.Init(ctx, tfexec.Upgrade(true)); err != nil {
 		return nil, fmt.Errorf("error: tofu Init: %w", err)
 	}
+	fmt.Printf("PRE PARSED TOFU VARIABLES:\n%v", variableMap)
 
-	var variables []*tfexec.VarOption
-	for k, v := range variableMap {
-		variables = append(variables, tfexec.Var(fmt.Sprintf("%v=%v", k, v)))
-	}
+	variables := appendVariables(nil, variableMap)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error: failed to parse variables: %w", err)
+	// }
+
+	fmt.Printf("POST PARSED TOFU VARIABLES:\n%v", variableMap)
 
 	return &Tofu{
 		tf:        tf,
