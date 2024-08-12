@@ -1,10 +1,38 @@
-# Scalability tests
+# Dartboard
 
-This repo collects code, instructions and results for scalability tests on the Rancher product family.
+A tool to run scalability and performance tests on the Rancher product family.
+
+Supports deploying to AWS, Azure, OVH OpenStack and bare metal servers (via SSH) for infrastructure; k3s, RKE2, k3d and AKS as Kubernetes distributions; any recent version of Rancher.
 
 ## Usage
 
-See the [docs](docs) directory for a list of tests and their usage specifics.
+ - create a Definition of Alacritous and Repeatable Test (or **dart**) YAML file by adapting one of the examples in [darts](./darts)
+ - `dartboard deploy --dart=./darts/my_dart.yaml` will:
+   - deploy (virtual) infrastructure via [OpenTofu](https://opentofu.org/): the cluster Rancher runs on ("upstream"), clusters managed by Rancher ("downstream") and a special "tester" cluster where load generation and monitoring software runs
+   - deploy and configure Rancher
+   - execute load tests via [k6](https://k6.io/)
+ - `dartboard destroy` destroys all infrastructure
+
+Special cases:
+ - `dartboard apply` only runs `tofu apply` without configuring any software
+ - `dartboard load` only runs k6 load tests assuming Rancher has already been deployed
+ - `dartboard get-access` returns details to access the created clusters and applications
+ - `dartboard redeploy` runs `destroy` and then `deploy`
+
+## Installation
+
+Requirements:
+ - [OpenTofu](https://opentofu.org/)
+ - kubectl
+ - [k6](https://k6.io/)
+ - [k3d](https://k3d.io) (only needed for k3d)
+ - [Docker](https://www.docker.com/) (only for k3d)
+
+Clone the repository and run `make`.
+
+## Test history
+
+See the [docs](docs) directory for a list of tests that were run with previous versions of this code and their results.
 
 ## Common Troubleshooting
 
