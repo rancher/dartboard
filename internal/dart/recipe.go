@@ -1,4 +1,4 @@
-package recipe
+package dart
 
 import (
 	"fmt"
@@ -10,7 +10,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Recipe struct {
+// Dart is a "recipe" that encodes all parameters for a test run
+type Dart struct {
 	TofuMainDirectory string            `yaml:"tofu_main_directory"`
 	TofuParallelism   int               `yaml:"tofu_parallelism"`
 	TofuVariables     map[string]string `yaml:"tofu_variables"`
@@ -39,7 +40,7 @@ type TestVariables struct {
 	TestProjects   int `yaml:"test_projects"`
 }
 
-var defaultRecipe = Recipe{
+var defaultDart = Dart{
 	TofuParallelism: 10,
 	TofuVariables:   map[string]string{},
 	ChartVariables: ChartVariables{
@@ -53,15 +54,15 @@ var defaultRecipe = Recipe{
 	},
 }
 
-func Parse(path string) (*Recipe, error) {
+func Parse(path string) (*Dart, error) {
 	bytes, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read recipe file: %w", err)
+		return nil, fmt.Errorf("failed to read dart file: %w", err)
 	}
-	result := defaultRecipe
+	result := defaultDart
 	err = yaml.Unmarshal(bytes, &result)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal recipe file: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal dart file: %w", err)
 	}
 
 	result.ChartVariables.RancherVersion = normalizeVersion(result.ChartVariables.RancherVersion)
