@@ -7,6 +7,4 @@ tofu/main/*/terraform.tfstate
 tofu/main/*/terraform.tfstate.*
 tofu/main/*/config
 
-bin/out.json
-bin/results.csv
-bin/scli
+dartboard
