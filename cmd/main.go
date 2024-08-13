@@ -309,7 +309,7 @@ func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
 		return nil, nil, err
 	}
 	fmt.Printf("Using dart: %s\n", dartPath)
-	fmt.Printf("Terraform main directory: %s\n", d.TofuMainDirectory)
+	fmt.Printf("OpenTofu main directory: %s\n", d.TofuMainDirectory)
 
 	tf, err := tofu.New(cli.Context, d.TofuVariables, d.TofuMainDirectory, d.TofuParallelism, true)
 	if err != nil {
