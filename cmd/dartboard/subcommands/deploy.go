@@ -14,24 +14,106 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package subcommands
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/moio/scalability-tests/internal/dart"
 	"github.com/moio/scalability-tests/internal/helm"
+	"github.com/moio/scalability-tests/internal/kubectl"
 	"github.com/moio/scalability-tests/internal/tofu"
+	"github.com/urfave/cli/v2"
 )
 
 type chart struct {
 	name      string
 	namespace string
 	path      string
+}
+
+func Deploy(cli *cli.Context) error {
+	// Tofu
+	tf, r, err := prepare(cli)
+	if err != nil {
+		return err
+	}
+
+	if !cli.Bool(ArgSkipApply) {
+		if err = tofuVersionPrint(cli.Context, tf); err != nil {
+			return err
+		}
+		if err = tf.Apply(cli.Context); err != nil {
+			return err
+		}
+	}
+
+	clusters, err := tf.OutputClusters(cli.Context)
+	if err != nil {
+		return err
+	}
+
+	// Helm charts
+	tester := clusters["tester"]
+
+	if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, ""); err != nil {
+		return err
+	}
+	if err = chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, ""); err != nil {
+		return err
+	}
+	if err = chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, ""); err != nil {
+		return err
+	}
+	if err = chartInstallGrafana(r, &tester); err != nil {
+		return err
+	}
+
+	upstream := clusters["upstream"]
+	rancherVersion := r.ChartVariables.RancherVersion
+	rancherImageTag := "v" + rancherVersion
+	if r.ChartVariables.RancherImageTagOverride != "" {
+		rancherImageTag = r.ChartVariables.RancherImageTagOverride
+		err = importImageIntoK3d(tf, "rancher/rancher:"+rancherImageTag, upstream)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err = chartInstallCertManager(r, &upstream); err != nil {
+		return err
+	}
+	if err = chartInstallRancher(r, rancherImageTag, &upstream); err != nil {
+		return err
+	}
+	if err = chartInstallRancherIngress(&upstream); err != nil {
+		return err
+	}
+	if err = chartInstallRancherMonitoring(r, &upstream, tf.IsK3d()); err != nil {
+		return err
+	}
+	if err = chartInstallCgroupsExporter(&upstream); err != nil {
+		return err
+	}
+
+	// Import downstream clusters
+	// Wait Rancher Deployment to be complete, or importing downstream clusters may fail
+	if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
+		return err
+	}
+	if err = importDownstreamClusters(r, rancherImageTag, tf, clusters); err != nil {
+		return err
+	}
+
+	return GetAccess(cli)
 }
 
 func chartInstall(kubeConf string, chart chart, jsonVals string) error {
@@ -388,4 +470,186 @@ func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname
 		panic(err)
 	}
 	return string(result)
+}
+
+func importDownstreamClusters(r *dart.Dart, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster) error {
+
+	log.Print("Import downstream clusters")
+
+	if err := importDownstreamClustersRancherSetup(r, clusters); err != nil {
+		return err
+	}
+
+	buffer := 10
+	clustersChan := make(chan string, buffer)
+	errorChan := make(chan error)
+	clustersCount := 0
+
+	for clusterName := range clusters {
+		if !strings.HasPrefix(clusterName, "downstream") {
+			continue
+		}
+		clustersCount++
+		go importDownstreamClusterDo(r, rancherImageTag, tf, clusters, clusterName, clustersChan, errorChan)
+	}
+
+	for {
+		if clustersCount == 0 {
+			return nil
+		}
+		select {
+		case err := <-errorChan:
+			return err
+		case completed := <-clustersChan:
+			log.Printf("Cluster %q imported successfully.\n", completed)
+			clustersCount--
+		}
+	}
+}
+
+func importDownstreamClusterDo(r *dart.Dart, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster, clusterName string, ch chan<- string, errCh chan<- error) {
+	log.Print("Import cluster " + clusterName)
+	yamlFile, err := os.CreateTemp("", "scli-"+clusterName+"-*.yaml")
+	if err != nil {
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+	defer os.Remove(yamlFile.Name())
+	defer yamlFile.Close()
+
+	clusterId, err := importClustersDownstreamGetYAML(clusters, clusterName, yamlFile)
+	if err != nil {
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+
+	downstream, ok := clusters[clusterName]
+	if !ok {
+		err := fmt.Errorf("error: cannot find access data for cluster %q", clusterName)
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+	if r.ChartVariables.RancherImageTagOverride != "" {
+		err = importImageIntoK3d(tf, "rancher/rancher-agent:"+rancherImageTag, downstream)
+		if err != nil {
+			errCh <- fmt.Errorf("%s downstream k3d image import failed: %w", clusterName, err)
+			return
+		}
+	}
+
+	if err := kubectl.Apply(downstream.Kubeconfig, yamlFile.Name()); err != nil {
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+
+	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
+		"clusters.management.cattle.io", clusterId, "", 10); err != nil {
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
+		"cluster.fleet.cattle.io", clusterName, "fleet-default", 10); err != nil {
+		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
+		return
+	}
+	if r.ChartVariables.DownstreamRancherMonitoring {
+		if err := chartInstallRancherMonitoring(r, &downstream, true); err != nil {
+			errCh <- fmt.Errorf("downstream monitoring installation on cluster %s failed: %w", clusterName, err)
+			return
+		}
+	}
+	ch <- clusterName
+}
+
+func importDownstreamClustersRancherSetup(r *dart.Dart, clusters map[string]tofu.Cluster) error {
+	cliTester := kubectl.Client{}
+	tester := clusters["tester"]
+	upstream := clusters["upstream"]
+	upstreamAdd, err := getAppAddressFor(upstream)
+	if err != nil {
+		return err
+	}
+
+	if err = cliTester.Init(tester.Kubeconfig); err != nil {
+		return err
+	}
+
+	downstreamClusters := []string{}
+	for clusterName := range clusters {
+		if strings.HasPrefix(clusterName, "downstream") {
+			downstreamClusters = append(downstreamClusters, clusterName)
+		}
+	}
+	if len(downstreamClusters) == 0 {
+		return nil
+	}
+	importedClusterNames := strings.Join(downstreamClusters, ",")
+
+	envVars := map[string]string{
+		"BASE_URL":               upstreamAdd.Public.HTTPSURL,
+		"BOOTSTRAP_PASSWORD":     "admin",
+		"PASSWORD":               r.ChartVariables.AdminPassword,
+		"IMPORTED_CLUSTER_NAMES": importedClusterNames,
+	}
+
+	if err = cliTester.K6run("rancher-setup", "k6/rancher_setup.js", envVars, nil, true, false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func importClustersDownstreamGetYAML(clusters map[string]tofu.Cluster, name string, yamlFile *os.File) (clusterId string, err error) {
+	var status map[string]interface{}
+
+	upstream := clusters["upstream"]
+	upstreamAdd, err := getAppAddressFor(upstream)
+	if err != nil {
+		return
+	}
+
+	cliUpstream := kubectl.Client{}
+	if err = cliUpstream.Init(upstream.Kubeconfig); err != nil {
+		return
+	}
+	namespace := "fleet-default"
+	resource := "clusters"
+	if status, err = cliUpstream.GetStatus("provisioning.cattle.io", "v1", resource, name, namespace); err != nil {
+		return
+	}
+	clusterId, ok := status["clusterName"].(string)
+	if !ok {
+		err = fmt.Errorf("error accessing %s/%s %s: no valid 'clusterName' in 'Status'", namespace, name, resource)
+		return
+	}
+
+	name = "default-token"
+	namespace = clusterId
+	resource = "clusterregistrationtokens"
+	if status, err = cliUpstream.GetStatus("management.cattle.io", "v3", resource, name, namespace); err != nil {
+		return
+	}
+	token, ok := status["token"].(string)
+	if !ok {
+		err = fmt.Errorf("error accessing %s/%s %s: no valid 'token' in 'Status'", namespace, name, resource)
+		return
+	}
+
+	url := fmt.Sprintf("%s/v3/import/%s_%s.yaml", upstreamAdd.Local.HTTPSURL, token, clusterId)
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	client := &http.Client{Transport: tr}
+	resp, err := client.Get(url)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	_, err = io.Copy(yamlFile, resp.Body)
+	if err != nil {
+		return
+	}
+	if err = yamlFile.Sync(); err != nil {
+		return
+	}
+
+	return
 }
