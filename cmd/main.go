@@ -303,19 +303,19 @@ func cmdRedeploy(c *cli.Context) error {
 }
 
 func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
-	rp := cli.String(argDart)
-	r, err := dart.Parse(rp)
+	dartPath := cli.String(argDart)
+	d, err := dart.Parse(dartPath)
 	if err != nil {
 		return nil, nil, err
 	}
-	fmt.Printf("Using dart: %s\n", rp)
-	fmt.Printf("Terraform main directory: %s\n", r.TofuMainDirectory)
+	fmt.Printf("Using dart: %s\n", dartPath)
+	fmt.Printf("Terraform main directory: %s\n", d.TofuMainDirectory)
 
-	tf, err := tofu.New(cli.Context, r.TofuVariables, r.TofuMainDirectory, r.TofuParallelism, true)
+	tf, err := tofu.New(cli.Context, d.TofuVariables, d.TofuMainDirectory, d.TofuParallelism, true)
 	if err != nil {
 		return nil, nil, err
 	}
-	return tf, r, nil
+	return tf, d, nil
 }
 
 func printAccessDetails(r *dart.Dart, name string, cluster tofu.Cluster, rancherURL string) {
