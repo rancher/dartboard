@@ -14,13 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package subcommands
 
 import (
+	"context"
 	"fmt"
+	"log"
 
+	"github.com/moio/scalability-tests/internal/docker"
+	"github.com/moio/scalability-tests/internal/k3d"
+	"github.com/urfave/cli/v2"
+
+	"github.com/moio/scalability-tests/internal/dart"
 	"github.com/moio/scalability-tests/internal/kubectl"
 	"github.com/moio/scalability-tests/internal/tofu"
+)
+
+const (
+	ArgDart      = "dart"
+	ArgSkipApply = "skip-apply"
 )
 
 type clusterAddress struct {
@@ -32,6 +44,52 @@ type clusterAddress struct {
 type clusterAddresses struct {
 	Local  clusterAddress
 	Public clusterAddress
+}
+
+// prepare prepares tofu for execution and parses a dart file from the command line context
+func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
+	dartPath := cli.String(ArgDart)
+	d, err := dart.Parse(dartPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	fmt.Printf("Using dart: %s\n", dartPath)
+	fmt.Printf("OpenTofu main directory: %s\n", d.TofuMainDirectory)
+
+	tf, err := tofu.New(cli.Context, d.TofuVariables, d.TofuMainDirectory, d.TofuParallelism, true)
+	if err != nil {
+		return nil, nil, err
+	}
+	return tf, d, nil
+}
+
+func tofuVersionPrint(ctx context.Context, tofu *tofu.Tofu) error {
+	ver, providers, err := tofu.Version(ctx)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("OpenTofu version: %s", ver)
+	log.Printf("provider list:")
+	for prov, ver := range providers {
+		log.Printf("- %s (%s)", prov, ver)
+	}
+	return nil
+}
+
+// printAccessDetails prints to console addresses and kubeconfig file paths of a cluster for user convenience
+func printAccessDetails(r *dart.Dart, name string, cluster tofu.Cluster, rancherURL string) {
+	fmt.Printf("*** %s CLUSTER\n", name)
+	if rancherURL != "" {
+		fmt.Printf("    Rancher UI: %s (admin/%s)\n", rancherURL, r.ChartVariables.AdminPassword)
+	}
+	fmt.Println("    Kubernetes API:")
+	fmt.Printf("export KUBECONFIG=%q\n", cluster.Kubeconfig)
+	fmt.Printf("kubectl config use-context %q\n", cluster.Context)
+	for node, command := range cluster.NodeAccessCommands {
+		fmt.Printf("    Node %s: %q\n", node, command)
+	}
+	fmt.Println()
 }
 
 // getAppAddressFor returns local cluster address data, public cluster address data and an error
@@ -100,4 +158,24 @@ func getAppAddressFor(cluster tofu.Cluster) (clusterAddresses, error) {
 	addresses.Public.HTTPSURL = fmt.Sprintf("https://%s:%d", clusterNetworkName, clusterNetworkHTTPSPort)
 
 	return addresses, nil
+}
+
+// importImageIntoK3d uses k3d import to import the specified image in the specified cluster, if such image
+// is known by the docker installation. This is for testing custom Rancher images (built via make quick) locally
+// in k3d
+func importImageIntoK3d(tf *tofu.Tofu, image string, cluster tofu.Cluster) error {
+	if tf.IsK3d() {
+		images, err := docker.Images(image)
+		if err != nil {
+			return err
+		}
+
+		if len(images) > 0 {
+			err = k3d.ImageImport(cluster, images[0])
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

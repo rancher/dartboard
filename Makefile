@@ -3,7 +3,7 @@ LDFLAGS := -w -s
 
 .PHONY: build
 build:
-	CGO_ENABLED=0 go build -ldflags '$(LDFLAGS)' -o ${BIN_NAME} cmd/*.go
+	CGO_ENABLED=0 go build -ldflags '$(LDFLAGS)' -o ${BIN_NAME} cmd/dartboard/*.go
 
 .PHONY: clean
 clean:
