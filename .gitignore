@@ -7,4 +7,4 @@ tofu/main/*/terraform.tfstate
 tofu/main/*/terraform.tfstate.*
 tofu/main/*/config
 
-dartboard
+./dartboard
