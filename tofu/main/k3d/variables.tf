@@ -28,6 +28,11 @@ variable "upstream_reserve_node_for_monitoring" {
   default = false
 }
 
+variable "upstream_enable_metrics" {
+  description = "Metrics are disabled by default due to https://github.com/kubernetes/kubernetes/issues/104459"
+  default     = false
+}
+
 
 # Downstream cluster specifics
 
