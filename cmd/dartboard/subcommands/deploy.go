@@ -97,16 +97,15 @@ func Deploy(cli *cli.Context) error {
 	if err = chartInstallRancherIngress(&upstream); err != nil {
 		return err
 	}
-	if err = chartInstallRancherMonitoring(r, &upstream, tf.IsK3d()); err != nil {
-		return err
-	}
 	if err = chartInstallCgroupsExporter(&upstream); err != nil {
 		return err
 	}
 
-	// Import downstream clusters
-	// Wait Rancher Deployment to be complete, or importing downstream clusters may fail
+	// Wait Rancher Deployment to be complete, or subsequent steps may fail
 	if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
+		return err
+	}
+	if err = chartInstallRancherMonitoring(r, &upstream, tf.IsK3d()); err != nil {
 		return err
 	}
 	if err = importDownstreamClusters(r, rancherImageTag, tf, clusters); err != nil {
