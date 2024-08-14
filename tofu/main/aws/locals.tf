@@ -1,7 +1,7 @@
 locals {
   downstream_clusters = [
-    for i, config in var.downstream_clusters : [
-      for c in range(config.quantity) : merge(config,{name_prefix = "${config.name_prefix}${i}-${c}"})
+    for i, template in var.downstream_cluster_templates : [
+      for j in range(template.cluster_count) : merge(template,{name_prefix = "${template.name_prefix}${i}-${j}"})
     ]]
   all_clusters = flatten(concat([var.upstream_cluster],
     local.downstream_clusters,
