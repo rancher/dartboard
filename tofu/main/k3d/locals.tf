@@ -5,6 +5,7 @@ locals {
     agent_count                 = var.upstream_agent_count
     distro_version              = var.distro_version
     reserve_node_for_monitoring = var.upstream_reserve_node_for_monitoring
+    enable_metrics              = var.upstream_enable_metrics
     }],
     [for i in range(var.downstream_cluster_count) :
       {
@@ -13,6 +14,7 @@ locals {
         agent_count                 = var.downstream_agent_count
         distro_version              = var.distro_version
         reserve_node_for_monitoring = false
+        enable_metrics              = false
     }],
     var.deploy_tester_cluster ? [{
       name                        = "tester"
@@ -20,6 +22,7 @@ locals {
       agent_count                 = var.tester_agent_count
       distro_version              = var.distro_version
       reserve_node_for_monitoring = false
+      enable_metrics              = false
     }] : []
   )
 }

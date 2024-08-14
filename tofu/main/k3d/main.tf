@@ -25,4 +25,5 @@ module "cluster" {
   network_name          = module.network.name
   pull_proxy_registries = module.network.pull_proxy_registries
   enable_audit_log      = local.all_clusters[count.index].name == "upstream"
+  enable_metrics        = local.all_clusters[count.index].enable_metrics
 }

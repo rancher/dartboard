@@ -11,6 +11,7 @@ tofu_variables:
 #  upstream_server_count: 1
 #  upstream_agent_count: 0
 #  upstream_reserve_node_for_monitoring: false
+#  upstream_enable_metrics: false
 #  downstream_server_count: 1
 #  downstream_agent_count: 0
 #  deploy_tester_cluster: true
