@@ -126,6 +126,41 @@ export function firstLogin(baseUrl, cookies, bootstrapPassword, password) {
     })
     const settings = JSON.parse(response.body)
 
+    const firstLoginSetting = settings.data.filter(d => d.id === "first-login")[0]
+    if (firstLoginSetting === undefined) {
+        response = http.post(
+            `${baseUrl}/v1/management.cattle.io.settings`,
+            JSON.stringify({"type":"management.cattle.io.setting","metadata":{"name":"first-login"},"value":"false"}),
+            {
+                headers: {
+                    accept: 'application/json',
+                    'content-type': 'application/json',
+                },
+                cookies: {cookies},
+            }
+        )
+        check(response, {
+            'First login setting can be set': (r) => r.status === 201,
+        })
+    }
+    else {
+        firstLoginSetting["value"] = "false"
+        response = http.put(
+            `${baseUrl}/v1/management.cattle.io.settings/first-login`,
+            JSON.stringify(firstLoginSetting),
+            {
+                headers: {
+                    accept: 'application/json',
+                    'content-type': 'application/json',
+                },
+                cookies: {cookies},
+            }
+        )
+        check(response, {
+            'First login setting can be changed': (r) => r.status === 200,
+        })
+    }
+
     const eulaSetting = settings.data.filter(d => d.id === "eula-agreed")[0]
     if (eulaSetting === undefined) {
         response = http.post(
@@ -143,26 +178,58 @@ export function firstLogin(baseUrl, cookies, bootstrapPassword, password) {
             'EULA setting can be set': (r) => r.status === 201,
         })
     }
+    else {
+        eulaSetting["value"] = timestamp()
+        response = http.put(
+            `${baseUrl}/v1/management.cattle.io.settings/eula-agreed`,
+            JSON.stringify(eulaSetting),
+            {
+                headers: {
+                    accept: 'application/json',
+                    'content-type': 'application/json',
+                },
+                cookies: {cookies},
+            }
+        )
+        check(response, {
+            'EULA setting can be changed': (r) => r.status === 200,
+        })
+    }
 
     const telemetrySetting = settings.data.find(d => d.id === "telemetry-opt")
     if (telemetrySetting === undefined) {
-        fail("telemetry setting could not be found")
+        response = http.post(
+            `${baseUrl}/v1/management.cattle.io.settings/telemetry-opt`,
+            JSON.stringify({"type":"management.cattle.io.setting","metadata":{"name":"telemetry-opt", "value": "out"}}),
+            {
+                headers: {
+                    accept: 'application/json',
+                    'content-type': 'application/json',
+                },
+                cookies: {cookies},
+            }
+        )
+        check(response, {
+            'telemetry setting can be set': (r) => r.status === 201,
+        })
     }
-    telemetrySetting["value"] = "out"
-    response = http.put(
-        `${baseUrl}/v1/management.cattle.io.settings/telemetry-opt`,
-        JSON.stringify(telemetrySetting),
-        {
-            headers: {
-                accept: 'application/json',
-                'content-type': 'application/json',
-            },
-            cookies: {cookies},
-        }
-    )
-    check(response, {
-        'telemetry setting can be set': (r) => r.status === 200,
-    })
+    else {
+        telemetrySetting["value"] = "out"
+        response = http.put(
+            `${baseUrl}/v1/management.cattle.io.settings/telemetry-opt`,
+            JSON.stringify(telemetrySetting),
+            {
+                headers: {
+                    accept: 'application/json',
+                    'content-type': 'application/json',
+                },
+                cookies: {cookies},
+            }
+        )
+        check(response, {
+            'telemetry setting can be changed': (r) => r.status === 200,
+        })
+    }
 }
 
 export function createImportedCluster(baseUrl, cookies, name) {
