@@ -1,5 +1,4 @@
 # Frequently changed variables
-
 variable "region" {
   description = "AWS region for this deployment"
   default     = "us-east-1"
@@ -77,12 +76,10 @@ variable "upstream_cluster" {
   }
 }
 
-
 # Downstream cluster specifics
-
-variable "downstream_clusters" {
+variable "downstream_cluster_templates" {
   type = list(object({
-    quantity       = number // Number of downstream clusters that should be created using this configuration
+    cluster_count       = number // Number of downstream clusters that should be created using this configuration
     name_prefix    = string // Prefix to append to objects created for this cluster
     server_count   = number // Number of server nodes in the downstream cluster
     agent_count    = number // Number of agent nodes in the downstream cluster
@@ -98,7 +95,7 @@ variable "downstream_clusters" {
     ami           = string // AMI for downstream cluster nodes
   }))
   default = [{
-    quantity       = 0 // defaults to 0 to keep in-line with previous behavior
+    cluster_count       = 0 // defaults to 0 to keep in-line with previous behavior
     name_prefix    = "downstream"
     server_count   = 1
     agent_count    = 0
@@ -117,7 +114,6 @@ variable "downstream_clusters" {
 }
 
 # Tester cluster specifics
-
 variable "tester_cluster" {
   type = object({
     name_prefix    = string // Prefix to append to objects created for this cluster
@@ -158,7 +154,6 @@ variable "deploy_tester_cluster" {
 }
 
 # "Multi-tenancy" variables
-
 variable "project_name" {
   description = "Name of this project, used as prefix for resources it creates"
   default     = "st"
