@@ -579,9 +579,6 @@ func importDownstreamClustersRancherSetup(r *dart.Dart, clusters map[string]tofu
 			downstreamClusters = append(downstreamClusters, clusterName)
 		}
 	}
-	if len(downstreamClusters) == 0 {
-		return nil
-	}
 	importedClusterNames := strings.Join(downstreamClusters, ",")
 
 	envVars := map[string]string{
