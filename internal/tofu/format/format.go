@@ -25,50 +25,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"reflect"
 	"strconv"
 	"strings"
 )
-
-// Try to convert the given value to a generic slice. Return the slice and true if the underlying value itself was a
-// slice and an empty slice and false if it wasn't.
-func toSliceOfAny(value any) ([]interface{}, bool) {
-	reflectValue := reflect.ValueOf(value)
-	if reflectValue.Kind() != reflect.Slice {
-		return []interface{}{}, false
-	}
-
-	genericSlice := make([]interface{}, reflectValue.Len())
-
-	for i := 0; i < reflectValue.Len(); i++ {
-		genericSlice[i] = reflectValue.Index(i).Interface()
-	}
-
-	return genericSlice, true
-}
-
-// Try to convert the given value to a generic map. Return the map and true if the underlying value itself was a
-// map and an empty map and false if it wasn't
-func toMapOfAny(value any) (map[string]interface{}, bool) {
-	reflectValue := reflect.ValueOf(value)
-	if reflectValue.Kind() != reflect.Map {
-		return map[string]interface{}{}, false
-	}
-
-	reflectType := reflect.TypeOf(value)
-	if reflectType.Key().Kind() != reflect.String {
-		return map[string]interface{}{}, false
-	}
-
-	genericMap := make(map[string]interface{}, reflectValue.Len())
-
-	mapKeys := reflectValue.MapKeys()
-	for _, key := range mapKeys {
-		genericMap[key.String()] = reflectValue.MapIndex(key).Interface()
-	}
-
-	return genericMap, true
-}
 
 // Convert a slice to an HCL string. See ConvertValueToHCL for details.
 func sliceToHclString(slice []any) string {
@@ -140,15 +99,12 @@ func primitiveToHclString(value interface{}, isNested bool) (string, error) {
 // ints, booleans, lists, and maps. Everything else is forced into a string using Sprintf. Hopefully, this approach is
 // good enough for the type of variables we deal with in Dartboard.
 func ConvertValueToHCL(value any, isNested bool) string {
-	// Ideally, we'd use a type switch here to identify slices and maps, but we can't do that, because Go
-	// type switches only match concrete types. So we could match []interface{}, but if
-	// a user passes in []string{}, that would NOT match (the same logic applies to maps). Therefore, we have to
-	// use reflection and manually convert into []interface{} and map[string]interface{}.
+	// We use type assertions to manually convert into []interface{} and map[string]interface{} if and when needed
 	var v string
 	var err error
-	if slice, isSlice := toSliceOfAny(value); isSlice {
+	if slice, isSlice := value.([]any); isSlice {
 		v = sliceToHclString(slice)
-	} else if m, isMap := toMapOfAny(value); isMap {
+	} else if m, isMap := value.(map[string]any); isMap {
 		v = mapToHclString(m)
 	} else {
 		v, err = primitiveToHclString(value, isNested)
