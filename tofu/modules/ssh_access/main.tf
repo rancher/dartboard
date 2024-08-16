@@ -18,6 +18,7 @@ resource "local_file" "open_tunnels" {
   count = length(var.ssh_tunnels) > 0 ? 1 : 0
   content = templatefile("${path.module}/open-tunnels-to.sh", {
     ssh_bastion_host     = var.ssh_bastion_host
+    ssh_bastion_user     = var.ssh_bastion_user
     ssh_tunnels          = var.ssh_tunnels
     private_name         = var.private_name
     public_name          = var.public_name

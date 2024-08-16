@@ -8,9 +8,11 @@ module "server_nodes" {
   name                  = "${var.name}-server-${count.index}"
   ssh_key_name          = var.ssh_key_name
   ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
   subnet_id             = var.subnet_id
   vpc_security_group_id = var.vpc_security_group_id
   ssh_bastion_host      = var.ssh_bastion_host
+  ssh_bastion_user      = var.ssh_bastion_user
   ssh_tunnels = count.index == 0 ? [
     [var.local_kubernetes_api_port, 6443],
     [var.tunnel_app_http_port, 80],
@@ -29,9 +31,11 @@ module "agent_nodes" {
   name                        = "${var.name}-agent-${count.index}"
   ssh_key_name                = var.ssh_key_name
   ssh_private_key_path        = var.ssh_private_key_path
+  ssh_user                    = var.ssh_user
   subnet_id                   = var.subnet_id
   vpc_security_group_id       = var.vpc_security_group_id
   ssh_bastion_host            = var.ssh_bastion_host
+  ssh_bastion_user            = var.ssh_bastion_user
   host_configuration_commands = var.host_configuration_commands
 }
 
@@ -58,7 +62,9 @@ module "k3s" {
   sans         = compact(concat(var.sans, var.server_count > 0 ? [module.server_nodes[0].private_name, module.server_nodes[0].public_name] : []))
 
   ssh_private_key_path      = var.ssh_private_key_path
+  ssh_user                  = var.ssh_user
   ssh_bastion_host          = var.ssh_bastion_host
+  ssh_bastion_user          = var.ssh_bastion_user
   local_kubernetes_api_port = var.local_kubernetes_api_port
 
   distro_version      = var.distro_version

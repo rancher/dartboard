@@ -15,7 +15,7 @@ variable "availability_zone" {
 
 variable "ami" {
   description = "AMI ID for all nodes in this cluster"
-  default     = "ami-01b5ec3ed8678d8b7" // Amazon Linux 2 LTS Arm64 Kernel 5.10 AMI 2.0.20221103.3 arm64 HVM gp2
+  default     = "ami-0728ec0041b1d38ac" // Amazon Linux 2 LTS Arm64 Kernel 5.10 AMI 2.0.20221103.3 arm64 HVM gp2
 }
 
 variable "instance_type" {
