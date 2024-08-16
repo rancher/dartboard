@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
+	"github.com/moio/scalability-tests/internal/tofu/format"
 )
 
 type ClusterAddress struct {
@@ -55,7 +56,7 @@ type Tofu struct {
 	variables []*tfexec.VarOption
 }
 
-func New(ctx context.Context, variableMap map[string]string, dir string, parallelism int, verbose bool) (*Tofu, error) {
+func New(ctx context.Context, variableMap map[string]interface{}, dir string, parallelism int, verbose bool) (*Tofu, error) {
 	tfBinary, err := exec.LookPath("tofu")
 	if err != nil {
 		return nil, fmt.Errorf("error: tofu not found: %w", err)
@@ -76,7 +77,8 @@ func New(ctx context.Context, variableMap map[string]string, dir string, paralle
 
 	var variables []*tfexec.VarOption
 	for k, v := range variableMap {
-		variables = append(variables, tfexec.Var(fmt.Sprintf("%v=%v", k, v)))
+		assignment := fmt.Sprintf("%s=%s", k, format.ConvertValueToHCL(v, false))
+		variables = append(variables, tfexec.Var(assignment))
 	}
 
 	return &Tofu{
