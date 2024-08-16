@@ -56,15 +56,6 @@ type Tofu struct {
 	variables []*tfexec.VarOption
 }
 
-func appendVariables(variables []*tfexec.VarOption, variableMap map[string]interface{}) []*tfexec.VarOption {
-	for k, v := range variableMap {
-		assignment := fmt.Sprintf("%s=%s", k, format.ConvertValueToHCL(v, false))
-		variables = append(variables, tfexec.Var(assignment))
-	}
-
-	return variables
-}
-
 func New(ctx context.Context, variableMap map[string]interface{}, dir string, parallelism int, verbose bool) (*Tofu, error) {
 	tfBinary, err := exec.LookPath("tofu")
 	if err != nil {
@@ -84,7 +75,11 @@ func New(ctx context.Context, variableMap map[string]interface{}, dir string, pa
 		return nil, fmt.Errorf("error: tofu Init: %w", err)
 	}
 
-	variables := appendVariables(nil, variableMap)
+	var variables []*tfexec.VarOption
+	for k, v := range variableMap {
+		assignment := fmt.Sprintf("%s=%s", k, format.ConvertValueToHCL(v, false))
+		variables = append(variables, tfexec.Var(assignment))
+	}
 
 	return &Tofu{
 		tf:        tf,
