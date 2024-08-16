@@ -5,4 +5,4 @@ ssh_pwauth: true
 chpasswd:
   expire: false
   list: |
-    root:linux
+    ${ssh_user}:linux
