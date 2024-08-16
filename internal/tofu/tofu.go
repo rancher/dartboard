@@ -23,11 +23,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
-	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/moio/scalability-tests/internal/tofu/format"
 )
 
 type ClusterAddress struct {
@@ -58,71 +56,16 @@ type Tofu struct {
 	variables []*tfexec.VarOption
 }
 
-// converts a golang map[string]interface{} into map[string]cty.Value
-func convertMapToCty(m map[string]interface{}) map[string]cty.Value {
-	attributes := map[string]cty.Value{}
-	for k, v := range m {
-		attributes[k] = convertValueToHCL(v)
-	}
-	return attributes
-}
-
-// converts golang types into HCL format utilizing the hclwrite and cty packages
-// reference: https://pkg.go.dev/github.com/hashicorp/hcl/v2/hclwrite#example-package-GenerateFromScratch
-func convertValueToHCL(value interface{}) cty.Value {
-	switch v := value.(type) {
-	case string:
-		return cty.StringVal(value.(string))
-	case bool:
-		return cty.BoolVal(v)
-	case int, int32, int64:
-		// explicitly convert to int64 if needed
-		vInt64, ok := v.(int64)
-		if !ok {
-			vInt32, ok := v.(int32)
-			if !ok {
-				vInt64 = int64(v.(int))
-			} else {
-				vInt64 = int64(vInt32)
-			}
-		}
-		return cty.NumberIntVal(vInt64)
-	case float32, float64:
-		// explicitly convert to float64 if needed
-		vFloat64, ok := v.(float64)
-		if !ok {
-			vFloat64 = float64(v.(float32))
-		}
-		return cty.NumberFloatVal(vFloat64)
-		// maps and objects in HCL are equivalent to cty.ObjectVals
-	case map[string]interface{}:
-		return cty.ObjectVal(convertMapToCty(v))
-		// if we have a list/slice, loop through it and make recursive calls
-	case []interface{}:
-		var elements []cty.Value
-		for _, sliceVal := range v {
-			elements = append(elements, convertValueToHCL(sliceVal))
-		}
-		return cty.ListVal(elements)
-	default:
-		return cty.UnknownAsNull(cty.StringVal(""))
-	}
-}
-
-func appendVariables(variables []*tfexec.VarOption, variableMap map[string]any) []*tfexec.VarOption {
+func appendVariables(variables []*tfexec.VarOption, variableMap map[string]interface{}) []*tfexec.VarOption {
 	for k, v := range variableMap {
-		f := hclwrite.NewEmptyFile()
-		body := f.Body()
-		ctyVal := convertValueToHCL(v)
-		body.SetAttributeValue(k, ctyVal)
-		assignment := strings.ReplaceAll(string(f.Bytes()), " ", "")
+		assignment := fmt.Sprintf("%s=%s", k, format.ConvertValueToHCL(v, false))
 		variables = append(variables, tfexec.Var(assignment))
 	}
 
 	return variables
 }
 
-func New(ctx context.Context, variableMap map[string]any, dir string, parallelism int, verbose bool) (*Tofu, error) {
+func New(ctx context.Context, variableMap map[string]interface{}, dir string, parallelism int, verbose bool) (*Tofu, error) {
 	tfBinary, err := exec.LookPath("tofu")
 	if err != nil {
 		return nil, fmt.Errorf("error: tofu not found: %w", err)
