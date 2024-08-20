@@ -1,0 +1,65 @@
+linters:
+  # Disable all linters.
+  # Default: false
+  # disable-all: true
+  # Enable specific linter
+  # https://golangci-lint.run/usage/linters/#enabled-by-default
+  enable:
+    - govet
+    - revive
+    - goimports
+    - misspell
+    - ineffassign
+    - gofmt
+    - bodyclose
+  # Enable all available linters.
+  # Default: false
+  # enable-all: true
+  # Disable specific linter
+  # https://golangci-lint.run/usage/linters/#disabled-by-default
+  # disable:
+  #   - unused
+  #   - funlen
+  # Enable presets.
+  # https://golangci-lint.run/usage/linters
+  # presets:
+  #   - bugs
+  #   - comment
+  #   - complexity
+  #   - error
+  #   - format
+  #   - import
+  #   - metalinter
+  #   - module
+  #   - performance
+  #   - sql
+  #   - style
+  #   - test
+  #   - unused
+  # Run only fast linters from enabled linters set (first run won't be fast)
+  # Default: false
+  fast: true
+
+linters-settings:
+  govet:
+    check-shadowing: false
+  gofmt:
+    simplify: false
+issues:
+  exclude-rules:
+    #     # - linters: [govet]
+    #     #   text: "^(nilness|structtag)"
+    #     - linters: [revive]
+    #       text: "should have comment"
+    #     - linters: [revive]
+    #       text: "should be of the form"
+    - linters: [revive]
+      text: "unused-parameter"
+    #     - linters: [revive]
+    #       text: "redefines-builtin-id"
+    # - linters: [revive]
+    #   text: "superfluous-else"
+#     - linters: [revive]
+#       text: "empty-block"
+#     - linters: [revive]
+#       text: "if-return: redundant if"
