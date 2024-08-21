@@ -11,13 +11,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/git-ival/dartboard/test/utils/grafanautils"
-	"github.com/git-ival/dartboard/test/utils/ranchermonitoring/dashboards/kubernetesapiserver"
-	"github.com/git-ival/dartboard/test/utils/ranchermonitoring/dashboards/rancherclusternodes"
-	"github.com/git-ival/dartboard/test/utils/ranchermonitoring/dashboards/rancherperformancedebugging"
 	gapi "github.com/grafana/grafana-api-golang-client"
 	promapi "github.com/prometheus/client_golang/api"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/rancher/dartboard/test/utils/grafanautils"
+	"github.com/rancher/dartboard/test/utils/ranchermonitoring/dashboards/kubernetesapiserver"
+	"github.com/rancher/dartboard/test/utils/ranchermonitoring/dashboards/rancherclusternodes"
+	"github.com/rancher/dartboard/test/utils/ranchermonitoring/dashboards/rancherperformancedebugging"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
