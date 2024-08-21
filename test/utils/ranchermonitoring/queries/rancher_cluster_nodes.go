@@ -3,10 +3,10 @@ package ranchermonitoring
 import (
 	"time"
 
-	"github.com/git-ival/dartboard/test/utils/grafanautils"
-	"github.com/git-ival/dartboard/test/utils/ranchermonitoring/dashboards/rancherclusternodes"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"github.com/rancher/dartboard/test/utils/grafanautils"
+	"github.com/rancher/dartboard/test/utils/ranchermonitoring/dashboards/rancherclusternodes"
 )
 
 const DefaultRancherClusterNodesQueryRateInterval = "4m0s"
