@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/git-ival/dartboard/test/utils/helpers"
+	"github.com/rancher/dartboard/test/utils/helpers"
 
-	"github.com/git-ival/dartboard/test/utils/ranchermonitoring"
-	"github.com/git-ival/dartboard/test/utils/ranchermonitoring/dashboards/rancherclusternodes"
+	"github.com/rancher/dartboard/test/utils/ranchermonitoring"
+	"github.com/rancher/dartboard/test/utils/ranchermonitoring/dashboards/rancherclusternodes"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
