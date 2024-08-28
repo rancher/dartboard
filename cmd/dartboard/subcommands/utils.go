@@ -21,13 +21,13 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/moio/scalability-tests/internal/docker"
-	"github.com/moio/scalability-tests/internal/k3d"
+	"github.com/rancher/dartboard/internal/docker"
+	"github.com/rancher/dartboard/internal/k3d"
 	"github.com/urfave/cli/v2"
 
-	"github.com/moio/scalability-tests/internal/dart"
-	"github.com/moio/scalability-tests/internal/kubectl"
-	"github.com/moio/scalability-tests/internal/tofu"
+	"github.com/rancher/dartboard/internal/dart"
+	"github.com/rancher/dartboard/internal/kubectl"
+	"github.com/rancher/dartboard/internal/tofu"
 )
 
 const (
