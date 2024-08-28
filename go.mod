@@ -1,4 +1,4 @@
-module github.com/rancher/dartboard
+module github.com/moio/scalability-tests
 
 go 1.21
 

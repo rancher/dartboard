@@ -21,7 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/moio/scalability-tests/cmd/dartboard/subcommands"
+	"github.com/rancher/dartboard/cmd/dartboard/subcommands"
 	"github.com/urfave/cli/v2"
 )
 

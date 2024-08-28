@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
-	"github.com/moio/scalability-tests/internal/tofu/format"
+	"github.com/rancher/dartboard/internal/tofu/format"
 )
 
 type ClusterAddress struct {

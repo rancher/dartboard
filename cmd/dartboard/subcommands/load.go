@@ -22,9 +22,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/moio/scalability-tests/internal/dart"
-	"github.com/moio/scalability-tests/internal/kubectl"
-	"github.com/moio/scalability-tests/internal/tofu"
+	"github.com/rancher/dartboard/internal/dart"
+	"github.com/rancher/dartboard/internal/kubectl"
+	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/urfave/cli/v2"
 )
 

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/moio/scalability-tests/internal/tofu"
+	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/urfave/cli/v2"
 )
 
