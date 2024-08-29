@@ -63,7 +63,7 @@ func Exec(kubepath string, output io.Writer, args ...string) error {
 	cmd.Stderr = &errStream
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf(errStream.String())
+		return fmt.Errorf("%v", errStream.String())
 	}
 	return nil
 }

@@ -95,7 +95,7 @@ func printNotes(r *release.Release, err error) error {
 		return err
 	}
 	if r.Info.Notes != "" {
-		log.Printf(r.Info.Notes)
+		log.Println(r.Info.Notes)
 	} else {
 		log.Printf("No notes for release %s", r.Name)
 	}

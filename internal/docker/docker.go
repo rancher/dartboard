@@ -32,7 +32,7 @@ type Image struct {
 
 // Images returns known docker images matching the image reference
 func Images(image string) ([]string, error) {
-	args := append([]string{"images", "--filter=reference=" + image, "--format=json"})
+	args := []string{"images", "--filter=reference=" + image, "--format=json"}
 	log.Printf("Exec: docker %s\n", strings.Join(args, " "))
 
 	cmd := exec.Command("docker", args...)
@@ -41,7 +41,7 @@ func Images(image string) ([]string, error) {
 	cmd.Stdout = &outStream
 	cmd.Stderr = &errStream
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf(errStream.String())
+		return nil, fmt.Errorf("%v", errStream.String())
 	}
 
 	lines := strings.Split(strings.TrimSpace(outStream.String()), "\n")
