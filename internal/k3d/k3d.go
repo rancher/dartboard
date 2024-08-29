@@ -27,7 +27,7 @@ import (
 )
 
 func ImageImport(cluster tofu.Cluster, image string) error {
-	args := append([]string{"image", "import", "--cluster", strings.Replace(cluster.Context, "k3d-", "", -1), image})
+	args := []string{"image", "import", "--cluster", strings.Replace(cluster.Context, "k3d-", "", -1), image}
 	log.Printf("Exec: docker %s\n", strings.Join(args, " "))
 
 	cmd := exec.Command("k3d", args...)
@@ -35,7 +35,7 @@ func ImageImport(cluster tofu.Cluster, image string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = &errStream
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf(errStream.String())
+		return fmt.Errorf("%v", errStream.String())
 	}
 
 	return nil
