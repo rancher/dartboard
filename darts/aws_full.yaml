@@ -3,7 +3,7 @@
 # all available variables are represented in this file
 # commented out lines show defaults
 
-tofu_main_directory: /home/ivln/workspace/work/RancherVCS/scalability-tests/tofu/main/aws
+tofu_main_directory: ./tofu/main/aws
 #tofu_parallelism: 10
 tofu_variables:
   project_name: st
