@@ -7,8 +7,14 @@ toolchain go1.22.5
 // replace shepherd with experimental version
 replace github.com/rancher/shepherd => github.com/git-ival/shepherd v0.0.0-20240412200641-444750a22637
 
-// replace Kubernetes and core libraries to align with shepherd's
+// replace grafana-api-golang-client with experimental version
+replace github.com/grafana/grafana-api-golang-client => github.com/git-ival/grafana-api-golang-client v0.26.1-0.20231204163350-5dfef652c1e1
+
+// replace Kubernetes and other core libraries to align with shepherd's
 replace (
+	github.com/containerd/containerd => github.com/containerd/containerd v1.6.27 // for docker 20.10.x compatibility
+	github.com/docker/docker => github.com/docker/docker v20.10.27+incompatible
+	github.com/google/cel-go => github.com/google/cel-go v0.12.7
 	k8s.io/api => k8s.io/api v0.27.9
 	k8s.io/apimachinery => k8s.io/apimachinery v0.27.9
 	k8s.io/apiserver => k8s.io/apiserver v0.27.9
@@ -16,6 +22,7 @@ replace (
 	k8s.io/client-go => github.com/rancher/client-go v1.27.4-rancher1
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f
 	k8s.io/kubectl => k8s.io/kubectl v0.27.9
+	oras.land/oras-go => oras.land/oras-go v1.2.2 // for docker 20.10.x compatibility
 	sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.13.4
 	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.14.2
 )
@@ -60,7 +67,6 @@ require (
 
 // indirect requires
 require (
-	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
@@ -161,9 +167,7 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/locker v1.0.1 // indirect
-	github.com/moby/patternmatcher v0.6.0 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
-	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -255,23 +259,27 @@ require (
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
-	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230305170008-8188dc5388df // indirect
+	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
+	github.com/containerd/cgroups v1.1.0 // indirect
+	github.com/go-json-experiment/json v0.0.0-20231102232822-2e55bd4e08b0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/google/cel-go v0.17.7 // indirect
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/moby/sys/mount v0.2.0 // indirect
+	github.com/moby/sys/mountinfo v0.6.2 // indirect
 	github.com/onsi/ginkgo/v2 v2.11.0 // indirect
 	github.com/onsi/gomega v1.27.10 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
+	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.45.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.19.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.19.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.19.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
-	golang.org/x/exp v0.0.0-20220827204233-334a2380cb91 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	k8s.io/cloud-provider v0.27.9 // indirect
 	k8s.io/component-helpers v0.27.9 // indirect
