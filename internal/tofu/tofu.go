@@ -114,17 +114,17 @@ func (t *Tofu) Destroy(ctx context.Context) error {
 	return nil
 }
 
-func (t *Tofu) OutputClustersJson(ctx context.Context) (string, error) {
+func (t *Tofu) OutputClustersJSON(ctx context.Context) (string, error) {
 	tfOutput, err := t.tf.Output(ctx)
 	if err != nil {
-		return "", fmt.Errorf("error: tofu OutputClustersJson: %w", err)
+		return "", fmt.Errorf("error: tofu OutputClustersJSON: %w", err)
 	}
 
 	if clusters, ok := tfOutput["clusters"]; ok {
 		return string(clusters.Value), nil
 	}
 
-	return "", fmt.Errorf("error: tofu OutputClustersJson: no cluster data")
+	return "", fmt.Errorf("error: tofu OutputClustersJSON: no cluster data")
 }
 
 func (t *Tofu) OutputClusters(ctx context.Context) (map[string]Cluster, error) {
