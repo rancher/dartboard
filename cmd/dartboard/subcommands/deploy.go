@@ -116,7 +116,7 @@ func Deploy(cli *cli.Context) error {
 }
 
 func chartInstall(kubeConf string, chart chart, jsonVals string) error {
-	var vals map[string]interface{} = nil
+	var vals map[string]interface{}
 	var err error
 
 	name := chart.name
@@ -516,7 +516,7 @@ func importDownstreamClusterDo(r *dart.Dart, rancherImageTag string, tf *tofu.To
 	defer os.Remove(yamlFile.Name())
 	defer yamlFile.Close()
 
-	clusterId, err := importClustersDownstreamGetYAML(clusters, clusterName, yamlFile)
+	clusterID, err := importClustersDownstreamGetYAML(clusters, clusterName, yamlFile)
 	if err != nil {
 		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
 		return
@@ -542,7 +542,7 @@ func importDownstreamClusterDo(r *dart.Dart, rancherImageTag string, tf *tofu.To
 	}
 
 	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
-		"clusters.management.cattle.io", clusterId, "", 10); err != nil {
+		"clusters.management.cattle.io", clusterID, "", 10); err != nil {
 		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
 		return
 	}
@@ -594,7 +594,7 @@ func importDownstreamClustersRancherSetup(r *dart.Dart, clusters map[string]tofu
 	return nil
 }
 
-func importClustersDownstreamGetYAML(clusters map[string]tofu.Cluster, name string, yamlFile *os.File) (clusterId string, err error) {
+func importClustersDownstreamGetYAML(clusters map[string]tofu.Cluster, name string, yamlFile *os.File) (clusterID string, err error) {
 	var status map[string]interface{}
 
 	upstream := clusters["upstream"]
@@ -612,14 +612,14 @@ func importClustersDownstreamGetYAML(clusters map[string]tofu.Cluster, name stri
 	if status, err = cliUpstream.GetStatus("provisioning.cattle.io", "v1", resource, name, namespace); err != nil {
 		return
 	}
-	clusterId, ok := status["clusterName"].(string)
+	clusterID, ok := status["clusterName"].(string)
 	if !ok {
 		err = fmt.Errorf("error accessing %s/%s %s: no valid 'clusterName' in 'Status'", namespace, name, resource)
 		return
 	}
 
 	name = "default-token"
-	namespace = clusterId
+	namespace = clusterID
 	resource = "clusterregistrationtokens"
 	if status, err = cliUpstream.GetStatus("management.cattle.io", "v3", resource, name, namespace); err != nil {
 		return
@@ -630,7 +630,7 @@ func importClustersDownstreamGetYAML(clusters map[string]tofu.Cluster, name stri
 		return
 	}
 
-	url := fmt.Sprintf("%s/v3/import/%s_%s.yaml", upstreamAdd.Local.HTTPSURL, token, clusterId)
+	url := fmt.Sprintf("%s/v3/import/%s_%s.yaml", upstreamAdd.Local.HTTPSURL, token, clusterID)
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	client := &http.Client{Transport: tr}
 	resp, err := client.Get(url)
