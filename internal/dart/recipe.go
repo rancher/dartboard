@@ -48,10 +48,17 @@ var defaultDart = Dart{
 		RancherReplicas:             1,
 		DownstreamRancherMonitoring: false,
 		AdminPassword:               "adminadminadmin",
-		RancherVersion:              "2.8.5",
-		RancherMonitoringVersion:    "103.0.0+up45.31.1",
+		RancherVersion:              "2.9.1",
+		RancherMonitoringVersion:    "104.1.0+up57.0.3",
 		CertManagerVersion:          "1.8.0",
 		TesterGrafanaVersion:        "6.56.5",
+	},
+	TestVariables: TestVariables{
+		TestConfigMaps: 2000,
+		TestSecrets:    2000,
+		TestRoles:      20,
+		TestUsers:      10,
+		TestProjects:   20,
 	},
 }
 
