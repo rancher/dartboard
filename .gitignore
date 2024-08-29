@@ -1,8 +1,7 @@
-# moio:
-
+# OS related
 .DS_Store
-.idea
 
+# tofu related
 tofu/main/*/.terraform
 tofu/main/*/.terraform.lock.hcl
 tofu/main/*/terraform.tfstate
@@ -10,46 +9,13 @@ tofu/main/*/terraform.tfstate.*
 tofu/main/*/config
 *.tfvars
 
-./dartboard
-
-# git-ival:
-
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-# Go workspace file
-go.work
-go.work.sum
-
-# local go.mod file
-local.go.mod
-local.go.sum
-
-# Misc
-*.yaml
+# IDE related
+.idea
 .vscode
-*.pem
-*.conf
-bin/*
-keys/*
+
+# Others
 scripts/utils/*.txt
 
-# Misc Exceptions
-!test/utils/ranchermonitoring/files/configmaps/*.yaml
-!.pre-commit-config.yaml
+# Binaries
+/dartboard
+/scripts/soak/soak
