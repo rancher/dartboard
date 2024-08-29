@@ -6,56 +6,56 @@
 tofu_main_directory: ./tofu/main/aws
 #tofu_parallelism: 10
 tofu_variables:
-  project_name: st
-  region: us-east-1
-  availability_zone: us-east-1a
-  aws_profile: rancher-eng
-  ssh_private_key_path: ~/.ssh/id_ed25519
-  ssh_public_key_path: ~/.ssh/id_ed25519.pub
-  ssh_user: root
-  ssh_bastion_user: root
-  bastion_host_ami: ami-0e55a8b472a265e3f # openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
+#  project_name: st
+#  region: us-east-1
+#  availability_zone: us-east-1a
+#  aws_profile: null
+#  ssh_public_key_path: ~/.ssh/id_ed25519.pub
+#  ssh_private_key_path: ~/.ssh/id_ed25519
+#  ssh_user: root
+#  ssh_bastion_user: root
+#  bastion_host_ami: ami-0e55a8b472a265e3f # openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
 
-  upstream_cluster:
-    name_prefix: upstream
-    server_count: 1
-    agent_count: 0
-    distro_version: v1.26.9+k3s1
-    public_ip: true
-    reserve_node_for_monitoring: false
-    # aws-specific
-    instance_type: i3.large
-    instance_tags: { Owner: st, DoNotDelete: true }
-    ami: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
+#  upstream_cluster:
+#    name_prefix: upstream
+#    server_count: 1
+#    agent_count: 0
+#    distro_version: v1.26.9+k3s1
+#    public_ip: true
+#    reserve_node_for_monitoring: false
+#    # aws-specific
+#    instance_type: i3.large
+#    instance_tags: { Owner: st, DoNotDelete: true }
+#    ami: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
 
-  deploy_tester_cluster: true
-  tester_cluster:
-    name_prefix: tester
-    server_count: 1
-    agent_count: 0
-    distro_version: v1.26.9+k3s1
-    public_ip: true
-    reserve_node_for_monitoring: false
-    # aws-specific
-    instance_type: t3a.large
-    instance_tags: { Owner: st, DoNotDelete: true }
-    ami: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
+#  deploy_tester_cluster: true
+#  tester_cluster:
+#    name_prefix: tester
+#    server_count: 1
+#    agent_count: 0
+#    distro_version: v1.26.9+k3s1
+#    public_ip: false
+#    reserve_node_for_monitoring: false
+#    # aws-specific
+#    instance_type: t3a.large
+#    instance_tags: { Owner: st, DoNotDelete: true }
+#    ami: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
 
-  downstream_cluster_templates:
-    - cluster_count: 0 # defaults to 0 to keep in-line with previous behavior
-      name_prefix: first
-      server_count: 1
-      agent_count: 0
-      distro_version: v1.26.9+k3s1
-      public_ip: false
-      reserve_node_for_monitoring: false
-      # aws-specific
-      instance_type: t4g.large
-      instance_tags: { Owner: st, DoNotDelete: true }
-      ami: ami-0e55a8b472a265e3f # openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
-  first_kubernetes_api_port: 7445
-  first_app_http_port: 9080
-  first_app_https_port: 9443
+#  downstream_cluster_templates:
+#    - cluster_count: 0
+#      name_prefix: downstream
+#      server_count: 1
+#      agent_count: 0
+#      distro_version: v1.26.9+k3s1
+#      public_ip: false
+#      reserve_node_for_monitoring: false
+#      # aws-specific
+#      instance_type: t4g.large
+#      instance_tags: { Owner: st, DoNotDelete: true }
+#      ami: ami-0e55a8b472a265e3f # openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
+#  first_kubernetes_api_port: 7445
+#  first_app_http_port: 9080
+#  first_app_https_port: 9443
 
 chart_variables:
   rancher_replicas: 3

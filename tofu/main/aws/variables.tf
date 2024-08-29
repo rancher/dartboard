@@ -6,7 +6,8 @@ variable "region" {
 
 variable "aws_profile" {
   description = "Local ~/.aws/config profile to utilize for AWS access"
-  default = ""
+  type = string
+  default = null
 }
 
 variable "availability_zone" {
@@ -32,7 +33,6 @@ variable "ssh_private_key_path" {
 
 variable "ssh_user" {
   description = "User name to use for the SSH connection"
-  type        = string
   default     = "root"
 }
 
@@ -135,7 +135,7 @@ variable "tester_cluster" {
     server_count   = 1
     agent_count    = 0
     distro_version = "v1.26.9+k3s1"
-    public_ip = true
+    public_ip = false
     reserve_node_for_monitoring = false
 
     // aws-specific
