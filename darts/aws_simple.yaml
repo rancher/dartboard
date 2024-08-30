@@ -1,11 +1,9 @@
 # Deploys Rancher from (mostly) defaults
-# see k3d_full.yaml for more configuration options
+# see aws_full.yaml for more configuration options
 
-tofu_main_directory: ./tofu/main/k3d
+tofu_main_directory: ./tofu/main/aws
 
 tofu_variables:
-  downstream_cluster_count: 0
-  distro_version: v1.26.9+k3s1
 
 chart_variables:
   rancher_replicas: 1
