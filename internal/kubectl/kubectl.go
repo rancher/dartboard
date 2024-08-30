@@ -73,21 +73,28 @@ func Apply(kubePath, filePath string) error {
 }
 
 func WaitRancher(kubePath string) error {
-	return Exec(kubePath, log.Writer(), "wait", "deployment/rancher",
-		"--namespace", "cattle-system",
-		"--for", "condition=Available=true", "--timeout=1h")
+	err := WaitForReadyCondition(kubePath, "deployment", "rancher", "cattle-system", "available", 60)
+	if err != nil {
+		return err
+	}
+	err = WaitForReadyCondition(kubePath, "deployment", "rancher-webhook", "cattle-system", "available", 60)
+	if err != nil {
+		return err
+	}
+	err = WaitForReadyCondition(kubePath, "deployment", "fleet-controller", "cattle-fleet-system", "available", 60)
+	return err
 }
 
-func WaitForReadyCondition(kubePath, resource, name, namespace string, minutes int) error {
+func WaitForReadyCondition(kubePath, resource, name, namespace string, condition string, minutes int) error {
 	var err error
 	args := []string{"wait", resource, name}
 
 	if len(namespace) > 0 {
 		args = append(args, "--namespace", namespace)
 	}
-	args = append(args, "--for", "condition=ready=true", fmt.Sprintf("--timeout=%dm", minutes))
+	args = append(args, "--for", fmt.Sprintf("condition=%s=true", condition), fmt.Sprintf("--timeout=%dm", minutes))
 
-	maxRetries := 10
+	maxRetries := minutes * 30
 	for i := 1; i < maxRetries; i++ {
 		err = Exec(kubePath, log.Writer(), args...)
 		if err == nil {
@@ -96,7 +103,7 @@ func WaitForReadyCondition(kubePath, resource, name, namespace string, minutes i
 		// Check if by chance the resource is not yet available
 		if strings.Contains(err.Error(), fmt.Sprintf("%q not found", name)) {
 			log.Printf("resource %s/%s not available yet, retry %d/%d\n", namespace, name, i, maxRetries)
-			time.Sleep(time.Second)
+			time.Sleep(2 * time.Second)
 		} else {
 			return err
 		}

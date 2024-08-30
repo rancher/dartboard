@@ -101,7 +101,7 @@ func Deploy(cli *cli.Context) error {
 		return err
 	}
 
-	// Wait Rancher Deployment to be complete, or subsequent steps may fail
+	// Wait for Rancher deployments to be complete, or subsequent steps may fail
 	if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
 		return err
 	}
@@ -542,12 +542,12 @@ func importDownstreamClusterDo(r *dart.Dart, rancherImageTag string, tf *tofu.To
 	}
 
 	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
-		"clusters.management.cattle.io", clusterID, "", 10); err != nil {
+		"clusters.management.cattle.io", clusterID, "", "ready", 10); err != nil {
 		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
 		return
 	}
 	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
-		"cluster.fleet.cattle.io", clusterName, "fleet-default", 10); err != nil {
+		"cluster.fleet.cattle.io", clusterName, "fleet-default", "ready", 10); err != nil {
 		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
 		return
 	}
