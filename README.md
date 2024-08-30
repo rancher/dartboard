@@ -125,10 +125,4 @@ For example, for the `ssh` module, nodes' ip addresses, login name, etc. can be 
 ```shell
 export TOFU_WORK_DIR=tofu/main/ssh
 export TOFU_VAR_FILE=tofu/examples/ssh.tfvars.json
-./bin/setup.mjs
-./bin/run_tests.mjs
-./bin/get_access.mjs
-./bin/teardown.mjs
 ```
-
-Example files can be found in [tofu/examples].
