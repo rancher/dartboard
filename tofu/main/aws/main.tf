@@ -1,7 +1,6 @@
 provider "aws" {
   region = var.region
-  profile =  length(var.aws_profile) > 0 ? var.aws_profile : null
-
+  profile =  var.aws_profile
 }
 
 module "network" {
