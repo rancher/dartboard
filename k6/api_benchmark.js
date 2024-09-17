@@ -13,6 +13,7 @@ const resource = __ENV.RESOURCE || "management.cattle.io.setting"
 const api = __ENV.API || "steve"
 const paginationStyle = __ENV.PAGINATION_STYLE || "k8s"
 const pageSize = __ENV.PAGE_SIZE || 100
+const firstPageOnly = __ENV.FIRST_PAGE_ONLY === "true"
 const urlSuffix = __ENV.URL_SUFFIX || ""
 
 // Option setting
@@ -105,7 +106,7 @@ function listWithK8sStylePagination(url, cookies) {
 
         try {
             const body = JSON.parse(res.body)
-            if (body === undefined || body.continue === undefined) {
+            if (body === undefined || body.continue === undefined || firstPageOnly) {
                 break
             }
             if (revision == null) {
@@ -138,7 +139,7 @@ function listWithSteveStylePagination(url, cookies) {
 
         try {
             const body = JSON.parse(res.body)
-            if (body === undefined || body.data === undefined || body.data.length === 0) {
+            if (body === undefined || body.data === undefined || body.data.length === 0 || firstPageOnly) {
                 break
             }
             if (revision == null) {
