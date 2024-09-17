@@ -28,14 +28,14 @@ export function kubeconfig(file, contextName){
 }
 
 // creates a k8s resource
-export function create(url, body){
+export function create(url, body, retry = true){
     const res = http.post(url, JSON.stringify(body));
 
     check(res, {
         'POST returns status 201 or 409': (r) => r.status === 201 || r.status === 409,
     })
 
-    if (res.status === 409) {
+    if (res.status === 409 && retry) {
         // wait a bit and try again
         sleep(Math.random())
 
