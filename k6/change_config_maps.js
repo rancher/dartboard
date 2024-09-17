@@ -6,9 +6,10 @@ import * as k8s from './k8s.js'
 // Parameters
 const namespace = "scalability-test-temp"
 const data = encoding.b64encode("a".repeat(1))
-const vus = 5
 const duration = '2h'
-const rate = 1
+const vus = __ENV.VUS || 5
+// 2 requests per iteration, so iteration rate is half of request rate
+const rate =  (__ENV.RATE || 1) / 2
 
 // Option setting
 const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
@@ -26,11 +27,12 @@ export const options = {
     summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)', 'count'],
 
     scenarios: {
-        create: {
-            executor: 'constant-vus',
+        change: {
+            executor: 'constant-arrival-rate',
             exec: 'change',
-            vus: vus,
+            preAllocatedVUs: vus,
             duration: duration,
+            rate: rate,
         },
     },
     thresholds: {
@@ -63,7 +65,6 @@ export function change() {
         "data": {"data": data}
     }
 
-    k8s.create(`${baseUrl}/api/v1/namespaces/${namespace}/configmaps`, body)
-    sleep(1.0/rate)
+    k8s.create(`${baseUrl}/api/v1/namespaces/${namespace}/configmaps`, body, false)
     k8s.del(`${baseUrl}/api/v1/namespaces/${namespace}/configmaps/${name}`)
 }
