@@ -41,7 +41,7 @@ func main() {
 		Commands: []*cli.Command{
 			{
 				Name:        "apply",
-				Usage:       "Deploys Kubernetes clusters for testing",
+				Usage:       "Runs `tofu apply`",
 				Description: "runs `tofu apply` to prepare infrastructure and Kubernetes clusters for tests",
 				Action:      subcommands.Apply,
 			},
@@ -75,6 +75,12 @@ func main() {
 				Usage:       "Tears down the test environment (all the clusters)",
 				Description: "runs `tofu destroy` to destroy all the provisioned clusters",
 				Action:      subcommands.Destroy,
+			},
+			{
+				Name:        "reapply",
+				Usage:       "Tears down the test environment (all the clusters) and re-runs `tofu apply`",
+				Description: "runs `tofu destroy` and then `tofu apply`",
+				Action:      subcommands.Reapply,
 			},
 			{
 				Name:        "redeploy",
