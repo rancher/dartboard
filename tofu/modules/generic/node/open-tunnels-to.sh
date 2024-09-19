@@ -1,9 +1,23 @@
 #!/bin/sh
+set -x
 
 # Kill any previously created tunnels
 %{ for tunnel in ssh_tunnels ~}
 pkill -f 'ssh .*-o IgnoreUnknown=TofuCreatedThisTunnel.*-L ${tunnel[0]}:localhost:[0-9]+.*'
 %{ endfor ~}
+
+
+MAX_RETRIES=3
+ATTEMPT=1
+SUCCESS=false
+
+while [ $ATTEMPT -le $MAX_RETRIES ]; do
+  echo "Attempt $ATTEMPT to set up tunnels..."
+
+# Timeout block for tunnel creation and checks
+timeout 120 sh <<'EOF'
+set -e
+set -x
 
 # Create tunnels
 nohup ssh -o IgnoreUnknown=TofuCreatedThisTunnel \
@@ -21,3 +35,20 @@ do
   sleep 1
 done
 %{ endfor }
+EOF
+
+if [ $? -eq 0 ]; then
+    echo "Tunnels established successfully on attempt $ATTEMPT."
+    SUCCESS=true
+    break
+  else
+    echo "Attempt $ATTEMPT failed. Retrying..."
+    ATTEMPT=$((ATTEMPT + 1))
+    sleep 5
+  fi
+done
+
+if [ "$SUCCESS" = false ]; then
+  echo "All attempts to set up tunnels failed. Exiting."
+  exit 1
+fi
