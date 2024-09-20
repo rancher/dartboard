@@ -111,26 +111,6 @@ variable "disks" {
   default = []
 }
 
-# variable "disk_name" {
-#   description = "Name of Harvester Disk to be created"
-#   default     = "rootdisk"
-# }
-
-# variable "disk_type" {
-#   description = "Type of Harvester Disk to utilize"
-#   default     = "disk"
-# }
-
-# variable "disk_size" {
-#   description = "Size of the root volume"
-#   default     = 50
-# }
-
-# variable "disk_bus" {
-#   description = "value"
-#   default     = "virtio"
-# }
-
 variable "efi" {
   description = "Flag that determines if the VM will boot in EFI mode"
   type        = bool

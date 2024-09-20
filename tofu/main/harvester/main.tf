@@ -1,5 +1,5 @@
 provider "harvester" {
-  kubeconfig = "/home/ivln/workspace/work/RancherVCS/scalability-tests/harvester.yaml"
+  kubeconfig = "/home/ivln/workspace/work/RancherVCS/dartboard/harvester.yaml"
 }
 
 # module "network" {
@@ -13,25 +13,25 @@ provider "harvester" {
 #   ssh_private_key_path = var.ssh_private_key_path
 # }
 
-module "bastion" {
-  source          = "../../modules/harvester_host"
-  project_name    = var.project_name
-  name            = "bastion"
-  image_name      = var.bastion_host_image_name
-  image_namespace = var.namespace
-  namespace       = var.namespace
-  cpu             = 2
-  memory          = 4
-  disks           = [var.disks[0]]
-  efi             = var.efi
-  secure_boot     = var.secure_boot
-  ssh_keys        = var.ssh_keys
+# module "bastion" {
+#   source          = "../../modules/harvester_host"
+#   project_name    = var.project_name
+#   name            = "bastion"
+#   image_name      = var.bastion_host_image_name
+#   image_namespace = var.namespace
+#   namespace       = var.namespace
+#   cpu             = 2
+#   memory          = 4
+#   disks           = [var.disks[0]]
+#   efi             = var.efi
+#   secure_boot     = var.secure_boot
+#   ssh_keys        = var.ssh_keys
 
-  host_configuration_commands = var.host_configuration_commands
-  ssh_private_key_path        = var.ssh_private_key_path
-  ssh_user                    = var.ssh_bastion_user
-  networks                    = var.networks
-}
+#   host_configuration_commands = var.host_configuration_commands
+#   ssh_private_key_path        = var.ssh_private_key_path
+#   ssh_user                    = var.ssh_bastion_user
+#   networks                    = var.networks
+# }
 
 # module "k3s_cluster" {
 #   count        = length(local.k3s_clusters)
@@ -67,6 +67,9 @@ module "bastion" {
 module "rke2_cluster" {
   count           = length(local.rke2_clusters)
   source          = "../../modules/harvester_rke2"
+  providers = {
+    harvester = harvester
+  }
   project_name    = var.project_name
   name            = local.rke2_clusters[count.index].name_prefix
   namespace       = var.namespace
@@ -96,7 +99,8 @@ module "rke2_cluster" {
   ssh_keys                    = var.ssh_keys
   ssh_private_key_path        = var.ssh_private_key_path
   ssh_user                    = var.ssh_user
-  ssh_bastion_host            = module.bastion.public_network_interfaces
+  ssh_bastion_host            = var.ssh_bastion_host
   ssh_bastion_user            = var.ssh_bastion_user
+  ssh_bastion_key_path        = var.ssh_private_key_path
   networks                    = var.networks
 }

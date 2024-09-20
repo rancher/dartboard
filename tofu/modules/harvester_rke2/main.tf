@@ -1,3 +1,8 @@
+locals {
+  server_names = compact(concat(flatten([for node in module.server_nodes : [ for net in node.public_network_interfaces: net.ip_address ]])))
+  agent_names = compact(concat(flatten([for node in module.agent_nodes : [ for net in node.public_network_interfaces: net.ip_address ]])))
+}
+
 module "server_nodes" {
   count                = var.server_count
   source               = "../harvester_host"
@@ -57,8 +62,8 @@ module "rke2" {
   source       = "../rke2"
   project      = var.project_name
   name         = var.name
-  server_names = [for node in module.server_nodes : node.private_name]
-  agent_names  = [for node in module.agent_nodes : node.private_name]
+  server_names = [for node in module.server_nodes : node.public_address]
+  agent_names  = [for node in module.agent_nodes : node.public_address]
   agent_labels = var.agent_labels
   agent_taints = var.agent_taints
   sans         = var.sans

@@ -6,8 +6,16 @@ output "private_network_interfaces" {
   value = local.private_network_interfaces
 }
 
+output "private_address" {
+  value = length(local.private_network_interfaces) > 0 ? local.private_network_interfaces[0].ip_address : null
+}
+
 output "public_network_interfaces" {
   value = local.public_network_interfaces
+}
+
+output "public_address" {
+  value = length(local.public_network_interfaces) > 0 ? local.public_network_interfaces[0].ip_address : null
 }
 
 output "name" {

@@ -49,6 +49,48 @@ resource "harvester_virtualmachine" "this" {
   cloudinit {
     user_data = local.cloud_init_user_data
   }
+
+  # # IMPORTANT: We need to wait for cloud-init on Harvester VMs to complete
+  # provisioner "remote-exec" {
+  #   connection {
+  #     host        = self.network_interface[0].ip_address
+  #     private_key = var.ssh_private_key_path != null ? file(var.ssh_private_key_path) : null
+  #     user        = var.ssh_user
+
+  #     bastion_host        = var.ssh_bastion_host
+  #     bastion_user        = var.ssh_bastion_user
+  #     bastion_private_key = var.ssh_bastion_key_path != null ? file(var.ssh_bastion_key_path) : null
+  #     bastion_port = 22
+  #     timeout             = "120s"
+  #   }
+  #   inline = [
+  #     "echo 'Waiting for cloud-init to complete...'",
+  #     "cloud-init status --wait > /dev/null",
+  #     "echo 'Completed cloud-init!'",
+  #   ]
+  # }
+}
+
+resource "null_resource" "cloud_init_wait" {
+  # IMPORTANT: We need to wait for cloud-init on Harvester VMs to complete
+  provisioner "remote-exec" {
+    connection {
+      host        = local.public_network_interfaces[0].ip_address
+      private_key = var.ssh_private_key_path != null ? file(var.ssh_private_key_path) : null
+      user        = var.ssh_user
+
+      bastion_host        = var.ssh_bastion_host
+      bastion_user        = var.ssh_bastion_user
+      bastion_private_key = var.ssh_bastion_key_path != null ? file(var.ssh_bastion_key_path) : null
+      bastion_port = 22
+      timeout             = "120s"
+    }
+    inline = [
+      "echo 'Waiting for cloud-init to complete...'",
+      "cloud-init status --wait > /dev/null",
+      "echo 'Completed cloud-init!'",
+    ]
+  }
 }
 
 resource "harvester_cloudinit_secret" "this" {
@@ -61,19 +103,10 @@ resource "harvester_cloudinit_secret" "this" {
 resource "null_resource" "host_configuration" {
   depends_on = [harvester_virtualmachine.this]
 
-  # provisioner "local-exec" {
-  #   interpreter = [ "bash", "-c"]
-  #   command =  "ssh-add ${var.ssh_private_key_path}"
-  # }
-  # TODO: Resolve issues with ssh-access through proxy/bastion into VM
   connection {
-    host        = values(local.public_network_interfaces)[0].ip_address
+    host        = local.public_network_interfaces[0].ip_address
     private_key = var.ssh_private_key_path != null ? file(var.ssh_private_key_path) : null
     user        = var.ssh_user
-
-    # proxy_host = var.ssh_bastion_host
-    # proxy_user_name = var.ssh_bastion_user
-    # proxy_port = 22
 
     bastion_host        = var.ssh_bastion_host
     bastion_user        = var.ssh_bastion_user
@@ -94,8 +127,8 @@ module "ssh_access" {
 
   ssh_bastion_host = var.ssh_bastion_host
   ssh_tunnels      = var.ssh_tunnels
-  private_name     = harvester_virtualmachine.this.hostname
-  public_name          = local.wait_for_lease ? values(local.public_network_interfaces)[0].ip_address : null
+  private_name     = local.public_network_interfaces[0].ip_address
+  public_name          = local.public_network_interfaces[0].ip_address
   ssh_user             = var.ssh_user
   ssh_bastion_user     = var.ssh_bastion_user
   ssh_private_key_path = var.ssh_private_key_path

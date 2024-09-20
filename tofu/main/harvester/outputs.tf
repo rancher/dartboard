@@ -35,7 +35,7 @@ locals {
     context    = module.rke2_cluster[i].context
 
     // alternative URL to reach the API from the same network this cluster is in
-    private_kubernetes_api_url = "https://${module.rke2_cluster[i].first_server_private_name}:6443"
+    private_kubernetes_api_url = "https://${module.rke2_cluster[i].first_server_public_name}:6443"
     master_url = "https://${cluster.name_prefix}.local.gd:${var.first_kubernetes_api_port}"
 
     // addresses of applications running in this cluster

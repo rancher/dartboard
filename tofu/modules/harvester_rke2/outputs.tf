@@ -1,9 +1,17 @@
 output "first_server_private_network_interfaces" {
-  value = var.server_count > 0 ? module.server_nodes[0].private_network_interfaces : null
+  value = module.server_nodes[0].private_network_interfaces
 }
 
 output "first_server_public_network_interfaces" {
-  value = var.server_count > 0 ? module.server_nodes[0].public_network_interfaces : null
+  value = module.server_nodes[0].public_network_interfaces
+}
+
+output "first_server_private_name" {
+  value = module.server_nodes[0].private_address
+}
+
+output "first_server_public_name" {
+  value = module.server_nodes[0].public_address
 }
 
 output "kubeconfig" {

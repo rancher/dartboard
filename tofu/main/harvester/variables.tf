@@ -189,16 +189,23 @@ variable "ssh_private_key_path" {
   type        = string
 }
 
+variable "ssh_bastion_host" {
+  description = "Public name of the SSH bastion host. Leave null for publicly accessible instances"
+  type        = string
+  default     = null
+}
+
+variable "ssh_bastion_key_path" {
+  description = "Path of private ssh key used to access the bastion host"
+  type        = string
+  default     = null
+}
+
 variable "bastion_host_image_name" {
   description = "Unique name of a harvester image which will be used if it exists"
   default     = "opensuse-leap-15.5-minimal"
   // https://download.opensuse.org/distribution/leap/15.5/appliances/openSUSE-Leap-15.5-Minimal-VM.x86_64-Cloud.qcow2
 }
-
-# variable "bastion_host_image_namespace" {
-#   description = "Namespace to search for OR upload image, if it does not exist"
-#   default = "default"
-# }
 
 variable "ssh_bastion_user" {
   description = "User name for the SSH bastion host's OS"
