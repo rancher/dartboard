@@ -14,10 +14,13 @@ Supports deploying to AWS, Azure, OVH OpenStack and bare metal servers (via SSH)
  - `dartboard destroy` destroys all infrastructure
 
 Special cases:
- - `dartboard apply` only runs `tofu apply` without configuring any software
+ - `dartboard apply` only runs `tofu apply` without configuring any software (Rancher, load generation, monitoring...)
  - `dartboard load` only runs k6 load tests assuming Rancher has already been deployed
  - `dartboard get-access` returns details to access the created clusters and applications
- - `dartboard redeploy` runs `destroy` and then `deploy`
+
+To recreate environments:
+ - `dartboard reapply` runs `destroy` and then `apply`, tearing down and recreating test configuration infrastructure without any software (Rancher, load generation, moniroting...)
+ - `dartboard redeploy` runs `destroy` and then `deploy`, tearing down and recreating the full environment, infrastructure and software (use this if unsure)
 
 ## Installation
 
