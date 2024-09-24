@@ -8,6 +8,7 @@ locals {
 package_update: true
 packages:
   - qemu-guest-agent
+  - iptables
 runcmd:
   - - systemctl
     - enable

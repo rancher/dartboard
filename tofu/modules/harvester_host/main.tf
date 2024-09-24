@@ -49,26 +49,6 @@ resource "harvester_virtualmachine" "this" {
   cloudinit {
     user_data = local.cloud_init_user_data
   }
-
-  # # IMPORTANT: We need to wait for cloud-init on Harvester VMs to complete
-  # provisioner "remote-exec" {
-  #   connection {
-  #     host        = self.network_interface[0].ip_address
-  #     private_key = var.ssh_private_key_path != null ? file(var.ssh_private_key_path) : null
-  #     user        = var.ssh_user
-
-  #     bastion_host        = var.ssh_bastion_host
-  #     bastion_user        = var.ssh_bastion_user
-  #     bastion_private_key = var.ssh_bastion_key_path != null ? file(var.ssh_bastion_key_path) : null
-  #     bastion_port = 22
-  #     timeout             = "120s"
-  #   }
-  #   inline = [
-  #     "echo 'Waiting for cloud-init to complete...'",
-  #     "cloud-init status --wait > /dev/null",
-  #     "echo 'Completed cloud-init!'",
-  #   ]
-  # }
 }
 
 resource "null_resource" "cloud_init_wait" {
@@ -91,6 +71,7 @@ resource "null_resource" "cloud_init_wait" {
       "echo 'Completed cloud-init!'",
     ]
   }
+  depends_on = [ harvester_virtualmachine.this ]
 }
 
 resource "harvester_cloudinit_secret" "this" {
