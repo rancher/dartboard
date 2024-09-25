@@ -7,11 +7,11 @@ output "first_server_public_network_interfaces" {
 }
 
 output "first_server_private_name" {
-  value = module.server_nodes[0].private_address
+  value = module.server_nodes[0].private_address != null ? "${module.server_nodes[0].private_address}.sslip.io" : null
 }
 
 output "first_server_public_name" {
-  value = module.server_nodes[0].public_address
+  value = module.server_nodes[0].public_address != null ? "${module.server_nodes[0].public_address}.sslip.io" : null
 }
 
 output "kubeconfig" {
