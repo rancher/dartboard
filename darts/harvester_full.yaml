@@ -36,7 +36,7 @@ tofu_variables:
 
   upstream_cluster:
     name_prefix: upstream
-    server_count: 1
+    server_count: 3
     agent_count: 0
     distro_version: "v1.26.9+rke2r1"
     reserve_node_for_monitoring: false
@@ -82,7 +82,7 @@ tofu_variables:
 #  first_app_https_port: 9443
 
 chart_variables:
-  rancher_replicas: 1
+  rancher_replicas: 3
   downstream_rancher_monitoring: true
   admin_password: adminadminadmin
   rancher_monitoring_version: 104.1.0+up57.0.3 # see https://github.com/rancher/charts/tree/release-v2.9/assets/rancher-monitoring-crd
