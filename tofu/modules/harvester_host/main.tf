@@ -37,7 +37,7 @@ resource "harvester_virtualmachine" "this" {
     }
   }
 
-  ssh_keys = [for ssh_key in data.harvester_ssh_key.this : ssh_key.id]
+  ssh_keys = [var.ssh_public_key_id]
 
   # Default "USB Tablet" config for VNC usage
   input {

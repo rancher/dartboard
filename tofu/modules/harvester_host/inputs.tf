@@ -68,16 +68,15 @@ variable "password" {
   type = string
 }
 
-variable "ssh_keys" {
-  description = "List of SSH key names and namespaces to be pulled from Harvester"
-  type = list(object({
-    name      = string
-    namespace = string
-  }))
-  default = []
+variable "ssh_public_key_id" {
+  description = "ID of the public ssh key used to access the instance, see harvester_network"
+  type        = string
 }
 
-
+variable "ssh_public_key" {
+  description = "Contents of the public ssh key used to access the instance, see harvester_network"
+  type        = string
+}
 
 variable "ssh_private_key_path" {
   description = "Path of private ssh key used to access the instance"

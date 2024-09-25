@@ -77,6 +77,16 @@ variable "ssh_keys" {
   default = []
 }
 
+variable "ssh_public_key_id" {
+  description = "ID of the public ssh key used to access the instance, see harvester_network"
+  type        = string
+}
+
+variable "ssh_public_key" {
+  description = "Contents of the public ssh key used to access the instance, see harvester_network"
+  type        = string
+}
+
 variable "ssh_private_key_path" {
   description = "Path of private ssh key used to access the instance"
   type        = string

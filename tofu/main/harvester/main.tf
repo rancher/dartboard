@@ -2,16 +2,12 @@ provider "harvester" {
   kubeconfig = var.kubeconfig
 }
 
-# module "network" {
-#   source               = "../../modules/harvester_network"
-#   project_name         = var.project_name
-#   region               = var.region
-#   availability_zone    = var.availability_zone
-#   bastion_host_ami     = length(var.bastion_host_ami) > 0 ? var.bastion_host_ami : null
-#   ssh_user             = var.ssh_user
-#   ssh_public_key_path  = var.ssh_public_key_path
-#   ssh_private_key_path = var.ssh_private_key_path
-# }
+module "network" {
+  source              = "../../modules/harvester_network"
+  project_name        = var.project_name
+  namespace           = var.namespace
+  ssh_public_key_path = var.ssh_public_key_path
+}
 
 # module "k3s_cluster" {
 #   count        = length(local.k3s_clusters)
@@ -76,7 +72,8 @@ module "rke2_cluster" {
   local_kubernetes_api_port   = var.first_kubernetes_api_port + length(local.k3s_clusters) + count.index
   tunnel_app_http_port        = var.first_app_http_port + length(local.k3s_clusters) + count.index
   tunnel_app_https_port       = var.first_app_https_port + length(local.k3s_clusters) + count.index
-  ssh_keys                    = var.ssh_keys
+  ssh_public_key              = module.network.ssh_public_key
+  ssh_public_key_id           = module.network.ssh_public_key_id
   ssh_private_key_path        = var.ssh_private_key_path
   user                        = var.user
   password                    = var.password

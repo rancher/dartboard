@@ -12,17 +12,13 @@ tofu_variables:
   # https://docs.harvesterhci.io/v1.3/faq/#how-can-i-access-the-kubeconfig-file-of-the-harvester-cluster
   # kubeconfig: nil
   kubeconfig: ~/.kube/config_harvester
-  #ssh_private_key_path: # set to passphrase-less ssh key
-  #ssh_bastion_key_path: # set to passphrase-less ssh key
+  ssh_public_key_path: ~/.ssh/id_ed25519.pub
+  ssh_private_key_path: ~/.ssh/id_ed25519
   user: opensuse
   # password:  # set to an appropriate value
   ssh_bastion_user: root
   ssh_bastion_host: hpa4s11.prairie.suse.net # Must set this appropriately
   namespace: bullseye
-
-  ssh_keys: # keys must exist within the Harvester env already
-    - name: jenkins-elliptic-validation
-      namespace: bullseye
 
   networks:
     - interface_model: virtio

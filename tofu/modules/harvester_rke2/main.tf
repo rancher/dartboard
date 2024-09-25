@@ -17,7 +17,8 @@ module "server_nodes" {
   disks                = var.disks
   efi                  = var.efi
   secure_boot          = var.secure_boot
-  ssh_keys             = var.ssh_keys
+  ssh_public_key              = var.ssh_public_key
+  ssh_public_key_id           = var.ssh_public_key_id
   ssh_private_key_path = var.ssh_private_key_path
   user                 = var.user
   password             = var.password
@@ -48,7 +49,8 @@ module "agent_nodes" {
   disks           = var.disks
   efi                         = var.efi
   secure_boot                 = var.secure_boot
-  ssh_keys                    = var.ssh_keys
+  ssh_public_key              = var.ssh_public_key
+  ssh_public_key_id           = var.ssh_public_key_id
   ssh_private_key_path        = var.ssh_private_key_path
   user                        = var.user
   password                    = var.password
