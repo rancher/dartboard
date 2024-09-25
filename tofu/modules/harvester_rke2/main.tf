@@ -1,6 +1,6 @@
 locals {
-  server_names = compact(concat(flatten([for node in module.server_nodes : [ for net in node.public_network_interfaces: net.ip_address ]])))
-  agent_names = compact(concat(flatten([for node in module.agent_nodes : [ for net in node.public_network_interfaces: net.ip_address ]])))
+  server_names = compact(concat(flatten([for node in module.server_nodes : [for net in node.public_network_interfaces : net.ip_address]])))
+  agent_names  = compact(concat(flatten([for node in module.agent_nodes : [for net in node.public_network_interfaces : net.ip_address]])))
 }
 
 module "server_nodes" {
@@ -17,8 +17,8 @@ module "server_nodes" {
   disks                = var.disks
   efi                  = var.efi
   secure_boot          = var.secure_boot
-  ssh_public_key              = var.ssh_public_key
-  ssh_public_key_id           = var.ssh_public_key_id
+  ssh_public_key       = var.ssh_public_key
+  ssh_public_key_id    = var.ssh_public_key_id
   ssh_private_key_path = var.ssh_private_key_path
   user                 = var.user
   password             = var.password
@@ -36,17 +36,17 @@ module "server_nodes" {
 }
 
 module "agent_nodes" {
-  count           = var.agent_count
-  source          = "../harvester_host"
-  project_name    = var.project_name
-  name            = "${var.name}-agent-${count.index}"
-  namespace       = var.namespace
-  tags            = var.tags
-  image_name      = var.image_name
-  image_namespace = var.image_namespace
-  cpu             = var.cpu
-  memory          = var.memory
-  disks           = var.disks
+  count                       = var.agent_count
+  source                      = "../harvester_host"
+  project_name                = var.project_name
+  name                        = "${var.name}-agent-${count.index}"
+  namespace                   = var.namespace
+  tags                        = var.tags
+  image_name                  = var.image_name
+  image_namespace             = var.image_namespace
+  cpu                         = var.cpu
+  memory                      = var.memory
+  disks                       = var.disks
   efi                         = var.efi
   secure_boot                 = var.secure_boot
   ssh_public_key              = var.ssh_public_key

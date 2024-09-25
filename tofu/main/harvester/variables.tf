@@ -178,7 +178,7 @@ variable "user" {
 
 variable "password" {
   description = "Password to use for VM access"
-  type = string
+  type        = string
 }
 
 variable "ssh_keys" {

@@ -41,8 +41,8 @@ module "network" {
 # }
 
 module "rke2_cluster" {
-  count           = length(local.rke2_clusters)
-  source          = "../../modules/harvester_rke2"
+  count  = length(local.rke2_clusters)
+  source = "../../modules/harvester_rke2"
   providers = {
     harvester = harvester
   }

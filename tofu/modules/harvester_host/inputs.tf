@@ -35,8 +35,8 @@ variable "namespace" {
 
 variable "tags" {
   description = "A map of strings to add as VM tags"
-  type = map(string)
-  default = {}
+  type        = map(string)
+  default     = {}
 }
 
 variable "networks" {
@@ -47,12 +47,12 @@ variable "networks" {
   If using a VM Network which will assign a public IP to the VM, ensure the "public" flag is set to true.
   EOT
   type = list(object({
-    name      = string
-    namespace = optional(string)
-    interface_type = optional(string, "bridge")
+    name            = string
+    namespace       = optional(string)
+    interface_type  = optional(string, "bridge")
     interface_model = optional(string, "virtio")
-    public    = bool
-    wait_for_lease = bool
+    public          = bool
+    wait_for_lease  = bool
   }))
   default = []
 }
@@ -65,7 +65,7 @@ variable "user" {
 
 variable "password" {
   description = "Password to use for VM access"
-  type = string
+  type        = string
 }
 
 variable "ssh_public_key_id" {
@@ -112,7 +112,7 @@ variable "disks" {
     name = string
     type = string
     size = number
-    bus = string
+    bus  = string
   }))
   default = []
 }

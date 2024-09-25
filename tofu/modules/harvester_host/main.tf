@@ -1,7 +1,7 @@
 resource "harvester_virtualmachine" "this" {
   name      = "${var.project_name}-${var.name}"
   namespace = var.namespace
-  hostname = var.name
+  hostname  = var.name
 
   tags = merge({
     ssh-user = var.user
@@ -52,7 +52,7 @@ resource "harvester_virtualmachine" "this" {
 }
 
 resource "null_resource" "cloud_init_wait" {
-  depends_on = [ harvester_virtualmachine.this ]
+  depends_on = [harvester_virtualmachine.this]
   # # IMPORTANT: We need to wait for cloud-init on Harvester VMs to complete
   provisioner "remote-exec" {
     connection {
@@ -63,7 +63,7 @@ resource "null_resource" "cloud_init_wait" {
       bastion_host        = var.ssh_bastion_host
       bastion_user        = var.ssh_bastion_user
       bastion_private_key = var.ssh_bastion_key_path != null ? file(var.ssh_bastion_key_path) : null
-      bastion_port = 22
+      bastion_port        = 22
       timeout             = "3m"
     }
     inline = [
@@ -92,7 +92,7 @@ resource "null_resource" "host_configuration" {
     bastion_host        = var.ssh_bastion_host
     bastion_user        = var.ssh_bastion_user
     bastion_private_key = var.ssh_bastion_key_path != null ? file(var.ssh_bastion_key_path) : null
-    bastion_port = 22
+    bastion_port        = 22
     timeout             = "120s"
   }
   provisioner "remote-exec" {
@@ -106,9 +106,9 @@ module "ssh_access" {
   source = "../ssh_access"
   name   = var.name
 
-  ssh_bastion_host = var.ssh_bastion_host
-  ssh_tunnels      = var.ssh_tunnels
-  private_name     = local.public_network_interfaces[0].ip_address
+  ssh_bastion_host     = var.ssh_bastion_host
+  ssh_tunnels          = var.ssh_tunnels
+  private_name         = local.public_network_interfaces[0].ip_address
   public_name          = local.public_network_interfaces[0].ip_address
   ssh_user             = var.user
   ssh_bastion_user     = var.ssh_bastion_user

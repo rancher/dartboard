@@ -26,9 +26,9 @@ locals {
   #     }
   #   }
 
-    # node_access_commands = module.k3s_cluster[i].node_access_commands
-    # ingress_class_name   = module.k3s_cluster[i].ingress_class_name
-    # }
+  # node_access_commands = module.k3s_cluster[i].node_access_commands
+  # ingress_class_name   = module.k3s_cluster[i].ingress_class_name
+  # }
   # }
   rke2_outputs = { for i, cluster in local.rke2_clusters : cluster.name_prefix => {
     kubeconfig = module.rke2_cluster[i].kubeconfig
@@ -36,7 +36,7 @@ locals {
 
     // alternative URL to reach the API from the same network this cluster is in
     private_kubernetes_api_url = "https://${module.rke2_cluster[i].first_server_public_name}:6443"
-    master_url = "https://${cluster.name_prefix}.local.gd:${var.first_kubernetes_api_port}"
+    master_url                 = "https://${cluster.name_prefix}.local.gd:${var.first_kubernetes_api_port}"
 
     // addresses of applications running in this cluster
     app_addresses = {
@@ -65,5 +65,5 @@ locals {
 
 output "clusters" {
   # value = merge(local.k3s_outputs, local.rke2_outputs)
-    value = local.rke2_outputs
+  value = local.rke2_outputs
 }
