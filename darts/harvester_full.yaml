@@ -8,6 +8,10 @@ tofu_main_directory: ./tofu/main/harvester
 
 tofu_variables:
   project_name: st
+  # Uses the file pointed by KUBECONFIG by default, see
+  # https://docs.harvesterhci.io/v1.3/faq/#how-can-i-access-the-kubeconfig-file-of-the-harvester-cluster
+  # kubeconfig: nil
+  kubeconfig: ~/.kube/config_harvester
   #ssh_private_key_path: # set to passphrase-less ssh key
   #ssh_bastion_key_path: # set to passphrase-less ssh key
   user: opensuse

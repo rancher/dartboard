@@ -4,6 +4,12 @@ variable "namespace" {
   default     = "default"
 }
 
+variable "kubeconfig" {
+  description = "Path to the Harvester kubeconfig file. Uses KUBECONFIG by default. See https://docs.harvesterhci.io/v1.3/faq/#how-can-i-access-the-kubeconfig-file-of-the-harvester-cluster"
+  type        = string
+  default     = null
+}
+
 # Upstream cluster specifics
 variable "upstream_cluster" {
   type = object({

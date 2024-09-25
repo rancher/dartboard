@@ -1,5 +1,5 @@
 provider "harvester" {
-  kubeconfig = "/home/ivln/workspace/work/RancherVCS/dartboard/harvester.yaml"
+  kubeconfig = var.kubeconfig
 }
 
 # module "network" {
