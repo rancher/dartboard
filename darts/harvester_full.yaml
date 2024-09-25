@@ -8,17 +8,20 @@ tofu_main_directory: ./tofu/main/harvester
 
 tofu_variables:
   project_name: st
+  namespace: bullseye
   # Uses the file pointed by KUBECONFIG by default, see
   # https://docs.harvesterhci.io/v1.3/faq/#how-can-i-access-the-kubeconfig-file-of-the-harvester-cluster
-  # kubeconfig: nil
-  kubeconfig: ~/.kube/config_harvester
-  ssh_public_key_path: ~/.ssh/id_ed25519.pub
-  ssh_private_key_path: ~/.ssh/id_ed25519
+  kubeconfig: /home/ivln/workspace/work/RancherVCS/dartboard/harvester.yaml
+  ssh_public_key_path: # Must set this
+  ssh_private_key_path: # Must set this
   user: opensuse
-  # password:  # set to an appropriate value
+  password:  # set to an appropriate value
   ssh_bastion_user: root
-  ssh_bastion_host: hpa4s11.prairie.suse.net # Must set this appropriately
-  namespace: bullseye
+  # ssh_bastion_host:  # Must set this appropriately
+  ssh_bastion_key_path: /home/ivln/.ssh/jenkins-elliptic-validation-new.pem
+  # ssh_shared_public_key: # optional
+  #   name: ""
+  #   namespace: ""
 
   networks:
     - interface_model: virtio
