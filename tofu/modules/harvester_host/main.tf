@@ -37,7 +37,7 @@ resource "harvester_virtualmachine" "this" {
     }
   }
 
-  ssh_keys = [var.ssh_public_key_id]
+  ssh_keys = compact([var.ssh_public_key_id, try(data.harvester_ssh_key.shared[0].id, null)])
 
   # Default "USB Tablet" config for VNC usage
   input {
@@ -51,9 +51,10 @@ resource "harvester_virtualmachine" "this" {
   }
 
   // Allow for more than the default time for VM destruction
-  timeouts {
-    delete = "15m"
-  }
+  // Uncomment once https://github.com/harvester/harvester/issues/6647 is resolved
+  # timeouts {
+  #   delete = "15m"
+  # }
 }
 
 resource "null_resource" "cloud_init_wait" {

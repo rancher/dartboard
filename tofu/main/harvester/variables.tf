@@ -212,6 +212,15 @@ variable "ssh_bastion_key_path" {
   default     = null
 }
 
+variable "ssh_shared_public_key" {
+  description = "The name and namespace of a shared public ssh key (which already exists in Harvester) to load onto the Harvester VMs"
+  type = object({
+    name      = string
+    namespace = string
+  })
+  default = null
+}
+
 variable "bastion_host_image_name" {
   description = "Unique name of a harvester image which will be used if it exists"
   default     = "opensuse-leap-15.5-minimal"

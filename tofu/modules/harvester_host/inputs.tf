@@ -100,6 +100,15 @@ variable "ssh_bastion_key_path" {
   default     = null
 }
 
+variable "ssh_shared_public_key" {
+  description = "The name and namespace of a shared public ssh key (which already exists in Harvester) to load onto the Harvester VMs"
+  type = object({
+    name      = string
+    namespace = string
+  })
+  default = null
+}
+
 variable "ssh_tunnels" {
   description = "Opens SSH tunnels to this host via the bastion"
   type        = list(list(number))

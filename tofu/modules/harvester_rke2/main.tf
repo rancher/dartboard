@@ -1,8 +1,3 @@
-locals {
-  server_names = compact(concat(flatten([for node in module.server_nodes : [for net in node.public_network_interfaces : net.ip_address]])))
-  agent_names  = compact(concat(flatten([for node in module.agent_nodes : [for net in node.public_network_interfaces : net.ip_address]])))
-}
-
 module "server_nodes" {
   count                = var.server_count
   source               = "../harvester_host"
@@ -25,6 +20,7 @@ module "server_nodes" {
   ssh_bastion_host     = var.ssh_bastion_host
   ssh_bastion_user     = var.ssh_bastion_user
   ssh_bastion_key_path = var.ssh_bastion_key_path
+  ssh_shared_public_key       = var.ssh_shared_public_key
   networks             = var.networks
   cloudinit_secrets    = var.cloudinit_secrets
   ssh_tunnels = count.index == 0 ? [
@@ -57,6 +53,7 @@ module "agent_nodes" {
   ssh_bastion_host            = var.ssh_bastion_host
   ssh_bastion_user            = var.ssh_bastion_user
   ssh_bastion_key_path        = var.ssh_bastion_key_path
+  ssh_shared_public_key       = var.ssh_shared_public_key
   networks                    = var.networks
   cloudinit_secrets           = var.cloudinit_secrets
   host_configuration_commands = var.host_configuration_commands

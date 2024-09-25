@@ -33,7 +33,7 @@ ssh_authorized_keys:
     $${public_key}
 %%{ endfor ~}
 EOT
-  public_keys                       = [var.ssh_public_key]
+  public_keys                       = compact([var.ssh_public_key, try(data.harvester_ssh_key.shared[0].public_key, null)])
   authorized_keys_userdata          = templatestring(local.ssh_authorized_keys, { ssh_keys = local.public_keys })
   all_user_data = join("\n", compact(flatten(concat(
     [for secret in harvester_cloudinit_secret.this[*] : secret.user_data if length(secret) > 0],
