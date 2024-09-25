@@ -49,6 +49,11 @@ resource "harvester_virtualmachine" "this" {
   cloudinit {
     user_data = local.cloud_init_user_data
   }
+
+  // Allow for more than the default time for VM destruction
+  timeouts {
+    delete = "15m"
+  }
 }
 
 resource "null_resource" "cloud_init_wait" {
