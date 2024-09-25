@@ -1,5 +1,5 @@
 resource "harvester_virtualmachine" "this" {
-  name      = var.name
+  name      = "${var.project_name}-${var.name}"
   namespace = var.namespace
   hostname = var.name
 
