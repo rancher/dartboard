@@ -43,7 +43,7 @@ tofu_variables:
 
     # harvester-specific
     cpu: 2
-    memory: 4
+    memory: 8
     tags: { "Owner": "st" }
     image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
     image_namespace: bullseye
