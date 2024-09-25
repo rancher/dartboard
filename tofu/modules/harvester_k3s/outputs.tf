@@ -1,9 +1,17 @@
+output "first_server_private_network_interfaces" {
+  value = module.server_nodes[0].private_network_interfaces
+}
+
+output "first_server_public_network_interfaces" {
+  value = module.server_nodes[0].public_network_interfaces
+}
+
 output "first_server_private_name" {
-  value = var.server_count > 0 ? module.server_nodes[0].private_name : null
+  value = module.server_nodes[0].private_address != null ? "${module.server_nodes[0].private_address}.sslip.io" : null
 }
 
 output "first_server_public_name" {
-  value = var.server_count > 0 ? module.server_nodes[0].public_name : null
+  value = module.server_nodes[0].public_address != null ? "${module.server_nodes[0].public_address}.sslip.io" : null
 }
 
 output "kubeconfig" {
@@ -32,4 +40,8 @@ output "node_access_commands" {
 
 output "ingress_class_name" {
   value = module.k3s.ingress_class_name
+}
+
+output "cloudinit_splat" {
+  value = module.server_nodes[*].cloudinit_splat
 }
