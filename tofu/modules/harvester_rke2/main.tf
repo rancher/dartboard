@@ -19,7 +19,8 @@ module "server_nodes" {
   secure_boot          = var.secure_boot
   ssh_keys             = var.ssh_keys
   ssh_private_key_path = var.ssh_private_key_path
-  ssh_user             = var.ssh_user
+  user                 = var.user
+  password             = var.password
   ssh_bastion_host     = var.ssh_bastion_host
   ssh_bastion_user     = var.ssh_bastion_user
   ssh_bastion_key_path = var.ssh_bastion_key_path
@@ -49,7 +50,8 @@ module "agent_nodes" {
   secure_boot                 = var.secure_boot
   ssh_keys                    = var.ssh_keys
   ssh_private_key_path        = var.ssh_private_key_path
-  ssh_user                    = var.ssh_user
+  user                        = var.user
+  password                    = var.password
   ssh_bastion_host            = var.ssh_bastion_host
   ssh_bastion_user            = var.ssh_bastion_user
   ssh_bastion_key_path        = var.ssh_bastion_key_path
@@ -69,7 +71,7 @@ module "rke2" {
   sans         = var.sans
 
   ssh_private_key_path      = var.ssh_private_key_path
-  ssh_user                  = var.ssh_user
+  ssh_user                  = var.user
   ssh_bastion_host          = var.ssh_bastion_host
   ssh_bastion_user          = var.ssh_bastion_user
   local_kubernetes_api_port = var.local_kubernetes_api_port

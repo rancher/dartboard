@@ -4,7 +4,7 @@ resource "harvester_virtualmachine" "this" {
   hostname = var.name
 
   tags = merge({
-    ssh-user = var.ssh_user
+    ssh-user = var.user
     Project  = var.project_name
   }, var.tags)
 
@@ -52,18 +52,19 @@ resource "harvester_virtualmachine" "this" {
 }
 
 resource "null_resource" "cloud_init_wait" {
-  # IMPORTANT: We need to wait for cloud-init on Harvester VMs to complete
+  depends_on = [ harvester_virtualmachine.this ]
+  # # IMPORTANT: We need to wait for cloud-init on Harvester VMs to complete
   provisioner "remote-exec" {
     connection {
       host        = local.public_network_interfaces[0].ip_address
       private_key = var.ssh_private_key_path != null ? file(var.ssh_private_key_path) : null
-      user        = var.ssh_user
+      user        = var.user
 
       bastion_host        = var.ssh_bastion_host
       bastion_user        = var.ssh_bastion_user
       bastion_private_key = var.ssh_bastion_key_path != null ? file(var.ssh_bastion_key_path) : null
       bastion_port = 22
-      timeout             = "120s"
+      timeout             = "3m"
     }
     inline = [
       "echo 'Waiting for cloud-init to complete...'",
@@ -71,7 +72,6 @@ resource "null_resource" "cloud_init_wait" {
       "echo 'Completed cloud-init!'",
     ]
   }
-  depends_on = [ harvester_virtualmachine.this ]
 }
 
 resource "harvester_cloudinit_secret" "this" {
@@ -82,12 +82,12 @@ resource "harvester_cloudinit_secret" "this" {
 }
 
 resource "null_resource" "host_configuration" {
-  depends_on = [harvester_virtualmachine.this]
+  depends_on = [null_resource.cloud_init_wait]
 
   connection {
     host        = local.public_network_interfaces[0].ip_address
     private_key = var.ssh_private_key_path != null ? file(var.ssh_private_key_path) : null
-    user        = var.ssh_user
+    user        = var.user
 
     bastion_host        = var.ssh_bastion_host
     bastion_user        = var.ssh_bastion_user
@@ -110,7 +110,7 @@ module "ssh_access" {
   ssh_tunnels      = var.ssh_tunnels
   private_name     = local.public_network_interfaces[0].ip_address
   public_name          = local.public_network_interfaces[0].ip_address
-  ssh_user             = var.ssh_user
+  ssh_user             = var.user
   ssh_bastion_user     = var.ssh_bastion_user
   ssh_private_key_path = var.ssh_private_key_path
 }

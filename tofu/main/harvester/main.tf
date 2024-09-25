@@ -13,26 +13,6 @@ provider "harvester" {
 #   ssh_private_key_path = var.ssh_private_key_path
 # }
 
-# module "bastion" {
-#   source          = "../../modules/harvester_host"
-#   project_name    = var.project_name
-#   name            = "bastion"
-#   image_name      = var.bastion_host_image_name
-#   image_namespace = var.namespace
-#   namespace       = var.namespace
-#   cpu             = 2
-#   memory          = 4
-#   disks           = [var.disks[0]]
-#   efi             = var.efi
-#   secure_boot     = var.secure_boot
-#   ssh_keys        = var.ssh_keys
-
-#   host_configuration_commands = var.host_configuration_commands
-#   ssh_private_key_path        = var.ssh_private_key_path
-#   ssh_user                    = var.ssh_bastion_user
-#   networks                    = var.networks
-# }
-
 # module "k3s_cluster" {
 #   count        = length(local.k3s_clusters)
 #   source       = "../../modules/harvester_k3s"
@@ -98,7 +78,8 @@ module "rke2_cluster" {
   tunnel_app_https_port       = var.first_app_https_port + length(local.k3s_clusters) + count.index
   ssh_keys                    = var.ssh_keys
   ssh_private_key_path        = var.ssh_private_key_path
-  ssh_user                    = var.ssh_user
+  user                        = var.user
+  password                    = var.password
   ssh_bastion_host            = var.ssh_bastion_host
   ssh_bastion_user            = var.ssh_bastion_user
   ssh_bastion_key_path        = var.ssh_private_key_path

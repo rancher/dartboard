@@ -57,6 +57,17 @@ variable "networks" {
   default = []
 }
 
+variable "user" {
+  description = "User name to use for VM access"
+  type        = string
+  default     = "opensuse"
+}
+
+variable "password" {
+  description = "Password to use for VM access"
+  type = string
+}
+
 variable "ssh_keys" {
   description = "List of SSH key names and namespaces to be pulled from Harvester"
   type = list(object({
@@ -66,11 +77,7 @@ variable "ssh_keys" {
   default = []
 }
 
-variable "ssh_user" {
-  description = "User name to use for the SSH connection"
-  type        = string
-  default     = "opensuse"
-}
+
 
 variable "ssh_private_key_path" {
   description = "Path of private ssh key used to access the instance"

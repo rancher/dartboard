@@ -3,8 +3,19 @@ locals {
   nonexistent_cloudinit_secrets_map = {for cloudinit in local.nonexistent_cloudinit_secrets: cloudinit.name => cloudinit}
   existing_cloudinit_secrets = [for cloudinit in var.cloudinit_secrets: cloudinit if !contains(local.nonexistent_cloudinit_secrets, cloudinit)]
   existing_cloudinit_secrets_map = {for cloudinit in local.existing_cloudinit_secrets: cloudinit.name => cloudinit}
-  guest_agent_init     = <<EOT
+  default_init = <<EOT
 #cloud-config
+users:
+  - default
+  - ${var.user}
+password: ${var.password}
+disable_root: false
+chpasswd:
+  expire: false
+  users:
+    - {name: ${var.user}, password: ${var.password}, type: text}
+EOT
+  guest_agent_init     = <<EOT
 package_update: true
 packages:
   - qemu-guest-agent
@@ -29,7 +40,7 @@ EOT
     [ for secret in data.harvester_cloudinit_secret.this[*] : secret.user_data if length(secret) > 0]
     ))))
   wait_for_lease = contains(var.networks[*].wait_for_lease, true)
-  cloud_init_user_data =  local.wait_for_lease ? format("%s\n%s%s\n", local.all_user_data, local.guest_agent_init, local.authorized_keys_userdata) : local.all_user_data
+  cloud_init_user_data =  local.wait_for_lease ? format("%s%s\n%s%s\n", local.default_init, local.all_user_data, local.guest_agent_init, local.authorized_keys_userdata) : format("%s%s", local.default_init, local.all_user_data)
   networks_map = {for network in var.networks: network.name => network }
   ssh_keys_map = {for ssh_key in var.ssh_keys: ssh_key.name => ssh_key }
   disks_map = {for disk in var.disks: disk.name => disk }
