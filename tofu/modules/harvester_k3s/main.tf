@@ -60,7 +60,7 @@ module "agent_nodes" {
 }
 
 # TODO: Implement harvester_db module
-module "rds" {
+module "db" {
   source                = "../harvester_db"
   count                 = var.datastore == null ? 0 : 1
   datastore             = var.datastore
@@ -72,11 +72,11 @@ module "k3s" {
   source       = "../k3s"
   project      = var.project_name
   name         = var.name
-  server_names = [for node in module.server_nodes : node.private_name]
-  agent_names  = [for node in module.agent_nodes : node.private_name]
+  server_names = [for node in module.server_nodes : node.public_address]
+  agent_names  = [for node in module.agent_nodes : node.public_address]
   agent_labels = var.agent_labels
   agent_taints = var.agent_taints
-  sans         = compact(concat(var.sans, var.server_count > 0 ? [module.server_nodes[0].private_name, module.server_nodes[0].public_name] : []))
+  sans         = compact(concat(var.sans, var.server_count > 0 ? [module.server_nodes[0].private_address, module.server_nodes[0].public_address] : []))
 
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_user                  = var.user
@@ -91,9 +91,9 @@ module "k3s" {
     var.datastore_endpoint != null ?
     var.datastore_endpoint :
     var.datastore == "mariadb" ?
-    "mysql://${module.rds[0].username}:${module.rds[0].password}@tcp(${module.rds[0].endpoint})/${module.rds[0].db_name}" :
+    "mysql://${module.db[0].username}:${module.db[0].password}@tcp(${module.db[0].endpoint})/${module.db[0].db_name}" :
     var.datastore == "postgres" ?
-    "postgres://${module.rds[0].username}:${module.rds[0].password}@${module.rds[0].endpoint}/${module.rds[0].db_name}" :
+    "postgres://${module.db[0].username}:${module.db[0].password}@${module.db[0].endpoint}/${module.db[0].db_name}" :
     null
   )
 }

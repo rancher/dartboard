@@ -3,11 +3,6 @@ variable "project_name" {
   default     = "st"
 }
 
-variable "availability_zone" {
-  description = "Availability zone where the instance is created"
-  type        = string
-}
-
 variable "name" {
   description = "Symbolic name of this instance"
   type        = string
