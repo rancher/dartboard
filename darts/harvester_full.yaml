@@ -4,7 +4,7 @@
 # commented out lines show defaults
 
 tofu_main_directory: ./tofu/main/harvester
-#tofu_parallelism: 10
+tofu_parallelism: 100
 
 tofu_variables:
   project_name: st
