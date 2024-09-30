@@ -4,7 +4,7 @@ resource "local_file" "ssh_script" {
     ssh -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" \
       -i ${var.ssh_private_key_path} \
       %{if var.ssh_bastion_host != null~}
-      -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${var.ssh_private_key_path} -W %h:%p ${var.ssh_user}@${var.ssh_bastion_host}" ${var.ssh_user}@${var.private_name} \
+      -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${var.ssh_private_key_path} -W %h:%p ${var.ssh_bastion_user}@${var.ssh_bastion_host}" ${var.ssh_user}@${var.private_name} \
       %{else~}
       ${var.ssh_user}@${var.public_name} \
       %{endif~}
