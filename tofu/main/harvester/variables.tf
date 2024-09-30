@@ -22,11 +22,11 @@ variable "upstream_cluster" {
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the upstream cluster to reserve it for monitoring
 
     // harvester-specific
-    cpu             = number      // Number of CPUs to allocate for the VM(s)
-    memory          = number      // Number of GB of Memory to allocate for the VM(s)
-    tags            = map(string) // Harvester tags to apply to the VM
-    image_name      = string      // AMI for downstream cluster nodes
-    image_namespace = string      // Namespace to search for OR upload image, if it does not exist
+    cpu             = number           // Number of CPUs to allocate for the VM(s)
+    memory          = number           // Number of GB of Memory to allocate for the VM(s)
+    tags            = map(string)      // Harvester tags to apply to the VM
+    image_name      = optional(string) // Name of the image to create machines. Leave for an openSUSE default
+    image_namespace = optional(string) // Namespace for the image, leave null to use the global namespace
   })
   default = {
     name_prefix    = "upstream"
@@ -43,8 +43,8 @@ variable "upstream_cluster" {
       "Owner" : "st",
       "DoNotDelete" : "true"
     }
-    image_name      = "opensuse-leap-15.5-minimal" // https://download.opensuse.org/distribution/leap/15.5/appliances/openSUSE-Leap-15.5-Minimal-VM.x86_64-Cloud.qcow2
-    image_namespace = "default"
+    image_name      = null
+    image_namespace = null
   }
 }
 
@@ -61,11 +61,11 @@ variable "downstream_cluster_templates" {
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring
 
     // harvester-specific
-    cpu             = number      // Number of CPUs to allocate for the VM(s)
-    memory          = number      // Number of GB of Memory to allocate for the VM(s)
-    tags            = map(string) // Harvester tags to apply to the VM
-    image_name      = string      // AMI for downstream cluster nodes
-    image_namespace = string      // Namespace to search for OR upload image, if it does not exist
+    cpu             = number           // Number of CPUs to allocate for the VM(s)
+    memory          = number           // Number of GB of Memory to allocate for the VM(s)
+    tags            = map(string)      // Harvester tags to apply to the VM
+    image_name      = optional(string) // Name of the image to create machines. Leave for an openSUSE default
+    image_namespace = optional(string) // Namespace for the image, leave null to use the global namespace
   }))
   default = [{
     cluster_count  = 0 // defaults to 0 to keep in-line with previous behavior
@@ -83,8 +83,8 @@ variable "downstream_cluster_templates" {
       "Owner" : "st",
       "DoNotDelete" : "true"
     }
-    image_name      = "opensuse-leap-15.5-minimal" // https://download.opensuse.org/distribution/leap/15.5/appliances/openSUSE-Leap-15.5-Minimal-VM.x86_64-Cloud.qcow2
-    image_namespace = "default"
+    image_name      = null
+    image_namespace = null
   }]
 }
 
@@ -100,11 +100,11 @@ variable "tester_cluster" {
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring
 
     // harvester-specific
-    cpu             = number      // Number of CPUs to allocate for the VM(s)
-    memory          = number      // Number of GB of Memory to allocate for the VM(s)
-    tags            = map(string) // Harvester tags to apply to the VM
-    image_name      = string      // AMI for downstream cluster nodes
-    image_namespace = string      // Namespace to search for OR upload image, if it does not exist
+    cpu             = number           // Number of CPUs to allocate for the VM(s)
+    memory          = number           // Number of GB of Memory to allocate for the VM(s)
+    tags            = map(string)      // Harvester tags to apply to the VM
+    image_name      = optional(string) // Name of the image to create machines. Leave for an openSUSE default
+    image_namespace = optional(string) // Namespace to search for OR upload image, if it does not exist
   })
   default = {
     name_prefix    = "tester"
@@ -121,8 +121,8 @@ variable "tester_cluster" {
       "Owner" : "st",
       "DoNotDelete" : "true"
     }
-    image_name      = "opensuse-leap-15.5-minimal" // https://download.opensuse.org/distribution/leap/15.5/appliances/openSUSE-Leap-15.5-Minimal-VM.x86_64-Cloud.qcow2
-    image_namespace = "default"
+    image_name      = null
+    image_namespace = null
   }
 }
 

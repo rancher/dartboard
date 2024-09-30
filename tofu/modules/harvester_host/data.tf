@@ -1,4 +1,5 @@
 data "harvester_image" "this" {
+  count = var.image_name != null && var.image_namespace != null ? 1 : 0
   display_name = var.image_name
   namespace    = var.image_namespace
 }

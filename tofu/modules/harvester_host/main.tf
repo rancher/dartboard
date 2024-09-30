@@ -32,7 +32,9 @@ resource "harvester_virtualmachine" "this" {
       type       = disk.value.type
       size       = "${disk.value.size}Gi"
       bus        = disk.value.bus
-      image      = index(var.disks, disk.value) == 0 ? data.harvester_image.this.id : null
+      image      = index(var.disks, disk.value) == 0 ? (
+              var.image_name == null ? var.default_image_id : data.harvester_image.this[0].id
+      ) : null
       boot_order = index(var.disks, disk.value) + 1 //boot_order starts at 1, while the index() function is 0-based
       auto_delete = true
     }

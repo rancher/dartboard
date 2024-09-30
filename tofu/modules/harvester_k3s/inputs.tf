@@ -8,14 +8,22 @@ variable "name" {
   type        = string
 }
 
-variable "image_name" {
-  description = "Image name for all VMs in this cluster"
+variable "default_image_id" {
+  description = "ID of the VM image for all VMs in this clusters when image_name is not specified"
   type        = string
+  default     = null
+}
+
+variable "image_name" {
+  description = "Image name to override all VMs in this cluster. Must be already present in Harvester. Requires image_namespace"
+  type        = string
+  default     = null
 }
 
 variable "image_namespace" {
-  description = "Namespace to search for OR upload image, if it does not exist"
-  default     = "default"
+  description = "Namespace for image_name. Must be already present in Harvester"
+  type        = string
+  default     = null
 }
 
 variable "cpu" {
