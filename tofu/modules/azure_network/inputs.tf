@@ -14,11 +14,11 @@ variable "resource_group_name" {
 }
 
 variable "ssh_public_key_path" {
-  description = "Path of public ssh key for AWS"
+  description = "Path of public ssh key for hosts created by this module"
   type        = string
 }
 
 variable "ssh_private_key_path" {
-  description = "Path of private ssh key for AWS"
+  description = "Path of private ssh for hosts created by this module"
   type        = string
 }
