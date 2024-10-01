@@ -9,18 +9,6 @@ chpasswd:
   users:
     - {name: ${user}, password: ${password}, type: text}
 package_update: true
-packages:
-%{ if install_guest_agent ~}
-  - qemu-guest-agent
-%{ endif ~}
-  - iptables
-runcmd:
-%{ if install_guest_agent ~}
-  - - systemctl
-    - enable
-    - --now
-    - qemu-guest-agent.service
-%{ endif ~}
 ssh_authorized_keys:
 %{ for public_key in ssh_keys ~}
   - >-
