@@ -162,5 +162,10 @@ variable "cloudinit_secrets" {
 
 variable "host_configuration_commands" {
   description = "Commands to run when the host is deployed"
-  default     = ["cat /etc/os-release"]
+  default     = [
+    "echo 'Waiting for cloud-init to complete...'",
+    "cloud-init status --wait > /dev/null",
+    "echo 'Completed cloud-init!'",
+    "cat /etc/os-release"
+  ]
 }
