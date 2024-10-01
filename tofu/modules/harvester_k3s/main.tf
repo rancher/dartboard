@@ -1,29 +1,29 @@
 module "server_nodes" {
-  count                 = var.server_count
-  source                = "../harvester_host"
-  project_name          = var.project_name
-  name                  = "${var.name}-server-${count.index}"
-  namespace             = var.namespace
-  tags                  = var.tags
-  default_image_id      = var.default_image_id
-  image_name            = var.image_name
-  image_namespace       = var.image_namespace
-  cpu                   = var.cpu
-  memory                = var.memory
-  disks                 = var.disks
-  efi                   = var.efi
-  secure_boot           = var.secure_boot
-  ssh_public_key        = var.ssh_public_key
-  ssh_public_key_id     = var.ssh_public_key_id
-  ssh_private_key_path  = var.ssh_private_key_path
-  user                  = var.user
-  password              = var.password
-  ssh_bastion_host      = var.ssh_bastion_host
-  ssh_bastion_user      = var.ssh_bastion_user
-  ssh_bastion_key_path  = var.ssh_bastion_key_path
-  ssh_shared_public_key = var.ssh_shared_public_key
-  networks              = var.networks
-  cloudinit_secrets     = var.cloudinit_secrets
+  count                  = var.server_count
+  source                 = "../harvester_host"
+  project_name           = var.project_name
+  name                   = "${var.name}-server-${count.index}"
+  namespace              = var.namespace
+  tags                   = var.tags
+  default_image_id       = var.default_image_id
+  image_name             = var.image_name
+  image_namespace        = var.image_namespace
+  cpu                    = var.cpu
+  memory                 = var.memory
+  disks                  = var.disks
+  efi                    = var.efi
+  secure_boot            = var.secure_boot
+  ssh_public_key         = var.ssh_public_key
+  ssh_public_key_id      = var.ssh_public_key_id
+  ssh_private_key_path   = var.ssh_private_key_path
+  user                   = var.user
+  password               = var.password
+  ssh_bastion_host       = var.ssh_bastion_host
+  ssh_bastion_user       = var.ssh_bastion_user
+  ssh_bastion_key_path   = var.ssh_bastion_key_path
+  ssh_shared_public_keys = var.ssh_shared_public_keys
+  networks               = var.networks
+  cloudinit_secrets      = var.cloudinit_secrets
   ssh_tunnels = count.index == 0 ? [
     [var.local_kubernetes_api_port, 6443],
     [var.tunnel_app_http_port, 80],
@@ -55,19 +55,10 @@ module "agent_nodes" {
   ssh_bastion_host            = var.ssh_bastion_host
   ssh_bastion_user            = var.ssh_bastion_user
   ssh_bastion_key_path        = var.ssh_bastion_key_path
-  ssh_shared_public_key       = var.ssh_shared_public_key
+  ssh_shared_public_keys      = var.ssh_shared_public_keys
   networks                    = var.networks
   cloudinit_secrets           = var.cloudinit_secrets
   host_configuration_commands = var.host_configuration_commands
-}
-
-# TODO: Implement harvester_db module
-module "db" {
-  source       = "../harvester_db"
-  count        = var.datastore == null ? 0 : 1
-  datastore    = var.datastore
-  project_name = var.project_name
-  name         = "kine"
 }
 
 module "k3s" {
@@ -89,13 +80,4 @@ module "k3s" {
   distro_version      = var.distro_version
   max_pods            = var.max_pods
   node_cidr_mask_size = var.node_cidr_mask_size
-  datastore_endpoint = (
-    var.datastore_endpoint != null ?
-    var.datastore_endpoint :
-    var.datastore == "mariadb" ?
-    "mysql://${module.db[0].username}:${module.db[0].password}@tcp(${module.db[0].endpoint})/${module.db[0].db_name}" :
-    var.datastore == "postgres" ?
-    "postgres://${module.db[0].username}:${module.db[0].password}@${module.db[0].endpoint}/${module.db[0].db_name}" :
-    null
-  )
 }

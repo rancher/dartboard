@@ -12,7 +12,4 @@ locals {
   rke2_clusters = [for cluster in local.all_clusters : cluster if strcontains(cluster.distro_version, "rke2")]
 
   cloudinit_secrets = [for secret in var.cloudinit_secrets : { name = secret.name, namespace = secret.namespace, user_data = file(secret.user_data) }]
-
-  # first_server_public_names = [ for cluster in module.rke2_cluster: cluster.first_server_public_network_interfaces[0].ip_address]
-  # first_server_private_names =  [ for cluster in module.rke2_clusters: cluster.first_server_private_network_interfaces[0].ip_address]
 }

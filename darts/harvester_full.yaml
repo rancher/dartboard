@@ -11,76 +11,69 @@ tofu_variables:
   namespace: bullseye
   # Uses the file pointed by KUBECONFIG by default, see
   # https://docs.harvesterhci.io/v1.3/faq/#how-can-i-access-the-kubeconfig-file-of-the-harvester-cluster
-  kubeconfig: /home/ivln/workspace/work/RancherVCS/dartboard/harvester.yaml
-  ssh_public_key_path: # Must set this
-  ssh_private_key_path: # Must set this
-  user: opensuse
-  password:  # set to an appropriate value
-  ssh_bastion_user: root
-  # ssh_bastion_host:  # Must set this appropriately
-  ssh_bastion_key_path: /home/ivln/.ssh/jenkins-elliptic-validation-new.pem
-  # ssh_shared_public_key: # optional
-  #   name: ""
-  #   namespace: ""
+  # kubeconfig: # Must set this to a valid Harvester kubeconfig
+  # ssh_public_key_path: # Must set this appropriately
+  # ssh_private_key_path: # Must set this appropriately
+  # user: opensuse
+  # password: # set to an appropriate value
+  # ssh_bastion_user: root # Must set this appropriately if there is a bastion between you and Harvester
+  # ssh_bastion_host: # Must set this appropriately if there is a bastion between you and Harvester
+  # ssh_bastion_key_path: # Must set this appropriately if there is a bastion between you and Harvester
+  # ssh_shared_public_key: # Set this to a shared key that exists inside of Harvester if desired
+  #   name:
+  #   namespace:
 
-  networks:
-    - interface_model: virtio
-      interface_type: bridge
-      name: vmnet-shared
-      namespace: default
-      public: true
-      wait_for_lease: true
+  # networks:
+  #   - interface_model: virtio
+  #     interface_type: bridge
+  #     name: vmnet-shared
+  #     namespace: default
+  #     public: true
+  #     wait_for_lease: true
 
-  disks:
-    - bus: "virtio"
-      name: "disk-0"
-      size: 35
-      type: "disk"
+  # disks:
+  #   - bus: "virtio"
+  #     name: "disk-0"
+  #     size: 35
+  #     type: "disk"
 
   upstream_cluster:
     name_prefix: upstream
     server_count: 3
     agent_count: 0
-    distro_version: "v1.26.9+rke2r1"
+    distro_version: "v1.26.9+k3s1"
     reserve_node_for_monitoring: false
-
     # harvester-specific
     cpu: 2
     memory: 8
-    tags: { "Owner": "st" }
-#    image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
-#    image_namespace: null # default to the same namespace above
+    # image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
+    # image_namespace: bullseye
 
   #  deploy_tester_cluster: true
   tester_cluster:
     name_prefix: tester
     server_count: 1
     agent_count: 0
-    distro_version: "v1.26.9+rke2r1"
+    distro_version: "v1.26.9+k3s1"
     reserve_node_for_monitoring: false
-
     # harvester-specific
     cpu: 2
     memory: 4
-    tags: { "Owner": "st" }
-#    image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
-#    image_namespace: null # default to the same namespace above
+    # image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
+    # image_namespace: bullseye
 
   downstream_cluster_templates:
-    - cluster_count: 1
+    - cluster_count: 0
       name_prefix: downstream
       server_count: 1
-      agent_count: 1
-      distro_version: "v1.26.9+rke2r1"
+      agent_count: 0
+      distro_version: "v1.26.9+k3s1"
       reserve_node_for_monitoring: false
-
       # harvester-specific
       cpu: 2
       memory: 8
-      tags: { "Owner": "st" }
-#    image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
-#    image_namespace: null # default to the same namespace above
-
+      # image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
+      # image_namespace: bullseye
 #  first_kubernetes_api_port: 7445
 #  first_app_http_port: 9080
 #  first_app_https_port: 9443
