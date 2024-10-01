@@ -4,11 +4,11 @@
 # commented out lines show defaults
 
 tofu_main_directory: ./tofu/main/harvester
-tofu_parallelism: 100
+# tofu_parallelism: 100
 
 tofu_variables:
-  project_name: st
-  namespace: bullseye
+  # project_name: st
+  # namespace: bullseye
   # Uses the file pointed by KUBECONFIG by default, see
   # https://docs.harvesterhci.io/v1.3/faq/#how-can-i-access-the-kubeconfig-file-of-the-harvester-cluster
   # kubeconfig: # Must set this to a valid Harvester kubeconfig
@@ -38,54 +38,54 @@ tofu_variables:
   #     type: "disk"
 
   upstream_cluster:
-    name_prefix: upstream
-    server_count: 3
-    agent_count: 0
-    distro_version: "v1.26.9+k3s1"
-    reserve_node_for_monitoring: false
-    # harvester-specific
-    cpu: 2
-    memory: 8
-    # image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
-    # image_namespace: bullseye
+    # name_prefix: upstream
+    # server_count: 3
+    # agent_count: 0
+    # distro_version: "v1.26.9+k3s1"
+    # reserve_node_for_monitoring: false
+    # # harvester-specific
+    # cpu: 2
+    # memory: 8
+    # # image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
+    # # image_namespace: bullseye
 
   #  deploy_tester_cluster: true
   tester_cluster:
-    name_prefix: tester
-    server_count: 1
-    agent_count: 0
-    distro_version: "v1.26.9+k3s1"
-    reserve_node_for_monitoring: false
-    # harvester-specific
-    cpu: 2
-    memory: 4
-    # image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
-    # image_namespace: bullseye
+    # name_prefix: tester
+    # server_count: 1
+    # agent_count: 0
+    # distro_version: "v1.26.9+k3s1"
+    # reserve_node_for_monitoring: false
+    # # harvester-specific
+    # cpu: 2
+    # memory: 4
+    # # image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
+    # # image_namespace: bullseye
 
   downstream_cluster_templates: # add additional entries to provision more than 1 cluster
-    - cluster_count: 0 # set this to a value greater than 0 to provision a downstream clueter
-      name_prefix: downstream
-      server_count: 1
-      agent_count: 0
-      distro_version: "v1.26.9+k3s1"
-      reserve_node_for_monitoring: false
-      # harvester-specific
-      cpu: 2
-      memory: 8
-      # image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
-      # image_namespace: bullseye
+    # - cluster_count: 0 # set this to a value greater than 0 to provision a downstream clueter
+    #   name_prefix: downstream
+    #   server_count: 1
+    #   agent_count: 0
+    #   distro_version: "v1.26.9+k3s1"
+    #   reserve_node_for_monitoring: false
+    #   # harvester-specific
+    #   cpu: 2
+    #   memory: 8
+    #   # image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
+    #   # image_namespace: bullseye
 #  first_kubernetes_api_port: 7445
 #  first_app_http_port: 9080
 #  first_app_https_port: 9443
 
 chart_variables:
-  rancher_replicas: 3
-  downstream_rancher_monitoring: true
-  admin_password: adminadminadmin
-  rancher_monitoring_version: 104.1.0+up57.0.3 # see https://github.com/rancher/charts/tree/release-v2.9/assets/rancher-monitoring-crd
-  cert_manager_version: 1.11.1
+  # rancher_replicas: 3
+  # downstream_rancher_monitoring: true
+  # admin_password: adminadminadmin
+  # rancher_monitoring_version: 104.1.0+up57.0.3 # see https://github.com/rancher/charts/tree/release-v2.9/assets/rancher-monitoring-crd
+  # cert_manager_version: 1.11.1
   #  tester_grafana_version: 6.56.5
-  rancher_version: 2.9.1
+  # rancher_version: 2.9.1
 #  force_prime_registry: false
 
 # Use the following for 2.8.6:
@@ -97,8 +97,8 @@ chart_variables:
 #  rancher_image_tag_override: v2.8.6-debug-1
 
 test_variables:
-  test_config_maps: 2000
-  test_secrets: 2000
-  test_roles: 20
-  test_users: 10
-  test_projects: 20
+  # test_config_maps: 2000
+  # test_secrets: 2000
+  # test_roles: 20
+  # test_users: 10
+  # test_projects: 20
