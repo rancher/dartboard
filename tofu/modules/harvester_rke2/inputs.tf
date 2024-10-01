@@ -117,13 +117,13 @@ variable "ssh_bastion_key_path" {
   default     = null
 }
 
-variable "ssh_shared_public_key" {
-  description = "The name and namespace of a shared public ssh key (which already exists in Harvester) to load onto the Harvester VMs"
-  type = object({
+variable "ssh_shared_public_keys" {
+  description = "A list of shared public ssh key names + namespaces (which already exists in Harvester) to load onto the Harvester VMs"
+  type = list(object({
     name      = string
     namespace = string
-  })
-  default = null
+  }))
+  default = []
 }
 
 variable "ssh_tunnels" {

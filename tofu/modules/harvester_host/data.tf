@@ -17,7 +17,7 @@ data "harvester_cloudinit_secret" "this" {
 }
 
 data "harvester_ssh_key" "shared" {
-  count = var.ssh_shared_public_key != null ? 1 : 0
-  name = var.ssh_shared_public_key.name
-  namespace = var.ssh_shared_public_key.namespace
+  for_each = toset(var.ssh_shared_public_keys)
+  name = each.value.name
+  namespace = each.value.namespace
 }

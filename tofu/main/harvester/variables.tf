@@ -24,7 +24,7 @@ variable "upstream_cluster" {
     // harvester-specific
     cpu             = number           // Number of CPUs to allocate for the VM(s)
     memory          = number           // Number of GB of Memory to allocate for the VM(s)
-    tags            = map(string)      // Harvester tags to apply to the VM
+    tags            = optional(map(string)) // Harvester tags to apply to the VM
     image_name      = optional(string) // Name of the image to create machines. Leave for an openSUSE default
     image_namespace = optional(string) // Namespace for the image, leave null to use the global namespace
   })
@@ -63,7 +63,7 @@ variable "downstream_cluster_templates" {
     // harvester-specific
     cpu             = number           // Number of CPUs to allocate for the VM(s)
     memory          = number           // Number of GB of Memory to allocate for the VM(s)
-    tags            = map(string)      // Harvester tags to apply to the VM
+    tags            = optional(map(string)) // Harvester tags to apply to the VM
     image_name      = optional(string) // Name of the image to create machines. Leave for an openSUSE default
     image_namespace = optional(string) // Namespace for the image, leave null to use the global namespace
   }))
@@ -102,7 +102,7 @@ variable "tester_cluster" {
     // harvester-specific
     cpu             = number           // Number of CPUs to allocate for the VM(s)
     memory          = number           // Number of GB of Memory to allocate for the VM(s)
-    tags            = map(string)      // Harvester tags to apply to the VM
+    tags            = optional(map(string)) // Harvester tags to apply to the VM
     image_name      = optional(string) // Name of the image to create machines. Leave for an openSUSE default
     image_namespace = optional(string) // Namespace to search for OR upload image, if it does not exist
   })
@@ -181,15 +181,6 @@ variable "password" {
   type        = string
 }
 
-variable "ssh_keys" {
-  description = "List of SSH key names and namespaces to be pulled from Harvester"
-  type = list(object({
-    name      = string
-    namespace = string
-  }))
-  default = []
-}
-
 variable "ssh_public_key_path" {
   description = "Path to SSH public key file (can be generated with `ssh-keygen -t ed25519`)"
   default     = "~/.ssh/id_ed25519.pub"
@@ -212,13 +203,13 @@ variable "ssh_bastion_key_path" {
   default     = null
 }
 
-variable "ssh_shared_public_key" {
-  description = "The name and namespace of a shared public ssh key (which already exists in Harvester) to load onto the Harvester VMs"
-  type = object({
+variable "ssh_shared_public_keys" {
+  description = "A list of shared public ssh key names + namespaces (which already exists in Harvester) to load onto the Harvester VMs"
+  type = list(object({
     name      = string
     namespace = string
-  })
-  default = null
+  }))
+  default = []
 }
 
 variable "bastion_host_image_name" {
