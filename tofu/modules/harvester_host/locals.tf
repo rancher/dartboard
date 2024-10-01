@@ -6,7 +6,6 @@ locals {
   public_keys                       = compact([var.ssh_public_key, try(data.harvester_ssh_key.shared[0].public_key, null)])
   # authorized_keys_userdata          = templatestring(local.ssh_authorized_keys, { ssh_keys = local.public_keys })
   template_user_data = templatefile("${path.module}/user_data.yaml", {
-      install_guest_agent = local.wait_for_lease
       user = var.user
       password = var.password
       ssh_keys = local.public_keys
