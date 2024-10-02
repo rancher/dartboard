@@ -46,8 +46,8 @@ tofu_variables:
     # # harvester-specific
     # cpu: 2
     # memory: 8
-    # # image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
-    # # image_namespace: bullseye
+#    image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
+#    image_namespace: null # default to the same namespace above
 
   #  deploy_tester_cluster: true
   tester_cluster:
@@ -59,8 +59,8 @@ tofu_variables:
     # # harvester-specific
     # cpu: 2
     # memory: 4
-    # # image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
-    # # image_namespace: bullseye
+#    image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
+#    image_namespace: null # default to the same namespace above
 
   downstream_cluster_templates: # add additional entries to provision more than 1 cluster
     # - cluster_count: 0 # set this to a value greater than 0 to provision a downstream clueter
@@ -72,8 +72,8 @@ tofu_variables:
     #   # harvester-specific
     #   cpu: 2
     #   memory: 8
-    #   # image_name: opensuse-leap-15.5-minimal-harvester # https://download.opensuse.org/repositories/home:/IValentin:/branches:/openSUSE:/Templates:/Images:/15.5/images/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build3.2.qcow2
-    #   # image_namespace: bullseye
+#    image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
+#    image_namespace: null # default to the same namespace above
 #  first_kubernetes_api_port: 7445
 #  first_app_http_port: 9080
 #  first_app_https_port: 9443
