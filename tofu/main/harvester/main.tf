@@ -62,9 +62,6 @@ module "k3s_cluster" {
 }
 
 module "rke2_cluster" {
-  providers = {
-    harvester = harvester
-  }
   count            = length(local.rke2_clusters)
   source           = "../../modules/harvester_rke2"
   project_name     = var.project_name
