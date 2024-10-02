@@ -31,11 +31,11 @@ tofu_variables:
   #     public: true
   #     wait_for_lease: true
 
-  # disks:
-  #   - bus: "virtio"
-  #     name: "disk-0"
-  #     size: 35
-  #     type: "disk"
+#  disks:
+#   - name: "disk-0"
+#     size: 35
+#     type: "disk"
+#     bus: "virtio"
 
   upstream_cluster:
     # name_prefix: upstream

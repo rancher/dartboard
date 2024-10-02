@@ -237,7 +237,12 @@ variable "disks" {
     size = number
     bus  = string
   }))
-  default = []
+  default = [{
+    name = "disk-0",
+    type = "disk"
+    size = 35
+    bus  = "virtio"
+  }]
 }
 
 variable "efi" {
