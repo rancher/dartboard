@@ -8,7 +8,7 @@ tofu_parallelism: 100 # default is 10, but Harvester tolerates higher values wel
 
 tofu_variables:
 #  project_name: st
-  # namespace: bullseye
+#  namespace: default
   # Uses the file pointed by KUBECONFIG by default, see
   # https://docs.harvesterhci.io/v1.3/faq/#how-can-i-access-the-kubeconfig-file-of-the-harvester-cluster
   # kubeconfig: # Must set this to a valid Harvester kubeconfig
