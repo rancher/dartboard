@@ -23,13 +23,13 @@ tofu_variables:
   #   name:
   #   namespace:
 
-  # networks:
-  #   - interface_model: virtio
-  #     interface_type: bridge
-  #     name: vmnet-shared
-  #     namespace: default
-  #     public: true
-  #     wait_for_lease: true
+#  networks:
+#   - name: vmnet-shared
+#     namespace: default
+#     interface_type: bridge
+#     interface_model: virtio
+#     public: true
+#     wait_for_lease: true
 
 #  disks:
 #   - name: "disk-0"
