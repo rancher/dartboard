@@ -4,7 +4,7 @@ resource "harvester_virtualmachine" "this" {
   hostname  = var.name
 
   tags = merge({
-    ssh-user = var.user
+    ssh-user = var.ssh_user
     Project  = var.project_name
   }, var.tags)
 
@@ -71,7 +71,7 @@ resource "null_resource" "host_configuration" {
   connection {
     host        = local.public_network_interfaces[0].ip_address
     private_key = var.ssh_private_key_path != null ? file(var.ssh_private_key_path) : null
-    user        = var.user
+    user        = var.ssh_user
 
     bastion_host        = var.ssh_bastion_host
     bastion_user        = var.ssh_bastion_user
@@ -94,7 +94,7 @@ module "ssh_access" {
   ssh_tunnels          = var.ssh_tunnels
   private_name         = local.public_network_interfaces[0].ip_address
   public_name          = local.public_network_interfaces[0].ip_address
-  ssh_user             = var.user
+  ssh_user             = var.ssh_user
   ssh_bastion_user     = var.ssh_bastion_user
   ssh_private_key_path = var.ssh_private_key_path
 }

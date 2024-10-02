@@ -52,7 +52,7 @@ module "k3s_cluster" {
   ssh_public_key              = module.network.ssh_public_key
   ssh_public_key_id           = module.network.ssh_public_key_id
   ssh_private_key_path        = var.ssh_private_key_path
-  user                        = var.user
+  ssh_user                    = var.ssh_user
   password                    = var.password
   ssh_bastion_host            = var.ssh_bastion_host
   ssh_bastion_user            = var.ssh_bastion_user
@@ -94,7 +94,7 @@ module "rke2_cluster" {
   ssh_public_key              = module.network.ssh_public_key
   ssh_public_key_id           = module.network.ssh_public_key_id
   ssh_private_key_path        = var.ssh_private_key_path
-  user                        = var.user
+  ssh_user                    = var.ssh_user
   password                    = var.password
   ssh_bastion_host            = var.ssh_bastion_host
   ssh_bastion_user            = var.ssh_bastion_user
