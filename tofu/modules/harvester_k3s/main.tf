@@ -16,7 +16,7 @@ module "server_nodes" {
   ssh_public_key         = var.ssh_public_key
   ssh_public_key_id      = var.ssh_public_key_id
   ssh_private_key_path   = var.ssh_private_key_path
-  user                   = var.user
+  ssh_user               = var.ssh_user
   password               = var.password
   ssh_bastion_host       = var.ssh_bastion_host
   ssh_bastion_user       = var.ssh_bastion_user
@@ -50,7 +50,7 @@ module "agent_nodes" {
   ssh_public_key              = var.ssh_public_key
   ssh_public_key_id           = var.ssh_public_key_id
   ssh_private_key_path        = var.ssh_private_key_path
-  user                        = var.user
+  ssh_user                    = var.ssh_user
   password                    = var.password
   ssh_bastion_host            = var.ssh_bastion_host
   ssh_bastion_user            = var.ssh_bastion_user
@@ -72,7 +72,7 @@ module "k3s" {
   sans         = compact(concat(var.sans, var.server_count > 0 ? [module.server_nodes[0].private_address, module.server_nodes[0].public_address] : []))
 
   ssh_private_key_path      = var.ssh_private_key_path
-  ssh_user                  = var.user
+  ssh_user                  = var.ssh_user
   ssh_bastion_host          = var.ssh_bastion_host
   ssh_bastion_user          = var.ssh_bastion_user
   local_kubernetes_api_port = var.local_kubernetes_api_port

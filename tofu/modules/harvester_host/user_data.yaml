@@ -1,13 +1,13 @@
 #cloud-config
 users:
   - default
-  - ${user}
+  - ${ssh_user}
 password: ${password}
 disable_root: false
 chpasswd:
   expire: false
   users:
-    - {name: ${user}, password: ${password}, type: text}
+    - {name: ${ssh_user}, password: ${password}, type: text}
 package_update: true
 ssh_authorized_keys:
 %{ for public_key in ssh_keys ~}

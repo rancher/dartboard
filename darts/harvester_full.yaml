@@ -14,10 +14,11 @@ tofu_variables:
 #  https://docs.harvesterhci.io/v1.3/faq/#how-can-i-access-the-kubeconfig-file-of-the-harvester-cluster
 #  kubeconfig: null # default to file pointed by the KUBECONFIG environment variable
 
-  # ssh_public_key_path: ~/.ssh/id_ed25519.pub # Must set this appropriately
-  # ssh_private_key_path: ~/.ssh/id_ed25519 # Must set this appropriately
-  # user: opensuse
-  # password: # set to an appropriate value
+#  ssh_public_key_path: ~/.ssh/id_ed25519.pub
+#  ssh_private_key_path: ~/.ssh/id_ed25519
+#  ssh_user: opensuse
+#  password: linux
+
   # ssh_bastion_user: root # Must set this appropriately if there is a bastion between you and Harvester
   # ssh_bastion_host: # Must set this appropriately if there is a bastion between you and Harvester
   # ssh_bastion_key_path: ~/.ssh/bastion_id_ed25519 # Must set this appropriately if there is a bastion between you and Harvester
@@ -39,7 +40,7 @@ tofu_variables:
 #     type: "disk"
 #     bus: "virtio"
 
-  upstream_cluster:
+#  upstream_cluster:
     # name_prefix: upstream
     # server_count: 3
     # agent_count: 0
@@ -52,7 +53,7 @@ tofu_variables:
 #    image_namespace: null # default to the same namespace above
 
   #  deploy_tester_cluster: true
-  tester_cluster:
+#  tester_cluster:
     # name_prefix: tester
     # server_count: 1
     # agent_count: 0
@@ -64,7 +65,7 @@ tofu_variables:
 #    image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
 #    image_namespace: null # default to the same namespace above
 
-  downstream_cluster_templates: # add additional entries to provision more than 1 cluster
+#  downstream_cluster_templates: # add additional entries to provision more than 1 cluster
     # - cluster_count: 0 # set this to a value greater than 0 to provision a downstream clueter
     #   name_prefix: downstream
     #   server_count: 1

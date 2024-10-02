@@ -176,15 +176,15 @@ variable "networks" {
   }]
 }
 
-variable "user" {
+variable "ssh_user" {
   description = "User name to use for VM access"
   type        = string
   default     = "opensuse"
 }
 
 variable "password" {
-  description = "Password to use for VM access"
-  type        = string
+  description = "Password to use for VM access (via terminal, SSH access is exclusively via SSH public key)"
+  default     = "linux"
 }
 
 variable "ssh_public_key_path" {
