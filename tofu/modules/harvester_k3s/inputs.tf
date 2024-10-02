@@ -62,7 +62,13 @@ variable "networks" {
     public          = bool
     wait_for_lease  = bool
   }))
-  default = []
+  default = [{
+    name           = "vmnet-shared"
+    namespace      = "default"
+    interace_type  = "bridge"
+    public         = true
+    wait_for_lease = true
+  }]
 }
 
 variable "user" {
