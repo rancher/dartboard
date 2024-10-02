@@ -9,9 +9,11 @@ tofu_parallelism: 100 # default is 10, but Harvester tolerates higher values wel
 tofu_variables:
 #  project_name: st
 #  namespace: default
-  # Uses the file pointed by KUBECONFIG by default, see
-  # https://docs.harvesterhci.io/v1.3/faq/#how-can-i-access-the-kubeconfig-file-of-the-harvester-cluster
-  # kubeconfig: # Must set this to a valid Harvester kubeconfig
+
+#  Add the path to your Harvester kubeconfig. Get one with these instructions:
+#  https://docs.harvesterhci.io/v1.3/faq/#how-can-i-access-the-kubeconfig-file-of-the-harvester-cluster
+#  kubeconfig: null # default to file pointed by the KUBECONFIG environment variable
+
   # ssh_public_key_path: ~/.ssh/id_ed25519.pub # Must set this appropriately
   # ssh_private_key_path: ~/.ssh/id_ed25519 # Must set this appropriately
   # user: opensuse
