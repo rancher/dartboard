@@ -19,3 +19,6 @@ scripts/utils/*.txt
 # Binaries
 /dartboard
 /scripts/soak/soak
+
+# Vendored binaries
+/internal/vendored/bin
