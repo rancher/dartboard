@@ -41,10 +41,6 @@ module "k3s_cluster" {
     [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
   ] : []
   distro_version              = local.k3s_clusters[count.index].distro_version
-  cloudinit_secrets           = local.cloudinit_secrets
-  efi                         = var.efi
-  secure_boot                 = var.secure_boot
-  host_configuration_commands = var.host_configuration_commands
   sans                        = ["${local.k3s_clusters[count.index].name_prefix}.local.gd"]
   local_kubernetes_api_port   = var.first_kubernetes_api_port + count.index
   tunnel_app_http_port        = var.first_app_http_port + count.index
@@ -83,10 +79,6 @@ module "rke2_cluster" {
     [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
   ] : []
   distro_version              = local.rke2_clusters[count.index].distro_version
-  cloudinit_secrets           = local.cloudinit_secrets
-  efi                         = var.efi
-  secure_boot                 = var.secure_boot
-  host_configuration_commands = var.host_configuration_commands
   sans                        = ["${local.rke2_clusters[count.index].name_prefix}.local.gd"]
   local_kubernetes_api_port   = var.first_kubernetes_api_port + length(local.k3s_clusters) + count.index
   tunnel_app_http_port        = var.first_app_http_port + length(local.k3s_clusters) + count.index

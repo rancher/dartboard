@@ -250,34 +250,3 @@ variable "disks" {
     bus  = "virtio"
   }]
 }
-
-variable "efi" {
-  description = "Flag that determines if the VM will boot in EFI mode"
-  type        = bool
-  default     = false
-}
-
-variable "secure_boot" {
-  description = "Flag that determines if the VM will be provisioned with secure_boot enabled. EFI must be enabled to use this"
-  type        = bool
-  default     = false
-}
-
-variable "cloudinit_secrets" {
-  description = <<-EOT
-  A map which includes the name, namespace and optionally, the userdata content of a cloudinit configuration to be passed to the VM.
-  If user_data is provided, a new cloudinit configuration will be created.
-  If user_data is NOT provided, we use a datasource to pull the cloudinit_secret from Harvester.
-  EOT
-  type = list(object({
-    name      = string
-    namespace = string
-    user_data = optional(string, "") //Path to a file to be used for the cloudinit_secret' user_data
-  }))
-  default = []
-}
-
-variable "host_configuration_commands" {
-  description = "Commands to run when the host is deployed"
-  default     = ["cat /etc/os-release"]
-}
