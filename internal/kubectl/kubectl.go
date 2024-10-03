@@ -23,10 +23,10 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os/exec"
 	"strings"
 	"time"
 
+	"github.com/rancher/dartboard/internal/vendored"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,8 +55,7 @@ type Client struct {
 
 func Exec(kubepath string, output io.Writer, args ...string) error {
 	fullArgs := append([]string{"--kubeconfig=" + kubepath}, args...)
-	log.Printf("Exec: kubectl %s\n", strings.Join(fullArgs, " "))
-	cmd := exec.Command("kubectl", fullArgs...)
+	cmd := vendored.Command("kubectl", fullArgs...)
 
 	var errStream strings.Builder
 	cmd.Stdout = output
