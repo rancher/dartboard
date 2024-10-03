@@ -20,14 +20,14 @@ tofu_variables:
 #  password: linux
 
 #  Must set the following bastion vars appropriately if there is a bastion between you and Harvester
-#  ssh_bastion_user: root 
+#  ssh_bastion_user: root
 #  ssh_bastion_host: # Must set this appropriately if there is a bastion between you and Harvester
 #  ssh_bastion_key_path: ~/.ssh/bastion_id_ed25519 # Must set this appropriately if there is a bastion between you and Harvester
 
 
 #  ssh_shared_public_keys:  # Set this to a shared key that exists inside of Harvester if desired
-#    name:
-#    namespace:
+#    - name: bullseye-qa
+#      namespace: bullseye
 
 #  networks:
 #   - name: vmnet-shared
