@@ -22,3 +22,4 @@ scripts/utils/*.txt
 
 # Vendored binaries
 /internal/vendored/bin
+/.bin

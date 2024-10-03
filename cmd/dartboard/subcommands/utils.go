@@ -23,6 +23,7 @@ import (
 
 	"github.com/rancher/dartboard/internal/docker"
 	"github.com/rancher/dartboard/internal/k3d"
+	"github.com/rancher/dartboard/internal/vendored"
 	"github.com/urfave/cli/v2"
 
 	"github.com/rancher/dartboard/internal/dart"
@@ -55,6 +56,11 @@ func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
 	}
 	fmt.Printf("Using dart: %s\n", dartPath)
 	fmt.Printf("OpenTofu main directory: %s\n", d.TofuMainDirectory)
+
+	err = vendored.ExtractBinaries()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	tf, err := tofu.New(cli.Context, d.TofuVariables, d.TofuMainDirectory, d.TofuParallelism, true)
 	if err != nil {
