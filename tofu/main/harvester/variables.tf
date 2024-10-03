@@ -226,7 +226,7 @@ variable "bastion_host_image_name" {
 
 variable "ssh_bastion_user" {
   description = "User name for the SSH bastion host's OS"
-  default     = "root"
+  default     = null
 }
 
 variable "ssh_tunnels" {

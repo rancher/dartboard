@@ -105,7 +105,7 @@ variable "ssh_bastion_host" {
 
 variable "ssh_bastion_user" {
   description = "User name for the SSH bastion host's OS"
-  default     = "root"
+  default     = null
 }
 
 variable "ssh_bastion_key_path" {
