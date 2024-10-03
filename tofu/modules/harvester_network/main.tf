@@ -13,7 +13,7 @@ resource "harvester_clusternetwork" "cluster-vlan" {
 
 resource "harvester_vlanconfig" "cluster-vlan-config" {
   count = var.create ? 1 : 0
-  name  =  var.vlanconfig_name
+  name  =  "${var.clusternetwork_name}-vlan-config"
 
   cluster_network_name = harvester_clusternetwork.cluster-vlan[0].name
 
@@ -32,12 +32,12 @@ resource "harvester_network" "this" {
   namespace   = var.namespace
   description = "Harvester network managed by Dartboard's Harvester opentofu module"
 
-  vlan_id = var.vlan_id
+  vlan_id = var.network_config.vlan_id
 
-  route_mode            = var.route_mode
-  route_dhcp_server_ip  = var.route_dhcp_server_ip
-  route_cidr            = var.route_cidr
-  route_gateway         = var.route_gateway
+  route_mode            = var.network_config.route_mode
+  route_dhcp_server_ip  = var.network_config.route_dhcp_server_ip
+  route_cidr            = var.network_config.route_cidr
+  route_gateway         = var.network_config.route_gateway
 
   cluster_network_name = data.harvester_clusternetwork.cluster-vlan[0].name
 }

@@ -2,10 +2,6 @@ variable "network_name" {
   type = string
 }
 
-variable "vlanconfig_name" {
-  type = string
-}
-
 variable "clusternetwork_name" {
   type = string
 }
@@ -36,28 +32,13 @@ variable "vlan_uplink" {
   default = null
 }
 
-variable "vlan_id" {
-  type = number
+variable "network_config" {
+  type = object({
+    vlan_id = number
+    route_mode = string
+    route_dhcp_server_ip = string
+    route_cidr = string
+    route_gateway = string
+  })
   default = null
 }
-
-variable "route_mode" {
-  type = string
-  default = null
-}
-
-variable "route_dhcp_server_ip" {
-  type = string
-  default = null
-}
-
-variable "route_cidr" {
-  type = string
-  default = null
-}
-
-variable "route_gateway" {
-  type = string
-  default = null
-}
-

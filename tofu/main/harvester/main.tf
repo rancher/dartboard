@@ -4,9 +4,9 @@ provider "harvester" {
 
 module "network" {
   source              = "../../modules/harvester_network"
-  network_name        = "${var.project_name}-network"
-  clusternetwork_name = "${var.project_name}-cluster-vlan}"
-  vlanconfig_name     = "${var.project_name}-vlan}"
+  create              = var.networks[0].create
+  network_name        = var.networks[0].name
+  clusternetwork_name = var.networks[0].clusternetwork_name
   namespace           = var.namespace
   ssh_public_key_path = var.ssh_public_key_path
 }
