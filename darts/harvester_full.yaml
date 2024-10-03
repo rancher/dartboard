@@ -30,7 +30,9 @@ tofu_variables:
 #      namespace: bullseye
 
 #  networks:
-#   - name: vmnet-shared
+#   - create: false
+#     name: vmnet-shared
+#     clusternetwork_name: vmnet
 #     namespace: default
 #     interface_type: bridge
 #     interface_model: virtio

@@ -196,19 +196,23 @@ variable "networks" {
   If using a VM Network which will assign a public IP to the VM, ensure the "public" flag is set to true.
   EOT
   type = list(object({
-    name            = string
-    namespace       = optional(string)
-    interface_type  = optional(string)
-    interface_model = optional(string)
-    public          = bool
-    wait_for_lease  = bool
+    create              = bool
+    name                = string
+    clusternetwork_name = string
+    namespace           = optional(string)
+    interface_type      = optional(string)
+    interface_model     = optional(string)
+    public              = bool
+    wait_for_lease      = bool
   }))
   default = [{
-    name           = "vmnet-shared"
-    namespace      = "default"
-    interace_type  = "bridge"
-    public         = true
-    wait_for_lease = true
+    create              = false
+    clusternetwork_name = "vmnet"
+    name                = "vmnet-shared"
+    namespace           = "default"
+    interace_type       = "bridge"
+    public              = true
+    wait_for_lease      = true
   }]
 }
 
