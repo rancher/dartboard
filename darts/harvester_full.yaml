@@ -37,49 +37,58 @@ tofu_variables:
 #     public: true
 #     wait_for_lease: true
 
-#  disks:
-#   - name: "disk-0"
-#     size: 35
-#     type: "disk"
-#     bus: "virtio"
-
 #  upstream_cluster:
-    # name_prefix: upstream
-    # server_count: 3
-    # agent_count: 0
-    # distro_version: "v1.26.9+k3s1"
-    # reserve_node_for_monitoring: false
-    # # harvester-specific
-    # cpu: 2
-    # memory: 8
-#    image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
-#    image_namespace: null # default to the same namespace above
+#     name_prefix: upstream
+#     server_count: 3
+#     agent_count: 0
+#     distro_version: "v1.26.9+k3s1"
+#     reserve_node_for_monitoring: false
+#     # harvester-specific
+#     cpu: 2
+#     memory: 8
+#     # disks:
+#     #   - name: "disk-0"
+#     #     size: 35
+#     #     type: "disk"
+#     #     bus: "virtio"
+#     # image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
+#     # image_namespace: null # default to the same namespace above
 
-  #  deploy_tester_cluster: true
-#  tester_cluster:
-    # name_prefix: tester
-    # server_count: 1
-    # agent_count: 0
-    # distro_version: "v1.26.9+k3s1"
-    # reserve_node_for_monitoring: false
-    # # harvester-specific
-    # cpu: 2
-    # memory: 4
-#    image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
-#    image_namespace: null # default to the same namespace above
+  # deploy_tester_cluster: true
+  # tester_cluster:
+  #   name_prefix: tester
+  #   server_count: 1
+  #   agent_count: 0
+  #   distro_version: "v1.26.9+k3s1"
+  #   reserve_node_for_monitoring: false
+  #   # harvester-specific
+  #   cpu: 2
+  #   memory: 4
+  #   # disks:
+  #   #   - name: "disk-0"
+  #   #     size: 35
+  #   #     type: "disk"
+  #   #     bus: "virtio"
+  #   # image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
+  #   # image_namespace: null # default to the same namespace above
 
-#  downstream_cluster_templates: # add additional entries to provision more than 1 cluster
-    # - cluster_count: 0 # set this to a value greater than 0 to provision a downstream clueter
-    #   name_prefix: downstream
-    #   server_count: 1
-    #   agent_count: 0
-    #   distro_version: "v1.26.9+k3s1"
-    #   reserve_node_for_monitoring: false
-    #   # harvester-specific
-    #   cpu: 2
-    #   memory: 8
-#    image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
-#    image_namespace: null # default to the same namespace above
+  # downstream_cluster_templates: # add additional entries to provision more than 1 cluster
+  #   - cluster_count: 0 # set this to a value greater than 0 to provision a downstream clueter
+  #     name_prefix: downstream
+  #     server_count: 1
+  #     agent_count: 0
+  #     distro_version: "v1.26.9+k3s1"
+  #     reserve_node_for_monitoring: false
+  #     # harvester-specific
+  #     cpu: 2
+  #     memory: 8
+  #     # disks:
+  #     # - name: "disk-0"
+  #     #   size: 35
+  #     #   type: "disk"
+  #     #   bus: "virtio"
+  #     # image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
+  #     # image_namespace: null # default to the same namespace above
 #  first_kubernetes_api_port: 7445
 #  first_app_http_port: 9080
 #  first_app_https_port: 9443

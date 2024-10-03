@@ -31,7 +31,7 @@ module "k3s_cluster" {
   tags             = local.k3s_clusters[count.index].tags
   cpu              = local.k3s_clusters[count.index].cpu
   memory           = local.k3s_clusters[count.index].memory
-  disks            = var.disks
+  disks            = local.k3s_clusters[count.index].disks
   server_count     = local.k3s_clusters[count.index].server_count
   agent_count      = local.k3s_clusters[count.index].agent_count
   agent_labels = local.k3s_clusters[count.index].reserve_node_for_monitoring ? [
@@ -69,7 +69,7 @@ module "rke2_cluster" {
   tags             = local.rke2_clusters[count.index].tags
   cpu              = local.rke2_clusters[count.index].cpu
   memory           = local.rke2_clusters[count.index].memory
-  disks            = var.disks
+  disks            = local.rke2_clusters[count.index].disks
   server_count     = local.rke2_clusters[count.index].server_count
   agent_count      = local.rke2_clusters[count.index].agent_count
   agent_labels = local.rke2_clusters[count.index].reserve_node_for_monitoring ? [

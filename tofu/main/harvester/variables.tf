@@ -24,6 +24,18 @@ variable "upstream_cluster" {
     // harvester-specific
     cpu             = number           // Number of CPUs to allocate for the VM(s)
     memory          = number           // Number of GB of Memory to allocate for the VM(s)
+    disks = optional(
+    list(object({
+      name = string
+      type = string
+      size = number
+      bus  = string
+    })), [{
+      name = "disk-0",
+      type = "disk"
+      size = 35
+      bus  = "virtio"
+    }])
     tags            = optional(map(string)) // Harvester tags to apply to the VM
     image_name      = optional(string) // Name of the image to create machines. Leave for an openSUSE default
     image_namespace = optional(string) // Namespace for the image, leave null to use the global namespace
@@ -63,6 +75,18 @@ variable "downstream_cluster_templates" {
     // harvester-specific
     cpu             = number           // Number of CPUs to allocate for the VM(s)
     memory          = number           // Number of GB of Memory to allocate for the VM(s)
+    disks = optional(
+    list(object({
+      name = string
+      type = string
+      size = number
+      bus  = string
+    })), [{
+      name = "disk-0",
+      type = "disk"
+      size = 35
+      bus  = "virtio"
+    }])
     tags            = optional(map(string)) // Harvester tags to apply to the VM
     image_name      = optional(string) // Name of the image to create machines. Leave for an openSUSE default
     image_namespace = optional(string) // Namespace for the image, leave null to use the global namespace
@@ -102,6 +126,18 @@ variable "tester_cluster" {
     // harvester-specific
     cpu             = number           // Number of CPUs to allocate for the VM(s)
     memory          = number           // Number of GB of Memory to allocate for the VM(s)
+    disks = optional(
+    list(object({
+      name = string
+      type = string
+      size = number
+      bus  = string
+    })), [{
+      name = "disk-0",
+      type = "disk"
+      size = 35
+      bus  = "virtio"
+    }])
     tags            = optional(map(string)) // Harvester tags to apply to the VM
     image_name      = optional(string) // Name of the image to create machines. Leave for an openSUSE default
     image_namespace = optional(string) // Namespace to search for OR upload image, if it does not exist
@@ -233,20 +269,4 @@ variable "ssh_tunnels" {
   description = "Opens SSH tunnels to this host via the bastion"
   type        = list(list(number))
   default     = []
-}
-
-variable "disks" {
-  description = "List of objects representing the disks to be provisioned for the VM. NOTE: boot_order will be set to the index of each disk in the list."
-  type = list(object({
-    name = string
-    type = string
-    size = number
-    bus  = string
-  }))
-  default = [{
-    name = "disk-0",
-    type = "disk"
-    size = 35
-    bus  = "virtio"
-  }]
 }
