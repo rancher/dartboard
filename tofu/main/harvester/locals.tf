@@ -10,6 +10,4 @@ locals {
 
   k3s_clusters  = [for cluster in local.all_clusters : cluster if strcontains(cluster.distro_version, "k3s")]
   rke2_clusters = [for cluster in local.all_clusters : cluster if strcontains(cluster.distro_version, "rke2")]
-
-  cloudinit_secrets = [for secret in var.cloudinit_secrets : { name = secret.name, namespace = secret.namespace, user_data = file(secret.user_data) }]
 }
