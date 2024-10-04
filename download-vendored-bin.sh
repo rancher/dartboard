@@ -40,27 +40,6 @@ mv ${GOOS}-${GOARCH}/helm .
 rm -rf ${HELM_ARCHIVE}*
 rm -rf ${GOOS}-${GOARCH}*
 
-echo Downloading and unpacking k6...
-K6_OS=${GOOS}
-if [ "${K6_OS}" = 'darwin' ]; then
-    K6_OS="macos"
-fi
-K6_FORMAT="zip"
-if [ "${K6_OS}" = 'linux' ]; then
-    K6_FORMAT="tar.gz"
-fi
-K6_FILENAME="k6-v${K6_VERSION}-${K6_OS}-${GOARCH}"
-K6_ARCHIVE="${K6_FILENAME}.${K6_FORMAT}"
-K6_URL="https://github.com/grafana/k6/releases/download/v${K6_VERSION}/${K6_ARCHIVE}"
-curl --output ${K6_ARCHIVE} --location --fail ${K6_URL}
-if [ "${K6_FORMAT}" = 'zip' ]; then
-  unzip ${K6_ARCHIVE}
-else
-  tar xvf ${K6_ARCHIVE}
-fi
-mv ${K6_FILENAME}/k6* .
-rm -rf ${K6_FILENAME}*
-
 echo Downloading k3d...
 K3D_URL="https://github.com/k3d-io/k3d/releases/download/v${K3D_VERSION}/k3d-${GOOS}-${GOARCH}"
 curl --output k3d --location --fail ${K3D_URL}
