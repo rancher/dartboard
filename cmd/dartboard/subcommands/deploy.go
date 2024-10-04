@@ -18,7 +18,6 @@ package subcommands
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -64,13 +63,13 @@ func Deploy(cli *cli.Context) error {
 	// Helm charts
 	tester := clusters["tester"]
 
-	if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, ""); err != nil {
+	if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, nil); err != nil {
 		return err
 	}
-	if err = chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, ""); err != nil {
+	if err = chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, nil); err != nil {
 		return err
 	}
-	if err = chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, ""); err != nil {
+	if err = chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, nil); err != nil {
 		return err
 	}
 	if err = chartInstallGrafana(r, &tester); err != nil {
@@ -115,8 +114,7 @@ func Deploy(cli *cli.Context) error {
 	return GetAccess(cli)
 }
 
-func chartInstall(kubeConf string, chart chart, jsonVals string) error {
-	var vals map[string]interface{}
+func chartInstall(kubeConf string, chart chart, vals map[string]any) error {
 	var err error
 
 	name := chart.name
@@ -127,12 +125,6 @@ func chartInstall(kubeConf string, chart chart, jsonVals string) error {
 	}
 
 	log.Printf("Installing chart %q (%s)\n", namespace+"/"+name, path)
-
-	if len(jsonVals) > 0 {
-		if vals, err = jsonToMap(jsonVals); err != nil {
-			return fmt.Errorf("chart %s vals:\n%s\n %w", name, jsonVals, err)
-		}
-	}
 
 	if err = helm.Install(kubeConf, path, name, namespace, vals); err != nil {
 		return fmt.Errorf("chart %s: %w", name, err)
@@ -165,7 +157,7 @@ func chartInstallCertManager(r *dart.Dart, cluster *tofu.Cluster) error {
 		namespace: "cert-manager",
 		path:      fmt.Sprintf("https://charts.jetstack.io/charts/cert-manager-v%s.tgz", r.ChartVariables.CertManagerVersion),
 	}
-	return chartInstall(cluster.Kubeconfig, chartCertManager, `{"installCRDs": true}`)
+	return chartInstall(cluster.Kubeconfig, chartCertManager, map[string]any{"installCRDs": true})
 }
 
 func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Cluster) error {
@@ -213,21 +205,18 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 		return fmt.Errorf("chart %s: %w", chartRancherIngress.name, err)
 	}
 
-	rancherSANs := ""
+	var sans []string
 	if len(clusterAdd.Local.Name) > 0 {
-		rancherSANs = fmt.Sprintf("%q", clusterAdd.Local.Name)
+		sans = append(sans, clusterAdd.Local.Name)
 	}
 	if len(clusterAdd.Public.Name) > 0 {
-		if len(rancherSANs) > 0 {
-			rancherSANs += ", "
-		}
-		rancherSANs += fmt.Sprintf("%q", clusterAdd.Public.Name)
+		sans = append(sans, clusterAdd.Public.Name)
 	}
 
-	chartVals := `{
-		"sans": [` + rancherSANs + `],
-		"ingressClassName": "` + cluster.IngressClassName + `"
-	}`
+	chartVals := map[string]any{
+		"sans":             sans,
+		"ingressClassName": cluster.IngressClassName,
+	}
 
 	return chartInstall(cluster.Kubeconfig, chartRancherIngress, chartVals)
 }
@@ -241,16 +230,16 @@ func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster, noSchedT
 		path:      fmt.Sprintf("https://github.com/rancher/charts/raw/release-v%s/assets/rancher-monitoring-crd/rancher-monitoring-crd-%s.tgz", rancherMinorVersion, r.ChartVariables.RancherMonitoringVersion),
 	}
 
-	chartVals := `{
-		"global": {
-			"cattle": {
-					"clusterId": "local",
-					"clusterName": "local",
-					"systemDefaultRegistry": ""
-			}
+	chartVals := map[string]any{
+		"global": map[string]any{
+			"cattle": map[string]any{
+				"clusterId":             "local",
+				"clusterName":           "local",
+				"systemDefaultRegistry": "",
+			},
 		},
-		"systemDefaultRegistry": ""
-	}`
+		"systemDefaultRegistry": "",
+	}
 	err := chartInstall(cluster.Kubeconfig, chartRancherMonitoringCRD, chartVals)
 	if err != nil {
 		return err
@@ -268,174 +257,152 @@ func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster, noSchedT
 	}
 	mimirURL := clusterAdd.Public.HTTPURL + "/mimir/api/v1/push"
 
-	nodeSelector := ""
-	tolerations := ""
-	if !noSchedToleration {
-		nodeSelector = `{"monitoring": "true"}`
-		tolerations = `[{"key": "monitoring", "operator": "Exists", "effect": "NoSchedule"}]`
-	}
-
-	chartVals = getRancherMonitoringValsJSON(nodeSelector, tolerations, mimirURL)
+	chartVals = getRancherMonitoringValsJSON(noSchedToleration, mimirURL)
 
 	return chartInstall(cluster.Kubeconfig, chartRancherMonitoring, chartVals)
 }
 
 func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
-	return chartInstall(cluster.Kubeconfig, chart{"cgroups-exporter", "cattle-monitoring-system", "cgroups-exporter"}, "")
+	return chartInstall(cluster.Kubeconfig, chart{"cgroups-exporter", "cattle-monitoring-system", "cgroups-exporter"}, nil)
 }
 
-func getRancherMonitoringValsJSON(nodeSelector, tolerations, mimirURL string) string {
+func getRancherMonitoringValsJSON(noSchedToleration bool, mimirURL string) map[string]any {
 
-	monitoringRestrictions := ""
-	if len(nodeSelector) > 0 {
-		monitoringRestrictions += fmt.Sprintf("{%q: %s,\n", "nodeSelector", nodeSelector)
-	} else {
-		nodeSelector = `{}`
-	}
-	if len(tolerations) > 0 {
-		monitoringRestrictions += fmt.Sprintf("%q: %s}", "tolerations", tolerations)
-	} else {
-		tolerations = `[]`
-	}
-	if len(monitoringRestrictions) == 0 {
-		monitoringRestrictions = `{}`
+	nodeSelector := map[string]any{}
+	tolerations := []any{}
+	monitoringRestrictions := map[string]any{}
+	if !noSchedToleration {
+		nodeSelector["monitoring"] = true
+		tolerations = append(tolerations, map[string]any{"key": "monitoring", "operator": "Exists", "effect": "NoSchedule"})
+		monitoringRestrictions["nodeSelector"] = nodeSelector
+		monitoringRestrictions["tolerations"] = tolerations
 	}
 
-	remoteWrite := ""
+	remoteWrite := []any{}
 	if len(mimirURL) > 0 {
-		remoteWrite = `{
-			"url": ` + fmt.Sprintf("%q", mimirURL) + `,
-			"writeRelabelConfigs": [
-				{
-					"sourceLabels": ["__name__"],
-					"regex": "(node_namespace_pod_container|node_cpu|node_load|node_memory|node_network_receive_bytes_total|container_network_receive_bytes_total|cgroups_).*",
-					"action": "keep"
-				}
-			]
-		}`
+		remoteWrite = append(remoteWrite, map[string]any{
+			"url": mimirURL,
+			"writeRelabelConfigs": []any{
+				map[string]any{
+					"sourceLabels": []any{"__name__"},
+					"regex":        "(node_namespace_pod_container|node_cpu|node_load|node_memory|node_network_receive_bytes_total|container_network_receive_bytes_total|cgroups_).*",
+					"action":       "keep",
+				},
+			},
+		})
 	}
 
-	jsonVals := `{
-		"alertmanager": {"enabled": "false"},
-		"grafana": ` + monitoringRestrictions + `,
-		"prometheus": {
-			"prometheusSpec": {
+	return map[string]any{
+		"alertmanager": map[string]any{"enabled": false},
+		"grafana":      monitoringRestrictions,
+		"prometheus": map[string]any{
+			"prometheusSpec": map[string]any{
 				"evaluationInterval": "1m",
-				"nodeSelector": ` + nodeSelector + `,
-				"tolerations": ` + tolerations + `,
-				"resources": {"limits": {"memory": "5000Mi"}},
-				"retentionSize": "50GiB",
-				"scrapeInterval": "1m",
+				"nodeSelector":       nodeSelector,
+				"tolerations":        tolerations,
+				"resources":          map[string]any{"limits": map[string]any{"memory": "5000Mi"}},
+				"retentionSize":      "50GiB",
+				"scrapeInterval":     "1m",
 
-				"additionalScrapeConfigs": [
-					{
-						"job_name": "node-cgroups-exporter",
+				"additionalScrapeConfigs": []any{
+					map[string]any{
+						"job_name":     "node-cgroups-exporter",
 						"honor_labels": false,
-						"kubernetes_sd_configs": [{
-							"role": "node"
-						}],
+						"kubernetes_sd_configs": []any{map[string]any{
+							"role": "node",
+						}},
 						"scheme": "http",
-						"relabel_configs": [
-							{
+						"relabel_configs": []any{
+							map[string]any{
 								"action": "labelmap",
-								"regex": "__meta_kubernetes_node_label_(.+)"
+								"regex":  "__meta_kubernetes_node_label_(.+)",
 							},
-							{
-								"source_labels": ["__address__"],
-								"action": "replace",
-								"target_label": "__address__",
-								"regex": "([^:;]+):(\\d+)",
-								"replacement": "${1}:9753"
+							map[string]any{
+								"source_labels": []any{"__address__"},
+								"action":        "replace",
+								"target_label":  "__address__",
+								"regex":         "([^:;]+):(\\d+)",
+								"replacement":   "${1}:9753",
 							},
-							{
-								"source_labels": ["__meta_kubernetes_node_name"],
-								"action": "keep",
-								"regex": ".*"
+							map[string]any{
+								"source_labels": []any{"__meta_kubernetes_node_name"},
+								"action":        "keep",
+								"regex":         ".*",
 							},
-							{
-								"source_labels": ["__meta_kubernetes_node_name"],
-								"action": "replace",
-								"target_label": "node",
-								"regex": "(.*)",
-								"replacement": "${1}"
-							}
-						]
-					}
-				],
+							map[string]any{
+								"source_labels": []any{"__meta_kubernetes_node_name"},
+								"action":        "replace",
+								"target_label":  "node",
+								"regex":         "(.*)",
+								"replacement":   "${1}",
+							},
+						},
+					},
+				},
 
-				"remoteWrite": [` + remoteWrite + `]
-			}
+				"remoteWrite": remoteWrite,
+			},
 		},
-		"prometheus-adapter": ` + monitoringRestrictions + `,
-		"kube-state-metrics": ` + monitoringRestrictions + `,
-		"prometheusOperator": ` + monitoringRestrictions + `,
-		"global": {
-			"cattle": {
-				"clusterId": "local",
-				"clusterName": "local",
-				"systemDefaultRegistry": ""
-			}
+		"prometheus-adapter": monitoringRestrictions,
+		"kube-state-metrics": monitoringRestrictions,
+		"prometheusOperator": monitoringRestrictions,
+		"global": map[string]any{
+			"cattle": map[string]any{
+				"clusterId":             "local",
+				"clusterName":           "local",
+				"systemDefaultRegistry": "",
+			},
 		},
-		"systemDefaultRegistry": ""
-	}`
-
-	return jsonVals
+		"systemDefaultRegistry": "",
+	}
 }
 
-func jsonToMap(jsonVals string) (map[string]interface{}, error) {
-
-	var mapVals map[string]interface{}
-	err := json.Unmarshal([]byte(jsonVals), &mapVals)
-
-	return mapVals, err
-}
-
-func getGrafanaValsJSON(r *dart.Dart, name, url, ingressClass string) string {
-	return `{
-		"datasources": {
-			"datasources.yaml": {
+func getGrafanaValsJSON(r *dart.Dart, name, url, ingressClass string) map[string]any {
+	return map[string]any{
+		"datasources": map[string]any{
+			"datasources.yaml": map[string]any{
 				"apiVersion": 1,
-				"datasources": [{
-					"name": "mimir",
-					"type": "prometheus",
-					"url": "http://mimir.tester:9009/mimir/prometheus",
-					"access": "proxy",
-					"isDefault": true
-				}]
-			}
+				"datasources": []any{map[string]any{
+					"name":      "mimir",
+					"type":      "prometheus",
+					"url":       "http://mimir.tester:9009/mimir/prometheus",
+					"access":    "proxy",
+					"isDefault": true,
+				}},
+			},
 		},
-		"dashboardProviders": {
-			"dashboardproviders.yaml": {
+		"dashboardProviders": map[string]any{
+			"dashboardproviders.yaml": map[string]any{
 				"apiVersion": 1,
-				"providers": [{
-					"name": "default",
-					"folder": "",
-					"type": "file",
+				"providers": []any{map[string]any{
+					"name":            "default",
+					"folder":          "",
+					"type":            "file",
 					"disableDeletion": false,
-					"editable": true,
-					"options": {
-						"path": "/var/lib/grafana/dashboards/default"
-					}
-				}]
-			}
+					"editable":        true,
+					"options": map[string]any{
+						"path": "/var/lib/grafana/dashboards/default",
+					},
+				}},
+			},
 		},
-		"dashboardsConfigMaps": { "default": "grafana-dashboards" },
-		"ingress": {
-			"enabled": true,
-			"path": "/grafana",
-			"hosts": [` + fmt.Sprintf("%q", name) + `],
-			"ingressClassName": ` + fmt.Sprintf("%q", ingressClass) + `
+		"dashboardsConfigMaps": map[string]any{"default": "grafana-dashboards"},
+		"ingress": map[string]any{
+			"enabled":          true,
+			"path":             "/grafana",
+			"hosts":            []string{name},
+			"ingressClassName": ingressClass,
 		},
-		"env": {
-			"GF_SERVER_ROOT_URL": ` + fmt.Sprintf("\"%s/grafana\"", url) + `,
-			"GF_SERVER_SERVE_FROM_SUB_PATH": "true"
+		"env": map[string]any{
+			"GF_SERVER_ROOT_URL":            url + "/grafana",
+			"GF_SERVER_SERVE_FROM_SUB_PATH": true,
 		},
-		"adminPassword": ` + fmt.Sprintf("%q", r.ChartVariables.AdminPassword) + `
-	}`
+		"adminPassword": r.ChartVariables.AdminPassword,
+	}
 }
 
-func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname, serverURL string, replicas int) string {
-	vals := map[string]any{
+func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname, serverURL string, replicas int) map[string]any {
+	result := map[string]any{
 		"bootstrapPassword": bootPwd,
 		"hostname":          hostname,
 		"replicas":          replicas,
@@ -461,14 +428,10 @@ func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname
 	}
 
 	if rancherImageOverride != "" {
-		vals["rancherImage"] = rancherImageOverride
+		result["rancherImage"] = rancherImageOverride
 	}
 
-	result, err := json.Marshal(vals)
-	if err != nil {
-		panic(err)
-	}
-	return string(result)
+	return result
 }
 
 func importDownstreamClusters(r *dart.Dart, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster) error {
