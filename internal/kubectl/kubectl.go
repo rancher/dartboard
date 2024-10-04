@@ -18,51 +18,38 @@ package kubectl
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/rancher/dartboard/internal/vendored"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
 	k6Image          = "grafana/k6:0.46.0"
-	K6Name           = "k6"
 	K6Namespace      = "tester"
 	K6KubeSecretName = "kube"
 	mimirURL         = "http://mimir.tester:9009/mimir"
 )
-
-type Client struct {
-	kubeconfig string
-	config     *rest.Config
-	clientset  *kubernetes.Clientset
-	dynclient  *dynamic.DynamicClient
-}
 
 func Exec(kubepath string, output io.Writer, args ...string) error {
 	fullArgs := append([]string{"--kubeconfig=" + kubepath}, args...)
 	cmd := vendored.Command("kubectl", fullArgs...)
 
 	var errStream strings.Builder
-	cmd.Stdout = output
 	cmd.Stderr = &errStream
+	cmd.Stdin = os.Stdin
+
+	if output != nil {
+		cmd.Stdout = output
+	}
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%v", errStream.String())
+		return fmt.Errorf("error while running kubectl with params %v: %v", fullArgs, errStream.String())
 	}
 	return nil
 }
@@ -112,17 +99,11 @@ func WaitForReadyCondition(kubePath, resource, name, namespace string, condition
 }
 
 func GetRancherFQDNFromLoadBalancer(kubePath string) (string, error) {
-	output := new(bytes.Buffer)
-	if err := Exec(kubePath, output, "get", "services", "--all-namespaces",
-		"-o", "jsonpath={.items[0].status.loadBalancer.ingress[0]}"); err != nil {
-		return "", fmt.Errorf("failed to fetch loadBalancer data: %w", err)
-	}
-
 	ingress := map[string]string{}
-	if err := json.Unmarshal(output.Bytes(), &ingress); err != nil {
-		return "", fmt.Errorf("cannot unmarshal ingress data: %w\n%s", err, output.String())
+	err := Get(kubePath, "services", "", "", ".items[0].status.loadBalancer.ingress[0]", &ingress)
+	if err != nil {
+		return "", err
 	}
-
 	if ip, ok := ingress["ip"]; ok {
 		return ip + ".sslip.io", nil
 	}
@@ -133,217 +114,125 @@ func GetRancherFQDNFromLoadBalancer(kubePath string) (string, error) {
 	return "", nil
 }
 
-func (cl *Client) Init(kubePath string) error {
-	var err error
-	cl.kubeconfig = kubePath
-	if cl.config, err = clientcmd.BuildConfigFromFlags("", kubePath); err != nil {
-		return err
+func Get(kubePath string, kind string, name string, namespace string, jsonpath string, out any) error {
+	output := new(bytes.Buffer)
+	args := []string{
+		"get",
+		kind,
 	}
-	if cl.clientset, err = kubernetes.NewForConfig(cl.config); err != nil {
-		return err
+	if name != "" {
+		args = append(args, name)
 	}
-	if cl.dynclient, err = dynamic.NewForConfig(cl.config); err != nil {
-		return err
+	if namespace != "" {
+		args = append(args, "--namespace", namespace)
+	} else {
+		args = append(args, "--all-namespaces")
 	}
+	args = append(args, "-o", fmt.Sprintf("jsonpath={%s}", jsonpath))
+
+	if err := Exec(kubePath, output, args...); err != nil {
+		return fmt.Errorf("failed to kubectl get %v: %w", name, err)
+	}
+
+	if err := json.Unmarshal(output.Bytes(), out); err != nil {
+		return fmt.Errorf("cannot unmarshal kubectl data for %v: %w\n%s", name, err, output.String())
+	}
+
 	return nil
 }
 
-func (cl *Client) GetStatus(group, ver, res, name, namespace string) (map[string]interface{}, error) {
-	resource := schema.GroupVersionResource{
-		Group:    group,
-		Version:  ver,
-		Resource: res,
-	}
-
-	get, err := cl.dynclient.Resource(resource).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+func GetStatus(kubepath, kind, name, namespace string) (map[string]any, error) {
+	out := map[string]any{}
+	err := Get(kubepath, kind, name, namespace, ".status", &out)
 	if err != nil {
 		return nil, err
 	}
 
-	// expect status as map[string]interface{} or error
-	status, ok := get.UnstructuredContent()["status"].(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("error accessing '%s/%s' %s: 'Status' format not supported", namespace, name, res)
-	}
-
-	return status, nil
+	return out, nil
 }
 
-func fillK6TestFilesVols(vol *[]v1.Volume, volMount *[]v1.VolumeMount) {
-	*vol = append(*vol,
-		v1.Volume{
-			Name: "k6-test-files",
-			VolumeSource: v1.VolumeSource{
-				ConfigMap: &v1.ConfigMapVolumeSource{
-					LocalObjectReference: v1.LocalObjectReference{Name: "k6-test-files"},
-				},
-			},
-		},
-		v1.Volume{
-			Name: "k6-lib-files",
-			VolumeSource: v1.VolumeSource{
-				ConfigMap: &v1.ConfigMapVolumeSource{
-					LocalObjectReference: v1.LocalObjectReference{Name: "k6-lib-files"},
-				},
-			},
-		},
-	)
-
-	*volMount = append(*volMount,
-		v1.VolumeMount{Name: "k6-test-files", MountPath: "/k6"},
-		v1.VolumeMount{Name: "k6-lib-files", MountPath: "/k6/lib"},
-	)
-}
-
-func (cl *Client) K6run(name, testPath string, envVars, tags map[string]string, printLogs, record bool) error {
-
-	podVolumes := []v1.Volume{}
-	podVolumeMounts := []v1.VolumeMount{}
-	paramEnvVars := []string{}
-	for key, val := range envVars {
-		if key == "KUBECONFIG" {
-			Exec(cl.kubeconfig, nil, "--namespace="+K6Namespace, "delete", "secret", K6KubeSecretName, "--ignore-not-found")
-			Exec(cl.kubeconfig, nil, "--namespace="+K6Namespace, "create", "secret", "generic", K6KubeSecretName,
-				"--from-file=config="+val)
-			val = "/kube/config"
-			podVolumeMounts = []v1.VolumeMount{{Name: K6KubeSecretName, MountPath: "/kube"}}
-			podVolumes = []v1.Volume{{Name: K6KubeSecretName,
-				VolumeSource: v1.VolumeSource{Secret: &v1.SecretVolumeSource{SecretName: K6KubeSecretName}}}}
+func K6run(kubeconfig, name, testPath string, envVars, tags map[string]string, printLogs, record bool) error {
+	// if a kubeconfig is specified, upload it as secret to later mount it
+	if path, ok := envVars["KUBECONFIG"]; ok {
+		err := Exec(kubeconfig, nil, "--namespace="+K6Namespace, "delete", "secret", K6KubeSecretName, "--ignore-not-found")
+		if err != nil {
+			return err
 		}
-		paramEnvVars = append(paramEnvVars, "-e", fmt.Sprintf("%s=%s", key, val))
+		err = Exec(kubeconfig, nil, "--namespace="+K6Namespace, "create", "secret", "generic", K6KubeSecretName,
+			"--from-file=config="+path)
+		if err != nil {
+			return err
+		}
 	}
 
-	fillK6TestFilesVols(&podVolumes, &podVolumeMounts)
-
-	paramTags := []string{}
-	for key, val := range tags {
-		paramTags = append(paramTags, "--tag", fmt.Sprintf("%s=%s", key, val))
+	// prepare k6 commandline
+	args := []string{"run"}
+	for k, v := range envVars {
+		// substitute kubeconfig file path with path to secret
+		if k == "KUBECONFIG" {
+			v = "/kube/config"
+		}
+		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
 	}
-
-	args := append([]string{"run"}, paramEnvVars...)
-	args = append(args, paramTags...)
+	for k, v := range tags {
+		args = append(args, "--tag", fmt.Sprintf("%s=%s", k, v))
+	}
 	args = append(args, testPath)
 	if record {
 		args = append(args, "-o", "experimental-prometheus-rw")
 	}
 
-	podName := fmt.Sprintf("%s-%s", K6Name, name)
+	// prepare volumes and volume mounts
+	volumes := []any{
+		map[string]any{"name": "k6-test-files", "configMap": map[string]string{"name": "k6-test-files"}},
+		map[string]any{"name": "k6-lib-files", "configMap": map[string]string{"name": "k6-lib-files"}},
+	}
+	volumeMounts := []any{
+		map[string]string{"mountPath": "/k6", "name": "k6-test-files"},
+		map[string]string{"mountPath": "/k6/lib", "name": "k6-lib-files"},
+	}
+	if _, ok := envVars["KUBECONFIG"]; ok {
+		volumes = append(volumes, map[string]any{"name": K6KubeSecretName, "secret": map[string]string{"secretName": "kube"}})
+		volumeMounts = append(volumeMounts, map[string]string{"mountPath": "/kube", "name": K6KubeSecretName})
+	}
 
-	pod := &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: podName,
-		},
-		Spec: v1.PodSpec{
-			RestartPolicy: v1.RestartPolicyNever,
-			Containers: []v1.Container{
-				{
-					Name:       K6Name,
-					Image:      k6Image,
-					Stdin:      true,
-					TTY:        true,
-					Args:       args,
-					WorkingDir: "/",
-					Env: []v1.EnvVar{
-						{Name: "K6_PROMETHEUS_RW_SERVER_URL", Value: mimirURL + "/api/v1/push"},
-						{Name: "K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM", Value: "true"},
-						{Name: "K6_PROMETHEUS_RW_STALE_MARKERS", Value: "true"},
+	// prepare pod override map
+	override := map[string]any{
+		"apiVersion": "v1",
+		"spec": map[string]any{
+			"containers": []any{
+				map[string]any{
+					"name":       "k6",
+					"image":      k6Image,
+					"stdin":      true,
+					"tty":        true,
+					"args":       args,
+					"workingDir": "/",
+					"env": []any{
+						map[string]any{"name": "K6_PROMETHEUS_RW_SERVER_URL", "value": mimirURL + "/api/v1/push"},
+						map[string]any{"name": "K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM", "value": "true"},
+						map[string]any{"name": "K6_PROMETHEUS_RW_STALE_MARKERS", "value": "true"},
 					},
-					VolumeMounts: podVolumeMounts,
+					"volumeMounts": volumeMounts,
 				},
 			},
-			Volumes: podVolumes,
+			"volumes": volumes,
 		},
 	}
-
-	podCli := cl.clientset.CoreV1().Pods(K6Namespace)
-	err := podCli.Delete(context.TODO(), podName, metav1.DeleteOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		// Don't fail, let's just log a warning
-		log.Printf("WARN: k6 pod deletion failed: %s\n", err.Error())
-	}
-
-	_, err = podCli.Create(context.TODO(), pod, metav1.CreateOptions{})
+	overrideJSON, err := json.Marshal(override)
 	if err != nil {
-
 		return err
 	}
 
-	// Check the status of the Pod and wait it to be started (so that we can print logs if needed)
-	err = wait.PollUntilContextTimeout(context.TODO(), time.Second, 120*time.Second, false, cl.isPodRunningOrSuccessful(podName, K6Namespace))
-
+	var output *os.File
 	if printLogs {
-		req := podCli.GetLogs(podName, &v1.PodLogOptions{Follow: true})
-		stream, err := req.Stream(context.TODO())
-		if err != nil {
-			return fmt.Errorf("error retrieving logs: %w", err)
-		}
-		defer stream.Close()
-
-		for {
-			buf := make([]byte, 2048)
-			numBytes, err := stream.Read(buf)
-			if numBytes > 0 {
-				message := string(buf[:numBytes])
-				fmt.Print(message)
-				continue
-			}
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				return fmt.Errorf("error retrieving logs: %w", err)
-			}
-		}
-	}
-	// Check if the Pod was in error state before printing the logs.
-	// If not, there is a chance it was running but still not ended, so we have to double check it is completed *and* successful.
-	if err == nil {
-		err = wait.PollUntilContextTimeout(context.TODO(), time.Second, 120*time.Second, false, cl.isPodSuccessful(podName, K6Namespace))
+		output = os.Stdout
 	}
 
+	err = Exec(kubeconfig, output, "run", "k6", "--image="+k6Image, "--namespace=tester", "--rm", "--stdin", "--restart=Never", "--overrides="+string(overrideJSON))
 	if err != nil {
-		return fmt.Errorf("k6 pod not ready: %w", err)
+		return err
 	}
 
 	return nil
-}
-
-func (cl *Client) isPodRunningOrSuccessful(name, namespace string) wait.ConditionWithContextFunc {
-	return func(ctx context.Context) (bool, error) {
-		podCli := cl.clientset.CoreV1().Pods(namespace)
-		pod, err := podCli.Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-
-		switch pod.Status.Phase {
-		case v1.PodRunning, v1.PodSucceeded:
-			return true, nil
-		case v1.PodPending:
-			return false, nil
-		default:
-			// Pod failed
-			return false, fmt.Errorf("pod failed")
-		}
-	}
-}
-
-func (cl *Client) isPodSuccessful(name, namespace string) wait.ConditionWithContextFunc {
-	return func(ctx context.Context) (bool, error) {
-		podCli := cl.clientset.CoreV1().Pods(namespace)
-		pod, err := podCli.Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-
-		switch pod.Status.Phase {
-		case v1.PodSucceeded:
-			return true, nil
-		case v1.PodPending, v1.PodRunning:
-			return false, nil
-		default:
-			// Pod failed
-			return false, fmt.Errorf("pod failed")
-		}
-	}
 }

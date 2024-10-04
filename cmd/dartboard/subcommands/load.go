@@ -45,35 +45,29 @@ func Load(cli *cli.Context) error {
 		return err
 	}
 
-	// Create ConfigMaps and Secrets
-	cliTester := &kubectl.Client{}
-	if err := cliTester.Init(tester.Kubeconfig); err != nil {
-		return err
-	}
-
 	// Create ConfigMaps and Secrets on Rancher and all the downstream clusters
 	for clusterName, clusterData := range clusters {
 		// NOTE: we may change the condition with 'cluster == "tester"', but better to stay on the safe side
 		if clusterName != "upstream" && !strings.HasPrefix(clusterName, "downstream") {
 			continue
 		}
-		if err := loadConfigMapAndSecrets(r, cliTester, clusterName, clusterData); err != nil {
+		if err := loadConfigMapAndSecrets(r, tester.Kubeconfig, clusterName, clusterData); err != nil {
 			return err
 		}
 	}
 
 	// Create Users and Roles
-	if err := loadRolesAndUsers(r, cliTester, "upstream", clusters["upstream"]); err != nil {
+	if err := loadRolesAndUsers(r, tester.Kubeconfig, "upstream", clusters["upstream"]); err != nil {
 		return err
 	}
 	// Create Projects
-	if err := loadProjects(r, cliTester, "upstream", clusters["upstream"]); err != nil {
+	if err := loadProjects(r, tester.Kubeconfig, "upstream", clusters["upstream"]); err != nil {
 		return err
 	}
 	return nil
 }
 
-func loadConfigMapAndSecrets(r *dart.Dart, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
+func loadConfigMapAndSecrets(r *dart.Dart, kubecongfig string, clusterName string, clusterData tofu.Cluster) error {
 	configMapCount := strconv.Itoa(r.TestVariables.TestConfigMaps)
 	secretCount := strconv.Itoa(r.TestVariables.TestSecrets)
 
@@ -92,13 +86,13 @@ func loadConfigMapAndSecrets(r *dart.Dart, cli *kubectl.Client, clusterName stri
 	}
 
 	log.Printf("Load resources on cluster %q (#ConfigMaps: %s, #Secrets: %s)\n", clusterName, configMapCount, secretCount)
-	if err := cli.K6run("create-k8s-resources", "k6/create_k8s_resources.js", envVars, tags, true, false); err != nil {
+	if err := kubectl.K6run(kubecongfig, "create-k8s-resources", "k6/create_k8s_resources.js", envVars, tags, true, false); err != nil {
 		return fmt.Errorf("failed loading ConfigMaps and Secrets on cluster %q: %w", clusterName, err)
 	}
 	return nil
 }
 
-func loadRolesAndUsers(r *dart.Dart, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
+func loadRolesAndUsers(r *dart.Dart, kubeconfig string, clusterName string, clusterData tofu.Cluster) error {
 	roleCount := strconv.Itoa(r.TestVariables.TestRoles)
 	userCount := strconv.Itoa(r.TestVariables.TestUsers)
 	clusterAdd, err := getAppAddressFor(clusterData)
@@ -121,13 +115,13 @@ func loadRolesAndUsers(r *dart.Dart, cli *kubectl.Client, clusterName string, cl
 
 	log.Printf("Load resources on cluster %q (#Roles: %s, #Users: %s)\n", clusterName, roleCount, userCount)
 
-	if err := cli.K6run("create-roles-users", "k6/create_roles_users.js", envVars, tags, true, false); err != nil {
+	if err := kubectl.K6run(kubeconfig, "create-roles-users", "k6/create_roles_users.js", envVars, tags, true, false); err != nil {
 		return fmt.Errorf("failed loading Roles and Users on cluster %q: %w", clusterName, err)
 	}
 	return nil
 }
 
-func loadProjects(r *dart.Dart, cli *kubectl.Client, clusterName string, clusterData tofu.Cluster) error {
+func loadProjects(r *dart.Dart, kubeconfig string, clusterName string, clusterData tofu.Cluster) error {
 	projectCount := strconv.Itoa(r.TestVariables.TestProjects)
 	clusterAdd, err := getAppAddressFor(clusterData)
 	if err != nil {
@@ -147,7 +141,7 @@ func loadProjects(r *dart.Dart, cli *kubectl.Client, clusterName string, cluster
 
 	log.Printf("Load resources on cluster %q (#Projects: %s)\n", clusterName, projectCount)
 
-	if err := cli.K6run("create-projects", "k6/create_projects.js", envVars, tags, true, false); err != nil {
+	if err := kubectl.K6run(kubeconfig, "create-projects", "k6/create_projects.js", envVars, tags, true, false); err != nil {
 		return fmt.Errorf("failed loading Projects on cluster %q: %w", clusterName, err)
 	}
 	return nil

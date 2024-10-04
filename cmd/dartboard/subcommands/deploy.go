@@ -561,15 +561,10 @@ func importDownstreamClusterDo(r *dart.Dart, rancherImageTag string, tf *tofu.To
 }
 
 func importDownstreamClustersRancherSetup(r *dart.Dart, clusters map[string]tofu.Cluster) error {
-	cliTester := kubectl.Client{}
 	tester := clusters["tester"]
 	upstream := clusters["upstream"]
 	upstreamAdd, err := getAppAddressFor(upstream)
 	if err != nil {
-		return err
-	}
-
-	if err = cliTester.Init(tester.Kubeconfig); err != nil {
 		return err
 	}
 
@@ -588,7 +583,7 @@ func importDownstreamClustersRancherSetup(r *dart.Dart, clusters map[string]tofu
 		"IMPORTED_CLUSTER_NAMES": importedClusterNames,
 	}
 
-	if err = cliTester.K6run("rancher-setup", "k6/rancher_setup.js", envVars, nil, true, false); err != nil {
+	if err = kubectl.K6run(tester.Kubeconfig, "rancher-setup", "k6/rancher_setup.js", envVars, nil, true, false); err != nil {
 		return err
 	}
 	return nil
@@ -603,30 +598,21 @@ func importClustersDownstreamGetYAML(clusters map[string]tofu.Cluster, name stri
 		return
 	}
 
-	cliUpstream := kubectl.Client{}
-	if err = cliUpstream.Init(upstream.Kubeconfig); err != nil {
-		return
-	}
-	namespace := "fleet-default"
-	resource := "clusters"
-	if status, err = cliUpstream.GetStatus("provisioning.cattle.io", "v1", resource, name, namespace); err != nil {
+	if status, err = kubectl.GetStatus(upstream.Kubeconfig, "clusters.provisioning.cattle.io", name, "fleet-default"); err != nil {
 		return
 	}
 	clusterID, ok := status["clusterName"].(string)
 	if !ok {
-		err = fmt.Errorf("error accessing %s/%s %s: no valid 'clusterName' in 'Status'", namespace, name, resource)
+		err = fmt.Errorf("error accessing fleet-default/%s clusters: no valid 'clusterName' in 'Status'", name)
 		return
 	}
 
-	name = "default-token"
-	namespace = clusterID
-	resource = "clusterregistrationtokens"
-	if status, err = cliUpstream.GetStatus("management.cattle.io", "v3", resource, name, namespace); err != nil {
+	if status, err = kubectl.GetStatus(upstream.Kubeconfig, "clusterregistrationtokens.management.cattle.io", "default-token", clusterID); err != nil {
 		return
 	}
 	token, ok := status["token"].(string)
 	if !ok {
-		err = fmt.Errorf("error accessing %s/%s %s: no valid 'token' in 'Status'", namespace, name, resource)
+		err = fmt.Errorf("error accessing %s/default-token clusterregistrationtokens: no valid 'token' in 'Status'", clusterID)
 		return
 	}
 
