@@ -6,6 +6,11 @@ terraform {
   }
 }
 
+locals {
+  install_k3s_dest = "/tmp/install_k3s.sh"
+  wait_for_k8s_dest = "/tmp/wait_for_k8s.sh"
+}
+
 resource "ssh_sensitive_resource" "first_server_installation" {
   count        = length(var.server_names) > 0 ? 1 : 0
   host         = var.server_names[0]
@@ -37,19 +42,19 @@ resource "ssh_sensitive_resource" "first_server_installation" {
       node_cidr_mask_size    = var.node_cidr_mask_size
       datastore_endpoint     = var.datastore_endpoint
     })
-    destination = "/tmp/install_k3s.sh"
+    destination = local.install_k3s_dest
     permissions = "0700"
   }
 
   file {
     content     = file("${path.module}/wait_for_k8s.sh")
-    destination = "/tmp/wait_for_k8s.sh"
+    destination = local.wait_for_k8s_dest
     permissions = "0700"
   }
 
   commands = [
-    "sudo /tmp/install_k3s.sh > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)",
-    "sudo /tmp/wait_for_k8s.sh",
+    "sudo ${local.install_k3s_dest} > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)",
+    "sudo ${local.wait_for_k8s_dest}",
     "sudo cat /var/lib/rancher/k3s/server/node-token",
   ]
 }
@@ -87,12 +92,12 @@ resource "ssh_resource" "additional_server_installation" {
       node_cidr_mask_size    = var.node_cidr_mask_size
       datastore_endpoint     = var.datastore_endpoint
     })
-    destination = "/tmp/install_k3s.sh"
+    destination = local.install_k3s_dest
     permissions = "0700"
   }
 
   commands = [
-    "sudo /tmp/install_k3s.sh > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)"
+    "sudo ${local.install_k3s_dest} > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)"
   ]
 }
 
@@ -129,11 +134,11 @@ resource "ssh_resource" "agent_installation" {
       node_cidr_mask_size    = var.node_cidr_mask_size
       datastore_endpoint     = var.datastore_endpoint
     })
-    destination = "/tmp/install_k3s.sh"
+    destination = local.install_k3s_dest
     permissions = "0700"
   }
 
   commands = [
-    "sudo /tmp/install_k3s.sh > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)",
+    "sudo ${local.install_k3s_dest} > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)",
   ]
 }

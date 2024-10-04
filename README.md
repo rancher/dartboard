@@ -129,3 +129,15 @@ For example, for the `ssh` module, nodes' ip addresses, login name, etc. can be 
 export TOFU_WORK_DIR=tofu/main/ssh
 export TOFU_VAR_FILE=tofu/examples/ssh.tfvars.json
 ```
+
+## Harvester: bypassing TLS verification
+
+If you get the following error:
+
+```
+Error: Get "https://$ADDRESS/k8s/clusters/local/apis/harvesterhci.io/v1beta1/settings/server-version": tls: failed to verify certificate
+```
+
+Then your Harvester installation's TLS certificate is not set up correctly, or trusted by your system. Ideally, address those issues, otherwise communication with Harvester will not be secure.
+
+If you want to bypass TLS checks edit your kubeconfig file to remove the `certificate-authority-data` entry and add a `insecure-skip-tls-verify: true` entry instead.
