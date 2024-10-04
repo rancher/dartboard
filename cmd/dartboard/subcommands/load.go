@@ -41,7 +41,7 @@ func Load(cli *cli.Context) error {
 
 	// Refresh k6 files
 	tester := clusters["tester"]
-	if err := chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, ""); err != nil {
+	if err := chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, nil); err != nil {
 		return err
 	}
 
