@@ -29,15 +29,15 @@ tofu_variables:
 #    - name: bullseye-qa
 #      namespace: bullseye
 
-#  networks:
-#   - create: false
-#     name: vmnet-shared
-#     clusternetwork_name: vmnet
-#     namespace: default
-#     interface_type: bridge
-#     interface_model: virtio
-#     public: true
-#     wait_for_lease: true
+  # network:
+  #   create: false
+  #   name: vmnet-shared
+  #   clusternetwork_name: vmnet
+  #   namespace: default
+  #   interface_type: bridge
+  #   interface_model: virtio
+  #   public: true
+  #   wait_for_lease: true
 
 #  upstream_cluster:
 #     name_prefix: upstream

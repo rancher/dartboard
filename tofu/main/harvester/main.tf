@@ -4,9 +4,9 @@ provider "harvester" {
 
 module "network" {
   source              = "../../modules/harvester_network"
-  create              = var.networks[0].create
-  network_name        = var.networks[0].name
-  clusternetwork_name = var.networks[0].clusternetwork_name
+  create              = var.network.create
+  network_name        = var.network.name
+  clusternetwork_name = var.network.clusternetwork_name
   namespace           = var.namespace
   ssh_public_key_path = var.ssh_public_key_path
 }
@@ -56,7 +56,7 @@ module "k3s_cluster" {
   ssh_bastion_user            = var.ssh_bastion_user
   ssh_bastion_key_path        = var.ssh_private_key_path
   ssh_shared_public_keys      = var.ssh_shared_public_keys
-  networks                    = var.networks
+  networks                    = [var.network]
 }
 
 module "rke2_cluster" {
@@ -94,5 +94,5 @@ module "rke2_cluster" {
   ssh_bastion_user            = var.ssh_bastion_user
   ssh_bastion_key_path        = var.ssh_private_key_path
   ssh_shared_public_keys      = var.ssh_shared_public_keys
-  networks                    = var.networks
+  networks                    = [var.network]
 }

@@ -188,14 +188,14 @@ variable "first_app_https_port" {
   default     = 9443
 }
 
-variable "networks" {
+variable "network" {
   description = <<-EOT
-  List of objects combining fields that define pre-existing VM Networks as well as the VM's network_interface type and model.
-  Each object includes a name, a "public" flag if the network will assign a public IP address, a "wait_for_lease" flag if the interface is expected to provision an IP address,
+  An object combining fields that define a pre-existing VM Network as well as the VM's network_interface type and model.
+  The object includes a name, a "public" flag if the network will assign a public IP address, a "wait_for_lease" flag if the interface is expected to provision an IP address,
   and optionally a namespace, interface_type and interface_model to be assigned to the VM.
   If using a VM Network which will assign a public IP to the VM, ensure the "public" flag is set to true.
   EOT
-  type = list(object({
+  type = object({
     create              = bool
     name                = string
     clusternetwork_name = string
@@ -204,8 +204,8 @@ variable "networks" {
     interface_model     = optional(string)
     public              = bool
     wait_for_lease      = bool
-  }))
-  default = [{
+  })
+  default = {
     create              = false
     clusternetwork_name = "vmnet"
     name                = "vmnet-shared"
@@ -213,7 +213,7 @@ variable "networks" {
     interace_type       = "bridge"
     public              = true
     wait_for_lease      = true
-  }]
+  }
 }
 
 variable "ssh_user" {
