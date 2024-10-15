@@ -15,7 +15,7 @@ module "images" {
   source       = "../../modules/harvester_images"
   project_name = var.project_name
   namespace    = var.namespace
-  create       = anytrue([for c in local.k3s_clusters : c.image_name == null]) || anytrue([for c in local.rke2_clusters : c.image_name == null])
+  create       = local.create_image
 }
 
 module "k3s_cluster" {
