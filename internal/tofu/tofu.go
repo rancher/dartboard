@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
@@ -57,10 +56,7 @@ type Tofu struct {
 }
 
 func New(ctx context.Context, variableMap map[string]interface{}, dir string, parallelism int, verbose bool) (*Tofu, error) {
-	tfBinary, err := exec.LookPath("tofu")
-	if err != nil {
-		return nil, fmt.Errorf("error: tofu not found: %w", err)
-	}
+	tfBinary := filepath.Join(".bin", "tofu")
 
 	tf, err := tfexec.NewTerraform(dir, tfBinary)
 	if err != nil {
