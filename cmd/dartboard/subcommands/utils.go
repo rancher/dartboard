@@ -17,9 +17,7 @@ limitations under the License.
 package subcommands
 
 import (
-	"context"
 	"fmt"
-	"log"
 
 	"github.com/rancher/dartboard/internal/docker"
 	"github.com/rancher/dartboard/internal/k3d"
@@ -67,20 +65,6 @@ func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
 		return nil, nil, err
 	}
 	return tf, d, nil
-}
-
-func tofuVersionPrint(ctx context.Context, tofu *tofu.Tofu) error {
-	ver, providers, err := tofu.Version(ctx)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("OpenTofu version: %s", ver)
-	log.Printf("provider list:")
-	for prov, ver := range providers {
-		log.Printf("- %s (%s)", prov, ver)
-	}
-	return nil
 }
 
 // printAccessDetails prints to console addresses and kubeconfig file paths of a cluster for user convenience
