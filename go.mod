@@ -29,6 +29,7 @@ replace (
 
 // replace Kubernetes internal libraries to keep GoLand happy
 replace (
+	helm.sh/helm/v3 => helm.sh/helm/v3 v3.16.1
 	k8s.io/cloud-provider => k8s.io/cloud-provider v0.27.9
 	k8s.io/controller-manager => k8s.io/controller-manager v0.27.9
 	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.27.9
@@ -40,11 +41,11 @@ replace (
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.27.9
 	k8s.io/mount-utils => k8s.io/mount-utils v0.27.9
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.27.9
-	helm.sh/helm/v3 => helm.sh/helm/v3 v3.16.1
 )
 
 // actual requires
 require (
+	al.essio.dev/pkg/shellescape v1.5.0
 	github.com/chromedp/cdproto v0.0.0-20240810084448-b931b754e476
 	github.com/chromedp/chromedp v0.10.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
@@ -63,7 +64,6 @@ require (
 	k8s.io/apimachinery v0.29.0
 	k8s.io/client-go v12.0.0+incompatible
 	sigs.k8s.io/yaml v1.3.0
-	al.essio.dev/pkg/shellescape v1.5.0
 )
 
 // indirect requires
