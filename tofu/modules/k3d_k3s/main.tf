@@ -189,7 +189,6 @@ resource "k3d_cluster" "cluster" {
     source       = "/var/lib/k3d/audit"
     destination  = "/var/lib/rancher/k3s/server/manifests/audit"
     node_filters = ["server:*"]
-
   }
 
   k3s {
