@@ -18,19 +18,17 @@ package k3d
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/rancher/dartboard/internal/tofu"
+	"github.com/rancher/dartboard/internal/vendored"
 )
 
 func ImageImport(cluster tofu.Cluster, image string) error {
 	args := []string{"image", "import", "--cluster", strings.Replace(cluster.Context, "k3d-", "", -1), image}
-	log.Printf("Exec: docker %s\n", strings.Join(args, " "))
 
-	cmd := exec.Command("k3d", args...)
+	cmd := vendored.Command("k3d", args...)
 	var errStream strings.Builder
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = &errStream

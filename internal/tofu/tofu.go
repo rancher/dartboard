@@ -17,15 +17,19 @@ limitations under the License.
 package tofu
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 
-	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/rancher/dartboard/internal/tofu/format"
+	"github.com/rancher/dartboard/internal/vendored"
 )
 
 type ClusterAddress struct {
@@ -49,116 +53,98 @@ type Cluster struct {
 	PrivateKubernetesAPIURL string              `json:"private_kubernetes_api_url"`
 }
 
+type Clusters struct {
+	Value map[string]Cluster `json:"value"`
+}
+
+type Output struct {
+	Clusters Clusters `json:"clusters"`
+}
+
 type Tofu struct {
-	tf        *tfexec.Terraform
 	dir       string
 	threads   int
-	variables []*tfexec.VarOption
+	verbose   bool
+	variables []string
 }
 
 func New(ctx context.Context, variableMap map[string]interface{}, dir string, parallelism int, verbose bool) (*Tofu, error) {
-	tfBinary, err := exec.LookPath("tofu")
-	if err != nil {
-		return nil, fmt.Errorf("error: tofu not found: %w", err)
-	}
-
-	tf, err := tfexec.NewTerraform(dir, tfBinary)
-	if err != nil {
-		return nil, fmt.Errorf("tfexec.NewTerraform error: %w", err)
-	}
-
-	if verbose {
-		tf.SetStdout(os.Stdout)
-	}
-
-	if err = tf.Init(ctx, tfexec.Upgrade(true)); err != nil {
-		return nil, fmt.Errorf("error: tofu Init: %w", err)
-	}
-
-	var variables []*tfexec.VarOption
+	var variables []string
 	for k, v := range variableMap {
-		assignment := fmt.Sprintf("%s=%s", k, format.ConvertValueToHCL(v, false))
-		variables = append(variables, tfexec.Var(assignment))
+		variable := fmt.Sprintf("%s=%s", k, format.ConvertValueToHCL(v, false))
+		variables = append(variables, variable)
 	}
 
-	return &Tofu{
-		tf:        tf,
+	t := &Tofu{
 		dir:       dir,
 		threads:   parallelism,
+		verbose:   verbose,
 		variables: variables,
-	}, nil
+	}
+
+	if err := t.exec(nil, "init", "-upgrade"); err != nil {
+		return nil, err
+	}
+
+	return t, nil
+}
+
+// exec runs Tofu with the correct chdir parameter
+func (t *Tofu) exec(output io.Writer, args ...string) error {
+	fullArgs := append([]string{"-chdir=" + t.dir}, args...)
+	cmd := vendored.Command("tofu", fullArgs...)
+
+	var errStream strings.Builder
+	cmd.Stderr = &errStream
+	cmd.Stdin = os.Stdin
+
+	if t.verbose {
+		cmd.Stdout = os.Stdout
+	}
+
+	if output != nil {
+		cmd.Stdout = output
+	}
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error while running tofu: %v", errStream.String())
+	}
+	return nil
 }
 
 func (t *Tofu) Apply(ctx context.Context) error {
-	options := []tfexec.ApplyOption{tfexec.Parallelism(t.threads)}
+	args := []string{"apply", "-parallelism", strconv.Itoa(t.threads), "-auto-approve"}
+
 	for _, variable := range t.variables {
-		options = append(options, variable)
+		args = append(args, "-var", variable)
 	}
 
-	if err := t.tf.Apply(ctx, options...); err != nil {
-		return fmt.Errorf("error: tofu apply failed: %w", err)
-	}
-	return nil
+	return t.exec(nil, args...)
 }
 
 func (t *Tofu) Destroy(ctx context.Context) error {
-	options := []tfexec.DestroyOption{tfexec.Parallelism(t.threads)}
-	for _, variable := range t.variables {
-		options = append(options, variable)
-	}
+	args := []string{"destroy", "-parallelism", strconv.Itoa(t.threads), "-auto-approve"}
 
-	if err := t.tf.Destroy(ctx, options...); err != nil {
-		return fmt.Errorf("error: tofu destroy failed: %w", err)
-	}
-
-	return nil
-}
-
-func (t *Tofu) OutputClustersJSON(ctx context.Context) (string, error) {
-	tfOutput, err := t.tf.Output(ctx)
-	if err != nil {
-		return "", fmt.Errorf("error: tofu OutputClustersJSON: %w", err)
-	}
-
-	if clusters, ok := tfOutput["clusters"]; ok {
-		return string(clusters.Value), nil
-	}
-
-	return "", fmt.Errorf("error: tofu OutputClustersJSON: no cluster data")
+	return t.exec(nil, args...)
 }
 
 func (t *Tofu) OutputClusters(ctx context.Context) (map[string]Cluster, error) {
-	tfOutput, err := t.tf.Output(ctx)
-	if err != nil {
+	buffer := new(bytes.Buffer)
+	if err := t.exec(buffer, "output", "-json"); err != nil {
+		return nil, err
+	}
+
+	output := &Output{}
+	if err := json.Unmarshal(buffer.Bytes(), output); err != nil {
 		return nil, fmt.Errorf("error: tofu OutputClusters: %w", err)
 	}
 
-	clusters := map[string]Cluster{}
-	if err := json.Unmarshal(tfOutput["clusters"].Value, &clusters); err != nil {
-		return nil, fmt.Errorf("error: tofu OutputClusters: %w", err)
-	}
-
-	return clusters, nil
-
+	return output.Clusters.Value, nil
 }
 
-// Version queries Tofu version and the provider list.
-// It returns the version as a string, the provider list as a map of strings
-// and any error encountered.
-func (t *Tofu) Version(ctx context.Context) (version string, providers map[string]string, err error) {
-	tfVer, tfProv, err := t.tf.Version(ctx, false)
-	if err != nil {
-		err = fmt.Errorf("error: tofu GetVersion: %w", err)
-		return
-	}
-
-	version = tfVer.String()
-	providers = make(map[string]string)
-	for prov, ver := range tfProv {
-		providers[prov] = ver.String()
-	}
-
-	return
+// PrintVersion prints the Tofu version information
+func (t *Tofu) PrintVersion(ctx context.Context) error {
+	return t.exec(log.Writer(), "version")
 }
 
 // IsK3d determines if the current backend is k3d

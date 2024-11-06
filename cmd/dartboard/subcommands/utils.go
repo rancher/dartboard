@@ -17,12 +17,11 @@ limitations under the License.
 package subcommands
 
 import (
-	"context"
 	"fmt"
-	"log"
 
 	"github.com/rancher/dartboard/internal/docker"
 	"github.com/rancher/dartboard/internal/k3d"
+	"github.com/rancher/dartboard/internal/vendored"
 	"github.com/urfave/cli/v2"
 
 	"github.com/rancher/dartboard/internal/dart"
@@ -56,25 +55,16 @@ func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
 	fmt.Printf("Using dart: %s\n", dartPath)
 	fmt.Printf("OpenTofu main directory: %s\n", d.TofuMainDirectory)
 
+	err = vendored.ExtractBinaries()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	tf, err := tofu.New(cli.Context, d.TofuVariables, d.TofuMainDirectory, d.TofuParallelism, true)
 	if err != nil {
 		return nil, nil, err
 	}
 	return tf, d, nil
-}
-
-func tofuVersionPrint(ctx context.Context, tofu *tofu.Tofu) error {
-	ver, providers, err := tofu.Version(ctx)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("OpenTofu version: %s", ver)
-	log.Printf("provider list:")
-	for prov, ver := range providers {
-		log.Printf("- %s (%s)", prov, ver)
-	}
-	return nil
 }
 
 // printAccessDetails prints to console addresses and kubeconfig file paths of a cluster for user convenience
