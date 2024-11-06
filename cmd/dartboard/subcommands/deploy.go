@@ -47,7 +47,7 @@ func Deploy(cli *cli.Context) error {
 	}
 
 	if !cli.Bool(ArgSkipApply) {
-		if err = tofuVersionPrint(cli.Context, tf); err != nil {
+		if err = tf.PrintVersion(cli.Context); err != nil {
 			return err
 		}
 		if err = tf.Apply(cli.Context); err != nil {
