@@ -24,14 +24,7 @@ To recreate environments:
 
 ## Installation
 
-Requirements:
- - [OpenTofu](https://opentofu.org/)
- - kubectl
- - [k6](https://k6.io/)
- - [k3d](https://k3d.io) (only needed for k3d)
- - [Docker](https://www.docker.com/) (only for k3d)
-
-Clone the repository and run `make`.
+Download and unpack a [release](https://github.com/rancher/dartboard/releases/), it's a self-contained binary.
 
 ## Test history
 
