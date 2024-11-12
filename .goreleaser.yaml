@@ -24,3 +24,5 @@ archives:
       - LICENSE
       - README.md
       - darts/*
+      - k6/*
+      - tofu/*
