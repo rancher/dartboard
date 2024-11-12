@@ -29,7 +29,7 @@ locals {
     ingress_class_name   = module.k3s_cluster[i].ingress_class_name
     }
   }
-  rke2_outputs = { for i, cluster in local.rke2_clusters : cluster.name => {
+  rke2_outputs = { for i, cluster in local.rke2_clusters : cluster.name_prefix => {
     kubeconfig = module.rke2_cluster[i].kubeconfig
     context    = module.rke2_cluster[i].context
 
