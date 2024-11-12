@@ -3,7 +3,6 @@ import exec from 'k6/execution';
 import http from 'k6/http';
 import { getCookies, login, generateAuthorizationHeader, addMinutes } from "./rancher_utils.js";
 import { getPrincipalIds, getCurrentUserId, getClusterIds, getCurrentUserPrincipal, createUser } from "./rancher_users_utils.js"
-import { randomIntBetween } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 
 // Parameters
