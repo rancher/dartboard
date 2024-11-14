@@ -72,7 +72,7 @@ func loadConfigMapAndSecrets(r *dart.Dart, kubecongfig string, clusterName strin
 	secretCount := strconv.Itoa(r.TestVariables.TestSecrets)
 
 	envVars := map[string]string{
-		"BASE_URL":         clusterData.PrivateKubernetesAPIURL,
+		"BASE_URL":         clusterData.KubernetesAddresses.Private,
 		"KUBECONFIG":       clusterData.Kubeconfig,
 		"CONTEXT":          clusterData.Context,
 		"CONFIG_MAP_COUNT": configMapCount,
@@ -86,7 +86,7 @@ func loadConfigMapAndSecrets(r *dart.Dart, kubecongfig string, clusterName strin
 	}
 
 	log.Printf("Load resources on cluster %q (#ConfigMaps: %s, #Secrets: %s)\n", clusterName, configMapCount, secretCount)
-	if err := kubectl.K6run(kubecongfig, "create-k8s-resources", "k6/create_k8s_resources.js", envVars, tags, true, false); err != nil {
+	if err := kubectl.K6run(kubecongfig, "k6/create_k8s_resources.js", envVars, tags, true, clusterData.KubernetesAddresses.Tunnel, false); err != nil {
 		return fmt.Errorf("failed loading ConfigMaps and Secrets on cluster %q: %w", clusterName, err)
 	}
 	return nil
@@ -115,7 +115,7 @@ func loadRolesAndUsers(r *dart.Dart, kubeconfig string, clusterName string, clus
 
 	log.Printf("Load resources on cluster %q (#Roles: %s, #Users: %s)\n", clusterName, roleCount, userCount)
 
-	if err := kubectl.K6run(kubeconfig, "create-roles-users", "k6/create_roles_users.js", envVars, tags, true, false); err != nil {
+	if err := kubectl.K6run(kubeconfig, "k6/create_roles_users.js", envVars, tags, true, clusterAdd.Local.HTTPSURL, false); err != nil {
 		return fmt.Errorf("failed loading Roles and Users on cluster %q: %w", clusterName, err)
 	}
 	return nil
@@ -141,7 +141,7 @@ func loadProjects(r *dart.Dart, kubeconfig string, clusterName string, clusterDa
 
 	log.Printf("Load resources on cluster %q (#Projects: %s)\n", clusterName, projectCount)
 
-	if err := kubectl.K6run(kubeconfig, "create-projects", "k6/create_projects.js", envVars, tags, true, false); err != nil {
+	if err := kubectl.K6run(kubeconfig, "k6/create_projects.js", envVars, tags, true, clusterAdd.Local.HTTPSURL, false); err != nil {
 		return fmt.Errorf("failed loading Projects on cluster %q: %w", clusterName, err)
 	}
 	return nil

@@ -546,7 +546,7 @@ func importDownstreamClustersRancherSetup(r *dart.Dart, clusters map[string]tofu
 		"IMPORTED_CLUSTER_NAMES": importedClusterNames,
 	}
 
-	if err = kubectl.K6run(tester.Kubeconfig, "rancher-setup", "k6/rancher_setup.js", envVars, nil, true, false); err != nil {
+	if err = kubectl.K6run(tester.Kubeconfig, "k6/rancher_setup.js", envVars, nil, true, upstreamAdd.Local.HTTPSURL, false); err != nil {
 		return err
 	}
 	return nil
