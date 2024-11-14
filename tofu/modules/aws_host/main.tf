@@ -29,7 +29,7 @@ resource "null_resource" "host_configuration" {
     bastion_host        = var.ssh_bastion_host
     bastion_user        = var.ssh_bastion_user
     bastion_private_key = file(var.ssh_private_key_path)
-    timeout             = "120s"
+    timeout             = "240s"
   }
 
   provisioner "file" {
