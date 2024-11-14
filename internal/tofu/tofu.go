@@ -125,6 +125,10 @@ func (t *Tofu) Apply(ctx context.Context) error {
 func (t *Tofu) Destroy(ctx context.Context) error {
 	args := []string{"destroy", "-parallelism", strconv.Itoa(t.threads), "-auto-approve"}
 
+	for _, variable := range t.variables {
+		args = append(args, "-var", variable)
+	}
+
 	return t.exec(nil, args...)
 }
 
