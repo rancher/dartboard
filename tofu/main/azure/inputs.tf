@@ -19,6 +19,7 @@ locals {
     os_disk_type      = "StandardSSD_LRS"
     os_ephemeral_disk = true
     boot_diagnostics  = true
+    enable_audit_log  = false
   }
 
   downstream_clusters = [
@@ -39,6 +40,7 @@ locals {
         version   = "latest"
       }
       os_ephemeral_disk = false
+      enable_audit_log  = false
     }
   ]
 
@@ -58,6 +60,7 @@ locals {
       version   = "latest"
     }
     os_ephemeral_disk = false
+    enable_audit_log  = false
   }
 
   clusters = concat([local.upstream_cluster], local.downstream_clusters, [local.tester_cluster])
