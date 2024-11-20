@@ -272,7 +272,7 @@ func getRancherMonitoringValsJSON(noSchedToleration bool, mimirURL string) map[s
 	tolerations := []any{}
 	monitoringRestrictions := map[string]any{}
 	if !noSchedToleration {
-		nodeSelector["monitoring"] = true
+		nodeSelector["monitoring"] = "true"
 		tolerations = append(tolerations, map[string]any{"key": "monitoring", "operator": "Exists", "effect": "NoSchedule"})
 		monitoringRestrictions["nodeSelector"] = nodeSelector
 		monitoringRestrictions["tolerations"] = tolerations
