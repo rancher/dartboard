@@ -51,3 +51,4 @@ variable "bastion_host_instance_type" {
   description = "EC2 instance type"
   default     = "t4g.small"
 }
+
