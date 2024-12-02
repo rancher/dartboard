@@ -233,7 +233,7 @@ resource "aws_key_pair" "key_pair" {
 }
 
 module "bastion" {
-  source                = "../aws_host"
+  source                = "../host"
   availability_zone     = var.availability_zone
   project_name          = var.project_name
   name                  = "bastion"
