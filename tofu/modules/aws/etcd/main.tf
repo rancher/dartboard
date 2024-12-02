@@ -17,7 +17,7 @@ module "server_nodes" {
 }
 
 module "etcd" {
-  source       = "../../etcd"
+  source       = "../../generic/etcd"
   project      = var.project_name
   name         = var.name
   server_names = [for node in module.server_nodes : node.private_name]
