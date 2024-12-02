@@ -84,7 +84,7 @@ resource "azurerm_ssh_public_key" "key_pair" {
 }
 
 module "bastion" {
-  source              = "../azure_host"
+  source              = "../host"
   project_name        = var.project_name
   name                = "bastion"
   resource_group_name = var.resource_group_name
