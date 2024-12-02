@@ -1,6 +1,6 @@
 module "server_nodes" {
   count                 = var.server_count
-  source                = "../aws_host"
+  source                = "../host"
   ami                   = var.ami
   instance_type         = var.instance_type
   availability_zone     = var.availability_zone
@@ -23,7 +23,7 @@ module "server_nodes" {
 
 module "agent_nodes" {
   count                       = var.agent_count
-  source                      = "../aws_host"
+  source                      = "../host"
   ami                         = var.ami
   instance_type               = var.instance_type
   availability_zone           = var.availability_zone
@@ -40,7 +40,7 @@ module "agent_nodes" {
 }
 
 module "rds" {
-  source                = "../aws_rds"
+  source                = "../rds"
   count                 = var.datastore == null ? 0 : 1
   datastore             = var.datastore
   availability_zone     = var.availability_zone
@@ -52,7 +52,7 @@ module "rds" {
 }
 
 module "k3s" {
-  source       = "../k3s"
+  source       = "../../k3s"
   project      = var.project_name
   name         = var.name
   server_names = [for node in module.server_nodes : node.private_name]
