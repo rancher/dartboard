@@ -1,6 +1,6 @@
 module "server_nodes" {
   count                = var.server_count
-  source               = "../azure_host"
+  source               = "../host"
   os_image             = var.os_image
   os_disk_type         = var.os_disk_type
   os_disk_size         = var.os_disk_size
@@ -27,7 +27,7 @@ module "server_nodes" {
 
 module "agent_nodes" {
   count                       = var.agent_count
-  source                      = "../azure_host"
+  source                      = "../host"
   os_image                    = var.os_image
   os_disk_type                = var.os_disk_type
   os_disk_size                = var.os_disk_size
@@ -47,15 +47,15 @@ module "agent_nodes" {
 }
 
 
-module "rke2" {
-  source       = "../rke2"
+module "k3s" {
+  source       = "../../k3s"
   project      = var.project_name
   name         = var.name
   server_names = [for node in module.server_nodes : node.private_name]
   agent_names  = [for node in module.agent_nodes : node.private_name]
   agent_labels = var.agent_labels
   agent_taints = var.agent_taints
-  sans         = var.sans
+  sans         = compact(concat(var.sans, var.server_count > 0 ? [module.server_nodes[0].private_name] : []))
 
   ssh_user                  = var.ssh_user
   ssh_private_key_path      = var.ssh_private_key_path
@@ -65,4 +65,5 @@ module "rke2" {
   distro_version      = var.distro_version
   max_pods            = var.max_pods
   node_cidr_mask_size = var.node_cidr_mask_size
+  datastore_endpoint  = null
 }
