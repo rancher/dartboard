@@ -52,7 +52,7 @@ resource "null_resource" "host_configuration" {
 module "ssh_access" {
   depends_on = [null_resource.host_configuration]
 
-  source = "../../ssh_access"
+  source = "../../ssh/access"
   name   = var.name
 
   ssh_bastion_host     = var.ssh_bastion_host

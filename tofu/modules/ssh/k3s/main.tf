@@ -8,7 +8,7 @@ terraform {
 
 module "server_nodes" {
   count                       = var.server_count
-  source                      = "../ssh_host"
+  source                      = "../host"
   project_name                = var.project_name
   fqdn                        = var.fqdns[count.index]
   ssh_user                    = var.ssh_user
@@ -19,7 +19,7 @@ module "server_nodes" {
 
 module "agent_nodes" {
   count                       = var.agent_count
-  source                      = "../ssh_host"
+  source                      = "../host"
   project_name                = var.project_name
   fqdn                        = var.fqdns[var.server_count + count.index]
   ssh_user                    = var.ssh_user
@@ -29,7 +29,7 @@ module "agent_nodes" {
 }
 
 module "k3s" {
-  source       = "../generic/k3s"
+  source       = "../../generic/k3s"
   project      = var.project_name
   name         = var.name
   server_names = [for node in module.server_nodes : node.private_name]
