@@ -23,7 +23,7 @@ terraform {
 
 module "cluster" {
   count        = length(local.clusters)
-  source       = "../../modules/ssh_k3s"
+  source       = "../../modules/ssh/k3s"
   project_name = local.project_name
   name         = local.clusters[count.index].name
   server_count = local.clusters[count.index].server_count
