@@ -43,7 +43,7 @@ resource "azurerm_resource_group" "rg" {
 }
 
 module "network" {
-  source               = "../../modules/azure_network"
+  source               = "../../modules/azure/network"
   project_name         = local.project_name
   location             = local.location
   resource_group_name  = azurerm_resource_group.rg.name
@@ -69,7 +69,7 @@ module "k3s_cluster" {
   depends_on = [module.network]
 
   count        = length(local.k3s_clusters)
-  source       = "../../modules/azure_k3s"
+  source       = "../../modules/azure/k3s"
   project_name = local.project_name
   name         = local.k3s_clusters[count.index].name
   server_count = local.k3s_clusters[count.index].server_count
@@ -107,7 +107,7 @@ module "rke2_cluster" {
   depends_on = [module.network]
 
   count        = length(local.rke2_clusters)
-  source       = "../../modules/azure_rke2"
+  source       = "../../modules/azure/rke2"
   project_name = local.project_name
   name         = local.rke2_clusters[count.index].name
   server_count = local.rke2_clusters[count.index].server_count
@@ -144,7 +144,7 @@ module "aks_cluster" {
   // provider issue: https://github.com/hashicorp/terraform-provider-azurerm/issues/16928
   depends_on                 = [module.network]
   count                      = length(local.aks_clusters)
-  source                     = "../../modules/azure_aks"
+  source                     = "../../modules/azure/aks"
   project_name               = local.project_name
   name                       = local.aks_clusters[count.index].name
   default_node_pool_count    = local.aks_clusters[count.index].agent_count - (local.aks_clusters[count.index].reserve_node_for_monitoring ? 1 : 0)
