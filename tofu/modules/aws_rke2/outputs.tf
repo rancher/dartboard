@@ -10,6 +10,10 @@ output "kubeconfig" {
   value = module.rke2.kubeconfig
 }
 
+output "local_kubernetes_api_url" {
+  value = module.rke2.local_kubernetes_api_url
+}
+
 output "context" {
   value = module.rke2.context
 }

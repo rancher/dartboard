@@ -3,8 +3,15 @@ locals {
     kubeconfig = module.k3s_cluster[i].kubeconfig
     context    = module.k3s_cluster[i].context
 
-    // alternative URL to reach the API from the same network this cluster is in
-    private_kubernetes_api_url = "https://${module.k3s_cluster[i].first_server_private_name}:6443"
+    // addresses of the Kubernetes API server
+    kubernetes_addresses = {
+      // resolvable over the Internet
+      public = "https://${module.k3s_cluster[i].first_server_public_name}:6443"
+      // resolvable from the network this cluster runs in
+      private = "https://${module.k3s_cluster[i].first_server_private_name}:6443"
+      // resolvable from the host running OpenTofu
+      tunnel = module.k3s_cluster[i].local_kubernetes_api_url
+    }
 
     // addresses of applications running in this cluster
     app_addresses = {
@@ -33,8 +40,15 @@ locals {
     kubeconfig = module.rke2_cluster[i].kubeconfig
     context    = module.rke2_cluster[i].context
 
-    // alternative URL to reach the API from the same network this cluster is in
-    private_kubernetes_api_url = "https://${module.rke2_cluster[i].first_server_private_name}:6443"
+    // addresses of the Kubernetes API server
+    kubernetes_addresses = {
+      // resolvable over the Internet
+      public = "https://${module.rke2_cluster[i].first_server_public_name}:6443"
+      // resolvable from the network this cluster runs in
+      private = "https://${module.rke2_cluster[i].first_server_private_name}:6443"
+      // resolvable from the host running OpenTofu
+      tunnel = module.rke2_cluster[i].local_kubernetes_api_url
+    }
 
     // addresses of applications running in this cluster
     app_addresses = {
@@ -63,8 +77,15 @@ locals {
     kubeconfig = module.aks_cluster[i].kubeconfig
     context    = module.aks_cluster[i].context
 
-    // same as the kubeconfig URL
-    private_kubernetes_api_url = "https://${module.aks_cluster[i].cluster_public_name}:443"
+    // addresses of the Kubernetes API server
+    kubernetes_addresses = {
+      // resolvable over the Internet
+      public = "https://${module.aks_cluster[i].cluster_public_name}:443"
+      // resolvable from the network this cluster runs in
+      private = "https://${module.aks_cluster[i].cluster_public_name}:443"
+      // resolvable from the host running OpenTofu
+      tunnel = "https://${module.aks_cluster[i].cluster_public_name}:443"
+    }
 
     // addresses of applications running in this cluster
     app_addresses = {

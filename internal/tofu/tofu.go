@@ -44,13 +44,19 @@ type ClusterAppAddresses struct {
 	Tunnel  ClusterAddress `json:"tunnel"`
 }
 
+type Addresses struct {
+	Public  string `json:"public"`
+	Private string `json:"private"`
+	Tunnel  string `json:"tunnel"`
+}
+
 type Cluster struct {
-	AppAddresses            ClusterAppAddresses `json:"app_addresses"`
-	Context                 string              `json:"context"`
-	IngressClassName        string              `json:"ingress_class_name"`
-	Kubeconfig              string              `json:"kubeconfig"`
-	NodeAccessCommands      map[string]string   `json:"node_access_commands"`
-	PrivateKubernetesAPIURL string              `json:"private_kubernetes_api_url"`
+	AppAddresses        ClusterAppAddresses `json:"app_addresses"`
+	Context             string              `json:"context"`
+	IngressClassName    string              `json:"ingress_class_name"`
+	Kubeconfig          string              `json:"kubeconfig"`
+	NodeAccessCommands  map[string]string   `json:"node_access_commands"`
+	KubernetesAddresses Addresses           `json:"kubernetes_addresses"`
 }
 
 type Clusters struct {

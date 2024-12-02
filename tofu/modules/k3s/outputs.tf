@@ -1,3 +1,7 @@
+locals {
+  local_kubernetes_api_url = "https://${var.sans[0]}:${var.local_kubernetes_api_port}"
+}
+
 resource "local_file" "kubeconfig" {
   content = yamlencode({
     apiVersion = "v1"
@@ -5,7 +9,7 @@ resource "local_file" "kubeconfig" {
       {
         cluster = {
           certificate-authority-data = base64encode(tls_self_signed_cert.server_ca_cert.cert_pem)
-          server                     = "https://${var.sans[0]}:${var.local_kubernetes_api_port}"
+          server                     = local.local_kubernetes_api_url
         }
         name = var.name
       }
@@ -37,8 +41,14 @@ resource "local_file" "kubeconfig" {
   file_permission = "0700"
 }
 
+// note: hosts in this file need to be resolvable from the host running OpenTofu
 output "kubeconfig" {
   value = abspath(local_file.kubeconfig.filename)
+}
+
+// note: must match the host in kubeconfig
+output "local_kubernetes_api_url" {
+  value = local.local_kubernetes_api_url
 }
 
 output "context" {

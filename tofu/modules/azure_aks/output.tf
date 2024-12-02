@@ -1,5 +1,11 @@
+// note: hosts in this file need to be resolvable from the host running OpenTofu
 output "kubeconfig" {
   value = abspath(local_file.kubeconfig.filename)
+}
+
+// note: must match the host in kubeconfig
+output "local_kubernetes_api_url" {
+  value = "https://${azurerm_kubernetes_cluster.cluster.kube_config.host}:6443"
 }
 
 output "context" {
