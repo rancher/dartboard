@@ -26,7 +26,7 @@ resource "openstack_compute_keypair_v2" "main_keypair" {
 }
 
 module "network" {
-  source               = "../../modules/openstack_network"
+  source               = "../../modules/openstack/network"
   bastion_flavor       = local.bastion_flavor
   bastion_image        = local.bastion_image
   project_name         = local.project_name
@@ -44,7 +44,7 @@ module "network" {
 module "cluster" {
   depends_on   = [module.network]
   count        = length(local.clusters)
-  source       = "../../modules/openstack_k3s"
+  source       = "../../modules/openstack/k3s"
   project_name = local.project_name
   name         = local.clusters[count.index].name
   server_count = local.clusters[count.index].server_count

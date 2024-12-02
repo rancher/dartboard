@@ -1,6 +1,6 @@
 module "server_nodes" {
   count                       = var.server_count
-  source                      = "../openstack_host"
+  source                      = "../host"
   availability_zone           = var.availability_zone
   flavor                      = var.flavor_name
   image                       = var.image_id
@@ -17,7 +17,7 @@ module "server_nodes" {
 
 module "agent_nodes" {
   count                       = var.agent_count
-  source                      = "../openstack_host"
+  source                      = "../host"
   availability_zone           = var.availability_zone
   image                       = var.image_id
   flavor                      = var.flavor_name
