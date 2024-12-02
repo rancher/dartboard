@@ -113,23 +113,25 @@ func (t *Tofu) exec(output io.Writer, args ...string) error {
 }
 
 func (t *Tofu) Apply(ctx context.Context) error {
-	args := []string{"apply", "-parallelism", strconv.Itoa(t.threads), "-auto-approve"}
-
-	for _, variable := range t.variables {
-		args = append(args, "-var", variable)
-	}
+	args := t.commonArgs("apply")
 
 	return t.exec(nil, args...)
 }
 
 func (t *Tofu) Destroy(ctx context.Context) error {
-	args := []string{"destroy", "-parallelism", strconv.Itoa(t.threads), "-auto-approve"}
+	args := t.commonArgs("destroy")
+
+	return t.exec(nil, args...)
+}
+
+// commonArgs formats arguments common to multiple commands
+func (t *Tofu) commonArgs(command string) []string {
+	args := []string{command, "-parallelism", strconv.Itoa(t.threads), "-auto-approve"}
 
 	for _, variable := range t.variables {
 		args = append(args, "-var", variable)
 	}
-
-	return t.exec(nil, args...)
+	return args
 }
 
 func (t *Tofu) OutputClusters(ctx context.Context) (map[string]Cluster, error) {
