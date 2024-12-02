@@ -1,6 +1,6 @@
 module "server_nodes" {
   count                 = var.server_count
-  source                = "../aws_host"
+  source                = "../host"
   ami                   = var.ami
   instance_type         = var.instance_type
   availability_zone     = var.availability_zone
@@ -17,7 +17,7 @@ module "server_nodes" {
 }
 
 module "etcd" {
-  source       = "../etcd"
+  source       = "../../etcd"
   project      = var.project_name
   name         = var.name
   server_names = [for node in module.server_nodes : node.private_name]

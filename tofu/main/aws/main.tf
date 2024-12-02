@@ -4,7 +4,7 @@ provider "aws" {
 }
 
 module "network" {
-  source               = "../../modules/aws_network"
+  source               = "../../modules/aws/network"
   project_name         = var.project_name
   region               = var.region
   availability_zone    = var.availability_zone
@@ -16,7 +16,7 @@ module "network" {
 
 module "k3s_cluster" {
   count        = length(local.k3s_clusters)
-  source       = "../../modules/aws_k3s"
+  source       = "../../modules/aws/k3s"
   project_name = var.project_name
   name         = local.k3s_clusters[count.index].name
   server_count = local.k3s_clusters[count.index].server_count
@@ -47,7 +47,7 @@ module "k3s_cluster" {
 
 module "rke2_cluster" {
   count        = length(local.rke2_clusters)
-  source       = "../../modules/aws_rke2"
+  source       = "../../modules/aws/rke2"
   project_name = var.project_name
   name         = local.rke2_clusters[count.index].name
   server_count = local.rke2_clusters[count.index].server_count

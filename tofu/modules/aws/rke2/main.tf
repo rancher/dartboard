@@ -1,6 +1,6 @@
 module "server_nodes" {
   count                 = var.server_count
-  source                = "../aws_host"
+  source                = "../host"
   ami                   = var.ami
   instance_type         = var.instance_type
   availability_zone     = var.availability_zone
@@ -23,7 +23,7 @@ module "server_nodes" {
 
 module "agent_nodes" {
   count                       = var.agent_count
-  source                      = "../aws_host"
+  source                      = "../host"
   ami                         = var.ami
   instance_type               = var.instance_type
   availability_zone           = var.availability_zone
@@ -40,7 +40,7 @@ module "agent_nodes" {
 }
 
 module "rke2" {
-  source       = "../rke2"
+  source       = "../../rke2"
   project      = var.project_name
   name         = var.name
   server_names = [for node in module.server_nodes : node.private_name]
