@@ -1,11 +1,11 @@
 module "network" {
-  source       = "../../modules/k3d_network"
+  source       = "../../modules/k3d/network"
   project_name = var.project_name
 }
 
 module "cluster" {
   count          = length(local.all_clusters)
-  source         = "../../modules/k3d_k3s"
+  source         = "../../modules/k3d/k3s"
   project_name   = var.project_name
   name           = local.all_clusters[count.index].name
   server_count   = local.all_clusters[count.index].server_count
