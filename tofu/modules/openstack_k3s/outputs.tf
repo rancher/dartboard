@@ -10,6 +10,10 @@ output "kubeconfig" {
   value = module.k3s.kubeconfig
 }
 
+output "local_kubernetes_api_url" {
+  value = module.k3s.local_kubernetes_api_url
+}
+
 output "context" {
   value = module.k3s.context
 }

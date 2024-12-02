@@ -1,3 +1,7 @@
+locals {
+  local_kubernetes_api_url = nonsensitive(k3d_cluster.cluster[0].credentials[0].host)
+}
+
 resource "local_file" "kubeconfig" {
   count = var.server_count > 0 ? 1 : 0
   content = yamlencode({
@@ -6,7 +10,7 @@ resource "local_file" "kubeconfig" {
       {
         cluster = {
           certificate-authority-data = base64encode(k3d_cluster.cluster[0].credentials[0].cluster_ca_certificate)
-          server                     = k3d_cluster.cluster[0].credentials[0].host
+          server                     = local.local_kubernetes_api_url
         }
         name = "k3d-${var.project_name}-${var.name}"
       }
@@ -38,8 +42,14 @@ resource "local_file" "kubeconfig" {
   file_permission = "0700"
 }
 
+// note: hosts in this file need to be resolvable from the host running OpenTofu
 output "kubeconfig" {
   value = var.server_count > 0 ? abspath(local_file.kubeconfig[0].filename) : null
+}
+
+// note: must match the host in kubeconfig
+output "local_kubernetes_api_url" {
+  value = local.local_kubernetes_api_url
 }
 
 output "context" {

@@ -4,8 +4,15 @@ output "clusters" {
       kubeconfig = module.cluster[i].kubeconfig
       context    = module.cluster[i].context
 
-      // alternative URL to reach the API from the same network this cluster is in
-      private_kubernetes_api_url = "https://${module.cluster[i].first_server_private_name}:6443"
+      // addresses of the Kubernetes API server
+      kubernetes_addresses = {
+        // resolvable over the Internet
+        public = "https://${module.cluster[i].first_server_public_name}:6443"
+        // resolvable from the network this cluster runs in
+        private = "https://${module.cluster[i].first_server_private_name}:6443"
+        // resolvable from the host running OpenTofu
+        tunnel = module.cluster[i].local_kubernetes_api_url
+      }
 
       // addresses of applications running in this cluster
       app_addresses = {
