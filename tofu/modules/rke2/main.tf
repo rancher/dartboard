@@ -6,6 +6,11 @@ terraform {
   }
 }
 
+locals {
+  install_rke2_dest = "/tmp/install_rke2.sh"
+  wait_for_k8s_dest = "/tmp/wait_for_k8s.sh"
+}
+
 resource "ssh_sensitive_resource" "first_server_installation" {
   count        = length(var.server_names) > 0 ? 1 : 0
   host         = var.server_names[0]
@@ -35,19 +40,19 @@ resource "ssh_sensitive_resource" "first_server_installation" {
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
-    destination = "/tmp/install_rke2.sh"
+    destination = local.install_rke2_dest
     permissions = "0700"
   }
 
   file {
     content     = file("${path.module}/wait_for_k8s.sh")
-    destination = "/tmp/wait_for_k8s.sh"
+    destination = local.wait_for_k8s_dest
     permissions = "0700"
   }
 
   commands = [
-    "sudo /tmp/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)",
-    "sudo /tmp/wait_for_k8s.sh",
+    "sudo ${local.install_rke2_dest} > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)",
+    "sudo ${local.wait_for_k8s_dest}",
     "sudo cat /var/lib/rancher/rke2/server/node-token",
   ]
 }
@@ -83,12 +88,12 @@ resource "ssh_resource" "additional_server_installation" {
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
-    destination = "/tmp/install_rke2.sh"
+    destination = local.install_rke2_dest
     permissions = "0700"
   }
 
   commands = [
-    "sudo /tmp/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)"
+    "sudo ${local.install_rke2_dest} > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)"
   ]
 }
 
@@ -123,11 +128,11 @@ resource "ssh_resource" "agent_installation" {
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
-    destination = "/tmp/install_rke2.sh"
+    destination = local.install_rke2_dest
     permissions = "0700"
   }
 
   commands = [
-    "sudo /tmp/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)"
+    "sudo ${local.install_rke2_dest} > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)"
   ]
 }
