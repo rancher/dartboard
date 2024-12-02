@@ -34,7 +34,7 @@ resource "openstack_networking_router_interface_v2" "gateway_subnet" {
 
 module "bastion" {
   depends_on              = [openstack_networking_router_interface_v2.gateway_subnet]
-  source                  = "../openstack_host"
+  source                  = "../host"
   availability_zone       = var.availability_zone
   project_name            = var.project_name
   flavor                  = var.bastion_flavor
