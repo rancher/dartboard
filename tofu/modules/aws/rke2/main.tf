@@ -40,7 +40,7 @@ module "agent_nodes" {
 }
 
 module "rke2" {
-  source       = "../../rke2"
+  source       = "../../generic/rke2"
   project      = var.project_name
   name         = var.name
   server_names = [for node in module.server_nodes : node.private_name]

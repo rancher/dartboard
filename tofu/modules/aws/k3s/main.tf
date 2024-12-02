@@ -52,7 +52,7 @@ module "rds" {
 }
 
 module "k3s" {
-  source       = "../../k3s"
+  source       = "../../generic/k3s"
   project      = var.project_name
   name         = var.name
   server_names = [for node in module.server_nodes : node.private_name]
