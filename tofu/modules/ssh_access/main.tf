@@ -11,7 +11,7 @@ resource "local_file" "ssh_script" {
       $@
   EOT
 
-  filename = "${path.root}/config/ssh-to-${var.name}.sh"
+  filename = "${path.root}/${terraform.workspace}_config/ssh-to-${var.name}.sh"
 }
 
 resource "local_file" "open_tunnels" {
@@ -26,7 +26,7 @@ resource "local_file" "open_tunnels" {
     ssh_private_key_path = var.ssh_private_key_path
   })
 
-  filename = "${path.root}/config/open-tunnels-to-${var.name}.sh"
+  filename = "${path.root}/${terraform.workspace}_config/open-tunnels-to-${var.name}.sh"
 }
 
 resource "null_resource" "open_tunnels" {

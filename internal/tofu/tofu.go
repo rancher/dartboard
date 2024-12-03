@@ -133,16 +133,14 @@ func (t *Tofu) handleWorkspace(ctx context.Context) error {
 	if wsExists {
 		log.Printf("Found existing tofu workspace: %s", t.workspace)
 		return t.selectWorkspace(ctx)
-	} else {
-		log.Printf("Creating new tofu workspace: %s", t.workspace)
-		if err = t.newWorkspace(ctx); err != nil {
-			return err
-		}
-		if err = t.selectWorkspace(ctx); err != nil {
-			return err
-		}
 	}
-	return nil
+
+	log.Printf("Creating new tofu workspace: %s", t.workspace)
+	if err = t.newWorkspace(ctx); err != nil {
+		return err
+	}
+
+	return t.selectWorkspace(ctx)
 }
 
 func (t *Tofu) workspaceExists(ctx context.Context) (bool, error) {
