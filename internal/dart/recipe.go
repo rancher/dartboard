@@ -14,6 +14,7 @@ import (
 // Dart is a "recipe" that encodes all parameters for a test run
 type Dart struct {
 	TofuMainDirectory string         `yaml:"tofu_main_directory"`
+	TofuWorkspace     string         `yaml:"tofu_workspace"`
 	TofuParallelism   int            `yaml:"tofu_parallelism"`
 	TofuVariables     map[string]any `yaml:"tofu_variables"`
 	ChartVariables    ChartVariables `yaml:"chart_variables"`

@@ -6,7 +6,7 @@ tofu/main/*/.terraform
 tofu/main/*/.terraform.lock.hcl
 tofu/main/*/terraform.tfstate
 tofu/main/*/terraform.tfstate.*
-tofu/main/*/config
+tofu/main/*/*config
 *.tfvars
 
 # IDE related

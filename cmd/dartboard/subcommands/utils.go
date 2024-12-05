@@ -54,13 +54,14 @@ func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
 	}
 	fmt.Printf("Using dart: %s\n", dartPath)
 	fmt.Printf("OpenTofu main directory: %s\n", d.TofuMainDirectory)
+	fmt.Printf("Using Tofu workspace: %s\n", d.TofuWorkspace)
 
 	err = vendored.ExtractBinaries()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	tf, err := tofu.New(cli.Context, d.TofuVariables, d.TofuMainDirectory, d.TofuParallelism, true)
+	tf, err := tofu.New(cli.Context, d.TofuVariables, d.TofuMainDirectory, d.TofuWorkspace, d.TofuParallelism, true)
 	if err != nil {
 		return nil, nil, err
 	}

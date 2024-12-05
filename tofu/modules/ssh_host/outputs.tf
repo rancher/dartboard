@@ -14,7 +14,7 @@ resource "local_file" "ssh_script" {
       $@
   EOT
 
-  filename = "${path.root}/config/ssh-to-${var.name}.sh"
+  filename = "${path.root}/${terraform.workspace}_config/ssh-to-${var.name}.sh"
 }
 
 output "name" {

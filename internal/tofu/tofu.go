@@ -69,12 +69,13 @@ type Output struct {
 
 type Tofu struct {
 	dir       string
+	workspace string
 	threads   int
 	verbose   bool
 	variables []string
 }
 
-func New(ctx context.Context, variableMap map[string]interface{}, dir string, parallelism int, verbose bool) (*Tofu, error) {
+func New(ctx context.Context, variableMap map[string]interface{}, dir string, ws string, parallelism int, verbose bool) (*Tofu, error) {
 	var variables []string
 	for k, v := range variableMap {
 		variable := fmt.Sprintf("%s=%s", k, format.ConvertValueToHCL(v, false))
@@ -83,6 +84,7 @@ func New(ctx context.Context, variableMap map[string]interface{}, dir string, pa
 
 	t := &Tofu{
 		dir:       dir,
+		workspace: ws,
 		threads:   parallelism,
 		verbose:   verbose,
 		variables: variables,
@@ -118,13 +120,67 @@ func (t *Tofu) exec(output io.Writer, args ...string) error {
 	return nil
 }
 
+func (t *Tofu) handleWorkspace(ctx context.Context) error {
+	if !(len(t.workspace) > 0) {
+		t.workspace = "default"
+	}
+
+	wsExists, err := t.workspaceExists(ctx)
+	if err != nil {
+		return err
+	}
+
+	if wsExists {
+		log.Printf("Found existing tofu workspace: %s", t.workspace)
+		return t.selectWorkspace(ctx)
+	}
+
+	log.Printf("Creating new tofu workspace: %s", t.workspace)
+	if err = t.newWorkspace(ctx); err != nil {
+		return err
+	}
+
+	return t.selectWorkspace(ctx)
+}
+
+func (t *Tofu) workspaceExists(ctx context.Context) (bool, error) {
+	args := []string{"workspace", "list"}
+
+	var out bytes.Buffer
+	var err error
+
+	if err = t.exec(&out, args...); err != nil {
+		return false, fmt.Errorf("failed to list workspaces: %v", err)
+	}
+
+	wsExists := bytes.Contains(out.Bytes(), []byte(t.workspace))
+
+	return wsExists, err
+}
+
+func (t *Tofu) selectWorkspace(ctx context.Context) error {
+	args := []string{"workspace", "select", t.workspace}
+
+	return t.exec(nil, args...)
+}
+
+func (t *Tofu) newWorkspace(ctx context.Context) error {
+	args := []string{"workspace", "new", t.workspace}
+
+	return t.exec(nil, args...)
+}
+
 func (t *Tofu) Apply(ctx context.Context) error {
+	t.handleWorkspace(ctx)
+
 	args := t.commonArgs("apply")
 
 	return t.exec(nil, args...)
 }
 
 func (t *Tofu) Destroy(ctx context.Context) error {
+	t.handleWorkspace(ctx)
+
 	args := t.commonArgs("destroy")
 
 	return t.exec(nil, args...)
@@ -141,6 +197,8 @@ func (t *Tofu) commonArgs(command string) []string {
 }
 
 func (t *Tofu) OutputClusters(ctx context.Context) (map[string]Cluster, error) {
+	t.handleWorkspace(ctx)
+
 	buffer := new(bytes.Buffer)
 	if err := t.exec(buffer, "output", "-json"); err != nil {
 		return nil, err
