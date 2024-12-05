@@ -54,7 +54,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "secondary" {
 resource "local_file" "kubeconfig" {
   content = azurerm_kubernetes_cluster.cluster.kube_config_raw
 
-  filename        = "${path.root}/config/${var.name}.yaml"
+  filename        = "${path.root}/${terraform.workspace}_config/${var.name}.yaml"
   file_permission = "0700"
 }
 

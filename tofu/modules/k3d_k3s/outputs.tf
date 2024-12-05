@@ -38,7 +38,7 @@ resource "local_file" "kubeconfig" {
     ]
   })
 
-  filename        = "${path.root}/config/${var.name}.yaml"
+  filename        = "${path.root}/${terraform.workspace}_config/${var.name}.yaml"
   file_permission = "0700"
 }
 
