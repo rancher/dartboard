@@ -44,7 +44,6 @@ variable "ssh_bastion_user" {
 # Upstream cluster specifics
 variable "upstream_cluster" {
   type = object({
-    name_prefix    = string // Prefix to append to objects created for this cluster
     server_count   = number // Number of server nodes in the upstream cluster
     agent_count    = number // Number of agent nodes in the upstream cluster
     distro_version = string // Version of the Kubernetes distro in the upstream cluster
@@ -59,7 +58,6 @@ variable "upstream_cluster" {
     ami           = string // AMI for upstream cluster nodes
   })
   default = {
-    name_prefix    = "upstream"
     server_count   = 1
     agent_count    = 0
     distro_version = "v1.26.9+k3s1"
@@ -80,7 +78,6 @@ variable "upstream_cluster" {
 variable "downstream_cluster_templates" {
   type = list(object({
     cluster_count       = number // Number of downstream clusters that should be created using this configuration
-    name_prefix    = string // Prefix to append to objects created for this cluster
     server_count   = number // Number of server nodes in the downstream cluster
     agent_count    = number // Number of agent nodes in the downstream cluster
     distro_version = string // Version of the Kubernetes distro in the downstream cluster
@@ -96,7 +93,6 @@ variable "downstream_cluster_templates" {
   }))
   default = [{
     cluster_count       = 0 // defaults to 0 to keep in-line with previous behavior
-    name_prefix    = "downstream"
     server_count   = 1
     agent_count    = 0
     distro_version = "v1.26.9+k3s1"
@@ -116,7 +112,6 @@ variable "downstream_cluster_templates" {
 # Tester cluster specifics
 variable "tester_cluster" {
   type = object({
-    name_prefix    = string // Prefix to append to objects created for this cluster
     server_count   = number // Number of server nodes in the tester cluster
     agent_count    = number // Number of agent nodes in the tester cluster
     distro_version = string // Version of the Kubernetes distro in the tester cluster
@@ -131,7 +126,6 @@ variable "tester_cluster" {
     ami           = string // AMI for tester cluster nodes
   })
   default = {
-    name_prefix    = "tester"
     server_count   = 1
     agent_count    = 0
     distro_version = "v1.26.9+k3s1"
