@@ -18,7 +18,6 @@ tofu_variables:
 #  bastion_host_ami: ami-0e55a8b472a265e3f # openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
 
 #  upstream_cluster:
-#    name_prefix: upstream
 #    server_count: 1
 #    agent_count: 0
 #    distro_version: v1.26.9+k3s1
@@ -31,7 +30,6 @@ tofu_variables:
 
 #  deploy_tester_cluster: true
 #  tester_cluster:
-#    name_prefix: tester
 #    server_count: 1
 #    agent_count: 0
 #    distro_version: v1.26.9+k3s1
@@ -44,7 +42,6 @@ tofu_variables:
 
 #  downstream_cluster_templates:
 #    - cluster_count: 0
-#      name_prefix: downstream
 #      server_count: 1
 #      agent_count: 0
 #      distro_version: v1.26.9+k3s1
