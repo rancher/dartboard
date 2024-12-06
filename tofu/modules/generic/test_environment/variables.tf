@@ -1,26 +1,3 @@
-# Frequently changed variables
-variable "region" {
-  description = "AWS region for this deployment"
-  default     = "us-east-1"
-}
-
-variable "aws_profile" {
-  description = "Local ~/.aws/config profile to utilize for AWS access"
-  type        = string
-  default     = null
-}
-
-variable "availability_zone" {
-  description = "AWS availability zone for this deployment"
-  default     = "us-east-1a"
-}
-
-variable "bastion_host_ami" {
-  description = "AMI ID"
-  default     = "ami-0e55a8b472a265e3f"
-  // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
-}
-
 variable "ssh_public_key_path" {
   description = "Path to SSH public key file (can be generated with `ssh-keygen -t ed25519`)"
   default     = "~/.ssh/id_ed25519.pub"
@@ -36,11 +13,6 @@ variable "ssh_user" {
   default     = "root"
 }
 
-variable "ssh_bastion_user" {
-  description = "User name for the SSH bastion host's OS"
-  default     = "root"
-}
-
 # Upstream cluster specifics
 variable "upstream_cluster" {
   type = object({
@@ -53,19 +25,6 @@ variable "upstream_cluster" {
 
     backend_variables = any // Backend-specific variables
   })
-  default = {
-    server_count                = 1
-    agent_count                 = 0
-    distro_version              = "v1.26.9+k3s1"
-    public_ip                   = true
-    reserve_node_for_monitoring = false
-
-    backend_variables = {
-      ami                 = "ami-009fd8a4732ea789b", // openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
-      instance_type       = "i3.large",
-      root_volume_size_gb = 50,
-    }
-  }
 }
 
 # Downstream cluster specifics
@@ -81,20 +40,6 @@ variable "downstream_cluster_templates" {
 
     backend_variables = any // Backend-specific variables
   }))
-  default = [{
-    cluster_count               = 0 // defaults to 0 to keep in-line with previous behavior
-    server_count                = 1
-    agent_count                 = 0
-    distro_version              = "v1.26.9+k3s1"
-    public_ip                   = false
-    reserve_node_for_monitoring = false
-
-    backend_variables = {
-      ami                 = "ami-0e55a8b472a265e3f" // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
-      instance_type       = "t4g.large"
-      root_volume_size_gb = 50,
-    }
-  }]
 }
 
 # Tester cluster specifics
@@ -109,19 +54,6 @@ variable "tester_cluster" {
 
     backend_variables = any // Backend-specific variables
   })
-  default = {
-    server_count                = 1
-    agent_count                 = 0
-    distro_version              = "v1.26.9+k3s1"
-    public_ip                   = false
-    reserve_node_for_monitoring = false
-
-    backend_variables = {
-      ami                 = "ami-009fd8a4732ea789b" // openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
-      instance_type       = "t3a.large"
-      root_volume_size_gb = 50,
-    }
-  }
 }
 
 variable "deploy_tester_cluster" {
@@ -148,4 +80,14 @@ variable "first_app_http_port" {
 variable "first_app_https_port" {
   description = "Port number where the first server's port 443 is published locally. Other clusters' ports are published in successive ports"
   default     = 9443
+}
+
+variable "backend" {
+  description = "Backend for this host"
+  type        = string
+}
+
+variable "network_backend_variables" {
+  description = "Backend-specific configuration variables for the network in this cluster"
+  type = any
 }

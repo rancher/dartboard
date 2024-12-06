@@ -233,15 +233,27 @@ resource "aws_key_pair" "key_pair" {
 }
 
 module "bastion" {
-  source                = "../host"
-  availability_zone     = var.availability_zone
-  project_name          = var.project_name
-  name                  = "bastion"
-  ami                   = var.bastion_host_ami
-  instance_type         = var.bastion_host_instance_type
-  ssh_key_name          = aws_key_pair.key_pair.key_name
-  ssh_private_key_path  = var.ssh_private_key_path
-  ssh_user              = var.ssh_user
-  subnet_id             = aws_subnet.public.id
-  vpc_security_group_id = aws_security_group.public.id
+  source               = "../node"
+  project_name         = var.project_name
+  name                 = "bastion"
+  ssh_private_key_path = var.ssh_private_key_path
+  ssh_user             = var.ssh_user
+  public               = true
+  backend_variables = {
+    ami : var.bastion_host_ami
+    instance_type : var.bastion_host_instance_type
+    root_volume_size_gb : 10
+    host_configuration_commands : []
+  }
+  backend_network_variables = {
+    availability_zone : var.availability_zone,
+    public_subnet_id : aws_subnet.public.id
+    private_subnet_id : aws_subnet.private.id
+    secondary_private_subnet_id : var.secondary_availability_zone != null ? aws_subnet.secondary_private[0].id : null
+    public_security_group_id : aws_security_group.public.id
+    private_security_group_id : aws_security_group.private.id
+    ssh_key_name : aws_key_pair.key_pair.key_name
+    ssh_bastion_host : null,
+    ssh_bastion_user : null,
+  }
 }

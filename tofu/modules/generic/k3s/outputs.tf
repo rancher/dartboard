@@ -1,44 +1,25 @@
-locals {
-  local_kubernetes_api_url = "https://${var.sans[0]}:${var.local_kubernetes_api_port}"
+output "first_server_private_name" {
+  value = var.server_count > 0 ? module.server_nodes[0].private_name : null
 }
 
-resource "local_file" "kubeconfig" {
-  content = yamlencode({
-    apiVersion = "v1"
-    clusters = [
-      {
-        cluster = {
-          certificate-authority-data = base64encode(tls_self_signed_cert.server_ca_cert.cert_pem)
-          server                     = local.local_kubernetes_api_url
-        }
-        name = var.name
-      }
-    ]
-    contexts = [
-      {
-        context = {
-          cluster = var.name
-          user : "master-user"
-        }
-        name = var.name
-      }
-    ]
-    current-context = var.name
-    kind            = "Config"
-    preferences     = {}
-    users = [
-      {
-        user = {
-          client-certificate-data : base64encode(tls_locally_signed_cert.master_user.cert_pem)
-          client-key-data : base64encode(tls_private_key.master_user.private_key_pem)
-        }
-        name : "master-user"
-      }
-    ]
-  })
+output "first_server_public_name" {
+  value = var.server_count > 0 ? module.server_nodes[0].public_name : null
+}
 
-  filename        = "${path.root}/${terraform.workspace}_config/${var.name}.yaml"
-  file_permission = "0700"
+output "tunnel_app_http_port" {
+  value = var.tunnel_app_http_port
+}
+
+output "tunnel_app_https_port" {
+  value = var.tunnel_app_https_port
+}
+
+output "node_access_commands" {
+  value = merge({
+    for node in module.server_nodes : node.name => node.ssh_script_filename
+  }, {
+    for node in module.agent_nodes : node.name => node.ssh_script_filename
+  })
 }
 
 // note: hosts in this file need to be resolvable from the host running OpenTofu

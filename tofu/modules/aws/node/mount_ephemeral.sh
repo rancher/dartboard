@@ -2,7 +2,7 @@
 
 set -xe
 
-# if this host has a local SSD device (eg. m6i family), format the partition and mount it to /data
+# if this node has a local SSD device (eg. m6i family), format the partition and mount it to /data
 for device in `ls /dev/nvme?n?`; do
   if [ -b ${device} ] && [ ! -b ${device}p1 ]; then
     /usr/sbin/parted -s ${device} mklabel gpt
