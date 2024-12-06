@@ -4,6 +4,7 @@
 tofu_main_directory: ./tofu/main/aws
 
 tofu_variables:
+  aws_profile: AWSPowerUserAccess-312662503588
 
 chart_variables:
   rancher_replicas: 1

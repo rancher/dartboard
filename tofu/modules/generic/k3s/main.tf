@@ -6,23 +6,52 @@ terraform {
   }
 }
 
+module "server_nodes" {
+  count                = var.server_count
+  source               = "../node"
+  project_name         = var.project_name
+  name                 = "${var.name}-server-${count.index}"
+  ssh_private_key_path = var.ssh_private_key_path
+  ssh_user             = var.ssh_user
+  ssh_tunnels = count.index == 0 ? [
+    [var.local_kubernetes_api_port, 6443],
+    [var.tunnel_app_http_port, 80],
+    [var.tunnel_app_https_port, 443],
+  ] : []
+  backend                   = var.backend
+  backend_variables         = var.host_backend_variables
+  network_backend_variables = var.network_backend_variables
+}
+
+module "agent_nodes" {
+  count                     = var.agent_count
+  source                    = "../node"
+  project_name              = var.project_name
+  name                      = "${var.name}-agent-${count.index}"
+  ssh_private_key_path      = var.ssh_private_key_path
+  ssh_user                  = var.ssh_user
+  backend                   = var.backend
+  backend_variables         = var.host_backend_variables
+  network_backend_variables = var.network_backend_variables
+}
+
 resource "ssh_sensitive_resource" "first_server_installation" {
-  count        = length(var.server_names) > 0 ? 1 : 0
-  host         = var.server_names[0]
+  count        = var.server_count > 0 ? 1 : 0
+  host         = module.server_nodes[0].private_name
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
-  bastion_host = var.ssh_bastion_host
-  bastion_user = var.ssh_bastion_user
+  bastion_host = var.network_backend_variables.ssh_bastion_host
+  bastion_user = var.network_backend_variables.ssh_bastion_user
   timeout      = "600s"
 
   file {
     content = templatefile("${path.module}/install_k3s.sh", {
       distro_version = var.distro_version,
-      sans           = concat([var.server_names[0]], var.sans)
+      sans           = concat([module.server_nodes[0].private_name], var.sans)
       exec           = "server"
       token          = null
       server_url     = null
-      cluster_init   = length(var.server_names) > 1
+      cluster_init   = var.server_count > 1
       labels         = []
       taints         = []
 
@@ -56,22 +85,22 @@ resource "ssh_sensitive_resource" "first_server_installation" {
 
 resource "ssh_resource" "additional_server_installation" {
   depends_on = [ssh_sensitive_resource.first_server_installation]
-  count      = length(var.server_names) > 0 ? length(var.server_names) - 1 : 0
+  count      = max(0, var.server_count - 1)
 
-  host         = var.server_names[count.index + 1]
+  host         = module.server_nodes[count.index + 1].private_name
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
-  bastion_host = var.ssh_bastion_host
-  bastion_user = var.ssh_bastion_user
+  bastion_host = var.network_backend_variables.ssh_bastion_host
+  bastion_user = var.network_backend_variables.ssh_bastion_user
   timeout      = "600s"
 
   file {
     content = templatefile("${path.module}/install_k3s.sh", {
       distro_version = var.distro_version,
-      sans           = [var.server_names[count.index + 1]]
+      sans           = [module.server_nodes[count.index + 1].private_name]
       exec           = "server"
       token          = ssh_sensitive_resource.first_server_installation[0].result
-      server_url     = "https://${var.server_names[0]}:6443"
+      server_url     = "https://${module.server_nodes[0].private_name}:6443"
       cluster_init   = false
       labels         = []
       taints         = []
@@ -98,22 +127,22 @@ resource "ssh_resource" "additional_server_installation" {
 
 resource "ssh_resource" "agent_installation" {
   depends_on = [ssh_sensitive_resource.first_server_installation]
-  count      = length(var.agent_names)
+  count      = var.agent_count
 
-  host         = var.agent_names[count.index]
+  host         = module.agent_nodes[count.index].private_name
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
-  bastion_host = var.ssh_bastion_host
-  bastion_user = var.ssh_bastion_user
+  bastion_host = var.network_backend_variables.ssh_bastion_host
+  bastion_user = var.network_backend_variables.ssh_bastion_user
   timeout      = "600s"
 
   file {
     content = templatefile("${path.module}/install_k3s.sh", {
       distro_version = var.distro_version,
-      sans           = [var.agent_names[count.index]]
+      sans           = [module.agent_nodes[count.index].private_name]
       exec           = "agent"
       token          = ssh_sensitive_resource.first_server_installation[0].result
-      server_url     = "https://${var.server_names[0]}:6443"
+      server_url     = "https://${module.server_nodes[0].private_name}:6443"
       cluster_init   = false
       labels         = length(var.agent_labels) > count.index ? var.agent_labels[count.index] : []
       taints         = length(var.agent_taints) > count.index ? var.agent_taints[count.index] : []
@@ -136,4 +165,48 @@ resource "ssh_resource" "agent_installation" {
   commands = [
     "sudo /tmp/install_k3s.sh > >(tee install_k3s.log) 2> >(tee install_k3s.err >&2)",
   ]
+}
+
+
+locals {
+  local_kubernetes_api_url = "https://${var.sans[0]}:${var.local_kubernetes_api_port}"
+}
+
+resource "local_file" "kubeconfig" {
+  content = yamlencode({
+    apiVersion = "v1"
+    clusters = [
+      {
+        cluster = {
+          certificate-authority-data = base64encode(tls_self_signed_cert.server_ca_cert.cert_pem)
+          server                     = local.local_kubernetes_api_url
+        }
+        name = var.name
+      }
+    ]
+    contexts = [
+      {
+        context = {
+          cluster = var.name
+          user : "master-user"
+        }
+        name = var.name
+      }
+    ]
+    current-context = var.name
+    kind            = "Config"
+    preferences     = {}
+    users = [
+      {
+        user = {
+          client-certificate-data : base64encode(tls_locally_signed_cert.master_user.cert_pem)
+          client-key-data : base64encode(tls_private_key.master_user.private_key_pem)
+        }
+        name : "master-user"
+      }
+    ]
+  })
+
+  filename        = "${path.root}/${terraform.workspace}_config/${var.name}.yaml"
+  file_permission = "0700"
 }

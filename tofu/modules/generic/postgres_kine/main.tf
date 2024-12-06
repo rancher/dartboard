@@ -7,17 +7,13 @@ terraform {
 }
 
 module "server_node" {
-  source                = "../host"
-  ami                   = var.ami
-  instance_type         = var.instance_type
-  availability_zone     = var.availability_zone
-  project_name          = var.project_name
-  name                  = "${var.name}-server"
-  ssh_key_name          = var.ssh_key_name
-  ssh_private_key_path  = var.ssh_private_key_path
-  subnet_id             = var.subnet_id
-  vpc_security_group_id = var.vpc_security_group_id
-  ssh_bastion_host      = var.ssh_bastion_host
+  source                    = "../node"
+  project_name              = var.project_name
+  name                      = "${var.name}-server"
+  ssh_private_key_path      = var.ssh_private_key_path
+  backend                   = var.backend
+  backend_variables         = var.node_backend_variables
+  network_backend_variables = var.network_backend_variables
 }
 
 resource "ssh_resource" "install_postgres" {
@@ -25,8 +21,9 @@ resource "ssh_resource" "install_postgres" {
 
   host         = module.server_node.private_name
   private_key  = file(var.ssh_private_key_path)
-  user         = "root"
-  bastion_host = var.ssh_bastion_host
+  user         = var.ssh_user
+  bastion_host = var.network_backend_variables.ssh_bastion_host
+  bastion_user = var.network_backend_variables.ssh_user
 
   file {
     source      = var.kine_executable != null ? var.kine_executable : "/dev/null"
