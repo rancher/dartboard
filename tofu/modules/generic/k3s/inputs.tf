@@ -1,11 +1,6 @@
-variable "project" {
+variable "project_name" {
   description = "A prefix for names of objects created by this module"
   default     = "st"
-}
-
-variable "distro_version" {
-  description = "k3s version"
-  default     = "v1.23.10+k3s1"
 }
 
 variable "name" {
@@ -13,15 +8,20 @@ variable "name" {
   type        = string
 }
 
-variable "server_names" {
-  description = "List of names of server nodes to deploy"
-  type        = list(string)
+variable "distro_version" {
+  description = "k3s version"
+  default     = "v1.23.10+k3s1"
 }
 
-variable "agent_names" {
-  description = "List of names of agent nodes to deploy"
-  type        = list(string)
-  default     = []
+
+variable "server_count" {
+  description = "Number of server nodes in this cluster"
+  default     = 1
+}
+
+variable "agent_count" {
+  description = "Number of agent nodes in this cluster"
+  default     = 0
 }
 
 variable "agent_labels" {
@@ -36,39 +36,36 @@ variable "agent_taints" {
   default     = []
 }
 
-variable "sans" {
-  description = "Additional Subject Alternative Names"
-  type        = list(string)
-  default     = []
-}
-
 variable "ssh_private_key_path" {
-  description = "Path of private ssh key used to access the instance"
+  description = "Path of private ssh key used to access cluster nodes"
   type        = string
-  default     = null
 }
 
 variable "ssh_user" {
-  description = "User name to use for the host SSH connection"
-  type        = string
-  default     = "root"
-}
-
-variable "ssh_bastion_host" {
-  description = "Public name of the SSH bastion host. Leave null for publicly accessible instances"
-  type        = string
-  default     = null
-}
-
-variable "ssh_bastion_user" {
-  description = "User name for the SSH connection to the bastion"
+  description = "User name to use for the SSH connection to cluster nodes"
   type        = string
   default     = "root"
 }
 
 variable "local_kubernetes_api_port" {
-  description = "Port this cluster's Kubernetes API will be published to (for inclusion in kubeconfig)"
-  default     = 6443
+  description = "Local port this cluster's Kubernetes API will be published to (via SSH tunnel)"
+  default     = 6445
+}
+
+variable "tunnel_app_http_port" {
+  description = "Local port this cluster's http endpoints will be published to (via SSH tunnel)"
+  default     = 8080
+}
+
+variable "tunnel_app_https_port" {
+  description = "Local port this cluster's https endpoints will be published to (via SSH tunnel)"
+  default     = 8443
+}
+
+variable "sans" {
+  description = "Additional Subject Alternative Names for the cluster('s first server node)"
+  type        = list(string)
+  default     = []
 }
 
 variable "max_pods" {
@@ -82,6 +79,22 @@ variable "node_cidr_mask_size" {
 }
 
 variable "datastore_endpoint" {
-  description = "Configuration string for optional data store"
+  description = "Override datastore with a custom endpoint string"
+  type        = string
   default     = null
+}
+
+variable "backend" {
+  description = "Backend for this cluster"
+  type        = string
+}
+
+variable "host_backend_variables" {
+  description = "Backend-specific configuration variables for all nodes in this cluster"
+  type = any
+}
+
+variable "network_backend_variables" {
+  description = "Backend-specific configuration variables for the network in this cluster"
+  type = any
 }

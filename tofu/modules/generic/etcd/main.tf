@@ -6,23 +6,37 @@ terraform {
   }
 }
 
+module "server_nodes" {
+  count                 = var.server_count
+  source                = "../node"
+  project_name          = var.project_name
+  name                  = "${var.name}-node-${count.index}"
+  ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
+  ssh_tunnels           = count.index == 0 ? var.additional_ssh_tunnels : []
+  backend               = var.backend
+  backend_variables     = var.backend_variables
+  network_backend_variables = var.backend_network_variables
+}
+
 resource "ssh_sensitive_resource" "node_installation" {
-  count        = length(var.server_names)
-  host         = var.server_names[count.index]
+  count        = var.server_count
+  host         = module.server_nodes[count.index].private_name
   private_key  = file(var.ssh_private_key_path)
-  user         = "root"
-  bastion_host = var.ssh_bastion_host
+  user         = var.ssh_user
+  bastion_host = var.backend_network_variables.ssh_bastion_host
+  bastion_user = var.backend_network_variables.ssh_user
   timeout      = "600s"
 
   file {
     content = templatefile("${path.module}/install_etcd.sh", {
       etcd_version = var.etcd_version,
-      etcd_token   = "${var.project}-${var.name}-token"
-      etcd_name    = "${var.project}-${var.name}-${count.index}"
-      server_name  = var.server_names[count.index]
-      server_ip    = var.server_ips[count.index]
-      etcd_names   = formatlist("%s-%s", "${var.project}-${var.name}", range(0, length(var.server_names)))
-      server_names = var.server_names
+      etcd_token   = "${var.project_name}-${var.name}-token"
+      etcd_name    = "${var.project_name}-${var.name}-${count.index}"
+      server_name  = module.server_nodes[count.index].private_name
+      server_ip    = module.server_nodes[count.index].private_ip
+      etcd_names   = formatlist("%s-%s", "${var.project_name}-${var.name}", range(0, var.server_count))
+      server_names = [for node in module.server_nodes : node.private_name]
     })
     destination = "/root/install_etcd.sh"
     permissions = "0700"
