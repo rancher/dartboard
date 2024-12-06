@@ -35,6 +35,7 @@ output "clusters" {
 
       node_access_commands = {}
       ingress_class_name   = null
+      reserve_node_for_monitoring = cluster.reserve_node_for_monitoring
     }
   }
 }

@@ -32,8 +32,8 @@ locals {
       }
     }
 
-    node_access_commands = module.k3s_cluster[i].node_access_commands
-    ingress_class_name   = module.k3s_cluster[i].ingress_class_name
+    node_access_commands        = module.k3s_cluster[i].node_access_commands
+    ingress_class_name          = module.k3s_cluster[i].ingress_class_name
     reserve_node_for_monitoring = cluster.reserve_node_for_monitoring
     }
   }
@@ -70,51 +70,13 @@ locals {
       }
     }
 
-    node_access_commands = module.rke2_cluster[i].node_access_commands
-    ingress_class_name   = module.rke2_cluster[i].ingress_class_name
-    reserve_node_for_monitoring = cluster.reserve_node_for_monitoring
-    }
-  }
-  aks_outputs = { for i, cluster in local.aks_clusters : cluster.name => {
-    kubeconfig = module.aks_cluster[i].kubeconfig
-    context    = module.aks_cluster[i].context
-
-    // addresses of the Kubernetes API server
-    kubernetes_addresses = {
-      // resolvable over the Internet
-      public = "https://${module.aks_cluster[i].cluster_public_name}:443"
-      // resolvable from the network this cluster runs in
-      private = "https://${module.aks_cluster[i].cluster_public_name}:443"
-      // resolvable from the host running OpenTofu
-      tunnel = "https://${module.aks_cluster[i].cluster_public_name}:443"
-    }
-
-    // addresses of applications running in this cluster
-    app_addresses = {
-      public = {          // resolvable over the Internet
-        name       = null // not known at the OpenTofu stage, will depend on LoadBalancers in Kubernetes
-        http_port  = null
-        https_port = null
-      }
-      private = {         // resolvable from the network this cluster runs in
-        name       = null // only public supported
-        http_port  = null
-        https_port = null
-      }
-      tunnel = {          // resolvable from the host running OpenTofu
-        name       = null // tunnels not supported
-        http_port  = null
-        https_port = null
-      }
-    }
-
-    node_access_commands = module.aks_cluster[i].node_access_commands
-    ingress_class_name   = module.aks_cluster[i].ingress_class_name
+    node_access_commands        = module.rke2_cluster[i].node_access_commands
+    ingress_class_name          = module.rke2_cluster[i].ingress_class_name
     reserve_node_for_monitoring = cluster.reserve_node_for_monitoring
     }
   }
 }
 
 output "clusters" {
-  value = merge(local.k3s_outputs, local.rke2_outputs, local.aks_outputs)
+  value = merge(local.k3s_outputs, local.rke2_outputs)
 }
