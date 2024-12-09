@@ -104,7 +104,7 @@ func Deploy(cli *cli.Context) error {
 	if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
 		return err
 	}
-	if err = chartInstallRancherMonitoring(r, &upstream, tf.IsK3d()); err != nil {
+	if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
 		return err
 	}
 	if err = importDownstreamClusters(r, rancherImageTag, tf, clusters); err != nil {
@@ -221,7 +221,7 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartRancherIngress, chartVals)
 }
 
-func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster, noSchedToleration bool) error {
+func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
 	rancherMinorVersion := strings.Join(strings.Split(r.ChartVariables.RancherVersion, ".")[0:2], ".")
 
 	chartRancherMonitoringCRD := chart{
@@ -257,7 +257,7 @@ func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster, noSchedT
 	}
 	mimirURL := clusterAdd.Public.HTTPURL + "/mimir/api/v1/push"
 
-	chartVals = getRancherMonitoringValsJSON(noSchedToleration, mimirURL)
+	chartVals = getRancherMonitoringValsJSON(cluster.ReserveNodeForMonitoring, mimirURL)
 
 	return chartInstall(cluster.Kubeconfig, chartRancherMonitoring, chartVals)
 }
@@ -266,12 +266,12 @@ func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chart{"cgroups-exporter", "cattle-monitoring-system", "cgroups-exporter"}, nil)
 }
 
-func getRancherMonitoringValsJSON(noSchedToleration bool, mimirURL string) map[string]any {
+func getRancherMonitoringValsJSON(reserveNodeForMonitoring bool, mimirURL string) map[string]any {
 
 	nodeSelector := map[string]any{}
 	tolerations := []any{}
 	monitoringRestrictions := map[string]any{}
-	if !noSchedToleration {
+	if reserveNodeForMonitoring {
 		nodeSelector["monitoring"] = "true"
 		tolerations = append(tolerations, map[string]any{"key": "monitoring", "operator": "Exists", "effect": "NoSchedule"})
 		monitoringRestrictions["nodeSelector"] = nodeSelector
@@ -515,7 +515,7 @@ func importDownstreamClusterDo(r *dart.Dart, rancherImageTag string, tf *tofu.To
 		return
 	}
 	if r.ChartVariables.DownstreamRancherMonitoring {
-		if err := chartInstallRancherMonitoring(r, &downstream, true); err != nil {
+		if err := chartInstallRancherMonitoring(r, &downstream); err != nil {
 			errCh <- fmt.Errorf("downstream monitoring installation on cluster %s failed: %w", clusterName, err)
 			return
 		}

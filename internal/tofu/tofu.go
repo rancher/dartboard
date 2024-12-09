@@ -51,12 +51,13 @@ type Addresses struct {
 }
 
 type Cluster struct {
-	AppAddresses        ClusterAppAddresses `json:"app_addresses"`
-	Context             string              `json:"context"`
-	IngressClassName    string              `json:"ingress_class_name"`
-	Kubeconfig          string              `json:"kubeconfig"`
-	NodeAccessCommands  map[string]string   `json:"node_access_commands"`
-	KubernetesAddresses Addresses           `json:"kubernetes_addresses"`
+	AppAddresses             ClusterAppAddresses `json:"app_addresses"`
+	Context                  string              `json:"context"`
+	IngressClassName         string              `json:"ingress_class_name"`
+	Kubeconfig               string              `json:"kubeconfig"`
+	NodeAccessCommands       map[string]string   `json:"node_access_commands"`
+	KubernetesAddresses      Addresses           `json:"kubernetes_addresses"`
+	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring"`
 }
 
 type Clusters struct {

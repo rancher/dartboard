@@ -34,6 +34,7 @@ locals {
 
     node_access_commands = module.k3s_cluster[i].node_access_commands
     ingress_class_name   = module.k3s_cluster[i].ingress_class_name
+    reserve_node_for_monitoring = cluster.reserve_node_for_monitoring
     }
   }
   rke2_outputs = { for i, cluster in local.rke2_clusters : cluster.name => {
@@ -71,6 +72,7 @@ locals {
 
     node_access_commands = module.rke2_cluster[i].node_access_commands
     ingress_class_name   = module.rke2_cluster[i].ingress_class_name
+    reserve_node_for_monitoring = cluster.reserve_node_for_monitoring
     }
   }
   aks_outputs = { for i, cluster in local.aks_clusters : cluster.name => {
@@ -108,6 +110,7 @@ locals {
 
     node_access_commands = module.aks_cluster[i].node_access_commands
     ingress_class_name   = module.aks_cluster[i].ingress_class_name
+    reserve_node_for_monitoring = cluster.reserve_node_for_monitoring
     }
   }
 }
