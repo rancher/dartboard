@@ -1,26 +1,3 @@
-# Frequently changed variables
-variable "region" {
-  description = "AWS region for this deployment"
-  default     = "us-east-1"
-}
-
-variable "aws_profile" {
-  description = "Local ~/.aws/config profile to utilize for AWS access"
-  type        = string
-  default     = null
-}
-
-variable "availability_zone" {
-  description = "AWS availability zone for this deployment"
-  default     = "us-east-1a"
-}
-
-variable "bastion_host_ami" {
-  description = "AMI ID"
-  default     = "ami-0e55a8b472a265e3f"
-  // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
-}
-
 variable "ssh_public_key_path" {
   description = "Path to SSH public key file (can be generated with `ssh-keygen -t ed25519`)"
   default     = "~/.ssh/id_ed25519.pub"
@@ -148,4 +125,27 @@ variable "first_app_http_port" {
 variable "first_app_https_port" {
   description = "Port number where the first server's port 443 is published locally. Other clusters' ports are published in successive ports"
   default     = 9443
+}
+
+# Backend-specific variables
+variable "region" {
+  description = "AWS region for this deployment"
+  default     = "us-east-1"
+}
+
+variable "aws_profile" {
+  description = "Local ~/.aws/config profile to utilize for AWS access"
+  type        = string
+  default     = null
+}
+
+variable "availability_zone" {
+  description = "AWS availability zone for this deployment"
+  default     = "us-east-1a"
+}
+
+variable "bastion_host_ami" {
+  description = "AMI ID"
+  default     = "ami-0e55a8b472a265e3f"
+  // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
 }
