@@ -13,6 +13,7 @@ variable "distro_version" {
   description = "RKE2 version"
   default     = "v1.24.4+rke2r1"
 }
+
 variable "server_count" {
   description = "Number of server nodes in this cluster"
   default     = 1
@@ -66,6 +67,7 @@ variable "sans" {
   type        = list(string)
   default     = []
 }
+
 variable "max_pods" {
   description = "Maximum number of pods per node"
   default     = 110

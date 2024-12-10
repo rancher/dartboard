@@ -18,6 +18,7 @@ variable "upstream_cluster" {
   type = object({
     server_count   = number // Number of server nodes in the upstream cluster
     agent_count    = number // Number of agent nodes in the upstream cluster
+    distro_module  = string // Path to the module to use for the upstream cluster
     distro_version = string // Version of the Kubernetes distro in the upstream cluster
 
     public_ip                   = bool // Whether the upstream cluster should have a public IP assigned
@@ -89,5 +90,5 @@ variable "backend" {
 
 variable "network_backend_variables" {
   description = "Backend-specific configuration variables for the network in this cluster"
-  type = any
+  type        = any
 }
