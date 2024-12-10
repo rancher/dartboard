@@ -16,7 +16,7 @@ module "server_nodes" {
   ssh_tunnels           = count.index == 0 ? var.additional_ssh_tunnels : []
   backend               = var.backend
   backend_variables     = var.backend_variables
-  network_backend_variables = var.backend_network_variables
+  network_backend_variables = var.network_backend_variables
 }
 
 resource "ssh_sensitive_resource" "node_installation" {
@@ -24,8 +24,8 @@ resource "ssh_sensitive_resource" "node_installation" {
   host         = module.server_nodes[count.index].private_name
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
-  bastion_host = var.backend_network_variables.ssh_bastion_host
-  bastion_user = var.backend_network_variables.ssh_user
+  bastion_host = var.network_backend_variables.ssh_bastion_host
+  bastion_user = var.network_backend_variables.ssh_user
   timeout      = "600s"
 
   file {

@@ -245,7 +245,7 @@ module "bastion" {
     root_volume_size_gb : 10
     host_configuration_commands : []
   }
-  backend_network_variables = {
+  network_backend_variables = {
     availability_zone : var.availability_zone,
     public_subnet_id : aws_subnet.public.id
     private_subnet_id : aws_subnet.private.id
