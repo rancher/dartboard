@@ -47,6 +47,6 @@ module "rke2_cluster" {
   ssh_user                  = var.ssh_user
 
   backend                   = var.backend
-  backend_network_variables = var.network_backend_variables
+  network_backend_variables = var.network_backend_variables
   host_backend_variables    = local.rke2_clusters[count.index].backend_variables
 }

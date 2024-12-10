@@ -29,16 +29,10 @@ variable "ssh_private_key_path" {
   type        = string
 }
 
-variable "ssh_user" {
-  description = "User name to use for the SSH connection"
+variable "ssh_bastion_user" {
+  description = "User name to use for the SSH connection to the bastion host"
   type        = string
   default     = "root"
-}
-
-variable "ssh_bastion_host" {
-  description = "Public name of the SSH bastion host. Leave null for publicly accessible instances"
-  type        = string
-  default     = null
 }
 
 variable "bastion_host_ami" {

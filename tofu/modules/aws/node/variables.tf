@@ -54,7 +54,7 @@ variable "backend_variables" {
   }
 }
 
-variable "backend_network_variables" {
+variable "network_backend_variables" {
   description = <<EOT
     subnet_id: ID of the subnet to connect to
     vpc_security_group_id: ID of the security group to connect to

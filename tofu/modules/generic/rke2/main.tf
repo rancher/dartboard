@@ -21,7 +21,7 @@ module "server_nodes" {
   ] : []
   backend                   = var.backend
   backend_variables         = var.host_backend_variables
-  network_backend_variables = var.backend_network_variables
+  network_backend_variables = var.network_backend_variables
 }
 
 module "agent_nodes" {
@@ -33,7 +33,7 @@ module "agent_nodes" {
   ssh_user                  = var.ssh_user
   backend                   = var.backend
   backend_variables         = var.host_backend_variables
-  network_backend_variables = var.backend_network_variables
+  network_backend_variables = var.network_backend_variables
 }
 
 resource "ssh_sensitive_resource" "first_server_installation" {
@@ -41,8 +41,8 @@ resource "ssh_sensitive_resource" "first_server_installation" {
   host         = module.server_nodes[0].private_name
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
-  bastion_host = var.backend_network_variables.ssh_bastion_host
-  bastion_user = var.backend_network_variables.ssh_bastion_user
+  bastion_host = var.network_backend_variables.ssh_bastion_host
+  bastion_user = var.network_backend_variables.ssh_bastion_user
   timeout      = "600s"
 
   file {
@@ -89,8 +89,8 @@ resource "ssh_resource" "additional_server_installation" {
   host         = module.server_nodes[count.index + 1].private_name
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
-  bastion_host = var.backend_network_variables.ssh_bastion_host
-  bastion_user = var.backend_network_variables.ssh_bastion_user
+  bastion_host = var.network_backend_variables.ssh_bastion_host
+  bastion_user = var.network_backend_variables.ssh_bastion_user
   timeout      = "600s"
 
   file {
@@ -129,8 +129,8 @@ resource "ssh_resource" "agent_installation" {
   host         = module.agent_nodes[count.index].private_name
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
-  bastion_host = var.backend_network_variables.ssh_bastion_host
-  bastion_user = var.backend_network_variables.ssh_bastion_user
+  bastion_host = var.network_backend_variables.ssh_bastion_host
+  bastion_user = var.network_backend_variables.ssh_bastion_user
   timeout      = "600s"
 
   file {

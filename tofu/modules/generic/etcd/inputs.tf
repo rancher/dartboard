@@ -45,7 +45,7 @@ variable "backend_variables" {
   type = any
 }
 
-variable "backend_network_variables" {
+variable "network_backend_variables" {
   description = "Backend-specific configuration variables for the network in this cluster"
   type = any
 }

@@ -7,6 +7,6 @@ module "host" {
   ssh_tunnels                 = var.ssh_tunnels
   host_configuration_commands = var.host_configuration_commands
   backend_variables           = var.backend_variables
-  backend_network_variables   = var.network_backend_variables
+  network_backend_variables   = var.network_backend_variables
   public                      = var.public
 }
