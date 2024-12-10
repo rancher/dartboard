@@ -3,6 +3,7 @@ variable "project_name" {
   default     = "st"
 }
 
+
 variable "name" {
   description = "Symbolic name of this cluster"
   type        = string
