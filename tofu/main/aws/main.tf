@@ -9,7 +9,7 @@ module "network" {
   region               = var.region
   availability_zone    = var.availability_zone
   bastion_host_ami     = length(var.bastion_host_ami) > 0 ? var.bastion_host_ami : null
-  ssh_user             = var.ssh_user
+  ssh_bastion_user     = var.ssh_user
   ssh_public_key_path  = var.ssh_public_key_path
   ssh_private_key_path = var.ssh_private_key_path
 }

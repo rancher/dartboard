@@ -8,6 +8,6 @@ output "backend_variables" {
     private_security_group_id: aws_security_group.private.id,
     ssh_key_name: aws_key_pair.key_pair.key_name,
     ssh_bastion_host: module.bastion.public_name,
-    ssh_bastion_user: var.ssh_user,
+    ssh_bastion_user: var.ssh_bastion_user,
   }
 }
