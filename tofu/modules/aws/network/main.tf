@@ -237,7 +237,7 @@ module "bastion" {
   project_name         = var.project_name
   name                 = "bastion"
   ssh_private_key_path = var.ssh_private_key_path
-  ssh_user             = var.ssh_user
+  ssh_user             = var.ssh_bastion_user
   public               = true
   backend_variables = {
     ami : var.bastion_host_ami
