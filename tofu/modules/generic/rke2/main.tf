@@ -140,8 +140,12 @@ resource "ssh_resource" "agent_installation" {
       type           = "agent"
       token          = ssh_sensitive_resource.first_server_installation[0].result
       server_url     = "https://${module.server_nodes[0].private_name}:9345"
-      labels         = length(var.agent_labels) > count.index ? var.agent_labels[count.index] : []
-      taints         = length(var.agent_taints) > count.index ? var.agent_taints[count.index] : []
+      labels         = var.reserve_node_for_monitoring && count.index == 0 ? [
+        { key : "monitoring", value : "true" }
+      ] : []
+      taints         = var.reserve_node_for_monitoring && count.index == 0 ? [
+        { key : "monitoring", value : "true", effect : "NoSchedule" }
+      ] : []
 
       client_ca_key          = tls_private_key.client_ca_key.private_key_pem
       client_ca_cert         = tls_self_signed_cert.client_ca_cert.cert_pem
