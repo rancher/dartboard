@@ -43,11 +43,17 @@ variable "downstream_cluster_templates" {
   }))
 }
 
+variable "downstream_cluster_distro_module" {
+  description = "Name of the module to use for the downstream clusters"
+  default     = "generic/k3s"
+}
+
 # Tester cluster specifics
 variable "tester_cluster" {
   type = object({
     server_count   = number // Number of server nodes in the tester cluster
     agent_count    = number // Number of agent nodes in the tester cluster
+    distro_module  = string // Path to the module to use for the tester cluster
     distro_version = string // Version of the Kubernetes distro in the tester cluster
 
     public_ip                   = bool // Whether the tester cluster should have a public IP assigned

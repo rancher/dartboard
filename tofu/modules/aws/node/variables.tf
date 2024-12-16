@@ -15,7 +15,6 @@ variable "ssh_private_key_path" {
 
 variable "ssh_user" {
   description = "User name to use for the SSH connection to the host"
-  type        = string
   default     = "root"
 }
 

@@ -15,10 +15,11 @@ module "network" {
 }
 
 module "test_environment" {
-  source                       = "../../modules/generic/test_environment"
-  upstream_cluster             = var.upstream_cluster
-  downstream_cluster_templates = var.downstream_cluster_templates
-  tester_cluster               = var.tester_cluster
-  backend                      = "aws"
-  network_backend_variables    = module.network.backend_variables
+  source                           = "../../modules/generic/test_environment"
+  upstream_cluster                 = var.upstream_cluster
+  downstream_cluster_templates     = var.downstream_cluster_templates
+  downstream_cluster_distro_module = var.downstream_cluster_distro_module
+  tester_cluster                   = var.tester_cluster
+  backend                          = "aws"
+  network_backend_variables        = module.network.backend_variables
 }

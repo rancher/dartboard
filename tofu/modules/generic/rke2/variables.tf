@@ -24,16 +24,9 @@ variable "agent_count" {
   default     = 0
 }
 
-variable "agent_labels" {
-  description = "Per-agent-node lists of labels to apply"
-  type        = list(list(object({ key : string, value : string })))
-  default     = []
-}
-
-variable "agent_taints" {
-  description = "Per-agent-node lists of taints to apply"
-  type        = list(list(object({ key : string, value : string, effect : string })))
-  default     = []
+variable "reserve_node_for_monitoring" {
+  description = "Whether to reserve a node for monitoring. If true, adds a taint and toleration with label 'monitoring' to the first agent node"
+  default     = false
 }
 
 variable "ssh_private_key_path" {
@@ -76,6 +69,11 @@ variable "max_pods" {
 variable "node_cidr_mask_size" {
   description = "Size of the CIDR mask for nodes. Increase when increasing max_pods so that 2^(32-node_cidr_max_size) > 2 * max_pods"
   default     = 24
+}
+
+variable "enable_audit_log" {
+  description = "Ignored for RKE2"
+  default     = false
 }
 
 variable "backend" {

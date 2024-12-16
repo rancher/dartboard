@@ -23,6 +23,7 @@ variable "upstream_cluster" {
   type = object({
     server_count   = number // Number of server nodes in the upstream cluster
     agent_count    = number // Number of agent nodes in the upstream cluster
+    distro_module  = string // Path to the module to use for the upstream cluster
     distro_version = string // Version of the Kubernetes distro in the upstream cluster
 
     public_ip                   = bool // Whether the upstream cluster should have a public IP assigned
@@ -33,6 +34,7 @@ variable "upstream_cluster" {
   default = {
     server_count                = 1
     agent_count                 = 0
+    distro_module               = "generic/k3s"
     distro_version              = "v1.26.9+k3s1"
     public_ip                   = true
     reserve_node_for_monitoring = false
@@ -74,11 +76,22 @@ variable "downstream_cluster_templates" {
   }]
 }
 
+# Note: this is kept constant for all templates because OpenTofu v1.8.2 does not allow to use
+# each.value, each.key or count.index in expressions for module paths
+# context is https://github.com/opentofu/opentofu/blob/main/rfc/20240513-static-evaluation/module-expansion.md ->
+# https://github.com/opentofu/opentofu/issues/1896#issuecomment-2275763570 ->
+# https://github.com/opentofu/opentofu/issues/2155
+variable "downstream_cluster_distro_module" {
+  description = "Name of the module to use for the downstream clusters"
+  default = "generic/k3s"
+}
+
 # Tester cluster specifics
 variable "tester_cluster" {
   type = object({
     server_count   = number // Number of server nodes in the tester cluster
     agent_count    = number // Number of agent nodes in the tester cluster
+    distro_module  = string // Path to the module to use for the tester cluster
     distro_version = string // Version of the Kubernetes distro in the tester cluster
 
     public_ip                   = bool // Whether the tester cluster should have a public IP assigned
@@ -89,6 +102,7 @@ variable "tester_cluster" {
   default = {
     server_count                = 1
     agent_count                 = 0
+    distro_module               = "generic/k3s"
     distro_version              = "v1.26.9+k3s1"
     public_ip                   = false
     reserve_node_for_monitoring = false
