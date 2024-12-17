@@ -28,6 +28,7 @@ variable "upstream_cluster" {
 
     public_ip                   = bool // Whether the upstream cluster should have a public IP assigned
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the upstream cluster to reserve it for monitoring
+    enable_audit_log            = bool // Enable audit log for the cluster
 
     backend_variables = any // Backend-specific variables
   })
@@ -38,6 +39,7 @@ variable "upstream_cluster" {
     distro_version              = "v1.26.9+k3s1"
     public_ip                   = true
     reserve_node_for_monitoring = false
+    enable_audit_log            = false
 
     backend_variables = {
       ami                 = "ami-009fd8a4732ea789b", // openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
@@ -57,6 +59,7 @@ variable "downstream_cluster_templates" {
 
     public_ip                   = bool // Whether the downstream cluster should have a public IP assigned
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring
+    enable_audit_log            = bool // Enable audit log for the cluster
 
     backend_variables = any // Backend-specific variables
   }))
@@ -67,6 +70,7 @@ variable "downstream_cluster_templates" {
     distro_version              = "v1.26.9+k3s1"
     public_ip                   = false
     reserve_node_for_monitoring = false
+    enable_audit_log            = false
 
     backend_variables = {
       ami                 = "ami-0e55a8b472a265e3f" // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
@@ -96,6 +100,7 @@ variable "tester_cluster" {
 
     public_ip                   = bool // Whether the tester cluster should have a public IP assigned
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the tester cluster to reserve it for monitoring
+    enable_audit_log            = bool // Enable audit log for the cluster
 
     backend_variables = any // Backend-specific variables
   })
@@ -106,6 +111,7 @@ variable "tester_cluster" {
     distro_version              = "v1.26.9+k3s1"
     public_ip                   = false
     reserve_node_for_monitoring = false
+    enable_audit_log            = false
 
     backend_variables = {
       ami                 = "ami-009fd8a4732ea789b" // openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64

@@ -3,7 +3,6 @@ variable "project_name" {
   default     = "st"
 }
 
-
 variable "name" {
   description = "Symbolic name of this cluster"
   type        = string
@@ -13,7 +12,6 @@ variable "distro_version" {
   description = "k3s version"
   default     = "v1.23.10+k3s1"
 }
-
 
 variable "server_count" {
   description = "Number of server nodes in this cluster"
