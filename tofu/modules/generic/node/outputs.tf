@@ -1,7 +1,3 @@
-output "id" {
-  value = module.host.id
-}
-
 output "private_name" {
   value = module.host.private_name
 }

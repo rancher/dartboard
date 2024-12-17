@@ -13,6 +13,7 @@ module "upstream_cluster" {
   agent_count  = var.upstream_cluster.agent_count
   distro_version = var.upstream_cluster.distro_version
   reserve_node_for_monitoring = var.upstream_cluster.reserve_node_for_monitoring
+  enable_audit_log            = var.upstream_cluster.enable_audit_log
 
   sans                      = ["upstream.local.gd"]
   local_kubernetes_api_port = var.first_kubernetes_api_port
@@ -34,6 +35,7 @@ module "tester_cluster" {
   agent_count  = var.tester_cluster.agent_count
   distro_version = var.tester_cluster.distro_version
   reserve_node_for_monitoring = var.tester_cluster.reserve_node_for_monitoring
+  enable_audit_log            = var.tester_cluster.enable_audit_log
 
   sans                      = ["tester.local.gd"]
   local_kubernetes_api_port = var.first_kubernetes_api_port + 1
@@ -56,6 +58,7 @@ module "downstream_clusters" {
   agent_count  = local.downstream_clusters[count.index].agent_count
   distro_version = local.downstream_clusters[count.index].distro_version
   reserve_node_for_monitoring = local.downstream_clusters[count.index].reserve_node_for_monitoring
+  enable_audit_log            = local.downstream_clusters[count.index].enable_audit_log
 
   sans                      = ["${local.downstream_clusters[count.index].name}.local.gd"]
   local_kubernetes_api_port = var.first_kubernetes_api_port + 2 + count.index
