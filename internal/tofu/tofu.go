@@ -91,7 +91,11 @@ func New(ctx context.Context, variableMap map[string]interface{}, dir string, ws
 		variables: variables,
 	}
 
-	if err := t.exec(nil, "init", "-upgrade"); err != nil {
+	args := []string{"init", "-upgrade"}
+	for _, variable := range t.variables {
+		args = append(args, "-var", variable)
+	}
+	if err := t.exec(nil, args...); err != nil {
 		return nil, err
 	}
 
