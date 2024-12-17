@@ -1,25 +1,39 @@
-// note: hosts in this file need to be resolvable from the host running OpenTofu
-output "kubeconfig" {
-  value = abspath(local_file.kubeconfig.filename)
-}
+output "config" {
+  value = {
+    kubeconfig = abspath(local_file.kubeconfig.filename)
+    context    = var.name
 
-// note: must match the host in kubeconfig
-output "local_kubernetes_api_url" {
-  value = "https://${azurerm_kubernetes_cluster.cluster.kube_config.host}:6443"
-}
+    // addresses of the Kubernetes API server
+    kubernetes_addresses = {
+      // resolvable over the Internet
+      public = "https://${azurerm_kubernetes_cluster.cluster.fqdn}:443"
+      // resolvable from the network this cluster runs in
+      private = "https://${azurerm_kubernetes_cluster.cluster.fqdn}:443"
+      // resolvable from the host running OpenTofu
+      tunnel = "https://${azurerm_kubernetes_cluster.cluster.fqdn}:443"
+    }
 
-output "context" {
-  value = "${var.project_name}-${var.name}"
-}
+    // addresses of applications running in this cluster
+    app_addresses = {
+      public = { // resolvable over the Internet
+        name       = null
+        http_port  = null
+        https_port = null
+      }
+      private = { // resolvable from the network this cluster runs in
+        name       = null
+        http_port  = null
+        https_port = null
+      }
+      tunnel = { // resolvable from the host running OpenTofu
+        name       = null
+        http_port  = null
+        https_port = null
+      }
+    }
 
-output "cluster_public_name" {
-  value = azurerm_kubernetes_cluster.cluster.fqdn
-}
-
-output "node_access_commands" {
-  value = {}
-}
-
-output "ingress_class_name" {
-  value = "webapprouting.kubernetes.azure.com"
+    node_access_commands        = {}
+    ingress_class_name          = "webapprouting.kubernetes.azure.com"
+    reserve_node_for_monitoring = var.reserve_node_for_monitoring
+  }
 }

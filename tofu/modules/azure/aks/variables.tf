@@ -8,69 +8,91 @@ variable "name" {
   type        = string
 }
 
-variable "location" {
-  description = "Azure Location where the instance in created"
-  type        = string
-}
-
-variable "resource_group_name" {
-  description = "Azure Resource Group name to which the instance should belong"
-  type        = string
-}
-
-variable "default_node_pool_count" {
-  description = "Number of nodes in the default (system) pool for this cluster"
-  default     = 1
-}
-
-variable "secondary_node_pool_count" {
-  description = "Number of nodes in this cluster's secondary pool (for workloads)"
-  default     = 0
-}
-
-variable "secondary_node_pool_labels" {
-  description = "Labels to apply to the secondary pool nodes (eg. {key = value})"
-  type        = map(string)
-  default     = {}
-}
-
-variable "secondary_node_pool_taints" {
-  description = "Taints to apply to the secondary pool nodes (eg. ['monitoring=true:NoSchedule'])"
-  type        = list(string)
-  default     = []
-}
-
-variable "vm_size" {
-  description = "Azure VM instance type of nodes in the primary pool of this cluster"
-  default     = "Standard_D4ds_v5"
-}
-
-variable "secondary_vm_size" {
-  description = "Azure VM instance type of nodes in the secondary pool of this cluster"
-  default     = "Standard_D4ds_v5"
-}
-
-variable "os_disk_size" {
-  description = " The Size of the Internal OS Disk in GB"
-  default     = 30
-}
-
-variable "os_ephemeral_disk" {
-  description = "Whether to use ephemeral disk for the OS"
-  default     = false
-}
-
-variable "subnet_id" {
-  description = "Azure Subnet id to attach the VM NIC"
-  type        = string
-}
-
-variable "enable_audit_log" {
-  description = "Enable Kubernetes API audit log to a Log Analitycs workspace"
-  default     = false
-}
-
 variable "distro_version" {
   description = "Kubernetes version for AKS to use"
   default     = "1.26.3"
+}
+
+variable "server_count" {
+  description = "Ignored"
+  type        = number
+  default     = null
+}
+
+variable "agent_count" {
+  description = "Number of nodes in this cluster"
+  default     = 1
+}
+
+variable "reserve_node_for_monitoring" {
+  description = "Whether to reserve a node for monitoring. If true, adds a taint and toleration with label 'monitoring' to the first agent node"
+  default     = false
+}
+
+variable "ssh_private_key_path" {
+  description = "Ignored"
+  type        = string
+  default     = null
+}
+
+variable "ssh_user" {
+  description = "Ignored"
+  type        = string
+  default     = null
+}
+
+variable "local_kubernetes_api_port" {
+  description = "Ignored"
+  type        = number
+  default     = null
+}
+
+variable "tunnel_app_http_port" {
+  description = "Ignored"
+  type        = number
+  default     = null
+}
+
+variable "tunnel_app_https_port" {
+  description = "Ignored"
+  type        = number
+  default     = null
+}
+
+variable "sans" {
+  description = "Ignored"
+  type        = list(string)
+  default     = null
+}
+
+variable "max_pods" {
+  description = "Maximum number of pods per node"
+  default     = 250
+}
+
+variable "node_cidr_mask_size" {
+  description = "Ignored"
+  type        = number
+  default     = null
+}
+
+variable "enable_audit_log" {
+  description = "Whether to enable audit logging"
+  default     = false
+}
+
+variable "backend" {
+  description = "Ignored"
+  type        = string
+  default     = null
+}
+
+variable "host_backend_variables" {
+  description = "Backend-specific configuration variables for all nodes in this cluster"
+  type        = any
+}
+
+variable "network_backend_variables" {
+  description = "Backend-specific configuration variables for the network in this cluster"
+  type        = any
 }
