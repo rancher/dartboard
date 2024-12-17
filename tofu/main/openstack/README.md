@@ -25,6 +25,6 @@ This set of OpenTofu files has been tested so far on the OVHcloud OpenStack impl
 Deployment only:
 ```shell
 source ./openrc.bash # OpenStack Credentials
-vim input.tf         # Tweak parameters
+vim variables.tf         # Tweak parameters
 tofu apply           # Deploy (Tofu only). ./bin/setup.mjs can be used to set up the test suite
 ```

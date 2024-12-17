@@ -3,20 +3,23 @@
 # all available variables are represented in this file
 # commented out lines show defaults
 
-tofu_main_directory: ./tofu/main/aws
+tofu_main_directory: ./tofu/main/azure
 #tofu_parallelism: 10
 
 tofu_variables:
 #  project_name: st
-#  region: us-east-1
-#  availability_zone: us-east-1a
-#  aws_profile: null
-#  ssh_public_key_path: ~/.ssh/id_ed25519.pub
-#  ssh_private_key_path: ~/.ssh/id_ed25519
-#  ssh_user: root
-#  ssh_bastion_user: root
-#  bastion_host_ami: ami-0e55a8b472a265e3f # openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
-
+#  location: West Europe
+#  tags: { "Owner": "st" }
+#  ssh_public_key_path: ~/.ssh/azure_rsa.pub
+#  ssh_private_key_path: ~/.ssh/azure_rsa
+#  ssh_user: azureuser
+#  ssh_bastion_user: azureuser
+#  bastion_os_image:
+#    publisher: suse
+#    offer: opensuse-leap-15-5
+#    sku: gen2
+#    version: latest
+#
 #  upstream_cluster:
 #    server_count: 1
 #    agent_count: 0
@@ -24,10 +27,18 @@ tofu_variables:
 #    distro_version: v1.26.9+k3s1
 #    public_ip: true
 #    reserve_node_for_monitoring: false
+#    enable_audit_log: false
 #    backend_variables:
-#      instance_type: i3.large
-#      ami: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
-#      root_volume_size_gb: 50
+#      os_image:
+#        publisher: suse
+#        offer: opensuse-leap-15-5
+#        sku: gen2
+#        version: latest
+#      size: Standard_D8ds_v4
+#      is_spot: false
+#      os_disk_type: Premium_LRS
+#      os_disk_size: 30
+#      os_ephemeral_disk: false
 #
 #  deploy_tester_cluster: true
 #  tester_cluster:
@@ -37,10 +48,18 @@ tofu_variables:
 #    distro_version: v1.26.9+k3s1
 #    public_ip: false
 #    reserve_node_for_monitoring: false
+#    enable_audit_log: false
 #    backend_variables:
-#      instance_type: t3a.large
-#      ami: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
-#      root_volume_size_gb: 50
+#      os_image:
+#        publisher: suse
+#        offer: opensuse-leap-15-5
+#        sku: gen2
+#        version: latest
+#      size: Standard_B2as_v2
+#      is_spot: false
+#      os_disk_type: StandardSSD_LRS
+#      os_disk_size: 30
+#      os_ephemeral_disk: false
 #
 #  downstream_cluster_templates:
 #    - cluster_count: 0
@@ -49,11 +68,23 @@ tofu_variables:
 #      distro_version: v1.26.9+k3s1
 #      public_ip: false
 #      reserve_node_for_monitoring: false
+#      enable_audit_log: false
 #      backend_variables:
-#        instance_type: t4g.large
-#        ami: ami-0e55a8b472a265e3f # openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
-#        root_volume_size_gb: 50
-#  downstream_distro_module: generic/k3s
+#        os_image:
+#          publisher: suse
+#          offer: opensuse-leap-15-5
+#          sku: gen2
+#          version: latest
+#        size: Standard_B1ms
+#        is_spot: false
+#        os_disk_type: StandardSSD_LRS
+#        os_ephemeral_disk: false
+#        os_disk_size: 30
+#        enable_audit_log: false
+#  downstream_cluster_distro_module: generic/k3s
+#
+# Note: use distro_version: 1.30.6, downstream_cluster_distro_module: azure/aks
+# and non-zero agent_count to deploy AKS clusters downstream
 #
 #  first_kubernetes_api_port: 7445
 #  first_app_http_port: 9080

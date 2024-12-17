@@ -1,7 +1,3 @@
-output "id" {
-  value = aws_instance.instance.id
-}
-
 output "private_name" {
   value = aws_instance.instance.private_dns
 }
