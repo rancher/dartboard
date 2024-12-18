@@ -13,11 +13,6 @@ variable "ssh_user" {
   default     = "root"
 }
 
-variable "ssh_bastion_user" {
-  description = "User name for the SSH bastion host's OS"
-  default     = "root"
-}
-
 # Upstream cluster specifics
 variable "upstream_cluster" {
   type = object({
@@ -32,21 +27,6 @@ variable "upstream_cluster" {
 
     backend_variables = any // Backend-specific variables
   })
-  default = {
-    server_count                = 1
-    agent_count                 = 0
-    distro_module               = "generic/k3s"
-    distro_version              = "v1.26.9+k3s1"
-    public_ip                   = true
-    reserve_node_for_monitoring = false
-    enable_audit_log            = false
-
-    backend_variables = {
-      ami                 = "ami-009fd8a4732ea789b", // openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
-      instance_type       = "i3.large",
-      root_volume_size_gb = 50,
-    }
-  }
 }
 
 # Downstream cluster specifics
@@ -63,31 +43,11 @@ variable "downstream_cluster_templates" {
 
     backend_variables = any // Backend-specific variables
   }))
-  default = [{
-    cluster_count               = 0 // defaults to 0 to keep in-line with previous behavior
-    server_count                = 1
-    agent_count                 = 0
-    distro_version              = "v1.26.9+k3s1"
-    public_ip                   = false
-    reserve_node_for_monitoring = false
-    enable_audit_log            = false
-
-    backend_variables = {
-      ami                 = "ami-0e55a8b472a265e3f" // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
-      instance_type       = "t4g.large"
-      root_volume_size_gb = 50,
-    }
-  }]
 }
 
-# Note: this is kept constant for all templates because OpenTofu v1.8.2 does not allow to use
-# each.value, each.key or count.index in expressions for module paths
-# context is https://github.com/opentofu/opentofu/blob/main/rfc/20240513-static-evaluation/module-expansion.md ->
-# https://github.com/opentofu/opentofu/issues/1896#issuecomment-2275763570 ->
-# https://github.com/opentofu/opentofu/issues/2155
 variable "downstream_cluster_distro_module" {
   description = "Name of the module to use for the downstream clusters"
-  default = "generic/k3s"
+  default     = "generic/k3s"
 }
 
 # Tester cluster specifics
@@ -104,21 +64,6 @@ variable "tester_cluster" {
 
     backend_variables = any // Backend-specific variables
   })
-  default = {
-    server_count                = 1
-    agent_count                 = 0
-    distro_module               = "generic/k3s"
-    distro_version              = "v1.26.9+k3s1"
-    public_ip                   = false
-    reserve_node_for_monitoring = false
-    enable_audit_log            = false
-
-    backend_variables = {
-      ami                 = "ami-009fd8a4732ea789b" // openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
-      instance_type       = "t3a.large"
-      root_volume_size_gb = 50,
-    }
-  }
 }
 
 variable "deploy_tester_cluster" {
@@ -147,25 +92,12 @@ variable "first_app_https_port" {
   default     = 9443
 }
 
-# Backend-specific variables
-variable "region" {
-  description = "AWS region for this deployment"
-  default     = "us-east-1"
-}
-
-variable "aws_profile" {
-  description = "Local ~/.aws/config profile to utilize for AWS access"
+variable "backend" {
+  description = "Backend for this host"
   type        = string
-  default     = null
 }
 
-variable "availability_zone" {
-  description = "AWS availability zone for this deployment"
-  default     = "us-east-1a"
-}
-
-variable "bastion_host_ami" {
-  description = "AMI ID"
-  default     = "ami-0e55a8b472a265e3f"
-  // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
+variable "network_backend_variables" {
+  description = "Backend-specific configuration variables for the network in this cluster"
+  type        = any
 }

@@ -2,7 +2,7 @@
 
 A tool to run scalability and performance tests on the Rancher product family.
 
-Supports deploying to AWS, Azure, OVH OpenStack and bare metal servers (via SSH) for infrastructure; k3s, RKE2, k3d and AKS as Kubernetes distributions; any recent version of Rancher.
+Supports deploying to AWS and Azure or a local Docker daemon (via k3d) for infrastructure; k3s, RKE2 and AKS as Kubernetes distributions; any recent version of Rancher.
 
 ## Usage
 
@@ -112,13 +112,3 @@ ssh remotehost -L 2375:localhost:2375 -L 8443:localhost:8443 $(for KUBEPORT in $
 When using `k3d`, change `RANCHER_IMAGE_TAG` and if an image with the same tag is found it will be added to relevant clusters.
 
 This is useful during Rancher development to test Rancher changes on k3d clusters.
-
-## Passing custom OpenTofu variables
-
-OpenTofu variables can be overridden using `TOFU_VAR_FILE` environment variable, to point to a [`.tfvars` file](https://developer.hashicorp.com/tofu/language/values/variables#variable-definitions-tfvars-files). The variable should contain a path to the file in json or tfvars format.
-For example, for the `ssh` module, nodes' ip addresses, login name, etc. can be overridden as follows:
-
-```shell
-export TOFU_WORK_DIR=tofu/main/ssh
-export TOFU_VAR_FILE=tofu/examples/ssh.tfvars.json
-```

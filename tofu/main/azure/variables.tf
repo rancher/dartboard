@@ -1,21 +1,21 @@
 variable "ssh_public_key_path" {
-  description = "Path to SSH public key file (can be generated with `ssh-keygen -t ed25519`)"
-  default     = "~/.ssh/id_ed25519.pub"
+  description = "Path to SSH public key file (can be generated with `ssh-keygen -t rsa -f ~/.ssh/azure_rsa`)"
+  default     = "~/.ssh/azure_rsa.pub"
 }
 
 variable "ssh_private_key_path" {
-  description = "Path to SSH private key file (can be generated with `ssh-keygen -t ed25519`)"
-  default     = "~/.ssh/id_ed25519"
+  description = "Path to SSH private key file (can be generated with `ssh-keygen -t rsa -f ~/.ssh/azure_rsa`)"
+  default     = "~/.ssh/azure_rsa"
 }
 
 variable "ssh_user" {
   description = "User name to use for the SSH connection to all nodes in all clusters"
-  default     = "root"
+  default     = "azureuser"
 }
 
 variable "ssh_bastion_user" {
   description = "User name for the SSH bastion host's OS"
-  default     = "root"
+  default     = "azureuser"
 }
 
 # Upstream cluster specifics
@@ -42,9 +42,17 @@ variable "upstream_cluster" {
     enable_audit_log            = false
 
     backend_variables = {
-      ami                 = "ami-009fd8a4732ea789b", // openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
-      instance_type       = "i3.large",
-      root_volume_size_gb = 50,
+      os_image = {
+        publisher = "suse"
+        offer     = "opensuse-leap-15-5"
+        sku       = "gen2"
+        version   = "latest"
+      }
+      size              = "Standard_D8ds_v4"
+      is_spot           = false
+      os_disk_type      = "StandardSSD_LRS"
+      os_disk_size      = 30
+      os_ephemeral_disk = true
     }
   }
 }
@@ -73,9 +81,17 @@ variable "downstream_cluster_templates" {
     enable_audit_log            = false
 
     backend_variables = {
-      ami                 = "ami-0e55a8b472a265e3f" // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
-      instance_type       = "t4g.large"
-      root_volume_size_gb = 50,
+      os_image = {
+        publisher = "suse"
+        offer     = "opensuse-leap-15-5"
+        sku       = "gen2"
+        version   = "latest"
+      }
+      size              = "Standard_B1ms"
+      is_spot           = false
+      os_disk_type      = "StandardSSD_LRS"
+      os_disk_size      = 30
+      os_ephemeral_disk = false
     }
   }]
 }
@@ -87,7 +103,7 @@ variable "downstream_cluster_templates" {
 # https://github.com/opentofu/opentofu/issues/2155
 variable "downstream_cluster_distro_module" {
   description = "Name of the module to use for the downstream clusters"
-  default = "generic/k3s"
+  default     = "generic/k3s"
 }
 
 # Tester cluster specifics
@@ -114,9 +130,17 @@ variable "tester_cluster" {
     enable_audit_log            = false
 
     backend_variables = {
-      ami                 = "ami-009fd8a4732ea789b" // openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
-      instance_type       = "t3a.large"
-      root_volume_size_gb = 50,
+      size = "Standard_B2as_v2"
+      os_image = {
+        publisher = "suse"
+        offer     = "opensuse-leap-15-5"
+        sku       = "gen2"
+        version   = "latest"
+      }
+      is_spot           = false
+      os_disk_type      = "StandardSSD_LRS"
+      os_disk_size      = 30
+      os_ephemeral_disk = false
     }
   }
 }
@@ -134,38 +158,45 @@ variable "project_name" {
 
 variable "first_kubernetes_api_port" {
   description = "Port number where the Kubernetes API of the first cluster is published locally. Other clusters' ports are published in successive ports"
-  default     = 7445
+  default     = 8445
 }
 
 variable "first_app_http_port" {
   description = "Port number where the first server's port 80 is published locally. Other clusters' ports are published in successive ports"
-  default     = 9080
+  default     = 10080
 }
 
 variable "first_app_https_port" {
   description = "Port number where the first server's port 443 is published locally. Other clusters' ports are published in successive ports"
-  default     = 9443
+  default     = 10443
 }
 
 # Backend-specific variables
-variable "region" {
-  description = "AWS region for this deployment"
-  default     = "us-east-1"
+variable "location" {
+  description = "Azure Location where the instance in created"
+  default     = "West Europe"
 }
 
-variable "aws_profile" {
-  description = "Local ~/.aws/config profile to utilize for AWS access"
-  type        = string
-  default     = null
+variable "tags" {
+  description = "Tags to be applied to all resources created by this module"
+  type        = map(string)
+  default = {
+    Owner = "st"
+  }
 }
 
-variable "availability_zone" {
-  description = "AWS availability zone for this deployment"
-  default     = "us-east-1a"
-}
-
-variable "bastion_host_ami" {
-  description = "AMI ID"
-  default     = "ami-0e55a8b472a265e3f"
-  // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
+variable "bastion_os_image" {
+  description = "OS image to use for the bastion host"
+  type = object({
+    publisher = string
+    offer     = string
+    sku       = string
+    version   = string
+  })
+  default = {
+    publisher = "suse"
+    offer     = "opensuse-leap-15-5"
+    sku       = "gen2"
+    version   = "latest"
+  }
 }

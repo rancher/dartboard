@@ -1,10 +1,9 @@
 # Deploys Rancher from (mostly) defaults
-# see aws_full.yaml for more configuration options
+# see azure_full.yaml for more configuration options
 
-tofu_main_directory: ./tofu/main/aws
+tofu_main_directory: ./tofu/main/azure
 
 tofu_variables:
-  aws_profile: AWSPowerUserAccess-312662503588
 
 chart_variables:
   rancher_replicas: 1
