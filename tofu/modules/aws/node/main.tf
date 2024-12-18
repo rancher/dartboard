@@ -48,18 +48,3 @@ resource "null_resource" "host_configuration" {
     inline = var.host_configuration_commands
   }
 }
-
-module "ssh_access" {
-  depends_on = [null_resource.host_configuration]
-
-  source = "../../ssh/access"
-  name   = var.name
-
-  ssh_bastion_host     = var.network_backend_variables.ssh_bastion_host
-  ssh_tunnels          = var.ssh_tunnels
-  private_name         = aws_instance.instance.private_dns
-  public_name          = aws_instance.instance.public_dns
-  ssh_user             = var.ssh_user
-  ssh_bastion_user     = var.network_backend_variables.ssh_bastion_user
-  ssh_private_key_path = var.ssh_private_key_path
-}

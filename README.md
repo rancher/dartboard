@@ -2,7 +2,7 @@
 
 A tool to run scalability and performance tests on the Rancher product family.
 
-Supports deploying to AWS, Azure, and bare metal servers (via SSH) for infrastructure; k3s, RKE2, k3d and AKS as Kubernetes distributions; any recent version of Rancher.
+Supports deploying to AWS and Azure for infrastructure; k3s, RKE2, k3d and AKS as Kubernetes distributions; any recent version of Rancher.
 
 ## Usage
 

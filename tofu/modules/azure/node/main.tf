@@ -86,18 +86,3 @@ resource "null_resource" "host_configuration" {
     inline = var.host_configuration_commands
   }
 }
-
-module "ssh_access" {
-  depends_on = [null_resource.host_configuration]
-
-  source = "../../ssh/access"
-  name   = var.name
-
-  ssh_bastion_host     = var.network_backend_variables.ssh_bastion_host
-  ssh_tunnels          = var.ssh_tunnels
-  private_name         = azurerm_linux_virtual_machine.main.private_ip_address
-  public_name          = azurerm_linux_virtual_machine.main.public_ip_address
-  ssh_user             = var.ssh_user
-  ssh_bastion_user     = var.network_backend_variables.ssh_bastion_user
-  ssh_private_key_path = var.ssh_private_key_path
-}

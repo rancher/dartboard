@@ -15,5 +15,5 @@ output "name" {
 }
 
 output "ssh_script_filename" {
-  value = module.host.ssh_script_filename
+  value = local_file.ssh_script.filename
 }
