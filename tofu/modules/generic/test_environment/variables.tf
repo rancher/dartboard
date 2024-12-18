@@ -45,6 +45,11 @@ variable "downstream_cluster_templates" {
   }))
 }
 
+# Note: this is kept constant for all templates because OpenTofu v1.8.2 does not allow to use
+# each.value, each.key or count.index in expressions for module paths
+# context is https://github.com/opentofu/opentofu/blob/main/rfc/20240513-static-evaluation/module-expansion.md ->
+# https://github.com/opentofu/opentofu/issues/1896#issuecomment-2275763570 ->
+# https://github.com/opentofu/opentofu/issues/2155
 variable "downstream_cluster_distro_module" {
   description = "Name of the module to use for the downstream clusters"
   default     = "generic/k3s"

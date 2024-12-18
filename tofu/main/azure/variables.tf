@@ -18,131 +18,24 @@ variable "ssh_bastion_user" {
   default     = "azureuser"
 }
 
-# Upstream cluster specifics
 variable "upstream_cluster" {
-  type = object({
-    server_count   = number // Number of server nodes in the upstream cluster
-    agent_count    = number // Number of agent nodes in the upstream cluster
-    distro_module  = string // Path to the module to use for the upstream cluster
-    distro_version = string // Version of the Kubernetes distro in the upstream cluster
-
-    public_ip                   = bool // Whether the upstream cluster should have a public IP assigned
-    reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the upstream cluster to reserve it for monitoring
-    enable_audit_log            = bool // Enable audit log for the cluster
-
-    backend_variables = any // Backend-specific variables
-  })
-  default = {
-    server_count                = 1
-    agent_count                 = 0
-    distro_module               = "generic/k3s"
-    distro_version              = "v1.26.9+k3s1"
-    public_ip                   = true
-    reserve_node_for_monitoring = false
-    enable_audit_log            = false
-
-    backend_variables = {
-      os_image = {
-        publisher = "suse"
-        offer     = "opensuse-leap-15-5"
-        sku       = "gen2"
-        version   = "latest"
-      }
-      size              = "Standard_D8ds_v4"
-      is_spot           = false
-      os_disk_type      = "StandardSSD_LRS"
-      os_disk_size      = 30
-      os_ephemeral_disk = true
-    }
-  }
+  description = "Upstream cluster configuration. See tofu/modules/generic/test_environment/variables.tf for details"
+  type = any
 }
 
-# Downstream cluster specifics
 variable "downstream_cluster_templates" {
-  type = list(object({
-    cluster_count  = number // Number of downstream clusters that should be created using this configuration
-    server_count   = number // Number of server nodes in the downstream cluster
-    agent_count    = number // Number of agent nodes in the downstream cluster
-    distro_version = string // Version of the Kubernetes distro in the downstream cluster
-
-    public_ip                   = bool // Whether the downstream cluster should have a public IP assigned
-    reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring
-    enable_audit_log            = bool // Enable audit log for the cluster
-
-    backend_variables = any // Backend-specific variables
-  }))
-  default = [{
-    cluster_count               = 0 // defaults to 0 to keep in-line with previous behavior
-    server_count                = 1
-    agent_count                 = 0
-    distro_version              = "v1.26.9+k3s1"
-    public_ip                   = false
-    reserve_node_for_monitoring = false
-    enable_audit_log            = false
-
-    backend_variables = {
-      os_image = {
-        publisher = "suse"
-        offer     = "opensuse-leap-15-5"
-        sku       = "gen2"
-        version   = "latest"
-      }
-      size              = "Standard_B1ms"
-      is_spot           = false
-      os_disk_type      = "StandardSSD_LRS"
-      os_disk_size      = 30
-      os_ephemeral_disk = false
-    }
-  }]
+  description = "List of downstream cluster configurations. See tofu/modules/generic/test_environment/variables.tf for details"
+  type = list(any)
 }
 
-# Note: this is kept constant for all templates because OpenTofu v1.8.2 does not allow to use
-# each.value, each.key or count.index in expressions for module paths
-# context is https://github.com/opentofu/opentofu/blob/main/rfc/20240513-static-evaluation/module-expansion.md ->
-# https://github.com/opentofu/opentofu/issues/1896#issuecomment-2275763570 ->
-# https://github.com/opentofu/opentofu/issues/2155
 variable "downstream_cluster_distro_module" {
   description = "Name of the module to use for the downstream clusters"
   default     = "generic/k3s"
 }
 
-# Tester cluster specifics
 variable "tester_cluster" {
-  type = object({
-    server_count   = number // Number of server nodes in the tester cluster
-    agent_count    = number // Number of agent nodes in the tester cluster
-    distro_module  = string // Path to the module to use for the tester cluster
-    distro_version = string // Version of the Kubernetes distro in the tester cluster
-
-    public_ip                   = bool // Whether the tester cluster should have a public IP assigned
-    reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the tester cluster to reserve it for monitoring
-    enable_audit_log            = bool // Enable audit log for the cluster
-
-    backend_variables = any // Backend-specific variables
-  })
-  default = {
-    server_count                = 1
-    agent_count                 = 0
-    distro_module               = "generic/k3s"
-    distro_version              = "v1.26.9+k3s1"
-    public_ip                   = false
-    reserve_node_for_monitoring = false
-    enable_audit_log            = false
-
-    backend_variables = {
-      size = "Standard_B2as_v2"
-      os_image = {
-        publisher = "suse"
-        offer     = "opensuse-leap-15-5"
-        sku       = "gen2"
-        version   = "latest"
-      }
-      is_spot           = false
-      os_disk_type      = "StandardSSD_LRS"
-      os_disk_size      = 30
-      os_ephemeral_disk = false
-    }
-  }
+  description = "Tester cluster configuration. See tofu/modules/generic/test_environment/variables.tf for details"
+  type = any
 }
 
 variable "deploy_tester_cluster" {
