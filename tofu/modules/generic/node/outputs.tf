@@ -7,7 +7,7 @@ output "private_ip" {
 }
 
 output "public_name" {
-  value      = module.host.public_name
+  value = module.host.public_name
 }
 
 output "name" {

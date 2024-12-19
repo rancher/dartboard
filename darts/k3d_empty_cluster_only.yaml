@@ -15,7 +15,7 @@ tofu_variables:
     public_ip: false
     reserve_node_for_monitoring: false
     enable_audit_log: true
-    backend_variables:
+    node_module_variables:
       enable_metrics: false
 
   downstream_cluster_templates: []

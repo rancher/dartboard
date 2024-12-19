@@ -24,7 +24,7 @@ tofu_variables:
     public_ip: true
     reserve_node_for_monitoring: false
     enable_audit_log: false
-    backend_variables:
+    node_module_variables:
       os_image:
         publisher: suse
         offer: opensuse-leap-15-5
@@ -46,7 +46,7 @@ tofu_variables:
     public_ip: false
     reserve_node_for_monitoring: false
     enable_audit_log: false
-    backend_variables:
+    node_module_variables:
       os_image:
         publisher: suse
         offer: opensuse-leap-15-5
@@ -67,7 +67,7 @@ tofu_variables:
       public_ip: false
       reserve_node_for_monitoring: false
       enable_audit_log: false
-      backend_variables:
+      node_module_variables:
         os_image:
           publisher: suse
           offer: opensuse-leap-15-5

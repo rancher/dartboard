@@ -21,7 +21,7 @@ tofu_variables:
     public_ip: true
     reserve_node_for_monitoring: false
     enable_audit_log: false
-    backend_variables:
+    node_module_variables:
       instance_type: i3.large
       ami: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
       root_volume_size_gb: 50
@@ -34,7 +34,7 @@ tofu_variables:
     public_ip: false
     reserve_node_for_monitoring: false
     enable_audit_log: false
-    backend_variables:
+    node_module_variables:
       instance_type: t3a.large
       ami: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
       root_volume_size_gb: 50
@@ -48,7 +48,7 @@ tofu_variables:
       public_ip: false
       reserve_node_for_monitoring: false
       enable_audit_log: false
-      backend_variables:
+      node_module_variables:
         instance_type: t4g.large
         ami: ami-0e55a8b472a265e3f # openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
         root_volume_size_gb: 50

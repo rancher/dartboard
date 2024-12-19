@@ -94,14 +94,14 @@ variable "node_module" {
 }
 
 
-variable "host_backend_variables" {
+variable "node_module_variables" {
   description = "Ignored"
   type        = any
   default     = null
 }
 
-variable "network_backend_variables" {
-  description = "Backend-specific configuration variables for the network in this cluster"
+variable "network_config" {
+  description = "Network module outputs, to be passed to node_module"
   type        = any
 }
 

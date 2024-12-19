@@ -7,16 +7,16 @@ terraform {
 }
 
 module "server_nodes" {
-  count                     = var.server_count
-  source                    = "../node"
-  project_name              = var.project_name
-  name                      = "${var.name}-node-${count.index}"
-  ssh_private_key_path      = var.ssh_private_key_path
-  ssh_user                  = var.ssh_user
-  ssh_tunnels               = count.index == 0 ? var.additional_ssh_tunnels : []
-  node_module               = var.node_module
-  backend_variables         = var.backend_variables
-  network_backend_variables = var.network_backend_variables
+  count                 = var.server_count
+  source                = "../node"
+  project_name          = var.project_name
+  name                  = "${var.name}-node-${count.index}"
+  ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
+  ssh_tunnels           = count.index == 0 ? var.additional_ssh_tunnels : []
+  node_module           = var.node_module
+  node_module_variables = var.node_module_variables
+  network_config        = var.network_config
 }
 
 resource "ssh_sensitive_resource" "node_installation" {
@@ -24,8 +24,8 @@ resource "ssh_sensitive_resource" "node_installation" {
   host         = module.server_nodes[count.index].private_name
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
-  bastion_host = var.network_backend_variables.ssh_bastion_host
-  bastion_user = var.network_backend_variables.ssh_user
+  bastion_host = var.network_config.ssh_bastion_host
+  bastion_user = var.network_config.ssh_user
   timeout      = "600s"
 
   file {

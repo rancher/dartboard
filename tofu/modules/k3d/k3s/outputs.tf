@@ -32,8 +32,8 @@ output "config" {
       }
     }
 
-    node_access_commands = {}
-    ingress_class_name   = null
+    node_access_commands        = {}
+    ingress_class_name          = null
     reserve_node_for_monitoring = var.reserve_node_for_monitoring
   }
 }

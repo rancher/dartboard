@@ -99,19 +99,19 @@ module "bastion" {
   name                 = "bastion"
   ssh_private_key_path = var.ssh_private_key_path
   ssh_user             = var.ssh_bastion_user
-  public = true
-  backend_variables = {
-    os_image = var.bastion_os_image
-    size     = "Standard_D2s_v4"
-    is_spot  = false
-    os_disk_type = "StandardSSD_LRS"
-    os_disk_size = 30
+  public               = true
+  node_module_variables = {
+    os_image          = var.bastion_os_image
+    size              = "Standard_D2s_v4"
+    is_spot           = false
+    os_disk_type      = "StandardSSD_LRS"
+    os_disk_size      = 30
     os_ephemeral_disk = false
   }
 
-  network_backend_variables = {
-    location             = var.location
-    resource_group_name  = azurerm_resource_group.rg.name
+  network_config = {
+    location            = var.location
+    resource_group_name = azurerm_resource_group.rg.name
     public_subnet_id : azurerm_subnet.public.id,
     private_subnet_id : azurerm_subnet.private.id,
     ssh_public_key_path : var.ssh_public_key_path,

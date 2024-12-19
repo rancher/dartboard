@@ -19,21 +19,21 @@ module "server_nodes" {
     [var.tunnel_app_http_port, 80],
     [var.tunnel_app_https_port, 443],
   ] : []
-  node_module               = var.node_module
-  backend_variables         = var.host_backend_variables
-  network_backend_variables = var.network_backend_variables
+  node_module           = var.node_module
+  node_module_variables = var.node_module_variables
+  network_config        = var.network_config
 }
 
 module "agent_nodes" {
-  count                     = var.agent_count
-  source                    = "../node"
-  project_name              = var.project_name
-  name                      = "${var.name}-agent-${count.index}"
-  ssh_private_key_path      = var.ssh_private_key_path
-  ssh_user                  = var.ssh_user
-  node_module               = var.node_module
-  backend_variables         = var.host_backend_variables
-  network_backend_variables = var.network_backend_variables
+  count                 = var.agent_count
+  source                = "../node"
+  project_name          = var.project_name
+  name                  = "${var.name}-agent-${count.index}"
+  ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
+  node_module           = var.node_module
+  node_module_variables = var.node_module_variables
+  network_config        = var.network_config
 }
 
 resource "ssh_sensitive_resource" "first_server_installation" {
@@ -41,8 +41,8 @@ resource "ssh_sensitive_resource" "first_server_installation" {
   host         = module.server_nodes[0].private_name
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
-  bastion_host = var.network_backend_variables.ssh_bastion_host
-  bastion_user = var.network_backend_variables.ssh_bastion_user
+  bastion_host = var.network_config.ssh_bastion_host
+  bastion_user = var.network_config.ssh_bastion_user
   timeout      = "600s"
 
   file {
@@ -89,8 +89,8 @@ resource "ssh_resource" "additional_server_installation" {
   host         = module.server_nodes[count.index + 1].private_name
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
-  bastion_host = var.network_backend_variables.ssh_bastion_host
-  bastion_user = var.network_backend_variables.ssh_bastion_user
+  bastion_host = var.network_config.ssh_bastion_host
+  bastion_user = var.network_config.ssh_bastion_user
   timeout      = "600s"
 
   file {
@@ -129,8 +129,8 @@ resource "ssh_resource" "agent_installation" {
   host         = module.agent_nodes[count.index].private_name
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
-  bastion_host = var.network_backend_variables.ssh_bastion_host
-  bastion_user = var.network_backend_variables.ssh_bastion_user
+  bastion_host = var.network_config.ssh_bastion_host
+  bastion_user = var.network_config.ssh_bastion_user
   timeout      = "600s"
 
   file {

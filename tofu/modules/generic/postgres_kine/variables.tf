@@ -41,12 +41,12 @@ variable "node_module" {
   type        = string
 }
 
-variable "node_backend_variables" {
-  description = "Backend-specific configuration variables for the database host"
-  type = any
+variable "node_module_variables" {
+  description = "Node module-specific configuration variables for the database host"
+  type        = any
 }
 
-variable "network_backend_variables" {
-  description = "Backend-specific configuration variables for the database host"
-  type = any
+variable "network_config" {
+  description = "Network module outputs, to be passed to node_module"
+  type        = any
 }

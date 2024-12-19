@@ -1,7 +1,7 @@
-output "backend_variables" {
+output "config" {
   value = {
-    network_name: docker_network.network.name,
-    pull_proxy_registries: [
+    network_name : docker_network.network.name,
+    pull_proxy_registries : [
       for i in range(length(var.registry_pull_proxies)) :
       {
         name    = var.registry_pull_proxies[i].name

@@ -34,7 +34,7 @@ module "test_environment" {
   node_module                      = "azure/node"
   ssh_user                         = var.ssh_user
   ssh_private_key_path             = var.ssh_private_key_path
-  network_backend_variables        = module.network.backend_variables
+  network_config                   = module.network.config
   first_kubernetes_api_port        = var.first_kubernetes_api_port
   first_app_http_port              = var.first_app_http_port
   first_app_https_port             = var.first_app_https_port

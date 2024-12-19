@@ -32,9 +32,9 @@ output "config" {
       }
     }
 
-    node_access_commands        = merge({
+    node_access_commands = merge({
       for node in module.server_nodes : node.name => node.ssh_script_filename
-    }, {
+      }, {
       for node in module.agent_nodes : node.name => node.ssh_script_filename
     })
     ingress_class_name          = null
