@@ -30,7 +30,7 @@ resource "docker_container" "mariadb" {
     "MARIADB_ROOT_PASSWORD=${var.datastore_password}",
   ]
   networks_advanced {
-    name = var.network_name
+    name = var.network_backend_variables.network_name
   }
 
   ports {
@@ -65,7 +65,7 @@ resource "docker_container" "postgres" {
   ]
 
   networks_advanced {
-    name = var.network_name
+    name = var.network_backend_variables.network_name
   }
 
   ports {
@@ -136,7 +136,7 @@ resource "docker_container" "kine" {
   name       = "kine"
 
   networks_advanced {
-    name = var.network_name
+    name = var.network_backend_variables.network_name
   }
 
   ports {
@@ -162,7 +162,7 @@ resource "k3d_cluster" "cluster" {
   token = "secretToken"
 
   image   = var.image != null ? var.image : "docker.io/rancher/k3s:${replace(var.distro_version, "+", "-")}"
-  network = var.network_name
+  network = var.network_backend_variables.network_name
 
   k3d {
     disable_load_balancer = true
@@ -244,26 +244,16 @@ resource "k3d_cluster" "cluster" {
             node_filters = ["server:${i}"]
           }],
         ]) : [],
-        flatten([
-          for agent_i, labels in var.agent_labels :
-          [
-            for label in labels :
-            {
-              arg          = "--node-label=${label.key}=${label.value}",
-              node_filters = ["agent:${agent_i}"]
-            }
-          ]
-        ]),
-        flatten([
-          for agent_i, taints in var.agent_taints :
-          [
-            for taint in taints :
-            {
-              arg          = "--node-taint=${taint.key}=${taint.value}:${taint.effect}",
-              node_filters = ["agent:${agent_i}"]
-            }
-          ]
-        ]),
+        var.reserve_node_for_monitoring ? [
+          {
+            arg          = "--node-label=monitoring=true",
+            node_filters = ["agent:0"]
+          },
+          {
+            arg          = "--node-taint=morning=true:NoSchedule",
+            node_filters = ["agent:0"]
+          },
+        ] : [],
       )
       content {
         arg          = extra_args.value["arg"]
@@ -275,7 +265,7 @@ resource "k3d_cluster" "cluster" {
   registries {
     config = yamlencode({
       mirrors = {
-        for registry in var.pull_proxy_registries :
+        for registry in var.network_backend_variables.pull_proxy_registries :
         registry.name => { endpoints = ["http://${registry.address}"] }
       }
     })
@@ -288,18 +278,18 @@ resource "k3d_cluster" "cluster" {
   }
 
   kube_api {
-    host_port = var.kubernetes_api_port
+    host_port = var.local_kubernetes_api_port
   }
 
   dynamic "port" {
     for_each = concat([
       {
-        host_port : var.app_http_port,
+        host_port : var.tunnel_app_http_port,
         container_port : 80,
         node_filters : ["server:0:direct"]
       },
       {
-        host_port : var.app_https_port,
+        host_port : var.tunnel_app_https_port,
         container_port : 443,
         node_filters : ["server:0:direct"]
       },
@@ -331,4 +321,48 @@ resource "k3d_cluster" "cluster" {
       node_filters   = port.value["node_filters"]
     }
   }
+}
+
+locals {
+  local_kubernetes_api_url = nonsensitive(k3d_cluster.cluster[0].credentials[0].host)
+}
+
+resource "local_file" "kubeconfig" {
+  count = var.server_count > 0 ? 1 : 0
+  content = yamlencode({
+    apiVersion = "v1"
+    clusters = [
+      {
+        cluster = {
+          certificate-authority-data = base64encode(k3d_cluster.cluster[0].credentials[0].cluster_ca_certificate)
+          server                     = local.local_kubernetes_api_url
+        }
+        name = "k3d-${var.project_name}-${var.name}"
+      }
+    ]
+    contexts = [
+      {
+        context = {
+          cluster = "k3d-${var.project_name}-${var.name}"
+          user : "admin@k3d-${var.project_name}-${var.name}"
+        }
+        name = "k3d-${var.project_name}-${var.name}"
+      }
+    ]
+    current-context = "k3d-${var.project_name}-${var.name}"
+    kind            = "Config"
+    preferences     = {}
+    users = [
+      {
+        user = {
+          client-certificate-data : base64encode(k3d_cluster.cluster[0].credentials[0].client_certificate)
+          client-key-data : base64encode(k3d_cluster.cluster[0].credentials[0].client_key)
+        }
+        name : "admin@k3d-${var.project_name}-${var.name}"
+      }
+    ]
+  })
+
+  filename        = "${path.root}/${terraform.workspace}_config/${var.name}.yaml"
+  file_permission = "0700"
 }
