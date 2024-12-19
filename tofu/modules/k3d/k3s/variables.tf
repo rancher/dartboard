@@ -87,10 +87,12 @@ variable "datastore_endpoint" {
   default     = null
 }
 
-variable "backend" {
-  description = "Backend for this cluster"
+variable "node_module" {
+  description = "Ignored"
   type        = string
+  default     = null
 }
+
 
 variable "host_backend_variables" {
   description = "Ignored"

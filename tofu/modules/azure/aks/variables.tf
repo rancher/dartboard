@@ -81,7 +81,7 @@ variable "enable_audit_log" {
   default     = false
 }
 
-variable "backend" {
+variable "node_module" {
   description = "Ignored"
   type        = string
   default     = null

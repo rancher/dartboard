@@ -101,8 +101,8 @@ variable "first_app_https_port" {
   default     = 9443
 }
 
-variable "backend" {
-  description = "Backend for this host"
+variable "node_module" {
+  description = "Non-generic module to create this node"
   type        = string
 }
 

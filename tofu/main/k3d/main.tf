@@ -11,7 +11,7 @@ module "test_environment" {
   downstream_cluster_distro_module = var.downstream_cluster_distro_module
   tester_cluster                   = var.tester_cluster
   tester_cluster_distro_module     = var.tester_cluster_distro_module
-  backend                          = "k3d"
+  node_module                      = null
   ssh_user                         = null
   ssh_private_key_path             = null
   network_backend_variables        = module.network.backend_variables

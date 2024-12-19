@@ -7,15 +7,15 @@ terraform {
 }
 
 module "server_nodes" {
-  count                 = var.server_count
-  source                = "../node"
-  project_name          = var.project_name
-  name                  = "${var.name}-node-${count.index}"
-  ssh_private_key_path  = var.ssh_private_key_path
-  ssh_user              = var.ssh_user
-  ssh_tunnels           = count.index == 0 ? var.additional_ssh_tunnels : []
-  backend               = var.backend
-  backend_variables     = var.backend_variables
+  count                     = var.server_count
+  source                    = "../node"
+  project_name              = var.project_name
+  name                      = "${var.name}-node-${count.index}"
+  ssh_private_key_path      = var.ssh_private_key_path
+  ssh_user                  = var.ssh_user
+  ssh_tunnels               = count.index == 0 ? var.additional_ssh_tunnels : []
+  node_module               = var.node_module
+  backend_variables         = var.backend_variables
   network_backend_variables = var.network_backend_variables
 }
 

@@ -81,8 +81,8 @@ variable "datastore_endpoint" {
   default     = null
 }
 
-variable "backend" {
-  description = "Backend for this cluster"
+variable "node_module" {
+  description = "Non-generic module to create nodes"
   type        = string
 }
 

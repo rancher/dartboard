@@ -1,5 +1,5 @@
 module "host" {
-  source                      = "../../${var.backend}/node"
+  source                      = "../../${var.node_module}"
   project_name                = var.project_name
   name                        = var.name
   ssh_private_key_path        = var.ssh_private_key_path

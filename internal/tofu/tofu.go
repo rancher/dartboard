@@ -222,7 +222,7 @@ func (t *Tofu) PrintVersion(ctx context.Context) error {
 	return t.exec(log.Writer(), "version")
 }
 
-// IsK3d determines if the current backend is k3d
+// IsK3d determines if the current main is k3d
 func (t *Tofu) IsK3d() bool {
 	_, f := filepath.Split(t.dir)
 	return f == "k3d"
