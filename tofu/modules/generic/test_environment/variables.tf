@@ -13,6 +13,16 @@ variable "ssh_user" {
   default     = "root"
 }
 
+variable "node_module" {
+  description = "Non-generic module to create nodes in clusters for this environment"
+  type        = string
+}
+
+variable "network_config" {
+  description = "Network module outputs, to be passed to node_module"
+  type        = any
+}
+
 # Upstream cluster specifics
 variable "upstream_cluster" {
   type = object({
@@ -24,7 +34,7 @@ variable "upstream_cluster" {
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the upstream cluster to reserve it for monitoring
     enable_audit_log            = bool // Enable audit log for the cluster
 
-    backend_variables = any // Backend-specific variables
+    node_module_variables = any // Node module-specific variables
   })
 }
 
@@ -45,7 +55,7 @@ variable "downstream_cluster_templates" {
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring
     enable_audit_log            = bool // Enable audit log for the cluster
 
-    backend_variables = any // Backend-specific variables
+    node_module_variables = any // Node module-specific variables
   }))
 }
 
@@ -70,7 +80,7 @@ variable "tester_cluster" {
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the tester cluster to reserve it for monitoring
     enable_audit_log            = bool // Enable audit log for the cluster
 
-    backend_variables = any // Backend-specific variables
+    node_module_variables = any // Node module-specific variables
   })
   nullable = true
 }
@@ -99,14 +109,4 @@ variable "first_app_http_port" {
 variable "first_app_https_port" {
   description = "Port number where the first server's port 443 is published locally. Other clusters' ports are published in successive ports"
   default     = 9443
-}
-
-variable "node_module" {
-  description = "Non-generic module to create this node"
-  type        = string
-}
-
-variable "network_backend_variables" {
-  description = "Backend-specific configuration variables for the network in this cluster"
-  type        = any
 }

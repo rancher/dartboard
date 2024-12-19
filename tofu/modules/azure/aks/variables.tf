@@ -87,12 +87,12 @@ variable "node_module" {
   default     = null
 }
 
-variable "host_backend_variables" {
-  description = "Backend-specific configuration variables for all nodes in this cluster"
+variable "node_module_variables" {
+  description = "Node module-specific configuration variables for all nodes in this cluster"
   type        = any
 }
 
-variable "network_backend_variables" {
-  description = "Backend-specific configuration variables for the network in this cluster"
+variable "network_config" {
+  description = "Network module outputs, to be passed to node_module"
   type        = any
 }

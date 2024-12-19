@@ -40,12 +40,12 @@ variable "node_module" {
   type        = string
 }
 
-variable "backend_variables" {
-  description = "Backend-specific configuration variables"
+variable "node_module_variables" {
+  description = "Node module-specific configuration variables"
   type        = any
 }
 
-variable "network_backend_variables" {
-  description = "Backend-specific configuration variables for the network in this cluster"
+variable "network_config" {
+  description = "Network module outputs, to be passed to node_module"
   type        = any
 }

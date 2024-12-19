@@ -14,7 +14,7 @@ module "test_environment" {
   node_module                      = null
   ssh_user                         = null
   ssh_private_key_path             = null
-  network_backend_variables        = module.network.backend_variables
+  network_config                   = module.network.config
   first_kubernetes_api_port        = var.first_kubernetes_api_port
   first_app_http_port              = var.first_app_http_port
   first_app_https_port             = var.first_app_https_port

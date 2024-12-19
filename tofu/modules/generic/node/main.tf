@@ -6,8 +6,8 @@ module "host" {
   ssh_user                    = var.ssh_user
   ssh_tunnels                 = var.ssh_tunnels
   host_configuration_commands = var.host_configuration_commands
-  backend_variables           = var.backend_variables
-  network_backend_variables   = var.network_backend_variables
+  node_module_variables       = var.node_module_variables
+  network_config              = var.network_config
   public                      = var.public
 }
 
@@ -16,8 +16,8 @@ resource "local_file" "ssh_script" {
     #!/bin/sh
     ssh -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" \
       -i ${var.ssh_private_key_path} \
-      %{if var.network_backend_variables.ssh_bastion_host != null~}
-      -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${var.ssh_private_key_path} -W %h:%p ${var.network_backend_variables.ssh_bastion_user}@${var.network_backend_variables.ssh_bastion_host}" ${var.ssh_user}@${module.host.private_name} \
+      %{if var.network_config.ssh_bastion_host != null~}
+      -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${var.ssh_private_key_path} -W %h:%p ${var.network_config.ssh_bastion_user}@${var.network_config.ssh_bastion_host}" ${var.ssh_user}@${module.host.private_name} \
       %{else~}
       ${var.ssh_user}@${module.host.public_name} \
       %{endif~}
@@ -30,8 +30,8 @@ resource "local_file" "ssh_script" {
 resource "local_file" "open_tunnels" {
   count = length(var.ssh_tunnels) > 0 ? 1 : 0
   content = templatefile("${path.module}/open-tunnels-to.sh", {
-    ssh_bastion_host     = var.network_backend_variables.ssh_bastion_host
-    ssh_bastion_user     = var.network_backend_variables.ssh_bastion_user
+    ssh_bastion_host     = var.network_config.ssh_bastion_host
+    ssh_bastion_user     = var.network_config.ssh_bastion_user
     ssh_tunnels          = var.ssh_tunnels
     private_name         = module.host.private_name
     public_name          = module.host.public_name

@@ -30,7 +30,7 @@ resource "docker_container" "mariadb" {
     "MARIADB_ROOT_PASSWORD=${var.datastore_password}",
   ]
   networks_advanced {
-    name = var.network_backend_variables.network_name
+    name = var.network_config.network_name
   }
 
   ports {
@@ -65,7 +65,7 @@ resource "docker_container" "postgres" {
   ]
 
   networks_advanced {
-    name = var.network_backend_variables.network_name
+    name = var.network_config.network_name
   }
 
   ports {
@@ -136,7 +136,7 @@ resource "docker_container" "kine" {
   name       = "kine"
 
   networks_advanced {
-    name = var.network_backend_variables.network_name
+    name = var.network_config.network_name
   }
 
   ports {
@@ -162,7 +162,7 @@ resource "k3d_cluster" "cluster" {
   token = "secretToken"
 
   image   = var.image != null ? var.image : "docker.io/rancher/k3s:${replace(var.distro_version, "+", "-")}"
-  network = var.network_backend_variables.network_name
+  network = var.network_config.network_name
 
   k3d {
     disable_load_balancer = true
@@ -265,7 +265,7 @@ resource "k3d_cluster" "cluster" {
   registries {
     config = yamlencode({
       mirrors = {
-        for registry in var.network_backend_variables.pull_proxy_registries :
+        for registry in var.network_config.pull_proxy_registries :
         registry.name => { endpoints = ["http://${registry.address}"] }
       }
     })

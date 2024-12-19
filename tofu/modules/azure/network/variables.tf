@@ -25,25 +25,25 @@ variable "ssh_private_key_path" {
 }
 
 variable "tags" {
-    description = "Tags to be applied to all resources created by this module"
-    type        = map(string)
-    default     = {
-      Owner = "st"
-    }
+  description = "Tags to be applied to all resources created by this module"
+  type        = map(string)
+  default = {
+    Owner = "st"
+  }
 }
 
 variable "bastion_os_image" {
-    description = "OS image to use for the bastion host"
-    type        = object({
-        publisher = string
-        offer     = string
-        sku       = string
-        version   = string
-    })
-    default = {
-        publisher = "suse"
-        offer     = "opensuse-leap-15-5"
-        sku       = "gen2"
-        version   = "latest"
-    }
+  description = "OS image to use for the bastion host"
+  type = object({
+    publisher = string
+    offer     = string
+    sku       = string
+    version   = string
+  })
+  default = {
+    publisher = "suse"
+    offer     = "opensuse-leap-15-5"
+    sku       = "gen2"
+    version   = "latest"
+  }
 }

@@ -20,7 +20,7 @@ variable "ssh_bastion_user" {
 
 variable "upstream_cluster" {
   description = "Upstream cluster configuration. See tofu/modules/generic/test_environment/variables.tf for details"
-  type = any
+  type        = any
 }
 
 variable "upstream_cluster_distro_module" {
@@ -30,7 +30,7 @@ variable "upstream_cluster_distro_module" {
 
 variable "downstream_cluster_templates" {
   description = "List of downstream cluster configurations. See tofu/modules/generic/test_environment/variables.tf for details"
-  type = list(any)
+  type        = list(any)
 }
 
 variable "downstream_cluster_distro_module" {
@@ -40,8 +40,8 @@ variable "downstream_cluster_distro_module" {
 
 variable "tester_cluster" {
   description = "Tester cluster configuration. See tofu/modules/generic/test_environment/variables.tf for details"
-  type = any
-  default = null
+  type        = any
+  default     = null
 }
 
 variable "tester_cluster_distro_module" {
@@ -70,7 +70,7 @@ variable "first_app_https_port" {
   default     = 10443
 }
 
-# Backend-specific variables
+# Azure-specific variables
 variable "location" {
   description = "Azure Location where the instance in created"
   default     = "West Europe"

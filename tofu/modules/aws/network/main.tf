@@ -239,13 +239,13 @@ module "bastion" {
   ssh_private_key_path = var.ssh_private_key_path
   ssh_user             = var.ssh_bastion_user
   public               = true
-  backend_variables = {
+  node_module_variables = {
     ami : var.bastion_host_ami
     instance_type : var.bastion_host_instance_type
     root_volume_size_gb : 10
     host_configuration_commands : []
   }
-  network_backend_variables = {
+  network_config = {
     availability_zone : var.availability_zone,
     public_subnet_id : aws_subnet.public.id
     private_subnet_id : aws_subnet.private.id

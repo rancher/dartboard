@@ -13,7 +13,7 @@ tofu_variables:
     public_ip: false
     reserve_node_for_monitoring: false
     enable_audit_log: false
-    backend_variables:
+    node_module_variables:
       enable_metrics: false
 
   tester_cluster:
@@ -23,7 +23,7 @@ tofu_variables:
     public_ip: false
     reserve_node_for_monitoring: false
     enable_audit_log: false
-    backend_variables:
+    node_module_variables:
       enable_metrics: false
 
   downstream_cluster_templates:
@@ -34,7 +34,7 @@ tofu_variables:
       public_ip: false
       reserve_node_for_monitoring: false
       enable_audit_log: false
-      backend_variables:
+      node_module_variables:
         enable_metrics: false
 
   first_kubernetes_api_port: 6445

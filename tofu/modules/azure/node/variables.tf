@@ -34,7 +34,7 @@ variable "public" {
   default     = false
 }
 
-variable "backend_variables" {
+variable "node_module_variables" {
   description = <<EOT
     Azure-specific configuration variables.
     os_image: Azure VM OS image
@@ -72,7 +72,7 @@ variable "backend_variables" {
   }
 }
 
-variable "network_backend_variables" {
+variable "network_config" {
   description = <<EOT
     location: Azure location
     resource_group_name: Azure resource group name
