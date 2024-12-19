@@ -9,7 +9,6 @@ tofu_variables:
   upstream_cluster:
     server_count: 1
     agent_count: 0
-    distro_module: k3d/k3s
     distro_version: v1.26.9+k3s1
     public_ip: false
     reserve_node_for_monitoring: false
@@ -17,11 +16,9 @@ tofu_variables:
     backend_variables:
       enable_metrics: false
 
-  deploy_tester_cluster: true
   tester_cluster:
     server_count: 1
     agent_count: 0
-    distro_module: k3d/k3s
     distro_version: v1.26.9+k3s1
     public_ip: false
     reserve_node_for_monitoring: false
@@ -39,7 +36,6 @@ tofu_variables:
       enable_audit_log: false
       backend_variables:
         enable_metrics: false
-  downstream_cluster_distro_module: k3d/k3s
 
   first_kubernetes_api_port: 6445
   first_app_http_port: 8080

@@ -35,8 +35,8 @@ variable "additional_ssh_tunnels" {
   default     = []
 }
 
-variable "backend" {
-  description = "Backend for this cluster"
+variable "node_module" {
+  description = "Non-generic module to create nodes"
   type        = string
 }
 

@@ -20,7 +20,6 @@ tofu_variables:
   upstream_cluster:
     server_count: 1
     agent_count: 0
-    distro_module: generic/k3s
     distro_version: v1.26.9+k3s1
     public_ip: true
     reserve_node_for_monitoring: false
@@ -36,12 +35,13 @@ tofu_variables:
       os_disk_type: Premium_LRS
       os_disk_size: 30
       os_ephemeral_disk: false
+  upstream_cluster_distro_module: generic/k3s
+  # use azure/aks to deploy an AKS cluster instead
+  # supported versions can be retrieved with: az aks get-versions -l "West Europe"
 
-  deploy_tester_cluster: true
   tester_cluster:
     server_count: 1
     agent_count: 0
-    distro_module: generic/k3s
     distro_version: v1.26.9+k3s1
     public_ip: false
     reserve_node_for_monitoring: false
@@ -57,6 +57,7 @@ tofu_variables:
       os_disk_type: StandardSSD_LRS
       os_disk_size: 30
       os_ephemeral_disk: false
+  tester_cluster_distro_module: generic/k3s
 
   downstream_cluster_templates:
     - cluster_count: 0
@@ -79,9 +80,6 @@ tofu_variables:
         os_disk_size: 30
         enable_audit_log: false
   downstream_cluster_distro_module: generic/k3s
-
-# Note: use distro_version: 1.30.6, downstream_cluster_distro_module: azure/aks
-# and non-zero agent_count to deploy AKS clusters downstream
 
   first_kubernetes_api_port: 7445
   first_app_http_port: 9080

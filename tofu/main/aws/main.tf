@@ -17,9 +17,11 @@ module "network" {
 module "test_environment" {
   source                           = "../../modules/generic/test_environment"
   upstream_cluster                 = var.upstream_cluster
+  upstream_cluster_distro_module   = var.upstream_cluster_distro_module
   downstream_cluster_templates     = var.downstream_cluster_templates
   downstream_cluster_distro_module = var.downstream_cluster_distro_module
   tester_cluster                   = var.tester_cluster
+  tester_cluster_distro_module     = var.tester_cluster_distro_module
   backend                          = "aws"
   ssh_user                         = var.ssh_user
   ssh_private_key_path             = var.ssh_private_key_path
