@@ -91,7 +91,11 @@ func New(ctx context.Context, variableMap map[string]interface{}, dir string, ws
 		variables: variables,
 	}
 
-	if err := t.exec(nil, "init", "-upgrade"); err != nil {
+	args := []string{"init", "-upgrade"}
+	for _, variable := range t.variables {
+		args = append(args, "-var", variable)
+	}
+	if err := t.exec(nil, args...); err != nil {
 		return nil, err
 	}
 
@@ -218,7 +222,7 @@ func (t *Tofu) PrintVersion(ctx context.Context) error {
 	return t.exec(log.Writer(), "version")
 }
 
-// IsK3d determines if the current backend is k3d
+// IsK3d determines if the current main is k3d
 func (t *Tofu) IsK3d() bool {
 	_, f := filepath.Split(t.dir)
 	return f == "k3d"

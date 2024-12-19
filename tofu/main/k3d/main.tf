@@ -1,28 +1,21 @@
 module "network" {
-  source       = "../../modules/k3d_network"
+  source       = "../../modules/k3d/network"
   project_name = var.project_name
 }
 
-module "cluster" {
-  count          = length(local.all_clusters)
-  source         = "../../modules/k3d_k3s"
-  project_name   = var.project_name
-  name           = local.all_clusters[count.index].name
-  server_count   = local.all_clusters[count.index].server_count
-  agent_count    = local.all_clusters[count.index].agent_count
-  distro_version = local.all_clusters[count.index].distro_version
-  agent_labels = local.all_clusters[count.index].reserve_node_for_monitoring ? [
-    [{ key : "monitoring", value : "true" }]
-  ] : []
-  agent_taints = local.all_clusters[count.index].reserve_node_for_monitoring ? [
-    [{ key : "monitoring", value : "true", effect : "NoSchedule" }]
-  ] : []
-
-  sans                  = ["${local.all_clusters[count.index].name}.local.gd"]
-  kubernetes_api_port   = var.first_kubernetes_api_port + count.index
-  app_http_port         = var.first_app_http_port + count.index
-  app_https_port        = var.first_app_https_port + count.index
-  network_name          = module.network.name
-  pull_proxy_registries = module.network.pull_proxy_registries
-  enable_metrics        = local.all_clusters[count.index].enable_metrics
+module "test_environment" {
+  source                           = "../../modules/generic/test_environment"
+  upstream_cluster                 = var.upstream_cluster
+  upstream_cluster_distro_module   = var.upstream_cluster_distro_module
+  downstream_cluster_templates     = var.downstream_cluster_templates
+  downstream_cluster_distro_module = var.downstream_cluster_distro_module
+  tester_cluster                   = var.tester_cluster
+  tester_cluster_distro_module     = var.tester_cluster_distro_module
+  node_module                      = null
+  ssh_user                         = null
+  ssh_private_key_path             = null
+  network_config                   = module.network.config
+  first_kubernetes_api_port        = var.first_kubernetes_api_port
+  first_app_http_port              = var.first_app_http_port
+  first_app_https_port             = var.first_app_https_port
 }
