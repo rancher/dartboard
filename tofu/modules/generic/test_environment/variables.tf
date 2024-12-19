@@ -18,7 +18,6 @@ variable "upstream_cluster" {
   type = object({
     server_count   = number // Number of server nodes in the upstream cluster
     agent_count    = number // Number of agent nodes in the upstream cluster
-    distro_module  = string // Path to the module to use for the upstream cluster
     distro_version = string // Version of the Kubernetes distro in the upstream cluster
 
     public_ip                   = bool // Whether the upstream cluster should have a public IP assigned
@@ -27,6 +26,11 @@ variable "upstream_cluster" {
 
     backend_variables = any // Backend-specific variables
   })
+}
+
+variable "upstream_cluster_distro_module" {
+  description = "Name of the module to use for the upstream cluster"
+  default     = "generic/k3s"
 }
 
 # Downstream cluster specifics
@@ -60,7 +64,6 @@ variable "tester_cluster" {
   type = object({
     server_count   = number // Number of server nodes in the tester cluster
     agent_count    = number // Number of agent nodes in the tester cluster
-    distro_module  = string // Path to the module to use for the tester cluster
     distro_version = string // Version of the Kubernetes distro in the tester cluster
 
     public_ip                   = bool // Whether the tester cluster should have a public IP assigned
@@ -69,11 +72,12 @@ variable "tester_cluster" {
 
     backend_variables = any // Backend-specific variables
   })
+  nullable = true
 }
 
-variable "deploy_tester_cluster" {
-  description = "Use false not to deploy a tester cluster"
-  default     = true
+variable "tester_cluster_distro_module" {
+  description = "Name of the module to use for the tester cluster"
+  default     = "generic/k3s"
 }
 
 # "Multi-tenancy" variables

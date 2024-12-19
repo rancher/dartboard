@@ -6,7 +6,7 @@ locals {
 }
 
 module "upstream_cluster" {
-  source       = "../../${var.upstream_cluster.distro_module}"
+  source       = "../../${var.upstream_cluster_distro_module}"
   project_name = var.project_name
   name         = "upstream"
   server_count = var.upstream_cluster.server_count
@@ -27,8 +27,8 @@ module "upstream_cluster" {
 }
 
 module "tester_cluster" {
-  count = var.deploy_tester_cluster ? 1 : 0
-  source       = "../../${var.tester_cluster.distro_module}"
+  count = var.tester_cluster != null ? 1 : 0
+  source       = "../../${var.tester_cluster_distro_module}"
   project_name = var.project_name
   name         = "tester"
   server_count = var.tester_cluster.server_count

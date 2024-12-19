@@ -23,6 +23,11 @@ variable "upstream_cluster" {
   type = any
 }
 
+variable "upstream_cluster_distro_module" {
+  description = "Name of the module to use for the upstream cluster"
+  default     = "generic/k3s"
+}
+
 variable "downstream_cluster_templates" {
   description = "List of downstream cluster configurations. See tofu/modules/generic/test_environment/variables.tf for details"
   type = list(any)
@@ -36,11 +41,12 @@ variable "downstream_cluster_distro_module" {
 variable "tester_cluster" {
   description = "Tester cluster configuration. See tofu/modules/generic/test_environment/variables.tf for details"
   type = any
+  default = null
 }
 
-variable "deploy_tester_cluster" {
-  description = "Use false not to deploy a tester cluster"
-  default     = true
+variable "tester_cluster_distro_module" {
+  description = "Name of the module to use for the downstream clusters"
+  default     = "k3d/k3s"
 }
 
 # "Multi-tenancy" variables

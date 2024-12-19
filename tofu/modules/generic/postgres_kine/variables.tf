@@ -36,8 +36,8 @@ variable "kine_executable" {
   default     = null
 }
 
-variable "backend" {
-  description = "Backend for this database"
+variable "node_module" {
+  description = "Non-generic module to create this node"
   type        = string
 }
 
