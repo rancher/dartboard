@@ -514,6 +514,12 @@ func importDownstreamClusterDo(r *dart.Dart, rancherImageTag string, tf *tofu.To
 		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
 		return
 	}
+
+	err = kubectl.WaitForReadyCondition(downstream.Kubeconfig, "deployment", "rancher-webhook", "cattle-system", "available", 60)
+	if err != nil {
+		errCh <- fmt.Errorf("%s waiting for rancher-webhook failed: %w", clusterName, err)
+		return
+	}
 	if r.ChartVariables.DownstreamRancherMonitoring {
 		if err := chartInstallRancherMonitoring(r, &downstream); err != nil {
 			errCh <- fmt.Errorf("downstream monitoring installation on cluster %s failed: %w", clusterName, err)
