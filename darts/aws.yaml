@@ -7,7 +7,8 @@ tofu_variables:
   project_name: st
   region: us-east-1
   availability_zone: us-east-1a
-  aws_profile: null
+# Uncomment to authenticate via `aws sso login --profile AWSPowerUserAccess-1234567890`
+#  aws_profile: AWSPowerUserAccess-1234567890
   ssh_public_key_path: ~/.ssh/id_ed25519.pub
   ssh_private_key_path: ~/.ssh/id_ed25519
   ssh_user: root
