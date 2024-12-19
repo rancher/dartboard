@@ -76,8 +76,8 @@ variable "enable_audit_log" {
   default     = false
 }
 
-variable "backend" {
-  description = "Backend for this cluster"
+variable "node_module" {
+  description = "Non-generic module to create nodes"
   type        = string
 }
 

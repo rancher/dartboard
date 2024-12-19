@@ -37,7 +37,7 @@ variable "kine_executable" {
 }
 
 variable "node_module" {
-  description = "Non-generic module to create this node"
+  description = "Non-generic module to create nodes"
   type        = string
 }
 

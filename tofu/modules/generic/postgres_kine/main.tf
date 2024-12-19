@@ -11,7 +11,7 @@ module "server_node" {
   project_name              = var.project_name
   name                      = "${var.name}-server"
   ssh_private_key_path      = var.ssh_private_key_path
-  backend                   = var.backend
+  node_module               = var.node_module
   backend_variables         = var.node_backend_variables
   network_backend_variables = var.network_backend_variables
 }

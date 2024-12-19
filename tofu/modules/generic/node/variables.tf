@@ -35,17 +35,17 @@ variable "public" {
   default     = false
 }
 
-variable "backend" {
-  description = "Backend for this host"
+variable "node_module" {
+  description = "Non-generic module to create this node"
   type        = string
 }
 
 variable "backend_variables" {
   description = "Backend-specific configuration variables"
-  type = any
+  type        = any
 }
 
 variable "network_backend_variables" {
   description = "Backend-specific configuration variables for the network in this cluster"
-  type = any
+  type        = any
 }

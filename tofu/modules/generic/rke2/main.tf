@@ -19,7 +19,7 @@ module "server_nodes" {
     [var.tunnel_app_http_port, 80],
     [var.tunnel_app_https_port, 443],
   ] : []
-  backend                   = var.backend
+  node_module               = var.node_module
   backend_variables         = var.host_backend_variables
   network_backend_variables = var.network_backend_variables
 }
@@ -31,7 +31,7 @@ module "agent_nodes" {
   name                      = "${var.name}-agent-${count.index}"
   ssh_private_key_path      = var.ssh_private_key_path
   ssh_user                  = var.ssh_user
-  backend                   = var.backend
+  node_module               = var.node_module
   backend_variables         = var.host_backend_variables
   network_backend_variables = var.network_backend_variables
 }
@@ -140,10 +140,10 @@ resource "ssh_resource" "agent_installation" {
       type           = "agent"
       token          = ssh_sensitive_resource.first_server_installation[0].result
       server_url     = "https://${module.server_nodes[0].private_name}:9345"
-      labels         = var.reserve_node_for_monitoring && count.index == 0 ? [
+      labels = var.reserve_node_for_monitoring && count.index == 0 ? [
         { key : "monitoring", value : "true" }
       ] : []
-      taints         = var.reserve_node_for_monitoring && count.index == 0 ? [
+      taints = var.reserve_node_for_monitoring && count.index == 0 ? [
         { key : "monitoring", value : "true", effect : "NoSchedule" }
       ] : []
 
