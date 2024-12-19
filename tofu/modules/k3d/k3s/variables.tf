@@ -8,6 +8,11 @@ variable "name" {
   type        = string
 }
 
+variable "distro_version" {
+  description = "k3s version"
+  default     = "v1.23.10+k3s1"
+}
+
 variable "server_count" {
   description = "Number of server nodes in this cluster"
   default     = 1
@@ -18,16 +23,39 @@ variable "agent_count" {
   default     = 0
 }
 
-variable "agent_labels" {
-  description = "Per-agent-node lists of labels to apply"
-  type        = list(list(object({ key : string, value : string })))
-  default     = []
+variable "reserve_node_for_monitoring" {
+  description = "Whether to reserve a node for monitoring. If true, adds a taint and toleration with label 'monitoring' to the first agent node"
+  default     = false
 }
 
-variable "agent_taints" {
-  description = "Per-agent-node lists of taints to apply"
-  type        = list(list(object({ key : string, value : string, effect : string })))
-  default     = []
+variable "ssh_private_key_path" {
+  description = "Ignored"
+  type        = string
+  default     = null
+}
+
+variable "ssh_user" {
+  description = "Ignored"
+  type        = string
+  default     = null
+}
+
+variable "local_kubernetes_api_port" {
+  description = "Local port this cluster's Kubernetes API will be published to (via SSH tunnel)"
+  default     = 6445
+  type        = number
+}
+
+variable "tunnel_app_http_port" {
+  description = "Local port this cluster's http endpoints will be published to (via SSH tunnel)"
+  default     = 8080
+  type        = number
+}
+
+variable "tunnel_app_https_port" {
+  description = "Local port this cluster's https endpoints will be published to (via SSH tunnel)"
+  default     = 8443
+  type        = number
 }
 
 variable "sans" {
@@ -36,41 +64,49 @@ variable "sans" {
   default     = []
 }
 
-variable "distro_version" {
-  description = "k3s version"
-  default     = "v1.23.10+k3s1"
+variable "max_pods" {
+  description = "Ignored"
+  type        = number
+  default     = null
+}
+
+variable "node_cidr_mask_size" {
+  description = "Ignored"
+  type        = number
+  default     = null
+}
+
+variable "enable_audit_log" {
+  description = "Enable Kubernetes API audit log to /var/log/k3d/audit for server nodes. Assumes a /var/lib/k3d/audit/audit.yaml file exists on the host"
+  default     = false
+}
+
+variable "datastore_endpoint" {
+  description = "Ignored"
+  type        = string
+  default     = null
+}
+
+variable "backend" {
+  description = "Backend for this cluster"
+  type        = string
+}
+
+variable "host_backend_variables" {
+  description = "Ignored"
+  type        = any
+  default     = null
+}
+
+variable "network_backend_variables" {
+  description = "Backend-specific configuration variables for the network in this cluster"
+  type        = any
 }
 
 variable "image" {
   description = "Set a k3s image, overriding k3s version"
   type        = string
   default     = null
-}
-
-variable "network_name" {
-  description = "Name of the Docker network to connect containers to (or null)"
-  type        = string
-  default     = null
-}
-
-variable "pull_proxy_registries" {
-  description = "k3d pull proxy registry descriptors, see the k3d_network module"
-  type        = list(object({ name : string, address : string }))
-}
-
-variable "kubernetes_api_port" {
-  description = "Local port this cluster's Kubernetes API will be published to"
-  default     = 6445
-}
-
-variable "app_http_port" {
-  description = "Local port this cluster's app http endpoints will be published to"
-  default     = 8080
-}
-
-variable "app_https_port" {
-  description = "Local port this cluster's app https endpoints will be published to"
-  default     = 8443
 }
 
 variable "enable_metrics" {
@@ -111,11 +147,6 @@ variable "datastore_password" {
 
 variable "enable_pprof" {
   description = "Enable pprof endpoint on supervisor port. Beware: this breaks cert-manager until https://github.com/k3s-io/k3s/pull/6635 is merged"
-  default     = false
-}
-
-variable "enable_audit_log" {
-  description = "Enable Kubernetes API audit log to /var/log/k3d/audit for server nodes. Assumes a /var/lib/k3d/audit/audit.yaml file exists on the host"
   default     = false
 }
 

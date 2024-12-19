@@ -1,72 +1,29 @@
-# Frequently changed variables
-
-variable "downstream_cluster_count" {
-  description = "Number of downstream clusters"
-  default     = 0
+variable "upstream_cluster" {
+  description = "Upstream cluster configuration. See tofu/modules/generic/test_environment/variables.tf for details"
+  type = any
 }
 
-variable "distro_version" {
-  description = "Version of the Kubernetes distro in all clusters"
-  default     = "v1.26.9+k3s1"
+variable "downstream_cluster_templates" {
+  description = "List of downstream cluster configurations. See tofu/modules/generic/test_environment/variables.tf for details"
+  type = list(any)
 }
 
-
-# Upstream cluster specifics
-
-variable "upstream_server_count" {
-  description = "Number of server nodes in the upstream cluster"
-  default     = 1
+variable "downstream_cluster_distro_module" {
+  description = "Name of the module to use for the downstream clusters"
+  default     = "k9s/k3s"
 }
 
-variable "upstream_agent_count" {
-  description = "Number of agent nodes in the upstream cluster"
-  default     = 0
+variable "tester_cluster" {
+  description = "Tester cluster configuration. See tofu/modules/generic/test_environment/variables.tf for details"
+  type = any
 }
-
-variable "upstream_reserve_node_for_monitoring" {
-  description = "Set a 'monitoring' label and taint on one node of the upstream cluster to reserve it for monitoring"
-  default = false
-}
-
-variable "upstream_enable_metrics" {
-  description = "Metrics are disabled by default due to https://github.com/kubernetes/kubernetes/issues/104459"
-  default     = false
-}
-
-
-# Downstream cluster specifics
-
-variable "downstream_server_count" {
-  description = "Number of server nodes in each downstream cluster"
-  default     = 1
-}
-
-variable "downstream_agent_count" {
-  description = "Number of agent nodes in the downstream cluster"
-  default     = 0
-}
-
-
-# Tester cluster specifics
 
 variable "deploy_tester_cluster" {
   description = "Use false not to deploy a tester cluster"
   default     = true
 }
 
-variable "tester_server_count" {
-  description = "Number of server nodes in each tester cluster"
-  default     = 1
-}
-
-variable "tester_agent_count" {
-  description = "Number of agent nodes in the tester cluster"
-  default     = 0
-}
-
-
 # "Multi-tenancy" variables
-
 variable "project_name" {
   description = "Name of this project, used as prefix for resources it creates"
   default     = "st"
