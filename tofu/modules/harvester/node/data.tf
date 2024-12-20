@@ -1,7 +1,7 @@
 data "harvester_image" "this" {
-  count = var.image_name != null && var.image_namespace != null ? 1 : 0
-  display_name = var.image_name
-  namespace    = var.image_namespace
+  count = var.node_module_variables.image_name != null && var.node_module_variables.image_namespace != null ? 1 : 0
+  display_name = var.node_module_variables.image_name
+  namespace    = var.node_module_variables.image_namespace
 }
 
 data "harvester_network" "this" {
@@ -18,7 +18,7 @@ data "harvester_cloudinit_secret" "this" {
 
 data "harvester_ssh_key" "shared" {
   for_each = {
-    for i, key in var.ssh_shared_public_keys:
+    for i, key in var.node_module_variables.ssh_shared_public_keys:
     key.name => key
   }
   name = each.value.name

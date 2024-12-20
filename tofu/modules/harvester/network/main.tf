@@ -1,19 +1,19 @@
 resource "harvester_ssh_key" "public_key" {
-  name      = "${var.network_name}-key"
+  name      = "${var.network_details.name}-key"
   namespace = var.namespace
 
   public_key = file(var.ssh_public_key_path)
 }
 
 resource "harvester_clusternetwork" "cluster-vlan" {
-  count       = var.create ? 1 : 0
-  name        = var.clusternetwork_name
+  count       = var.network_details.create_network ? 1 : 0
+  name        = var.network_details.clusternetwork_name
   description = "Cluster VLAN managed by Dartboard's Harvester opentofu module"
 }
 
 resource "harvester_vlanconfig" "cluster-vlan-config" {
-  count = var.create ? 1 : 0
-  name  =  "${var.clusternetwork_name}-vlan-config"
+  count = var.network_details.create_network ? 1 : 0
+  name  =  "${var.network_details.clusternetwork_name}-vlan-config"
 
   cluster_network_name = harvester_clusternetwork.cluster-vlan[0].name
 
@@ -26,18 +26,20 @@ resource "harvester_vlanconfig" "cluster-vlan-config" {
 }
 
 resource "harvester_network" "this" {
-  count       = var.create ? 1 : 0
+  count = var.network_details.create_network ? 1 : 0
   depends_on  = [ harvester_vlanconfig.cluster-vlan-config ]
-  name        = var.network_name
+  name        = var.network_details.name
   namespace   = var.namespace
   description = "Harvester network managed by Dartboard's Harvester opentofu module"
 
-  vlan_id = var.network_config.vlan_id
-
-  route_mode            = var.network_config.route_mode
-  route_dhcp_server_ip  = var.network_config.route_dhcp_server_ip
-  route_cidr            = var.network_config.route_cidr
-  route_gateway         = var.network_config.route_gateway
-
   cluster_network_name = data.harvester_clusternetwork.cluster-vlan[0].name
+}
+
+resource "harvester_image" "opensuse156" {
+  count = var.create_image ? 1 : 0
+  name = "${var.project_name}-opensuse156"
+  namespace = var.namespace
+  display_name = "openSUSE 15.6"
+  source_type = "download"
+  url = "https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.6/images/openSUSE-Leap-15.6.x86_64-NoCloud.qcow2"
 }
