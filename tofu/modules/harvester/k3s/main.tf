@@ -1,6 +1,6 @@
 module "server_nodes" {
   count                  = var.server_count
-  source                 = "../harvester_host"
+  source                 = "../node"
   project_name           = var.project_name
   name                   = "${var.name}-server-${count.index}"
   namespace              = var.namespace
@@ -34,7 +34,7 @@ module "server_nodes" {
 
 module "agent_nodes" {
   count                       = var.agent_count
-  source                      = "../harvester_host"
+  source                      = "../node"
   project_name                = var.project_name
   name                        = "${var.name}-agent-${count.index}"
   namespace                   = var.namespace

@@ -3,7 +3,7 @@ provider "harvester" {
 }
 
 module "network" {
-  source              = "../../modules/harvester_network"
+  source              = "../../modules/harvester/network"
   create              = var.network.create
   network_name        = var.network.name
   clusternetwork_name = var.network.clusternetwork_name
@@ -12,7 +12,7 @@ module "network" {
 }
 
 module "images" {
-  source       = "../../modules/harvester_images"
+  source       = "../../modules/harvester/images"
   project_name = var.project_name
   namespace    = var.namespace
   create       = local.create_image
@@ -20,7 +20,7 @@ module "images" {
 
 module "k3s_cluster" {
   count  = length(local.k3s_clusters)
-  source = "../../modules/harvester_k3s"
+  source = "../../modules/harvester/k3s"
   providers = {
     harvester = harvester
   }
@@ -61,7 +61,7 @@ module "k3s_cluster" {
 
 module "rke2_cluster" {
   count            = length(local.rke2_clusters)
-  source           = "../../modules/harvester_rke2"
+  source           = "../../modules/harvester/rke2"
   project_name     = var.project_name
   name             = local.rke2_clusters[count.index].name_prefix
   namespace        = var.namespace
