@@ -242,7 +242,7 @@ module "bastion" {
   node_module_variables = {
     ami : var.bastion_host_ami
     instance_type : var.bastion_host_instance_type
-    root_volume_size_gb : 10
+    root_volume_size_gb : 30
     host_configuration_commands : []
   }
   network_config = {
