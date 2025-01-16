@@ -119,7 +119,6 @@ variable "network_config" {
     ssh_public_key       = string
     name                 = string
     clusternetwork_name  = string
-    namespace            = string
     interface_type       = string
     interface_model      = string
     public               = bool
