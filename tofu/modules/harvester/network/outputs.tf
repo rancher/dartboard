@@ -13,7 +13,7 @@ output "config" {
     public : var.network_details.public
     wait_for_lease : var.network_details.wait_for_lease
 
-    opensuse156_id = var.create_image ? harvester_image.opensuse156[0].id : null
+    created_image_id = var.create_image ? harvester_image.created[0].id : null
     ssh_bastion_host : var.ssh_bastion_host
     ssh_bastion_user : var.ssh_bastion_user
     ssh_bastion_key_path : var.ssh_bastion_key_path

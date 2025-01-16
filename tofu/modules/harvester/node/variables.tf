@@ -42,7 +42,6 @@ variable "public" {
 variable "node_module_variables" {
   description = <<EOT
     Harvester-specific VM configuration variables.
-    default_image_id: ID of the VM image when image_name is not specified
     image_name: Image name for this VM. Must be already present in Harvester. Requires image_namespace
     image_namespace: Namespace for image_name. Must be already present in Harvester
     cpu: Number of CPUs to allocate for the VM(s)
@@ -55,13 +54,12 @@ variable "node_module_variables" {
     secure_boot: Flag that determines if the VM will be provisioned with secure_boot enabled. EFI must be enabled to use this
   EOT
   type = object({
-    default_image_id     = string
-    image_name           = string
-    image_namespace      = string
-    cpu                  = number
-    memory               = number
-    tags                 = map(string)
-    password             = string
+    image_name      = string
+    image_namespace = string
+    cpu             = number
+    memory          = number
+    tags            = map(string)
+    password        = string
     ssh_shared_public_keys = list(object({
       name      = string
       namespace = string
@@ -76,7 +74,6 @@ variable "node_module_variables" {
     secure_boot = optional(bool)
   })
   default = {
-    default_image_id       = null
     image_name             = null
     image_namespace        = null
     cpu                    = 2
@@ -109,7 +106,7 @@ variable "network_config" {
     interface_model: Model of network interface to use
     public: Whether the network will assign a public IP address
     wait_for_lease: Whether the interface is expected to provision an IP address
-    opensuse156_id: ID of the image
+    created_image_id: ID of the image if one was created
     ssh_bastion_host: Public name of the SSH bastion host. Leave null for publicly accessible instances
     ssh_bastion_user: User name for the SSH bastion host's OS
     ssh_bastion_key_path: Path of private ssh key used to access the bastion host
@@ -125,7 +122,7 @@ variable "network_config" {
     interface_model      = string
     public               = bool
     wait_for_lease       = bool
-    opensuse156_id       = optional(string)
+    created_image_id     = optional(string)
     ssh_bastion_host     = optional(string)
     ssh_bastion_user     = optional(string)
     ssh_bastion_key_path = optional(string)

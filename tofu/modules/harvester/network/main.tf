@@ -44,7 +44,7 @@ resource "harvester_network" "this" {
   cluster_network_name = harvester_clusternetwork.cluster-vlan[0].name
 }
 
-resource "harvester_image" "opensuse156" {
+resource "harvester_image" "created" {
   count = var.create_image ? 1 : 0
   name = "${var.project_name}-opensuse156"
   namespace = var.namespace
