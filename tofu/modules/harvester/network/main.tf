@@ -40,7 +40,7 @@ resource "harvester_network" "this" {
   namespace   = var.namespace
   description = "Harvester network managed by Dartboard's Harvester opentofu module"
 
-  cluster_network_name = data.harvester_clusternetwork.cluster-vlan[0].name
+  cluster_network_name = harvester_clusternetwork.cluster-vlan[0].name
 }
 
 resource "harvester_image" "opensuse156" {
