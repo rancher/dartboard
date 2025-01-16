@@ -55,7 +55,7 @@ resource "harvester_virtualmachine" "this" {
   }
 
   cloudinit {
-    user_data = local.all_user_data
+    user_data = local.template_user_data
   }
 
   // Allow for more than the default time for VM destruction

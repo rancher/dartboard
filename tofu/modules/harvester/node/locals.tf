@@ -6,11 +6,6 @@ locals {
       password = var.node_module_variables.password
       ssh_keys = local.public_keys
      })
-  cloudinit_user_data = join("\n", compact(flatten(concat(
-    [for secret in harvester_cloudinit_secret.this[*] : secret.user_data if length(secret) > 0],
-    [for secret in data.harvester_cloudinit_secret.this[*] : secret.user_data if length(secret) > 0]
-  ))))
-  all_user_data = format("%s%s", local.template_user_data, local.cloudinit_user_data)
   wait_for_lease       = var.network_config.wait_for_lease
   disks_map            = { for disk in var.node_module_variables.disks : disk.name => disk }
 
