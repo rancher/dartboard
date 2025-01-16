@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    harvester = {
+      source = "harvester/harvester"
+    }
+  }
+}
+
 resource "harvester_virtualmachine" "this" {
   name      = "${var.project_name}-${var.name}"
   namespace = var.network_config.namespace

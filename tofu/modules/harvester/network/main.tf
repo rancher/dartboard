@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    harvester = {
+      source = "harvester/harvester"
+    }
+  }
+}
+
 resource "harvester_ssh_key" "public_key" {
   name      = "${var.network_details.name}-key"
   namespace = var.namespace
