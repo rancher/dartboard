@@ -22,15 +22,12 @@ resource "harvester_virtualmachine" "this" {
   efi         = var.node_module_variables.efi
   secure_boot = var.node_module_variables.efi ? var.node_module_variables.secure_boot : false
 
-  dynamic "network_interface" {
-    for_each = data.harvester_network.this
-    content {
-      name           = network_interface.value.name
-      network_name   = network_interface.value.id
-      type           = var.network_config.interface_type
-      model          = var.network_config.interface_model
-      wait_for_lease = var.network_config.wait_for_lease
-    }
+  network_interface {
+    name = var.network_config.name
+    network_name = var.network_config.id
+    type           = var.network_config.interface_type
+    model          = var.network_config.interface_model
+    wait_for_lease = var.network_config.wait_for_lease
   }
 
   dynamic "disk" {

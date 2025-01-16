@@ -102,6 +102,7 @@ variable "network_config" {
     namespace: The namespace for nodes created by this module
     ssh_public_key_id: ID of the public ssh key used to access the instance
     ssh_public_key: Contents of the public ssh key used to access the instance
+    id: ID of the network
     name: Name of the network
     clusternetwork_name: Name of the cluster network
     interface_type: Type of network interface to use
@@ -117,6 +118,7 @@ variable "network_config" {
     namespace            = string
     ssh_public_key_id    = string
     ssh_public_key       = string
+    id                   = string
     name                 = string
     clusternetwork_name  = string
     interface_type       = string
