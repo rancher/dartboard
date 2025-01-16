@@ -104,6 +104,7 @@ variable "network" {
   type = object({
     create              = bool
     name                = string
+    vlan_id             = number
     clusternetwork_name = string
     namespace           = optional(string)
     interface_type      = optional(string)
@@ -114,6 +115,7 @@ variable "network" {
   default = {
     create              = false
     clusternetwork_name = "vmnet"
+    vlan_id             = 100
     name                = "vmnet-shared"
     namespace           = "default"
     interace_type       = "bridge"

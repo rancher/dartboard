@@ -27,6 +27,7 @@ tofu_variables:
     create: false
     name: vmnet-shared
     clusternetwork_name: vmnet
+    vlan_id: 100
     namespace: default
     interface_type: bridge
     interface_model: virtio

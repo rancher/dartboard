@@ -40,6 +40,7 @@ resource "harvester_network" "this" {
   namespace   = var.namespace
   description = "Harvester network managed by Dartboard's Harvester opentofu module"
 
+  vlan_id = var.network_details.vlan_id
   cluster_network_name = harvester_clusternetwork.cluster-vlan[0].name
 }
 

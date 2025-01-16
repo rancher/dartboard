@@ -20,6 +20,7 @@ variable "network_details" {
   type = object({
     create              = bool
     name                = string
+    vlan_id             = number
     clusternetwork_name = string
     namespace           = optional(string)
     interface_type      = optional(string)
@@ -30,6 +31,7 @@ variable "network_details" {
   default = {
     create              = false
     clusternetwork_name = "vmnet"
+    vlan_id             = 100
     name                = "vmnet-shared"
     namespace           = "default"
     interace_type       = "bridge"
@@ -58,7 +60,6 @@ variable "vlan_uplink" {
   })
   default = null
 }
-
 
 variable "ssh_bastion_host" {
   description = "Public name of the SSH bastion host. Leave null for publicly accessible Harvester instances"
