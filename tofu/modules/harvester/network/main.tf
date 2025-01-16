@@ -14,13 +14,13 @@ resource "harvester_ssh_key" "public_key" {
 }
 
 resource "harvester_clusternetwork" "cluster-vlan" {
-  count       = var.network_details.create_network ? 1 : 0
+  count       = var.network_details.create ? 1 : 0
   name        = var.network_details.clusternetwork_name
   description = "Cluster VLAN managed by Dartboard's Harvester opentofu module"
 }
 
 resource "harvester_vlanconfig" "cluster-vlan-config" {
-  count = var.network_details.create_network ? 1 : 0
+  count = var.network_details.create ? 1 : 0
   name  =  "${var.network_details.clusternetwork_name}-vlan-config"
 
   cluster_network_name = harvester_clusternetwork.cluster-vlan[0].name
@@ -34,7 +34,7 @@ resource "harvester_vlanconfig" "cluster-vlan-config" {
 }
 
 resource "harvester_network" "this" {
-  count = var.network_details.create_network ? 1 : 0
+  count = var.network_details.create ? 1 : 0
   depends_on  = [ harvester_vlanconfig.cluster-vlan-config ]
   name        = var.network_details.name
   namespace   = var.namespace
