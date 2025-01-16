@@ -42,8 +42,8 @@ variable "public" {
 variable "node_module_variables" {
   description = <<EOT
     Harvester-specific VM configuration variables.
-    image_name: Image name for this VM. Must be already present in Harvester. Requires image_namespace
-    image_namespace: Namespace for image_name. Must be already present in Harvester
+    image_name: Image name for this VM. If null, the image created by the network module will be used
+    image_namespace: Namespace for image_name. If null, the image created by the network module will be used
     cpu: Number of CPUs to allocate for the VM(s)
     memory: Number of GB of Memory to allocate for the VM(s)
     tags: A map of strings to add as VM tags
@@ -54,8 +54,8 @@ variable "node_module_variables" {
     secure_boot: Flag that determines if the VM will be provisioned with secure_boot enabled. EFI must be enabled to use this
   EOT
   type = object({
-    image_name      = string
-    image_namespace = string
+    image_name      = optional(string)
+    image_namespace = optional(string)
     cpu             = number
     memory          = number
     tags            = map(string)

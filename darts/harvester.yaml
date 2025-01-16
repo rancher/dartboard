@@ -49,8 +49,10 @@ tofu_variables:
           size: 35
           type: "disk"
           bus: "virtio"
-      image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
-      image_namespace: null # default to the same namespace above
+# Defaults to the image created by the create_image flag above. Change to a valid Harvester image name and namespace to override
+#     image_name:
+#     image_namespace:
+
 #      ssh_shared_public_keys:  # Set this to a shared key that exists inside of Harvester if desired
 #        - name: bullseye-qa
 #          namespace: bullseye
@@ -72,8 +74,9 @@ tofu_variables:
           size: 35
           type: "disk"
           bus: "virtio"
-      image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
-      image_namespace: null # default to the same namespace above
+# Defaults to the image created by the create_image flag above. Change to a valid Harvester image name and namespace to override
+#     image_name:
+#     image_namespace:
   tester_cluster_distro_module: generic/k3s
 
   downstream_cluster_templates:
@@ -92,8 +95,9 @@ tofu_variables:
             size: 35
             type: "disk"
             bus: "virtio"
-        image_name: null # openSUSE Leap 15.6. Change to a valid Harvester image name to override
-        image_namespace: null # default to the same namespace above
+  # Defaults to the image created by the create_image flag above. Change to a valid Harvester image name and namespace to override
+  #     image_name:
+  #     image_namespace:
   downstream_cluster_distro_module: generic/k3s
 
   first_kubernetes_api_port: 7445
