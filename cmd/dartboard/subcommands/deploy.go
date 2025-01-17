@@ -114,7 +114,7 @@ func Deploy(cli *cli.Context) error {
 	return GetAccess(cli)
 }
 
-func chartInstall(kubeConf string, chart chart, vals map[string]any) error {
+func chartInstall(kubeConf string, chart chart, vals map[string]any, extraArgs ...string) error {
 	var err error
 
 	name := chart.name
@@ -126,7 +126,7 @@ func chartInstall(kubeConf string, chart chart, vals map[string]any) error {
 
 	log.Printf("Installing chart %q (%s)\n", namespace+"/"+name, path)
 
-	if err = helm.Install(kubeConf, path, name, namespace, vals); err != nil {
+	if err = helm.Install(kubeConf, path, name, namespace, vals, extraArgs...); err != nil {
 		return fmt.Errorf("chart %s: %w", name, err)
 	}
 	return nil
@@ -190,7 +190,29 @@ func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Clu
 
 	chartVals := getRancherValsJSON(r.ChartVariables.RancherImageOverride, rancherImageTag, r.ChartVariables.AdminPassword, rancherClusterName, rancherClusterURL, r.ChartVariables.RancherReplicas)
 
-	return chartInstall(cluster.Kubeconfig, chartRancher, chartVals)
+	var extraArgs []string
+	if r.ChartVariables.Values != "" {
+		p, err := writeValuesFile(r.ChartVariables.Values)
+		if err != nil {
+			return fmt.Errorf("writing extra values file: %w", err)
+		}
+		defer os.Remove(p)
+
+		extraArgs = append(extraArgs, "-f", p)
+	}
+
+	return chartInstall(cluster.Kubeconfig, chartRancher, chartVals, extraArgs...)
+}
+
+func writeValuesFile(content string) (string, error) {
+	p, err := os.CreateTemp("", "values-*.yaml")
+	if err != nil {
+		return "", err
+	}
+	if _, err := io.WriteString(p, content); err != nil {
+		return "", err
+	}
+	return p.Name(), nil
 }
 
 func chartInstallRancherIngress(cluster *tofu.Cluster) error {
