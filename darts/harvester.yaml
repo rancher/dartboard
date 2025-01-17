@@ -60,6 +60,7 @@ tofu_variables:
 # Uncomment to add shared keys that exist in Harvester
 #        { name: bullseye-qa, namespace: bullseye },
       ]
+      tags: {}
 
   upstream_cluster_distro_module: generic/k3s
 
@@ -88,6 +89,7 @@ tofu_variables:
         # Uncomment to add shared keys that exist in Harvester
         #        { name: bullseye-qa, namespace: bullseye },
       ]
+      tags: {}
 
   tester_cluster_distro_module: generic/k3s
 
@@ -117,6 +119,7 @@ tofu_variables:
         # Uncomment to add shared keys that exist in Harvester
         #        { name: bullseye-qa, namespace: bullseye },
       ]
+      tags: {}
   downstream_cluster_distro_module: generic/k3s
 
   first_kubernetes_api_port: 7445
