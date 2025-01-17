@@ -52,13 +52,14 @@ tofu_variables:
           bus: "virtio"
       password: linux # Non-SSH password
 
-#      ssh_shared_public_keys:  # Set this to a shared key that exists inside of Harvester if desired
 # Uncomment to override the image created by the create_image flag above
 #      image_name: openSUSE-leap-micro-6.0
 #      image_namespace: harvester-public
 
-#        - name: bullseye-qa
-#          namespace: bullseye
+      ssh_shared_public_keys: [
+# Uncomment to add shared keys that exist in Harvester
+#        { name: bullseye-qa, namespace: bullseye },
+      ]
 
   upstream_cluster_distro_module: generic/k3s
 
@@ -82,6 +83,11 @@ tofu_variables:
   # Uncomment to override the image created by the create_image flag above
   #      image_name: openSUSE-leap-micro-6.0
   #      image_namespace: harvester-public
+
+      ssh_shared_public_keys: [
+        # Uncomment to add shared keys that exist in Harvester
+        #        { name: bullseye-qa, namespace: bullseye },
+      ]
 
   tester_cluster_distro_module: generic/k3s
 
@@ -107,6 +113,10 @@ tofu_variables:
   #      image_name: openSUSE-leap-micro-6.0
   #      image_namespace: harvester-public
 
+      ssh_shared_public_keys: [
+        # Uncomment to add shared keys that exist in Harvester
+        #        { name: bullseye-qa, namespace: bullseye },
+      ]
   downstream_cluster_distro_module: generic/k3s
 
   first_kubernetes_api_port: 7445
