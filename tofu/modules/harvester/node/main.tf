@@ -37,7 +37,7 @@ resource "harvester_virtualmachine" "this" {
       type       = disk.value.type
       size       = "${disk.value.size}Gi"
       bus        = disk.value.bus
-      image      = index(var.disks, disk.value) == 0 ? (
+      image      = index(var.node_module_variables.disks, disk.value) == 0 ? (
         var.node_module_variables.image_name != null && var.node_module_variables.image_namespace != null ? data.harvester_image.this[0].id : var.network_config.created_image_id
       ) : null
       boot_order = index(var.node_module_variables.disks, disk.value) + 1 //boot_order starts at 1, while the index() function is 0-based
