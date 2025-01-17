@@ -53,11 +53,12 @@ tofu_variables:
 # Defaults to the image created by the create_image flag above. Change to a valid Harvester image name and namespace to override
 #     image_name:
 #     image_namespace:
+      password: linux # Non-SSH password
 
 #      ssh_shared_public_keys:  # Set this to a shared key that exists inside of Harvester if desired
 #        - name: bullseye-qa
 #          namespace: bullseye
-#      password: linux # Non-SSH password
+
   upstream_cluster_distro_module: generic/k3s
 
   tester_cluster:
@@ -78,6 +79,8 @@ tofu_variables:
 # Defaults to the image created by the create_image flag above. Change to a valid Harvester image name and namespace to override
 #     image_name:
 #     image_namespace:
+      password: linux # Non-SSH password
+
   tester_cluster_distro_module: generic/k3s
 
   downstream_cluster_templates:
@@ -99,6 +102,8 @@ tofu_variables:
   # Defaults to the image created by the create_image flag above. Change to a valid Harvester image name and namespace to override
   #     image_name:
   #     image_namespace:
+      password: linux # Non-SSH password
+
   downstream_cluster_distro_module: generic/k3s
 
   first_kubernetes_api_port: 7445
