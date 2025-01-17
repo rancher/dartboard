@@ -26,10 +26,10 @@ tofu_variables:
 
   network:
     create: false
-    name: vmnet-shared
-    clusternetwork_name: vmnet
-    vlan_id: 100
-    namespace: default
+    name: vlan2179-public
+    clusternetwork_name: mgmt
+    vlan_id: 2179
+    namespace: harvester-public
     interface_type: bridge
     interface_model: virtio
     public: true
