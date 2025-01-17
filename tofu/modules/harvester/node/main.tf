@@ -19,8 +19,8 @@ resource "harvester_virtualmachine" "this" {
   cpu    = var.node_module_variables.cpu
   memory = "${var.node_module_variables.memory}Gi"
 
-  efi         = var.node_module_variables.efi
-  secure_boot = var.node_module_variables.efi ? var.node_module_variables.secure_boot : false
+  efi         = coalesce(var.node_module_variables.efi, false)
+  secure_boot = coalesce(var.node_module_variables.efi, false) ? coalesce(var.node_module_variables.secure_boot, false) : false
 
   network_interface {
     name = var.network_config.name
