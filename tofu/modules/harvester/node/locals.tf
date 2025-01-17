@@ -12,11 +12,11 @@ locals {
   private_network_interfaces = [for network in harvester_virtualmachine.this.network_interface[*] : {
     interface_name = network.interface_name
     ip_address     = network.ip_address
-    } if !var.node_module_variables.public
+    } if !var.network_config.public
   ]
   public_network_interfaces = [for network in harvester_virtualmachine.this.network_interface[*] : {
     interface_name = network.interface_name
     ip_address     = network.ip_address
-    } if var.node_module_variables.public
+    } if var.network_config.public
   ]
 }
