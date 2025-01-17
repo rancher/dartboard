@@ -25,7 +25,7 @@ import (
 	"github.com/rancher/dartboard/internal/vendored"
 )
 
-func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[string]any) error {
+func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[string]any, extraArgs ...string) error {
 	args := []string{
 		"--kubeconfig=" + kubecfg,
 		"upgrade",
@@ -46,6 +46,7 @@ func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[str
 		}
 		args = append(args, "--set-json="+valueString)
 	}
+	args = append(args, extraArgs...)
 
 	cmd := vendored.Command("helm", args...)
 	var errStream strings.Builder
