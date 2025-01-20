@@ -32,7 +32,7 @@ type ChartVariables struct {
 	RancherMonitoringVersion    string `yaml:"rancher_monitoring_version"`
 	CertManagerVersion          string `yaml:"cert_manager_version"`
 	TesterGrafanaVersion        string `yaml:"tester_grafana_version"`
-	Values                      string `yaml:"values"`
+	RancherValues               string `yaml:"rancher_values"`
 }
 
 type TestVariables struct {
