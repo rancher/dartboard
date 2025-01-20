@@ -191,8 +191,8 @@ func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Clu
 	chartVals := getRancherValsJSON(r.ChartVariables.RancherImageOverride, rancherImageTag, r.ChartVariables.AdminPassword, rancherClusterName, rancherClusterURL, r.ChartVariables.RancherReplicas)
 
 	var extraArgs []string
-	if r.ChartVariables.Values != "" {
-		p, err := writeValuesFile(r.ChartVariables.Values)
+	if r.ChartVariables.RancherValues != "" {
+		p, err := writeValuesFile(r.ChartVariables.RancherValues)
 		if err != nil {
 			return fmt.Errorf("writing extra values file: %w", err)
 		}
