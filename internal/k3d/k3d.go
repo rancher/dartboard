@@ -21,12 +21,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/rancher/dartboard/internal/vendored"
 )
 
-func ImageImport(cluster tofu.Cluster, image string) error {
-	args := []string{"image", "import", "--cluster", strings.Replace(cluster.Context, "k3d-", "", -1), image}
+func ImageImport(k3dClusterName string, image string) error {
+	args := []string{"image", "import", "--cluster", k3dClusterName, image}
 
 	cmd := vendored.Command("k3d", args...)
 	var errStream strings.Builder
