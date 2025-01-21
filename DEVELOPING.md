@@ -2,30 +2,62 @@
 
 ## Overall architecture
 
- - OpenTofu is used to deploy infrastructure. That includes all is necessary in order to launch Kubernetes clusters - modules should conclude producing a kubeconfig file and context
-   - `tf` files in `tofu/main/` specify whole testing environments
-   - `tf` files in `tofu/modules/` implement components (platform-specific or platform-agnostic)
- - the `dartboard` Golang program runs OpenTofu to create Kubernetes clusters, then Helm/kubectl to deploy and configure software under test (Rancher and/or any other component). It is designed to be idempotent
- - a Mimir-backed Grafana instance in an own cluster displays results and acts as long-term result storage
+For SUSE internal projects please see the [internal design document](https://docs.google.com/document/d/1-jgzGSmeH47mobXycuOgeg1W_wTB4AgY).
 
-## Porting OpenTofu files to new platforms
+For all uses, this project is composed of:
+ - [OpenTofu](http://opentofu.org) modules to deploy infrastructure. That includes all is necessary in order to launch Kubernetes clusters - modules should conclude producing a kubeconfig file and context
+ - the `dartboard` Golang program
+   - runs OpenTofu to create Kubernetes clusters
+   - uses Helm/kubectl to deploy and configure software under test (Rancher and/or any other component)
+   - uses Helm/kubectl to deploy and configure test software (Mimir, Grafana, k6, etc.)
 
- - create a new `tofu/main` subdirectory copying over `tf` files from `aws`
- - edit `variables.tf` to include any platform-specific information
- - edit `main.tf` to use platform-specific providers, add modules as appropriate
-   - platform-specific modules are prefixed with the platform name (eg. `tofu/modules/aws_*`)
-   - platform-agnostic modules are not prefixed
-   - platform-specific wrappers are normally created for platform-agnostic modules (eg. `aws_k3s` wraps `k3s`)
- - adapt `outputs.tf` - please note the exact structure is expected by `dartboard` - change with care
+Specifically:
+ - `dartboard apply` is a `dartboard` subcommand that calls OpenTofu to deploy Kubernetes clusters. Outputs kubeconfig files and build-specific parameters. Created clusters are:
+   - upstream: where Rancher is installed
+   - downstream: that is imported into Rancher (can be zero or more)
+   - tester: where load testing/benchmarking/metric collection tools will run
+ - `dartboard deploy` is a `dartboard` subcommand that:
+  - calls `dartboard apply` to create clusters
+  - installs Rancher via Helm in the upstream cluster
+  - configures Rancher by creating basic objects (eg. users)
+  - imports downstream clusters created by dartboard apply into Rancher with Shepherd
+ - `dartboard test` is a `dartboard` subcommand that runs `k6` from a pod in the tester cluster
+ - `dartboard destroy` is a `dartboard` subcommand that calls OpenTofu to destroy clusters created by `dartboard apply`
+ - k6 is used to benchmark APIs in the upstream or downstream clusters, sending metrics to mimir. Runs in the tester cluster
+ - mimir is used to collect metrics from test runs (from k6 and instrumentation of the SUT, aka rancher-monitoring). Runs in the tester cluster. Allows for bulk data export in Prometheus format for later analysis. Plan is to store long-term data in a new Mimir + Grafana installation managed by the QA team
 
-It is assumed all created clusters will be able to reach one another with the same domain names, from the same network. That network might not be the same network of the machine running OpenTofu.
+## OpenTofu module specifics
 
-Created clusters may or may not be directly reachable from the machine running OpenTofu. In the current `aws` implementation, for example, all access goes through an SSH bastion host and tunnels, but that is an implementation detail and may change in future. For new platforms there is no requirement - clusters might be directly reachable with an Internet-accessible FQDN, or be behind a bastion host, Tailscale, Boundary or other mechanism. Structures in `outputs.tf` have been designed to accommodate for all cases, in particular:
- - `local_` variables refer to domain names and ports as used by the machine running OpenTofu,
- - `private_` variables refer to domain names and ports as used by the clusters in their network,
- - values may coincide.
+In this project modules are organized according to these rules:
+ - `tofu/main/*` contains the main `tf` files that specify whole testing environments
+   - there is one subdirectory per platform (eg. `aws`, `azure`, `harvester`)
+ - `tofu/modules` contains reusable modules that can be used in multiple environments
+   - modules in the `tofu/modules/generic` directory are platform-agnostic
+   - modules in other directories are platform-specific (eg. `aws`, `azure`, `harvester`)
+ - modules are consistently named according to the concept they represent:
+   - **node**: a Linux VM capable of SSH login
+     - `node_variables` is a block of variables passed as-is from main to a platform-specific node module. It contains all details to create the VM that are specific to that one VM
+   - **cluster**: a Kubernetes cluster - possibly a set of nodes with a distribution installed, or a managed service
+   - **network**: anything that is shared among clusters and nodes and allows them to work together (actual networks, firewalls, rules, bastion hosts...)
+      - `network_configuration` is a block of outputs passed as-is from a platform-specific network module to node modules of the same platform. It contains details that are common to all VMs
+   - **test environment**: an upstream cluster, any number of downstream clusters and a tester cluster, all glued together with a single network
+   - everything else, typically generic software that can be installed onto nodes
 
-`node_access_commands` are an optional convenience mechanism to allow a user to SSH into a particular node directly.
+Assumptions:
+ - Deployed nodes and clusters are reachable either directly or via an SSH bastion host from the machine running OpenTofu
+ - Deployed nodes and clusters will be able to reach one another with the same domain names, from the same network. That network might not be the same network of the machine running OpenTofu
+ - Deployed clusters may or may not be directly reachable from the machine running OpenTofu. In the current `aws` implementation, for example, all access goes through an SSH bastion host and tunnels, but that is an implementation detail and may change in future. For new platforms there is no requirement - clusters might be directly reachable with an Internet-accessible FQDN, or be behind a bastion host, Tailscale, Boundary or other mechanism
+
+## Vendored binaries
+
+Dartboard vendors binaries it uses like OpenTofu, kubectl and Helm. These are decompressed and stored in the `.bin` directory at runtime.
+
+## Dart files
+
+YAML files in the `darts/` subdirectory represent full environments and contain all configuration to run a test. That includes:
+ - `tofu_main_directory`: a pointer to a main directory for OpenTofu modules
+ - `tofu_variables`: a block of variables passed as-is to OpenTofu
+ - any other test-specific variables
 
 ## Hacks and workarounds
 
