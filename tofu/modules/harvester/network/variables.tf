@@ -5,10 +5,9 @@ variable "project_name" {
 }
 
 variable "namespace" {
-  description = "The namespace for hosts created by this module"
+  description = "The namespace for objects created by this module"
   default     = "default"
 }
-
 
 variable "network_details" {
   description = <<-EOT
