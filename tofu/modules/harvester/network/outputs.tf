@@ -7,7 +7,6 @@ output "config" {
     id : var.network_details.create ? harvester_network.this[0].id : data.harvester_network.this[0].id
     name : var.network_details.name
     clusternetwork_name : var.network_details.clusternetwork_name
-    namespace : var.network_details.create ? var.network_details.namespace : data.harvester_network.this[0].namespace
     interface_type : var.network_details.interface_type
     interface_model : var.network_details.interface_model
     public : var.network_details.public
