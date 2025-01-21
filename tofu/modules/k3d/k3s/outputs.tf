@@ -2,6 +2,7 @@ output "config" {
   value = {
     kubeconfig = var.server_count > 0 ? abspath(local_file.kubeconfig[0].filename) : null
     context    = var.name
+    name       = local.k3d_cluster_name
 
     // addresses of the Kubernetes API server
     kubernetes_addresses = {
