@@ -8,6 +8,7 @@ module "network" {
   project_name         = var.project_name
   region               = var.region
   availability_zone    = var.availability_zone
+  existing_vpc_name    = var.existing_vpc_name
   bastion_host_ami     = length(var.bastion_host_ami) > 0 ? var.bastion_host_ami : null
   ssh_bastion_user     = var.ssh_bastion_user
   ssh_public_key_path  = var.ssh_public_key_path
