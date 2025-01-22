@@ -162,8 +162,7 @@ func importImageIntoK3d(tf *tofu.Tofu, image string, cluster tofu.Cluster) error
 		}
 
 		if len(images) > 0 {
-			err = k3d.ImageImport(cluster, images[0])
-			if err != nil {
+			if err := k3d.ImageImport(cluster.Name, images[0]); err != nil {
 				return err
 			}
 		}
