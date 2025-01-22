@@ -45,3 +45,10 @@ variable "bastion_host_instance_type" {
   description = "EC2 instance type"
   default     = "t4g.small"
 }
+
+# Variables for existing VPC configuration
+variable "existing_vpc_name" {
+  description = "Name of existing VPC to use. If null, a new VPC will be created"
+  type        = string
+  default     = null
+}
