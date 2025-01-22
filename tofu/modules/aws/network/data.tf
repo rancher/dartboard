@@ -22,16 +22,6 @@ data "aws_subnet" "public" {
   vpc_id = one(data.aws_vpc.existing[*].id)
   availability_zone = var.availability_zone
 
-  # filter {
-  #   name   = "vpc-id"
-  #   values = [one(data.aws_vpc.existing[*].id)]
-  # }
-
-  # filter {
-  #   name   = "availability-zone"
-  #   values = [var.availability_zone]
-  # }
-
   tags = {
     Name = "*public*",
     Tier = "Public"
@@ -43,16 +33,6 @@ data "aws_subnet" "private" {
   vpc_id = one(data.aws_vpc.existing[*].id)
   availability_zone = var.availability_zone
 
-  # filter {
-  #   name   = "vpc-id"
-  #   values = [one(data.aws_vpc.existing[*].id)]
-  # }
-
-  # filter {
-  #   name   = "availability-zone"
-  #   values = [var.availability_zone]
-  # }
-
   tags = {
     Name = "*private*"
     Tier = "Private"
@@ -63,19 +43,6 @@ data "aws_subnet" "secondary_private" {
   count = local.create_vpc && var.secondary_availability_zone != null ? 0 : 1
   vpc_id = one(data.aws_vpc.existing[*].id)
   availability_zone = var.secondary_availability_zone
-
-#   filter {
-#     name   = "vpc-id"
-#     values = [one(data.aws_vpc.existing[*].id)]
-#   }
-
-# dynamic "filter" {
-#   for_each = var.secondary_availability_zone != null ? [1] : []
-#     content {
-#       name   = "availability-zone"
-#       values = [var.secondary_availability_zone]
-#     }
-#   }
 
   tags = {
     Name = "*secondary*private*"
