@@ -87,6 +87,12 @@ variable "availability_zone" {
   default     = "us-east-1a"
 }
 
+variable "existing_vpc_name" {
+  description = "Name of existing VPC to use. If null, a new VPC will be created"
+  type        = string
+  default     = null
+}
+
 variable "bastion_host_ami" {
   description = "AMI ID"
   default     = "ami-0e55a8b472a265e3f"

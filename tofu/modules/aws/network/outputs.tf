@@ -1,9 +1,9 @@
 output "config" {
   value = {
     availability_zone : var.availability_zone,
-    public_subnet_id : aws_subnet.public.id,
-    private_subnet_id : aws_subnet.private.id,
-    secondary_private_subnet_id : var.secondary_availability_zone != null ? aws_subnet.secondary_private[0].id : null,
+    public_subnet_id : local.public_subnet_id,
+    private_subnet_id : local.private_subnet_id,
+    secondary_private_subnet_id : var.secondary_availability_zone != null ? local.secondary_private_subnet_id : null,
     public_security_group_id : aws_security_group.public.id,
     private_security_group_id : aws_security_group.private.id,
     ssh_key_name : aws_key_pair.key_pair.key_name,

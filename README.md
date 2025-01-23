@@ -22,6 +22,18 @@ To recreate environments:
  - `dartboard reapply` runs `destroy` and then `apply`, tearing down and recreating test configuration infrastructure without any software (Rancher, load generation, moniroting...)
  - `dartboard redeploy` runs `destroy` and then `deploy`, tearing down and recreating the full environment, infrastructure and software (use this if unsure)
 
+### "Bring Your Own" AWS VPC
+There is some manual configuration required in order to use an existing AWS VPC instead of having the tofu modules create a full set of networking resources.
+
+1. Have an existing VPC with a DHCP options set configured so that DNS = "AmazonProvidedDNS".
+2. Create three subnets, requirements are as follows:
+   1. One subnet should contain the substring "public" (case-sensitive), and should be tagged with `Tier = Public` (case-sensitive)
+   2. One subnet should contain the substring "private" (case-sensitive), and should be tagged with `Tier = Private` (case-sensitive)
+   3. One subnet should contain the substring "secondary-private" (case-sensitive), and should be tagged with `Tier = SecondaryPrivate` (case-sensitive)
+   4. Each subnet should be assigned to the VPC you intend to use
+
+Once these resources are manually setup, you can set the `existing_vpc_name` tofu variable in your Dart file and deploy as you normally would.
+
 ## Installation
 
 Download and unpack a [release](https://github.com/rancher/dartboard/releases/), it's a self-contained binary.
@@ -80,7 +92,7 @@ pkill -f 'ssh .*-o IgnoreUnknown=TofuCreatedThisTunnel.*'
 If an Azure VM is not accessible via SSH, try the following:
 - add the `boot_diagnostics = true` option in `inputs.tf`
 - apply or re-deploy
-- in the Azure Portal, click on Home -> Virtual Machines -> <name> -> Help -> Reset Password 
+- in the Azure Portal, click on Home -> Virtual Machines -> <name> -> Help -> Reset Password
 - then Home -> Virtual Machines -> <name> -> Help -> Serial Console
 
 That should give you access to the VM's console, where you can log in with the new password and troubleshoot.
