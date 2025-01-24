@@ -39,9 +39,9 @@ Under test conditions, according to collected measures described below:
 
 ## Full configuration details
 
-All infrastructure is defined in [Terraform](https://www.terraform.io/) files in the [20230503_steve_vai_tests_higher_scale](https://github.com/moio/scalability-tests/tree/20230503_steve_vai_tests_higher_scale/terraform) branch.
+All infrastructure is defined in [Terraform](https://www.terraform.io/) files in the [20230503_steve_vai_tests_higher_scale](https://github.com/rancher/dartboard/tree/20230503_steve_vai_tests_higher_scale/terraform) branch.
 
-[k6](https://k6.io) load test scripts are defined in the [k6](https://github.com/moio/scalability-tests/tree/20230503_steve_vai_tests_higher_scale/k6) directory.
+[k6](https://k6.io) load test scripts are defined in the [k6](https://github.com/rancher/dartboard/tree/20230503_steve_vai_tests_higher_scale/k6) directory.
 
 ## Reproduction Instructions
 
@@ -86,7 +86,7 @@ TAG=vai make quickbuild
 Deploy the k3d infrastructure, install Rancher, set up clusters for tests, import built images:
 ```shell
 # clone this project
-git clone https://github.com/moio/scalability-tests.git
+git clone https://github.com/rancher/dartboard.git
 cd scalability-tests
 git checkout 20230503_steve_vai_tests_higher_scale
 
@@ -108,7 +108,7 @@ First, we create a given number of ConfigMaps in a test namespace via a k6 scrip
 
 Then, we simulate 10 virtual users listing all ConfigMaps in that namespace via another k6 script. Each user will repeat the listing 30 times (for statistical accuracy of measures). The page size is of 100, like in the current UI. We exercise both the k8s based pagination implementation, using the `limit`/`continue` parameters and currently used by the [dashboard](https://github.com/rancher/dashboard/) UI, as well as the new Steve-cache pagination implementation using the `page`/`pagesize` parameters. We test both local and downstream cluster. Tests are repeated for `baseline` and `vai` images.
 
-Details on tests are available in the [bin/run_test.js](https://github.com/moio/scalability-tests/blob/20230503_steve_vai_tests_higher_scale/bin/run_tests.mjs) script source file.
+Details on tests are available in the [bin/run_test.js](https://github.com/rancher/dartboard/blob/20230503_steve_vai_tests_higher_scale/bin/run_tests.mjs) script source file.
 
 #### Procedure
 
@@ -133,7 +133,7 @@ Interpreting results: the script will output one `results.csv` file with the fol
 * `p(99)` 99th percentile - 99% of requests had a duration less than or equal to this value
 * `count` total number of requests
 
-Full results are available in the [results.csv](https://github.com/moio/scalability-tests/tree/20230503_steve_vai_tests_higher_scale/docs/20230503%20-%20steve%20vai%20test%20higher%20scale%20results/results.csv) file, summary is in the table below:
+Full results are available in the [results.csv](https://github.com/rancher/dartboard/tree/20230503_steve_vai_tests_higher_scale/docs/20230503%20-%20steve%20vai%20test%20higher%20scale%20results/results.csv) file, summary is in the table below:
 
 ![table showing a summary of results](images/20230503-table.png)
 An [Excel file](https://mysuse-my.sharepoint.com/:x:/g/personal/moio_suse_com/ETkus1LxojlBm7aYWdswNX0BmmkfrQt0NET3oO6QujnNgw?e=bexG44) is  available for SUSE employees.
