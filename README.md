@@ -124,3 +124,15 @@ ssh remotehost -L 2375:localhost:2375 -L 8443:localhost:8443 $(for KUBEPORT in $
 When using `k3d`, change `RANCHER_IMAGE_TAG` and if an image with the same tag is found it will be added to relevant clusters.
 
 This is useful during Rancher development to test Rancher changes on k3d clusters.
+
+## Harvester: bypassing TLS verification
+
+If you get the following error:
+
+```
+Error: Get "https://$ADDRESS/k8s/clusters/local/apis/harvesterhci.io/v1beta1/settings/server-version": tls: failed to verify certificate
+```
+
+Then your Harvester installation's TLS certificate is not set up correctly, or trusted by your system. Ideally, address those issues, otherwise communication with Harvester will not be secure.
+
+If you want to bypass TLS checks edit your kubeconfig file to remove the `certificate-authority-data` entry and add a `insecure-skip-tls-verify: true` entry instead.
