@@ -16,7 +16,9 @@ limitations under the License.
 
 package subcommands
 
-import "github.com/urfave/cli/v2"
+import (
+	"github.com/urfave/cli/v2"
+)
 
 func Apply(cli *cli.Context) error {
 	tf, _, err := prepare(cli)

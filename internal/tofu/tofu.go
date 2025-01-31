@@ -179,6 +179,14 @@ func (t *Tofu) newWorkspace(ctx context.Context) error {
 func (t *Tofu) Apply(ctx context.Context) error {
 	t.handleWorkspace(ctx)
 
+	if t.IsK3d() {
+		if os.Getenv("K3D_FIX_DNS") == "" {
+			if err := os.Setenv("K3D_FIX_DNS", "false"); err != nil {
+				return err
+			}
+		}
+	}
+
 	args := t.commonArgs("apply")
 
 	return t.exec(nil, args...)
