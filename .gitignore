@@ -16,6 +16,11 @@ tofu/main/*/*config
 
 # Others
 scripts/utils/*.txt
+scripts/utils/metrics*
+scripts/utils/chunks_head
+scripts/utils/wal
+scripts/utils/queries.active
+scripts/utils/*.tar.gz
 
 # Binaries
 /dartboard
