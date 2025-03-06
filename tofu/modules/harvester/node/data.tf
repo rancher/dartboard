@@ -1,6 +1,6 @@
 data "harvester_image" "this" {
   count = var.node_module_variables.image_name != null && var.node_module_variables.image_namespace != null ? 1 : 0
-  display_name = var.node_module_variables.image_name
+  name = var.node_module_variables.image_name
   namespace    = var.node_module_variables.image_namespace
 }
 
