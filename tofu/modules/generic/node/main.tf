@@ -8,6 +8,7 @@ module "host" {
   host_configuration_commands = var.host_configuration_commands
   node_module_variables       = var.node_module_variables
   network_config              = var.network_config
+  image_id                    = var.image_id
   public                      = var.public
 }
 

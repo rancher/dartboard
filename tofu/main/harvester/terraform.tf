@@ -3,7 +3,7 @@ terraform {
   required_providers {
     harvester = {
       source  = "harvester/harvester"
-      version = "0.6.4"
+      version = "0.6.6"
       # 0.6.5 does not currently have a Darwin binary built for it
       # locking to 0.6.4 until there is a newer version with a Darwin binary
     }

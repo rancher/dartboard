@@ -58,12 +58,12 @@ variable "node_module_variables" {
     image_namespace = optional(string)
     cpu             = number
     memory          = number
-    tags            = map(string)
+    tags            = optional(map(string))
     password        = string
-    ssh_shared_public_keys = list(object({
+    ssh_shared_public_keys = optional(list(object({
       name      = string
       namespace = string
-    }))
+    })))
     disks = optional(list(object({
       name = string
       type = string
@@ -127,4 +127,11 @@ variable "network_config" {
     ssh_bastion_user     = optional(string)
     ssh_bastion_key_path = optional(string)
   })
+}
+
+variable "image_id" {
+  description = "ID of a Harvester image, if one was created. Otherwise null"
+  type        = string
+  default     = null
+  nullable    = true
 }

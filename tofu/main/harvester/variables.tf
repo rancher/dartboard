@@ -69,16 +69,19 @@ variable "project_name" {
 
 variable "first_kubernetes_api_port" {
   description = "Port number where the Kubernetes API of the first cluster is published locally. Other clusters' ports are published in successive ports"
+  type        = number
   default     = 7445
 }
 
 variable "first_app_http_port" {
   description = "Port number where the first server's port 80 is published locally. Other clusters' ports are published in successive ports"
+  type        = number
   default     = 9080
 }
 
 variable "first_app_https_port" {
   description = "Port number where the first server's port 443 is published locally. Other clusters' ports are published in successive ports"
+  type        = number
   default     = 9443
 }
 
@@ -123,6 +126,18 @@ variable "network" {
     wait_for_lease      = true
   }
 }
+
+# variable "images" {
+#   type = list(object(
+#     {
+#       create    = bool
+#       name      = string
+#       namespace = string
+#     }
+#   ))
+#   default   = null
+#   nullable  = true
+# }
 
 variable "password" {
   description = "Password to use for VM access (via terminal, SSH access is exclusively via SSH public key)"

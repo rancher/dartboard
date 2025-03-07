@@ -39,11 +39,6 @@ variable "network_details" {
   }
 }
 
-variable "create_image" {
-  description = "Would create resources within the module"
-  default     = true
-}
-
 variable "ssh_public_key_path" {
   description = "Path of public ssh key for hosts created by this module"
   type        = string
