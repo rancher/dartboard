@@ -67,5 +67,5 @@ Query selector and date range can be set via cli arguments
 
 ### Notes
 
- - Data from queries with a time range that reaches into the previous day(s) will be aggregated into the `metrics-(YYYY-MM-DD)` directory corresponding to the date of execution, raw data files are timestamped according the query start time
+ - Data from queries with a time range that reaches into the previous day(s) will be aggregated into the `metrics-(kubeconfig_name)-(YYYY-MM-DD)` directory corresponding to the date of execution, raw data files are timestamped according the query start time
 
