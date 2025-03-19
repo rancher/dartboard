@@ -11,7 +11,7 @@ set -o pipefail
 #   arg: prometheus query selector (optional)
 #   arg: target date for query to start from (optional)
 #   arg: target date for query to end (optional)
-#   arg: offset(in seconds (optional)
+#   arg: offset(in seconds) (optional)
 #
 # See README for more usage information
 
@@ -64,10 +64,11 @@ main() {
     printf " - Confirm mimirtool pod is running \e[32mPASS\e[0m \n"
 
     # set timestamp, create dir for export path, set permissions, navigate
-    st1=$(date +"%Y-%m-%d")
-    mkdir -p ${PWD}/metrics-$st1
-    chmod +x metrics-$st1
-    cd metrics-$st1
+    ts1=$(date +"%Y-%m-%d")
+    kube_name=$(printf ${KUBECONFIG##*/} | cut -d '.' -f1)
+    mkdir -p ${PWD}/metrics-$kube_name-$ts1
+    chmod +x metrics-$kube_name-$ts1
+    cd metrics-$kube_name-$ts1
 
     # iterate queries on offset_seconds in reverse backwards in time from target "to" date to target "from" date
     while [ "${to_seconds}" -gt "${from_seconds}" ]; do
@@ -89,16 +90,16 @@ main() {
         kubectl exec -n cattle-monitoring-system mimirtool --insecure-skip-tls-verify -i -t -- tar zcf /tmp/prometheus-export.tar.gz ./prometheus-export
 
         # set filename timestamp
-        st2=$(date -j -f "%s" "${range}" "+%Y-%m-%dT%H-%M-%S")
+        ts2=$(date -j -f "%s" "${range}" "+%Y-%m-%dT%H-%M-%S")
 
         # copy exported metrics data to timestamped tarball
-        kubectl -n cattle-monitoring-system cp mimirtool:/tmp/prometheus-export.tar.gz ./prometheus-export-${st2}.tar.gz 1> /dev/null
+        kubectl -n cattle-monitoring-system cp mimirtool:/tmp/prometheus-export.tar.gz ./prometheus-export-${ts2}.tar.gz 1> /dev/null
 
         # clear export data from pod 
         kubectl exec -n cattle-monitoring-system mimirtool --insecure-skip-tls-verify -i -t -- rm -rf prometheus-export
 
         # unpack, navigate
-        tar xf prometheus-export-${st2}.tar.gz 1> /dev/null
+        tar xf prometheus-export-${ts2}.tar.gz 1> /dev/null
         cd prometheus-export
 
         # aggregate tsdb
