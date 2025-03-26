@@ -162,7 +162,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 		quotedArgs = append(quotedArgs, "-e", shellescape.Quote(fmt.Sprintf("%s=%s", k, v)))
 	}
 	quotedArgs = append(quotedArgs, shellescape.Quote(testPath))
-	log.Printf("Running equivalent of:\nk6 %s\n", strings.Join(quotedArgs, " "))
+	log.Printf("Running equivalent of:\n./bin/k6 %s\n", strings.Join(quotedArgs, " "))
 
 	// if a kubeconfig is specified, upload it as secret to later mount it
 	if path, ok := envVars["KUBECONFIG"]; ok {

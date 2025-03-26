@@ -37,9 +37,9 @@ Under test conditions, according to collected measures described below:
 
 ## Full configuration details
 
-All infrastructure is defined in [Terraform](https://www.terraform.io/) files in the [20230306_steve_vai_tests](https://github.com/moio/scalability-tests/tree/20230306_steve_vai_tests/terraform) branch.
+All infrastructure is defined in [Terraform](https://www.terraform.io/) files in the [20230306_steve_vai_tests](https://github.com/rancher/dartboard/tree/20230306_steve_vai_tests/terraform) branch.
 
-[k6](https://k6.io) load test scripts are defined in the [k6](https://github.com/moio/scalability-tests/tree/20230306_steve_vai_tests/k6) directory.
+[k6](https://k6.io) load test scripts are defined in the [k6](https://github.com/rancher/dartboard/tree/20230306_steve_vai_tests/k6) directory.
 
 ## Reproduction Instructions
 
@@ -57,7 +57,7 @@ All infrastructure is defined in [Terraform](https://www.terraform.io/) files in
 Deploy the k3d infrastructure and install Rancher:
 ```shell
 # clone this project
-git clone https://github.com/moio/scalability-tests.git
+git clone https://github.com/rancher/dartboard.git
 cd scalability-tests
 git checkout 20230306_steve_vai_tests
 
@@ -155,7 +155,7 @@ In the example above, retrieving a page up to 100 resources from the local clust
 
 #### Analysis of results
 
-Full results are available in the [20230306 - steve vai test results](https://github.com/moio/scalability-tests/tree/20230306_steve_vai_tests/docs/20230306%20-%20steve%20vai%20test%20results) directory, summary is in the table below:
+Full results are available in the [20230306 - steve vai test results](https://github.com/rancher/dartboard/tree/20230306_steve_vai_tests/docs/20230306%20-%20steve%20vai%20test%20results) directory, summary is in the table below:
 
 ![table showing a summary of results](images/20230306-table.png)
 An [Excel file](https://mysuse-my.sharepoint.com/:x:/g/personal/moio_suse_com/ERaeDyfE25xLoQFKiMYa8bgBOb2z24wKNhTp0FVMVumDMA?e=nGOPMy) is  available for SUSE employees.

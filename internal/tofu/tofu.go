@@ -52,6 +52,7 @@ type Addresses struct {
 
 type Cluster struct {
 	AppAddresses             ClusterAppAddresses `json:"app_addresses"`
+	Name                     string              `json:"name"`
 	Context                  string              `json:"context"`
 	IngressClassName         string              `json:"ingress_class_name"`
 	Kubeconfig               string              `json:"kubeconfig"`

@@ -75,7 +75,7 @@ The increase in the CPU usage to almost 5 cores in _fig.1_ and 7 cores in _fig.2
 
 Note that, in absence of resources (users, roles, projects, ConfigMaps, Secrets) the load is minimal and the CPU load varies from ~0.750 to ~0.950 cores. In those conditions, base OS processes running on the nodes have a higher CPU footprint.
 
-You can find more screenshots of the resource usage of these two scenarios in the [100 clusters x 1 node grafana screenshots folder](https://github.com/moio/scalability-tests/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/grafana-screenshots/RKE4x) and in the [100 clusters x 3 nodes grafana screenshots folder](https://github.com/moio/scalability-tests/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/grafana-screenshots/RKE5x).
+You can find more screenshots of the resource usage of these two scenarios in the [100 clusters x 1 node grafana screenshots folder](https://github.com/rancher/dartboard/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/grafana-screenshots/RKE4x) and in the [100 clusters x 3 nodes grafana screenshots folder](https://github.com/rancher/dartboard/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/grafana-screenshots/RKE5x).
 
 
 ### Rancher API response time benchmarks
@@ -104,9 +104,9 @@ For more results, check the available data shared in the [available data section
 
 ## Full configuration details
 
-All infrastructure is defined in [Terraform](https://www.terraform.io/) files in the [20231222_rke2_100_clusters_1vs3_nodes_comparison](https://github.com/moio/scalability-tests/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/terraform) branch.
+All infrastructure is defined in [Terraform](https://www.terraform.io/) files in the [20231222_rke2_100_clusters_1vs3_nodes_comparison](https://github.com/rancher/dartboard/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/terraform) branch.
 
-[k6](https://k6.io) load test scripts are defined in the [k6](https://github.com/moio/scalability-tests/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/k6) directory.
+[k6](https://k6.io) load test scripts are defined in the [k6](https://github.com/rancher/dartboard/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/k6) directory.
 
 ## Reproduction Instructions
 
@@ -128,7 +128,7 @@ Log into Azure via the CLI:
 Deploy the RKE2 environment, install Rancher, set up clusters for tests:
 ```shell
 # clone this project
-git clone -b 20231222_rke2_100_clusters_1vs3_nodes_comparison https://github.com/moio/scalability-tests.git
+git clone -b 20231222_rke2_100_clusters_1vs3_nodes_comparison https://github.com/rancher/dartboard.git
 cd scalability-tests
 
 export TERRAFORM_WORK_DIR=terraform/main/azure
@@ -137,7 +137,7 @@ export TERRAFORM_WORK_DIR=terraform/main/azure
 ./bin/setup.mjs && ./bin/run_tests.mjs
 ````
 >[!NOTE]
->by default the branch will setup the 100 clusters x 1 node scenario: if you want to run the 100 clusters x 3 nodes one you may want to change the server_count value in the [azure configuration file](https://github.com/moio/scalability-tests/blob/20231222_rke2_100_clusters_1vs3_nodes_comparison/terraform/main/azure/inputs.tf#L28) to 3 before running the /bin/setup.mjs && ./bin/run_tests.mjs command.
+>by default the branch will setup the 100 clusters x 1 node scenario: if you want to run the 100 clusters x 3 nodes one you may want to change the server_count value in the [azure configuration file](https://github.com/rancher/dartboard/blob/20231222_rke2_100_clusters_1vs3_nodes_comparison/terraform/main/azure/inputs.tf#L28) to 3 before running the /bin/setup.mjs && ./bin/run_tests.mjs command.
 
 Once the system is provisioned, to get Rancher and clusters access info:
 
@@ -175,9 +175,9 @@ important output data points are:
 
 
 ## Available data
-All the data collected from the tests is shared in the [_RKE2 100 clusters 1vs3 nodes comparison_ results directory](https://github.com/moio/scalability-tests/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/).
+All the data collected from the tests is shared in the [_RKE2 100 clusters 1vs3 nodes comparison_ results directory](https://github.com/rancher/dartboard/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/).
 There you will find:
-* a list of the deployed scenarios ([_list.txt_ file](https://github.com/moio/scalability-tests/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/list.txt))
-* the raw data from the single tests ([_tests_raw_data_ folder](https://github.com/moio/scalability-tests/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/tests_raw_data))
-* screenshots from a Grafana dashboard showing CPU and Memory usage from the tested scenarios ([_grafana-screenshots_ folder](https://github.com/moio/scalability-tests/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/grafana-screenshots))
-* an [OpenDocument spreadsheet](https://github.com/moio/scalability-tests/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/scalability_tests_summary.ods) containing all the results with few graphs
+* a list of the deployed scenarios ([_list.txt_ file](https://github.com/rancher/dartboard/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/list.txt))
+* the raw data from the single tests ([_tests_raw_data_ folder](https://github.com/rancher/dartboard/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/tests_raw_data))
+* screenshots from a Grafana dashboard showing CPU and Memory usage from the tested scenarios ([_grafana-screenshots_ folder](https://github.com/rancher/dartboard/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/grafana-screenshots))
+* an [OpenDocument spreadsheet](https://github.com/rancher/dartboard/tree/20231222_rke2_100_clusters_1vs3_nodes_comparison/docs/20231222%20-%20RKE2%20100%20clusters%201vs3%20nodes%20comparison/scalability_tests_summary.ods) containing all the results with few graphs

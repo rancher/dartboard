@@ -29,8 +29,8 @@ No significant difference in list performance of small ConfigMaps, up to 256K of
 
 ## Full configuration details
 
-All infrastructure is defined via [Terraform](https://www.terraform.io/) files in the [20221215_kine_locality_test](https://github.com/moio/scalability-tests/tree/20221215_kine_locality_test/terraform) branch.
-Benchmark Python script is available in the [util](https://github.com/moio/scalability-tests/tree/20221215_kine_locality_test/util) directory.
+All infrastructure is defined via [Terraform](https://www.terraform.io/) files in the [20221215_kine_locality_test](https://github.com/rancher/dartboard/tree/20221215_kine_locality_test/terraform) branch.
+Benchmark Python script is available in the [util](https://github.com/rancher/dartboard/tree/20221215_kine_locality_test/util) directory.
 
 ## Reproduction Instructions
 
@@ -50,7 +50,7 @@ Benchmark Python script is available in the [util](https://github.com/moio/scala
 
 - clone this project:
 ```shell
-git clone https://github.com/moio/scalability-tests.git
+git clone https://github.com/rancher/dartboard.git
 cd scalability-tests
 git checkout 20221215_kine_locality_test
 ```
