@@ -3,6 +3,7 @@ import exec from 'k6/execution';
 import http from 'k6/http';
 import {Gauge} from 'k6/metrics';
 import {getCookies, login} from "./rancher_utils.js";
+import {getPrincipalIds, getCurrentUserPrincipalId, getClusterIds} from "./rancher_users_utils.js"
 
 // Parameters
 const projectCount = Number(__ENV.PROJECT_COUNT)
@@ -52,45 +53,10 @@ export function setup() {
     // return data that remains constant throughout the test
     return {
         cookies: cookies,
-        principalIds: getPrincipalIds(cookies),
-        myId: getMyId(cookies),
-        clusterIds: getClusterIds(cookies)
+        principalIds: getPrincipalIds(baseUrl, cookies),
+        myId: getCurrentUserPrincipalId(baseUrl, cookies),
+        clusterIds: getClusterIds(baseUrl, cookies)
     }
-}
-
-function getPrincipalIds(cookies) {
-    const response = http.get(
-        `${baseUrl}/v1/management.cattle.io.users`,
-        {cookies: cookies}
-    )
-    if (response.status !== 200) {
-        fail('could not list users')
-    }
-    const users = JSON.parse(response.body).data
-    return users.filter(u => u["username"] != null).map(u => u["principalIds"][0])
-}
-
-function getMyId(cookies) {
-    const response = http.get(
-        `${baseUrl}/v3/users?me=true`,
-        {cookies: cookies}
-    )
-    if (response.status !== 200) {
-        fail('could not get my user')
-    }
-    return JSON.parse(response.body).data[0].principalIds[0]
-}
-
-function getClusterIds(cookies) {
-    const response = http.get(
-        `${baseUrl}/v1/management.cattle.io.clusters`,
-        {cookies: cookies}
-    )
-    if (response.status !== 200) {
-        fail('could not list clusters')
-    }
-    const clusters = JSON.parse(response.body).data
-    return clusters.map(c => c["id"])
 }
 
 function cleanup(cookies) {

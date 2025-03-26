@@ -1,5 +1,4 @@
-import {getCookies, firstLogin, createImportedCluster, logout} from "./rancher_utils.js";
-
+import {getCookies, createImportedCluster, firstLogin, logout} from "./rancher_utils.js";
 
 export const options = {
     insecureSkipTLSVerify: true,
