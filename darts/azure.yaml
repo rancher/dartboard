@@ -103,6 +103,10 @@ chart_variables:
 #  rancher_image_override: rancher/rancher
 #  rancher_image_tag_override: v2.8.6-debug-1
 
+# Set arbitrary helm values (in yaml format) for installing Rancher
+#  rancher_values: |
+#    features: "my-feature-flag=true"
+
 test_variables:
   test_config_maps: 2000
   test_secrets: 2000

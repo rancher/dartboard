@@ -15,11 +15,13 @@ variable "distro_version" {
 
 variable "server_count" {
   description = "Number of server nodes in this cluster"
+  type        = number
   default     = 1
 }
 
 variable "agent_count" {
   description = "Number of agent nodes in this cluster"
+  type        = number
   default     = 0
 }
 
@@ -41,16 +43,19 @@ variable "ssh_user" {
 
 variable "local_kubernetes_api_port" {
   description = "Local port this cluster's Kubernetes API will be published to (via SSH tunnel)"
+  type        = number
   default     = 6445
 }
 
 variable "tunnel_app_http_port" {
   description = "Local port this cluster's http endpoints will be published to (via SSH tunnel)"
+  type        = number
   default     = 8080
 }
 
 variable "tunnel_app_https_port" {
   description = "Local port this cluster's https endpoints will be published to (via SSH tunnel)"
+  type        = number
   default     = 8443
 }
 
@@ -62,11 +67,13 @@ variable "sans" {
 
 variable "max_pods" {
   description = "Maximum number of pods per node"
+  type        = number
   default     = 110
 }
 
 variable "node_cidr_mask_size" {
   description = "Size of the CIDR mask for nodes. Increase when increasing max_pods so that 2^(32-node_cidr_max_size) > 2 * max_pods"
+  type        = number
   default     = 24
 }
 

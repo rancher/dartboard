@@ -325,6 +325,7 @@ resource "k3d_cluster" "cluster" {
 
 locals {
   local_kubernetes_api_url = nonsensitive(k3d_cluster.cluster[0].credentials[0].host)
+  k3d_cluster_name = "${var.project_name}-${var.name}"
 }
 
 resource "local_file" "kubeconfig" {
@@ -337,19 +338,19 @@ resource "local_file" "kubeconfig" {
           certificate-authority-data = base64encode(k3d_cluster.cluster[0].credentials[0].cluster_ca_certificate)
           server                     = local.local_kubernetes_api_url
         }
-        name = "k3d-${var.project_name}-${var.name}"
+        name = "k3d-${local.k3d_cluster_name}"
       }
     ]
     contexts = [
       {
         context = {
-          cluster = "k3d-${var.project_name}-${var.name}"
-          user : "admin@k3d-${var.project_name}-${var.name}"
+          cluster = "k3d-${local.k3d_cluster_name}"
+          user : "admin@k3d-${local.k3d_cluster_name}"
         }
-        name = "k3d-${var.project_name}-${var.name}"
+        name = "k3d-${local.k3d_cluster_name}"
       }
     ]
-    current-context = "k3d-${var.project_name}-${var.name}"
+    current-context = "k3d-${local.k3d_cluster_name}"
     kind            = "Config"
     preferences     = {}
     users = [
@@ -358,7 +359,7 @@ resource "local_file" "kubeconfig" {
           client-certificate-data : base64encode(k3d_cluster.cluster[0].credentials[0].client_certificate)
           client-key-data : base64encode(k3d_cluster.cluster[0].credentials[0].client_key)
         }
-        name : "admin@k3d-${var.project_name}-${var.name}"
+        name : "admin@k3d-${local.k3d_cluster_name}"
       }
     ]
   })

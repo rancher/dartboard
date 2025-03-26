@@ -1,3 +1,9 @@
+provider "k3d" {
+  fixes = {
+      "dns" = false
+  }
+}
+
 module "network" {
   source       = "../../modules/k3d/network"
   project_name = var.project_name

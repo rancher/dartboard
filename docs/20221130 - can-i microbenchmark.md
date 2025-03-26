@@ -45,9 +45,9 @@ References:
 
 ## Full configuration details
 
-All infrastructure is defined via [Terraform](https://www.terraform.io/) files in the [20221130_can-i_microbenchmark](https://github.com/moio/scalability-tests/tree/20221128_api_load_benchmarks/terraform) branch. Note in particular [inputs.tf](https://github.com/moio/scalability-tests/blob/20221130_can-i_microbenchmark/terraform/inputs.tf) for the main parameters.
-Initial configuration is driven by [Cypress](https://www.cypress.io/) files in the [cypress/e2e](https://github.com/moio/scalability-tests/tree/20221130_can-i_microbenchmark/cypress/cypress/e2e) directory.
-Benchmark Python scripts are available in the [util](https://github.com/moio/scalability-tests/tree/20221130_can-i_microbenchmark/util) directory.
+All infrastructure is defined via [Terraform](https://www.terraform.io/) files in the [20221130_can-i_microbenchmark](https://github.com/rancher/dartboard/tree/20221128_api_load_benchmarks/terraform) branch. Note in particular [inputs.tf](https://github.com/rancher/dartboard/blob/20221130_can-i_microbenchmark/terraform/inputs.tf) for the main parameters.
+Initial configuration is driven by [Cypress](https://www.cypress.io/) files in the [cypress/e2e](https://github.com/rancher/dartboard/tree/20221130_can-i_microbenchmark/cypress/cypress/e2e) directory.
+Benchmark Python scripts are available in the [util](https://github.com/rancher/dartboard/tree/20221130_can-i_microbenchmark/util) directory.
 
 ## Reproduction Instructions
 
@@ -68,7 +68,7 @@ Benchmark Python scripts are available in the [util](https://github.com/moio/sca
 
 - clone this project:
 ```shell
-git clone https://github.com/moio/scalability-tests.git
+git clone https://github.com/rancher/dartboard.git
 cd scalability-tests
 git checkout 20221130_can-i_microbenchmark
 ```
