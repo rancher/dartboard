@@ -17,10 +17,10 @@ Specifically:
    - downstream: that is imported into Rancher (can be zero or more)
    - tester: where load testing/benchmarking/metric collection tools will run
  - `dartboard deploy` is a `dartboard` subcommand that:
-  - calls `dartboard apply` to create clusters
-  - installs Rancher via Helm in the upstream cluster
-  - configures Rancher by creating basic objects (eg. users)
-  - imports downstream clusters created by dartboard apply into Rancher with Shepherd
+   - calls `dartboard apply` to create clusters
+   - installs Rancher via Helm in the upstream cluster
+   - configures Rancher by creating basic objects (eg. users)
+   - imports downstream clusters created by dartboard apply into Rancher with Shepherd
  - `dartboard test` is a `dartboard` subcommand that runs `k6` from a pod in the tester cluster
  - `dartboard destroy` is a `dartboard` subcommand that calls OpenTofu to destroy clusters created by `dartboard apply`
  - k6 is used to benchmark APIs in the upstream or downstream clusters, sending metrics to mimir. Runs in the tester cluster
