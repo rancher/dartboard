@@ -59,10 +59,9 @@ resource "harvester_virtualmachine" "this" {
   }
 
   // Allow for more than the default time for VM destruction
-  // Uncomment once https://github.com/harvester/harvester/issues/6647 is resolved
-  # timeouts {
-  #   delete = "15m"
-  # }
+  timeouts {
+    delete = "15m"
+  }
 }
 
 resource "null_resource" "host_configuration" {
