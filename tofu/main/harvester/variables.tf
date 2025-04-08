@@ -127,18 +127,6 @@ variable "network" {
   }
 }
 
-# variable "images" {
-#   type = list(object(
-#     {
-#       create    = bool
-#       name      = string
-#       namespace = string
-#     }
-#   ))
-#   default   = null
-#   nullable  = true
-# }
-
 variable "password" {
   description = "Password to use for VM access (via terminal, SSH access is exclusively via SSH public key)"
   default     = "linux"
