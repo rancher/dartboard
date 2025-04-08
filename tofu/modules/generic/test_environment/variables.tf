@@ -23,6 +23,14 @@ variable "network_config" {
   type        = any
 }
 
+# Only used for Harvester module atm
+variable "image_id" {
+  description = "ID of a Harvester image, if one was created. Otherwise null"
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 # Upstream cluster specifics
 variable "upstream_cluster" {
   type = object({
@@ -81,7 +89,7 @@ variable "tester_cluster" {
     enable_audit_log            = bool // Enable audit log for the cluster
 
     node_module_variables = any // Node module-specific variables
-  })
+  })                            # If null, no tester cluster will be created
   nullable = true
 }
 
