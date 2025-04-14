@@ -20,7 +20,7 @@ export const timePolled = new Trend('time_polled', true);
 
 export const options = {
   scenarios: {
-    delete: {
+    update: {
       executor: 'shared-iterations',
       exec: 'updateCRDs',
       vus: vus,
