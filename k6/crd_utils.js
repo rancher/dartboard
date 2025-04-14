@@ -27,20 +27,6 @@ export function cleanupMatchingCRDs(baseUrl, cookies, namePrefix) {
   })
 }
 
-export function getRandomArrayItems(arr, numItems) {
-  var len = arr.length
-  if (numItems > len)
-    throw new RangeError("getRandomItems: more elements taken than available");
-  var result = new Array(numItems),
-    taken = new Array(len);
-  while (numItems--) {
-    var x = Math.floor(Math.random() * len);
-    result[numItems] = arr[x in taken ? taken[x] : x];
-    taken[x] = --len in taken ? taken[len] : len;
-  }
-  return result;
-}
-
 export function sizeOfHeaders(hdrs) {
   return Object.keys(hdrs).reduce((sum, key) => sum + key.length + hdrs[key].length, 0);
 }
