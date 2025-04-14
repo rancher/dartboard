@@ -20,7 +20,7 @@ export const headerDataRecv = new Trend('header_data_recv');
 export const options = {
   setupTimeout: '8h',
   scenarios: {
-    load: {
+    get: {
       executor: 'per-vu-iterations',
       exec: 'getCRDs',
       vus: vus,
