@@ -2,12 +2,13 @@
 .DS_Store
 
 # tofu related
-tofu/**/*/.terraform
-tofu/**/*/.terraform.lock.hcl
-tofu/**/*/terraform.tfstate
-tofu/**/*/terraform.tfstate.*
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
 tofu/main/*/*config
 *.tfvars
+*.tfvars.json
 
 # IDE related
 .idea
