@@ -150,11 +150,6 @@ export function getCRDsMatchingNameVersions(baseUrl, cookies, namePrefix, numVer
   return crdArray
 }
 
-export function selectCRDs(crdArray, numVersions) {
-  let modifyCRDs = getRandomArrayItems(crdArray, numVersions)
-  return modifyCRDs
-}
-
 export function teardown(data) {
   cleanup(data.cookies)
 }
