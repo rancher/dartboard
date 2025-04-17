@@ -37,11 +37,11 @@ main() {
     process_args "$@"
 
     # display parameters for metrics import
-    printf "Starting import-metrics script...\n\n Prometheus query: ${selector}  \n Query start: ${from} \n Query end:  ${to}"
+    printf "Starting import-metrics script...\n\n Prometheus query: %s  \n Query start: %s \n Query end:  %s" "${selector}"  "${from}" "${to}"
 
     # only display offset if default has been changed
-    if [ $offset_seconds -gt 3600 ]; then
-        printf "\n OFFSET: ${offset_seconds} \n\n" 
+    if [ "$offset_seconds" -gt 3600 ]; then
+        printf "\n OFFSET: %s \n\n" "${offset_seconds}"
     else
         printf "\n\n"
     fi
@@ -54,7 +54,7 @@ main() {
     kubectl delete pod -n cattle-monitoring-system mimirtool || printf " - Check for prior mimirtool instance \e[32mPASS\e[0m \n"
 
     # run mimirtool pod on target cluster
-    kubectl apply -f ${PWD}/mimirtool.yaml
+    kubectl apply -f "${PWD}"/mimirtool.yaml
 
     # wait for mimirtool pod to start
     sleep 5
@@ -65,17 +65,17 @@ main() {
 
     # set timestamp, create dir for export path, set permissions, navigate
     ts1=$(date +"%Y-%m-%d")
-    kube_name=$(printf ${KUBECONFIG##*/} | cut -d '.' -f1)
-    mkdir -p ${PWD}/metrics-$kube_name-$ts1
-    chmod +x metrics-$kube_name-$ts1
-    cd metrics-$kube_name-$ts1
+    kube_name=$(printf "%s##*/" "${KUBECONFIG}"  | cut -d '.' -f1)
+    mkdir -p "${PWD}"/metrics-"$kube_name"-"$ts1"
+    chmod +x metrics-"$kube_name"-"$ts1"
+    cd metrics-"$kube_name"-"$ts1"
 
     # iterate queries on offset_seconds in reverse backwards in time from target "to" date to target "from" date
     while [ "${to_seconds}" -gt "${from_seconds}" ]; do
 
         # reduce offset_seconds when last query time range will be less than offset
-        if [ $((${to_seconds} - ${from_seconds})) -lt ${offset_seconds} ]; then
-            offset_seconds=$((${to_seconds} - ${from_seconds}))
+        if [ $(($to_seconds - $from_seconds)) -lt ${offset_seconds} ]; then
+            offset_seconds="$("${to_seconds}" - "${from_seconds}")"
         fi
 
         # set date range for query
@@ -84,7 +84,7 @@ main() {
         to=$(date -j -f "%s" "${to_seconds}" "+%Y-%m-%dT%H:%M:%SZ")
 
         # from separate mimirtool shell execute remote-read
-        kubectl exec -n cattle-monitoring-system mimirtool --insecure-skip-tls-verify -i -t -- mimirtool remote-read export --tsdb-path ./prometheus-export --address http://rancher-monitoring-prometheus:9090 --remote-read-path /api/v1/read --to=${to} --from=${from} --selector ${selector}
+        kubectl exec -n cattle-monitoring-system mimirtool --insecure-skip-tls-verify -i -t -- mimirtool remote-read export --tsdb-path ./prometheus-export --address http://rancher-monitoring-prometheus:9090 --remote-read-path /api/v1/read --to="${to}" --from="${from}" --selector "${selector}"
 
         # compress metrics data from export
         kubectl exec -n cattle-monitoring-system mimirtool --insecure-skip-tls-verify -i -t -- tar zcf /tmp/prometheus-export.tar.gz ./prometheus-export
@@ -93,18 +93,19 @@ main() {
         ts2=$(date -j -f "%s" "${range}" "+%Y-%m-%dT%H-%M-%S")
 
         # copy exported metrics data to timestamped tarball
-        kubectl -n cattle-monitoring-system cp mimirtool:/tmp/prometheus-export.tar.gz ./prometheus-export-${ts2}.tar.gz 1> /dev/null
+        kubectl -n cattle-monitoring-system cp mimirtool:/tmp/prometheus-export.tar.gz ./prometheus-export-"${ts2}".tar.gz 1> /dev/null
 
         # clear export data from pod 
         kubectl exec -n cattle-monitoring-system mimirtool --insecure-skip-tls-verify -i -t -- rm -rf prometheus-export
 
         # unpack, navigate
-        tar xf prometheus-export-${ts2}.tar.gz 1> /dev/null
+        tar xf prometheus-export-"${ts2}".tar.gz 1> /dev/null
         cd prometheus-export
 
         # aggregate tsdb
-        cp -R `ls | grep -v "wal"` ../ || printf " - No blocks to copy \n"
+        cp -R $(ls | grep -v "wal") ../ || printf " - No blocks to copy \n"
         
+
         # cleanup
         cd ../
         rm -rf prometheus-export
@@ -122,7 +123,7 @@ main() {
 
     # output command to run prometheus graph on metrics data (locally via docker, overlapping/obsolete blocks are handled during compaction)
     printf "\n\e[32mMetrics import complete!\e[0m\nView metrics data locally via docker:\n\n"
-    printf "docker run --rm -u \"$(id -u)\" -ti -p 9090:9090 -v ${PWD}:/prometheus rancher/mirrored-prometheus-prometheus:v2.42.0 --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=1y --config.file=/dev/null \n\n"
+    printf "docker run --rm -u %s -ti -p 9090:9090 -v ${PWD}:/prometheus rancher/mirrored-prometheus-prometheus:v2.42.0 --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=1y --config.file=/dev/null \n\n" "$(id -u)"
 
 }
 
@@ -164,7 +165,7 @@ process_args(){
         
             if [ $date_count = 0 ]; then
                 temp_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${arg}" "+%s")
-                if [ $temp_seconds -lt $from_seconds ]; then
+                if [ "$temp_seconds" -lt "$from_seconds" ]; then
                     from=$arg
                     date_count=$((date_count+1))
                 fi
