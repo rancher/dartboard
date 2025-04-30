@@ -83,7 +83,7 @@ pipeline {
               sh "docker image ls"
 
               // This will run `docker build -t my-image:main .`
-              docker.build("${env.imageName}:latest")
+              def customImage = docker.build("${env.imageName}:${env.BUILD_ID}")
 
               echo "NEW IMAGES:"
               sh "docker image ls"
@@ -113,7 +113,7 @@ pipeline {
         stage('Setup SSH Keys') {
           steps {
             script {
-              docker.image("${env.imageName}:latest").withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
+              customImage.withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub")
               { c ->
@@ -153,7 +153,7 @@ pipeline {
         stage('Setup Infrastructure') {
           steps {
             script {
-              docker.image("${env.imageName}:latest").withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
+              customImage.withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub")
               { c ->
@@ -173,7 +173,7 @@ pipeline {
               // `set` docs: https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html
 
               // Compute the output filename in Groovy
-              docker.image("${env.imageName}:latest").withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
+              customImage.withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub")
               { c ->
