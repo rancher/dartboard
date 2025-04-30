@@ -111,6 +111,13 @@ pipeline {
         }
 
         stage('Setup SSH Keys') {
+          agent {
+            docker {
+              image "${env.imageName}:latest"
+              reuseNode true
+              args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}"
+            }
+          }
           steps {
             script {
               echo 'PRE-SHELL WORKSPACE:'
@@ -150,7 +157,7 @@ pipeline {
               docker {
                 image "${env.imageName}:latest"
                 reuseNode true
-                args "--entrypoint='' --user root --env-file ${WORKSPACE}/${env.envFile}"
+                args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}"
               }
             }
             steps {
@@ -167,7 +174,7 @@ pipeline {
               docker {
                 image "${env.imageName}:latest"
                 reuseNode true
-                args "--entrypoint='' --user root --env-file ${WORKSPACE}/${envFile}"
+                args "--entrypoint='' --env-file ${WORKSPACE}/${envFile}"
               }
             }
             steps {
@@ -206,7 +213,7 @@ pipeline {
             echo "Archiving Terraform state and K6 test results..."
             // wildcard for any *.tfstate or backup, plus our k6 json output
             archiveArtifacts artifacts: '**/*.tfstate*, **/*.output.json **/*.pem **/*.pub **/*.yaml **/*.sh **/*.env', fingerprint: true
-            sh "docker image rm -f ${env.imageName}"
+            sh "docker image rm ${env.imageName}"
             echo "POST-CLEANUP IMAGES:"
             sh "docker image ls"
         }
