@@ -113,7 +113,7 @@ pipeline {
         stage('Setup SSH Keys') {
           steps {
             script {
-              customImage.withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
+              customImage.withRun("--entrypoint='/bin/bash' --it --env-file ${WORKSPACE}/${env.envFile}" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub")
               { c ->
@@ -153,10 +153,10 @@ pipeline {
         stage('Setup Infrastructure') {
           steps {
             script {
-              customImage.withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
+              customImage.withRun("--entrypoint='/bin/bash' --it --env-file ${WORKSPACE}/${env.envFile}" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub")
-              { c ->
+              {
                 echo 'WORKSPACE:'
                 sh 'ls -al'
                 sh "dartboard --dart ${env.renderedDartFile} deploy"
@@ -173,10 +173,10 @@ pipeline {
               // `set` docs: https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html
 
               // Compute the output filename in Groovy
-              customImage.withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
+              customImage.withRun("--entrypoint='/bin/bash' --it --env-file ${WORKSPACE}/${env.envFile}" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub")
-              { c ->
+              {
                 def baseName = params.K6_TEST.replaceFirst(/\.js$/, '')
                 def outJson  = "${baseName}-output.json"
 
