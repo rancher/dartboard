@@ -164,6 +164,7 @@ pipeline {
               script {
                 // Verify mounts exist and have correct perms
                 sh """
+                  whoami
                   ls -l /home/k6/.ssh/
                   chmod 600 /home/k6/.ssh/${env.SSH_KEY_NAME}.pem
                   chmod 644 /home/k6/.ssh/${env.SSH_KEY_NAME}.pub
