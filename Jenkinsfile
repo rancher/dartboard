@@ -111,9 +111,12 @@ pipeline {
         }
 
         stage('Setup SSH Keys') {
-          docker {
-            image "${env.imageName}:latest"
-            args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
+          agent {
+            label 'vsphere-vpn-1'
+            docker {
+              image "${env.imageName}:latest"
+              args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
+            }
           }
           steps {
             script {
@@ -150,9 +153,12 @@ pipeline {
         }
 
         stage('Setup Infrastructure') {
-            docker {
-              image "${env.imageName}:latest"
-              args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
+            agent {
+              label 'vsphere-vpn-1'
+              docker {
+                image "${env.imageName}:latest"
+                args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
+              }
             }
             steps {
               script {
@@ -164,9 +170,12 @@ pipeline {
         }
 
         stage('Run Validation Tests') {
-            docker {
-              image "${env.imageName}:latest"
-              args "--entrypoint='' --env-file ${WORKSPACE}/${envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
+          agent {
+              label 'vsphere-vpn-1'
+              docker {
+                image "${env.imageName}:latest"
+                args "--entrypoint='' --env-file ${WORKSPACE}/${envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
+              }
             }
             steps {
               script {
