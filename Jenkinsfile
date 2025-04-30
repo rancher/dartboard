@@ -152,11 +152,12 @@ pipeline {
                 image "${env.imageName}:${env.BUILD_ID}"
                 reuseNode true
                 args """
-                --entrypoint=''
+                --entrypoint='/bin/bash'
                 --user k6
                 --env-file ${WORKSPACE}/${env.envFile}
                 -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/.ssh/${env.SSH_KEY_NAME}.pem
                 -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/.ssh/${env.SSH_KEY_NAME}.pub
+                -c tail -f /dev/null
                 """
               }
             }
@@ -183,11 +184,12 @@ pipeline {
                 reuseNode true
                 image "${env.imageName}:${env.BUILD_ID}"
                 args """
-                --entrypoint=''
+                --entrypoint='/bin/bash'
                 --user k6
                 --env-file ${WORKSPACE}/${env.envFile}
                 -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/.ssh/${env.SSH_KEY_NAME}.pem:ro
                 -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/.ssh/${env.SSH_KEY_NAME}.pub:ro
+                -c tail -f /dev/null
                 """
               }
             }
