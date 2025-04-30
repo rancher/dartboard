@@ -111,14 +111,6 @@ pipeline {
         }
 
         stage('Setup SSH Keys') {
-          agent {
-            docker {
-              label 'vsphere-vpn-1'
-              image "${env.imageName}:${env.BUILD_ID}"
-              reuseNode true
-              args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}"
-            }
-          }
           steps {
             script {
               echo 'PRE-SHELL WORKSPACE:'
@@ -127,11 +119,9 @@ pipeline {
               // Write the public key string into a .pub file
               sh "echo ${env.SSH_PEM_KEY} | base64 -di > ${WORKSPACE}/${env.SSH_KEY_NAME}.pem"
               sh "chmod 0600 ${WORKSPACE}/${env.SSH_KEY_NAME}.pem"
-              sh "chown 12345:12345 ${WORKSPACE}/${env.SSH_KEY_NAME}.pem"
 
               sh "echo ${env.SSH_PUB_KEY} > ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
               sh "chmod 0644 ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
-              sh "chown 12345:12345 ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
 
               echo "VERIFICATION FOR PUB KEY:"
               sh "cat ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
@@ -144,7 +134,7 @@ pipeline {
             sh """
               # 1) Write variables into env for envsubst
               export HARVESTER_KUBECONFIG=${WORKSPACE}/${env.harvesterKubeconfig}
-              export SSH_KEY_NAME=${WORKSPACE}/${env.SSH_KEY_NAME}
+              export SSH_KEY_NAME=/home/k6/.ssh/${env.SSH_KEY_NAME}
 
               # 2) Substitute the variables into the dart file, output to rendered dart file
               envsubst < ${env.templateDartFile} > ${env.renderedDartFile}
@@ -161,11 +151,22 @@ pipeline {
                 label 'vsphere-vpn-1'
                 image "${env.imageName}:${env.BUILD_ID}"
                 reuseNode true
-                args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}"
+                args """
+                --entrypoint=''
+                --env-file ${WORKSPACE}/${env.envFile}
+                -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/.ssh/${env.SSH_KEY_NAME}.pem:ro
+                -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/.ssh/${env.SSH_KEY_NAME}.pub:ro
+                """
               }
             }
             steps {
               script {
+                // Verify mounts exist and have correct perms
+                sh """
+                  ls -l /home/k6/.ssh/
+                  chmod 600 /home/k6/.ssh/${env.SSH_KEY_NAME}.pem
+                  chmod 644 /home/k6/.ssh/${env.SSH_KEY_NAME}.pub
+                """
                 echo 'WORKSPACE:'
                 sh 'ls -al'
                 sh "dartboard --dart ${env.renderedDartFile} deploy"
@@ -177,9 +178,14 @@ pipeline {
           agent {
               docker {
                 label 'vsphere-vpn-1'
-                image "${env.imageName}:${env.BUILD_ID}"
                 reuseNode true
-                args "--entrypoint='' --env-file ${WORKSPACE}/${envFile}"
+                image "${env.imageName}:${env.BUILD_ID}"
+                args """
+                --entrypoint=''
+                --env-file ${WORKSPACE}/${env.envFile}
+                -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/.ssh/${env.SSH_KEY_NAME}.pem:ro
+                -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/.ssh/${env.SSH_KEY_NAME}.pub:ro
+                """
               }
             }
             steps {
@@ -218,7 +224,7 @@ pipeline {
             echo "Archiving Terraform state and K6 test results..."
             // wildcard for any *.tfstate or backup, plus our k6 json output
             archiveArtifacts artifacts: '**/*.tfstate*, **/*.output.json **/*.pem **/*.pub **/*.yaml **/*.sh **/*.env', fingerprint: true
-            sh "docker image rm ${env.imageName}"
+            sh "docker image rm ${env.imageName}:${env.BUILD_ID}"
             echo "POST-CLEANUP IMAGES:"
             sh "docker image ls"
         }
