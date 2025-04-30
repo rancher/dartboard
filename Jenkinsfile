@@ -116,7 +116,7 @@ pipeline {
               docker.image("${env.imageName}:latest").withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub")
-              {
+              { c ->
                 echo 'PRE-SHELL WORKSPACE:'
                 sh 'ls -al'
                 // Decode the base64‐encoded private key into a file named after SSH_KEY_NAME
@@ -156,7 +156,7 @@ pipeline {
               docker.image("${env.imageName}:latest").withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub")
-              {
+              { c ->
                 echo 'WORKSPACE:'
                 sh 'ls -al'
                 sh "dartboard --dart ${env.renderedDartFile} deploy"
@@ -176,7 +176,7 @@ pipeline {
               docker.image("${env.imageName}:latest").withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem" +
               " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub")
-              {
+              { c ->
                 def baseName = params.K6_TEST.replaceFirst(/\.js$/, '')
                 def outJson  = "${baseName}-output.json"
 
