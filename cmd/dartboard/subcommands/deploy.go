@@ -170,11 +170,6 @@ func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Clu
 	if r.ChartVariables.RancherChartRepoOverride != "" {
 		rancherRepo = r.ChartVariables.RancherChartRepoOverride
 	} else {
-		// "prime"
-		if r.ChartVariables.ForcePrimeRegistry {
-			rancherRepo = "https://charts.rancher.com/server-charts/prime"
-		}
-
 		baseRepo := "https://releases.rancher.com/server-charts/"
 
 		// otherwise, if one of "alpha", or "latest"
@@ -183,6 +178,12 @@ func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Clu
 		} else {
 			rancherRepo = baseRepo + "latest"
 		}
+
+		// "prime"
+		if r.ChartVariables.ForcePrimeRegistry {
+			rancherRepo = "https://charts.rancher.com/server-charts/prime"
+		}
+
 	}
 
 	chartRancher := chart{
