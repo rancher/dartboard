@@ -36,60 +36,60 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            steps {
-              script {
-                // Choose between the SCM config or an override from params.REPO
-                def repoConfig = params.REPO ?
-                  [[ url: params.REPO ]] :
-                  scm.userRemoteConfigs
-                // Choose between the default "main" branch or the override from params.BRANCH
-                def branch = params.BRANCH ? params.BRANCH : "main"
-                // Use `checkout scm` to checkout the repository
-                checkout scm: [
-                    $class: 'GitSCM',
-                    branches: [[name: "*/${branch}"]],
-                    userRemoteConfigs: repoConfig,
-                    extensions: scm.extensions + [[$class: 'CleanCheckout']],
-                ]
-              }
+          steps {
+            script {
+              // Choose between the SCM config or an override from params.REPO
+              def repoConfig = params.REPO ?
+                [[ url: params.REPO ]] :
+                scm.userRemoteConfigs
+              // Choose between the default "main" branch or the override from params.BRANCH
+              def branch = params.BRANCH ? params.BRANCH : "main"
+              // Use `checkout scm` to checkout the repository
+              checkout scm: [
+                  $class: 'GitSCM',
+                  branches: [[name: "*/${branch}"]],
+                  userRemoteConfigs: repoConfig,
+                  extensions: scm.extensions + [[$class: 'CleanCheckout']],
+              ]
             }
+          }
         }
 
         // TODO: Set up a QASE client to utilize these for logging test run results + artifacts
         stage('Create QASE Environment Variables') {
-            steps {
-                script {
-                    def qase = 'REPORT_TO_QASE=' + params.REPORT_TO_QASE + '\n' +
-                                'QASE_PROJECT_ID=' + params.QASE_PROJECT_ID + '\n' +
-                                'QASE_RUN_ID=' + params.QASE_RUN_ID + '\n' +
-                                'QASE_TEST_CASE_ID=' + params.QASE_TEST_CASE_ID + '\n' +
-                                'QASE_AUTOMATION_TOKEN=' + credentials('QASE_AUTOMATION_TOKEN') + '\n' // Use credentials plugin
-                    writeFile file: qaseEnvFile, text: qase
-                }
-            }
+          steps {
+              script {
+                  def qase = 'REPORT_TO_QASE=' + params.REPORT_TO_QASE + '\n' +
+                              'QASE_PROJECT_ID=' + params.QASE_PROJECT_ID + '\n' +
+                              'QASE_RUN_ID=' + params.QASE_RUN_ID + '\n' +
+                              'QASE_TEST_CASE_ID=' + params.QASE_TEST_CASE_ID + '\n' +
+                              'QASE_AUTOMATION_TOKEN=' + credentials('QASE_AUTOMATION_TOKEN') + '\n' // Use credentials plugin
+                  writeFile file: qaseEnvFile, text: qase
+              }
+          }
         }
 
         stage('Configure and Build') {
-            steps {
-              script {
-                echo "OUTPUTTING ENV FOR MANUAL VERIFICATION:"
-                sh 'printenv'
-                echo "Storing env in file"
-                sh "printenv | egrep '^(ARM_|CATTLE_|ADMIN|USER|DO|RANCHER_|AWS_|DEBUG|LOGLEVEL|DEFAULT_|OS_|DOCKER_|CLOUD_|KUBE|BUILD_NUMBER|AZURE|TEST_|QASE_|SLACK_|harvester|K6_TEST|TF_).*=.+' | sort > ${env.envFile}"
-                sh "cat ${env.envFile}"
-                sh "echo 'TF_LOG=DEBUG' >> ${env.envFile}"
+          steps {
+            script {
+              echo "OUTPUTTING ENV FOR MANUAL VERIFICATION:"
+              sh 'printenv'
+              echo "Storing env in file"
+              sh "printenv | egrep '^(ARM_|CATTLE_|ADMIN|USER|DO|RANCHER_|AWS_|DEBUG|LOGLEVEL|DEFAULT_|OS_|DOCKER_|CLOUD_|KUBE|BUILD_NUMBER|AZURE|TEST_|QASE_|SLACK_|harvester|K6_TEST|TF_).*=.+' | sort > ${env.envFile}"
+              sh "cat ${env.envFile}"
+              sh "echo 'TF_LOG=DEBUG' >> ${env.envFile}"
 
-                echo "PRE-EXISTING IMAGES:"
-                sh "docker image ls"
+              echo "PRE-EXISTING IMAGES:"
+              sh "docker image ls"
 
-                // This will run `docker build -t my-image:main .`
-                docker.build("${env.imageName}:latest")
+              // This will run `docker build -t my-image:main .`
+              docker.build("${env.imageName}:latest")
 
-                echo "NEW IMAGES:"
-                sh "docker image ls"
-                sh 'ls -al'
-              }
+              echo "NEW IMAGES:"
+              sh "docker image ls"
+              sh 'ls -al'
             }
+          }
         }
 
         stage('Prepare Parameter Files') {
@@ -111,26 +111,25 @@ pipeline {
         }
 
         stage('Setup SSH Keys') {
-          agent {
-            docker {
-              image "${env.imageName}:latest"
-              args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
-            }
-          }
           steps {
             script {
-              echo 'PRE-SHELL WORKSPACE:'
-              sh 'ls -al'
-              // Decode the base64‐encoded private key into a file named after SSH_KEY_NAME
-              // Write the public key string into a .pub file
-              sh "echo ${env.SSH_PEM_KEY} | base64 -di > ${WORKSPACE}/${env.SSH_KEY_NAME}.pem"
-              sh "chmod 0600 ${WORKSPACE}/${env.SSH_KEY_NAME}.pem"
+              docker.image("${env.imageName}:latest").withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
+              " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem" +
+              " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub")
+              {
+                echo 'PRE-SHELL WORKSPACE:'
+                sh 'ls -al'
+                // Decode the base64‐encoded private key into a file named after SSH_KEY_NAME
+                // Write the public key string into a .pub file
+                sh "echo ${env.SSH_PEM_KEY} | base64 -di > ${WORKSPACE}/${env.SSH_KEY_NAME}.pem"
+                sh "chmod 0600 ${WORKSPACE}/${env.SSH_KEY_NAME}.pem"
 
-              sh "echo ${env.SSH_PUB_KEY} > ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
-              sh "chmod 0644 ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
+                sh "echo ${env.SSH_PUB_KEY} > ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
+                sh "chmod 0644 ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
 
-              echo "VERIFICATION FOR PUB KEY:"
-              sh "cat ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
+                echo "VERIFICATION FOR PUB KEY:"
+                sh "cat ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
+              }
             }
           }
         }
@@ -152,35 +151,32 @@ pipeline {
         }
 
         stage('Setup Infrastructure') {
-            agent {
-              docker {
-                image "${env.imageName}:latest"
-                args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
-              }
-            }
-            steps {
-              script {
+          steps {
+            script {
+              docker.image("${env.imageName}:latest").withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
+              " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem" +
+              " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub")
+              {
                 echo 'WORKSPACE:'
                 sh 'ls -al'
                 sh "dartboard --dart ${env.renderedDartFile} deploy"
               }
             }
+          }
         }
 
         stage('Run Validation Tests') {
-          agent {
-              docker {
-                image "${env.imageName}:latest"
-                args "--entrypoint='' --env-file ${WORKSPACE}/${envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
-              }
-            }
-            steps {
-              script {
-                // if the user uploaded a K6_ENV file, source it so all its KEY=VALUE lines
-                // become environment variables for the k6 process
-                // `set` docs: https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html
+          steps {
+            script {
+              // if the user uploaded a K6_ENV file, source it so all its KEY=VALUE lines
+              // become environment variables for the k6 process
+              // `set` docs: https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html
 
-                // Compute the output filename in Groovy
+              // Compute the output filename in Groovy
+              docker.image("${env.imageName}:latest").withRun("--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}" +
+              " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem" +
+              " -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub")
+              {
                 def baseName = params.K6_TEST.replaceFirst(/\.js$/, '')
                 def outJson  = "${baseName}-output.json"
 
@@ -196,6 +192,7 @@ pipeline {
                 }
               }
             }
+          }
         }
     }
 
