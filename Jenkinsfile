@@ -114,8 +114,7 @@ pipeline {
           agent {
             docker {
               image "${env.imageName}:latest"
-              reuseNode true
-              args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}"
+              args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}"
             }
           }
           steps {
@@ -140,8 +139,8 @@ pipeline {
           steps {
             sh """
               # 1) Write variables into env for envsubst
-              export HARVESTER_KUBECONFIG=\${WORKSPACE}/${env.harvesterKubeconfig}
-              export SSH_KEY_NAME=\${WORKSPACE}/${env.SSH_KEY_NAME}
+              export HARVESTER_KUBECONFIG=/home/k6/${env.harvesterKubeconfig}
+              export SSH_KEY_NAME=/home/k6/${env.SSH_KEY_NAME}
 
               # 2) Substitute the variables into the dart file, output to rendered dart file
               envsubst < ${env.templateDartFile} > ${env.renderedDartFile}
@@ -156,8 +155,7 @@ pipeline {
             agent {
               docker {
                 image "${env.imageName}:latest"
-                reuseNode true
-                args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile}"
+                args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}"
               }
             }
             steps {
@@ -173,8 +171,7 @@ pipeline {
           agent {
               docker {
                 image "${env.imageName}:latest"
-                reuseNode true
-                args "--entrypoint='' --env-file ${WORKSPACE}/${envFile}"
+                args "--entrypoint='' --env-file ${WORKSPACE}/${envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}"
               }
             }
             steps {
