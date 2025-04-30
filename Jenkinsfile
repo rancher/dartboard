@@ -155,21 +155,14 @@ pipeline {
                 --entrypoint='/bin/bash'
                 --user k6
                 --env-file ${WORKSPACE}/${env.envFile}
-                -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/.ssh/${env.SSH_KEY_NAME}.pem
-                -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/.ssh/${env.SSH_KEY_NAME}.pub
+                -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/.ssh/${env.SSH_KEY_NAME}.pem:ro
+                -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/.ssh/${env.SSH_KEY_NAME}.pub:ro
                 -c tail -f /dev/null
                 """
               }
             }
             steps {
               script {
-                // Verify mounts exist and have correct perms
-                sh """
-                  whoami
-                  ls -l /home/k6/.ssh/
-                  chmod 600 /home/k6/.ssh/${env.SSH_KEY_NAME}.pem
-                  chmod 644 /home/k6/.ssh/${env.SSH_KEY_NAME}.pub
-                """
                 echo 'WORKSPACE:'
                 sh 'ls -al'
                 sh "dartboard --dart ${env.renderedDartFile} deploy"
