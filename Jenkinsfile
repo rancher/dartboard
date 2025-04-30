@@ -157,14 +157,14 @@ pipeline {
               docker {
                 label 'vsphere-vpn-1'
                 image "${env.imageName}:latest"
-                args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
+                args "--entrypoint='' --env-file ${WORKSPACE}/${env.envFile} -v ${env.renderedDartFile}:/home/k6/${env.renderedDartFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
               }
             }
             steps {
               script {
                 echo 'WORKSPACE:'
                 sh 'ls -al'
-                sh "dartboard --dart ${env.renderedDartFile} deploy"
+                sh "dartboard --dart /home/k6/${env.renderedDartFile} deploy"
               }
             }
         }
@@ -174,7 +174,7 @@ pipeline {
               docker {
                 label 'vsphere-vpn-1'
                 image "${env.imageName}:latest"
-                args "--entrypoint='' --env-file ${WORKSPACE}/${envFile} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
+                args "--entrypoint='' --env-file ${WORKSPACE}/${envFile} -v ${env.K6_ENV_FILE}:/home/k6/${env.K6_ENV_FILE} -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/${env.SSH_KEY_NAME}.pem -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/${env.SSH_KEY_NAME}.pub"
               }
             }
             steps {
@@ -190,12 +190,12 @@ pipeline {
                 if (fileExists(env.K6_ENV_FILE) && params.K6_ENV?.trim()) {
                   sh """
                     set -o allexport
-                    source ${env.K6_ENV_FILE}
+                    source /home/k6/${env.K6_ENV_FILE}
                     set +o allexport
-                    k6 run --out json="${outJson}" ${env.TESTS_DIR}/${params.K6_TEST}
+                    k6 run --out json="${outJson}" /home/k6/${params.K6_TEST}
                   """
                 } else {
-                  sh "k6 run --out json=\"${outJson}\" ${env.TESTS_DIR}/${params.K6_TEST}"
+                  sh "k6 run --out json=\"${outJson}\" /home/k6/${params.K6_TEST}"
                 }
               }
             }
