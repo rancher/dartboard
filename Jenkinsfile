@@ -153,6 +153,7 @@ pipeline {
                 reuseNode true
                 args """
                 --entrypoint=''
+                --user k6
                 --env-file ${WORKSPACE}/${env.envFile}
                 -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/.ssh/${env.SSH_KEY_NAME}.pem:ro
                 -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/.ssh/${env.SSH_KEY_NAME}.pub:ro
@@ -182,6 +183,7 @@ pipeline {
                 image "${env.imageName}:${env.BUILD_ID}"
                 args """
                 --entrypoint=''
+                --user k6
                 --env-file ${WORKSPACE}/${env.envFile}
                 -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pem:/home/k6/.ssh/${env.SSH_KEY_NAME}.pem:ro
                 -v ${WORKSPACE}/${env.SSH_KEY_NAME}.pub:/home/k6/.ssh/${env.SSH_KEY_NAME}.pub:ro
