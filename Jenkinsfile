@@ -20,17 +20,17 @@ String renderTemplateText(String templateText, Map binding) {
 pipeline {
     agent { label 'vsphere-vpn-1' }
 
-    environment {
-        // Define environment variables here.  These are available throughout the pipeline.
-        imageName = 'dartboard'
-        testsDir = './k6'
-        envFile = ".env"
-        qaseEnvFile = '.qase.env'
-        k6EnvFile = 'k6.env'
-        harvesterKubeconfig = 'harvester.kubeconfig'
-        templateDartFile = 'template-dart.yaml'
-        renderedDartFile = 'rendered-dart.yaml'
-    }
+    // environment {
+    //     // Define environment variables here.  These are available throughout the pipeline.
+    //     imageName = 'dartboard'
+    //     testsDir = './k6'
+    //     envFile = ".env"
+    //     qaseEnvFile = '.qase.env'
+    //     k6EnvFile = 'k6.env'
+    //     harvesterKubeconfig = 'harvester.kubeconfig'
+    //     templateDartFile = 'template-dart.yaml'
+    //     renderedDartFile = 'rendered-dart.yaml'
+    // }
 
     // No parameters block here—JJB YAML defines them
 
