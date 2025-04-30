@@ -141,8 +141,8 @@ pipeline {
           steps {
             sh """
               # 1) Write variables into env for envsubst
-              export HARVESTER_KUBECONFIG=/home/k6/${env.harvesterKubeconfig}
-              export SSH_KEY_NAME=/home/k6/${env.SSH_KEY_NAME}
+              export HARVESTER_KUBECONFIG=${WORKSPACE}/${env.harvesterKubeconfig}
+              export SSH_KEY_NAME=${WORKSPACE}/${env.SSH_KEY_NAME}
 
               # 2) Substitute the variables into the dart file, output to rendered dart file
               envsubst < ${env.templateDartFile} > ${env.renderedDartFile}
