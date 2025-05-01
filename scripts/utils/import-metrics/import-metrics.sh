@@ -65,7 +65,7 @@ main() {
 
     # set timestamp, create dir for export path, set permissions, navigate
     ts1=$(date +"%Y-%m-%d")
-    kube_name=$(printf "%s##*/" "${KUBECONFIG}"  | cut -d '.' -f1)
+    kube_name=$(printf "%s" "${KUBECONFIG##*/}"  | cut -d '.' -f1)
     mkdir -p "${PWD}"/metrics-"$kube_name"-"$ts1"
     chmod +x metrics-"$kube_name"-"$ts1"
     cd metrics-"$kube_name"-"$ts1"
@@ -74,8 +74,8 @@ main() {
     while [ "${to_seconds}" -gt "${from_seconds}" ]; do
 
         # reduce offset_seconds when last query time range will be less than offset
-        if [ $(($to_seconds - $from_seconds)) -lt ${offset_seconds} ]; then
-            offset_seconds="$("${to_seconds}" - "${from_seconds}")"
+        if [ $((${to_seconds} - ${from_seconds})) -lt ${offset_seconds} ]; then
+            offset_seconds=$((${to_seconds} - ${from_seconds}))
         fi
 
         # set date range for query
@@ -144,7 +144,7 @@ process_args(){
     do
         # set kubeconfig from input
         if [[ $arg =~ ${kube_regex} ]]; then
-            export KUBECONFIG=$1
+            export KUBECONFIG=$arg
         fi
 
         # set prometheus query from input
