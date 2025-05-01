@@ -118,10 +118,10 @@ pipeline {
               // Decode the base64‐encoded private key into a file named after SSH_KEY_NAME
               // Write the public key string into a .pub file
               sh "echo ${env.SSH_PEM_KEY} | base64 -di > ${WORKSPACE}/${env.SSH_KEY_NAME}.pem"
-              sh "chmod 0600 ${WORKSPACE}/${env.SSH_KEY_NAME}.pem"
+              sh "chmod 600 ${WORKSPACE}/${env.SSH_KEY_NAME}.pem"
 
               sh "echo ${env.SSH_PUB_KEY} > ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
-              sh "chmod 0644 ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
+              sh "chmod 644 ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
 
               echo "VERIFICATION FOR PUB KEY:"
               sh "cat ${WORKSPACE}/${env.SSH_KEY_NAME}.pub"
