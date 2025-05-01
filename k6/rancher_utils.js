@@ -184,14 +184,6 @@ export function firstLogin(baseUrl, cookies, bootstrapPassword, password) {
   }
 }
 
-export function Date(year, month, day) {
-  if (typeof year !== "undefined" &&
-    typeof month !== "undefined" &&
-    typeof day !== "undefined"
-  ) return new Date(year, month, day)
-  return new Date()
-}
-
 export function timestamp() {
   return new Date().toISOString()
 }
