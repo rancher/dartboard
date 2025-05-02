@@ -22,17 +22,19 @@ type Dart struct {
 }
 
 type ChartVariables struct {
-	RancherReplicas             int    `yaml:"rancher_replicas"`
-	DownstreamRancherMonitoring bool   `yaml:"downstream_rancher_monitoring"`
-	AdminPassword               string `yaml:"admin_password"`
-	RancherVersion              string `yaml:"rancher_version"`
-	ForcePrimeRegistry          bool   `yaml:"force_prime_registry"`
-	RancherImageOverride        string `yaml:"rancher_image_override"`
-	RancherImageTagOverride     string `yaml:"rancher_image_tag_override"`
-	RancherMonitoringVersion    string `yaml:"rancher_monitoring_version"`
-	CertManagerVersion          string `yaml:"cert_manager_version"`
-	TesterGrafanaVersion        string `yaml:"tester_grafana_version"`
-	RancherValues               string `yaml:"rancher_values"`
+	RancherReplicas             int              `yaml:"rancher_replicas"`
+	DownstreamRancherMonitoring bool             `yaml:"downstream_rancher_monitoring"`
+	AdminPassword               string           `yaml:"admin_password"`
+	RancherVersion              string           `yaml:"rancher_version"`
+	ForcePrimeRegistry          bool             `yaml:"force_prime_registry"`
+	RancherChartRepoOverride    string           `yaml:"rancher_chart_repo_override"`
+	RancherImageOverride        string           `yaml:"rancher_image_override"`
+	RancherImageTagOverride     string           `yaml:"rancher_image_tag_override"`
+	RancherMonitoringVersion    string           `yaml:"rancher_monitoring_version"`
+	CertManagerVersion          string           `yaml:"cert_manager_version"`
+	TesterGrafanaVersion        string           `yaml:"tester_grafana_version"`
+	RancherValues               string           `yaml:"rancher_values"`
+	ExtraEnvironmentVariables   []map[string]any `yaml:"extra_environment_variables"`
 }
 
 type TestVariables struct {
