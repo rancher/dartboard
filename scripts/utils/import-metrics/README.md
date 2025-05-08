@@ -12,7 +12,9 @@ A script to collect and aggregate TSDB of cluster metrics via Grafana mimirtool'
 
 - Example 1: `./import-metrics.sh path/to/kubeconfig.yaml '{__name__!=""}' 2025-03-03T23:12:52Z 2025-03-04T02:12:30Z`
 
-- Example 2: `./import-metrics.sh /path/to/kubeconfig.yaml '{__name__!=""}' $(date -u -v-4H +"%Y-%m-%dT%H:%M:%SZ") $(date -u -v-2H +"%Y-%m-%dT%H:%M:%SZ")`
+- Example 2 (macOS): `./import-metrics.sh /path/to/kubeconfig.yaml '{__name__!=""}' $(date -u -v-4H +"%Y-%m-%dT%H:%M:%SZ") $(date -u -v-2H +"%Y-%m-%dT%H:%M:%SZ")`
+
+- Example 3 (GNU): `./import-metrics.sh /path/to/kubeconfig.yaml '{__name__!=""}' $(date -u --date"4 hours ago" +"%Y-%m-%dT%H:%M:%SZ") $(date -u --date="2 hours ago" +"%Y-%m-%dT%H:%M:%SZ")`
 
    - Time format for date ranges `YYYY-MM-DDThh:mm:ssZ`
      - Example: `2025-03-03T23:12:52Z`
@@ -49,13 +51,17 @@ Query selector and date range can be set via cli arguments
 
 #### Helpers
 
- - Bash helper for obtaining properly formatted date
+ - Bash helper for obtaining properly formatted date, date command may vary by os
 
    - `date -u +"%Y-%m-%dT%H:%M:%SZ`
 
- - Flag usage can help define a time range `[-v[+|-]val[y|m|w|d|H|M|S]]`
+ - Flag usage can help define a time range (macOS) `[-v[+|-]val[y|m|w|d|H|M|S]]`
  
    - `date -u -v-36H +"%Y-%m-%dT%H:%M:%SZ"`
+
+ - Flag usage can help define a time range (GNU) `[--date="x days|hours|minutes ago"]`
+ 
+   - `date -u --date="16 hours ago" +"%Y-%m-%dT%H:%M:%SZ"`
 
 #### Experimental
 
@@ -63,7 +69,7 @@ Query selector and date range can be set via cli arguments
  
   - Usage: `./import-metrics /path/to/kubeconfig.yaml selector from to OFFSET`
 
-- Warning! When using Rancher Monitoring's default Prometheus memory allocation of 3000Mi, OOM errors are likely to occur with an OFFSET larger than one hour (3600 seconds) while querying for ALL METRICS. Increasing the Prometheus installation memory to 10000Mi allows for more consistent pulls of ALL METRICS using a two hour increment (7200 second) for the OFFSET however, further increases to memory DO NOT reliably allow larger query time ranges increments and some failures have been observed during testing. To increase stability, OFFSET has been set with a default of one hour and limited to two hours.
+- Warning! When using Rancher Monitoring's default Prometheus memory allocation of 3000Mi, OOM errors are likely to occur with an OFFSET larger than one hour (3600 seconds) while querying for ALL METRICS. Increasing the Prometheus installation memory to 10000Mi allows for more consistent pulls of ALL METRICS using a two hour increment (7200 second) for the OFFSET however, further increases to memory DO NOT reliably allow larger query time range increments and some failures have been observed during testing. To increase stability, OFFSET has been set with a default of one hour and limited to two hours.
 
 ### Notes
 
