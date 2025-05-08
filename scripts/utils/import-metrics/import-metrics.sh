@@ -21,15 +21,31 @@ offset_seconds=3600 # one hour
 # selector - a valid prometheus query in single quotes, default selector set for ALL METRICS
 selector='{__name__!=""}'
 
+# determine os for date commands
+os_uname=$(uname)
+
 # from - date for query to begin
 # to - date for query to end
 # default time range set for ONE HOUR from current utc time
-from="$(date -u -v-1H +"%Y-%m-%dT%H:%M:%SZ")" 
-to="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+if [ "$os_uname" = "Darwin" ]; then 
 
-# convert default dates for comparisons
-to_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${to}" "+%s")
-from_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${from}" "+%s")
+    from="$(date -u -v-1H +"%Y-%m-%dT%H:%M:%SZ")" 
+    to="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+    # convert default dates for comparisons for macOS
+    to_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${to}" "+%s")
+    from_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${from}" "+%s")
+
+elif [ "$os_uname" = "Linux" ]; then
+
+    from="$(date -u --date="1 hour ago" +"%Y-%m-%dT%H:%M:%SZ")" 
+    to="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+    # convert default dates for comparisons for GNU
+    to_seconds=$(date -d "${to}" "+%s")
+    from_seconds=$(date -d "${from}" "+%s")
+
+fi
 
 main() { 
 
@@ -80,8 +96,16 @@ main() {
 
         # set date range for query
         range=$((${to_seconds} - ${offset_seconds}))
-        from=$(date -j -f "%s" "${range}" "+%Y-%m-%dT%H:%M:%SZ")
-        to=$(date -j -f "%s" "${to_seconds}" "+%Y-%m-%dT%H:%M:%SZ")
+
+        if [ "$os_uname" = "Darwin" ]; then 
+            #convert seconds to date for macOS
+            from=$(date -j -f "%s" "${range}" "+%Y-%m-%dT%H:%M:%SZ")
+            to=$(date -j -f "%s" "${to_seconds}" "+%Y-%m-%dT%H:%M:%SZ")
+        elif [ "$os_uname" = "Linux" ]; then
+            #convert seconds to date for GNU
+            from=$(date -d @"${range}" "+%Y-%m-%dT%H:%M:%SZ")
+            to=$(date -d @"${to_seconds}" "+%Y-%m-%dT%H:%M:%SZ")
+        fi
 
         # from separate mimirtool shell execute remote-read
         kubectl exec -n cattle-monitoring-system mimirtool --insecure-skip-tls-verify -i -t -- mimirtool remote-read export --tsdb-path ./prometheus-export --address http://rancher-monitoring-prometheus:9090 --remote-read-path /api/v1/read --to="${to}" --from="${from}" --selector "${selector}"
@@ -89,8 +113,13 @@ main() {
         # compress metrics data from export
         kubectl exec -n cattle-monitoring-system mimirtool --insecure-skip-tls-verify -i -t -- tar zcf /tmp/prometheus-export.tar.gz ./prometheus-export
 
-        # set filename timestamp
-        ts2=$(date -j -f "%s" "${range}" "+%Y-%m-%dT%H-%M-%S")
+        if [ "$os_uname" = "Darwin" ]; then 
+            # set filename timestamp for macOS
+            ts2=$(date -j -f "%s" "${range}" "+%Y-%m-%dT%H-%M-%S")
+        elif [ "$os_uname" = "Linux" ]; then
+            # set filename timestamp for GNU
+            ts2=$(date -d @"${range}" "+%Y-%m-%dT%H-%M-%S")
+        fi
 
         # copy exported metrics data to timestamped tarball
         kubectl -n cattle-monitoring-system cp mimirtool:/tmp/prometheus-export.tar.gz ./prometheus-export-"${ts2}".tar.gz 1> /dev/null
@@ -164,7 +193,11 @@ process_args(){
             fi
         
             if [ $date_count = 0 ]; then
-                temp_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${arg}" "+%s")
+                if [ "$os_uname" = "Darwin" ]; then 
+                    temp_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${arg}" "+%s")
+                elif [ "$os_uname" = "Linux" ]; then
+                    temp_seconds=$(date -d "${arg}" "+%s")
+                fi
                 if [ "$temp_seconds" -lt "$from_seconds" ]; then
                     from=$arg
                     date_count=$((date_count+1))
@@ -177,12 +210,23 @@ process_args(){
     # limit offset to two hours
     if [ "${offset_seconds}" -gt 7200 ]; then
         offset_seconds=7200
-        # TODO: Check prometheus installation memory, limit to 3600 if <=3GB
+
+        # check prometheus memory, limit offset to 1hr if <= 3000Mi
+        prometheus_memory=$(kubectl get statefulsets -n cattle-monitoring-system prometheus-rancher-monitoring-prometheus -o jsonpath='{.spec.template.spec.containers[0].resources.limits.memory}' | tr -d "Mi")
+        if [ "${prometheus_memory}" -lt 3001 ]; then
+            offset_seconds=3600
+        fi
     fi
 
-    # overwrite defaults and convert input dates for comparisons
-    to_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${to}" "+%s")
-    from_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${from}" "+%s")
+    if [ "$os_uname" = "Darwin" ]; then 
+        # overwrite defaults and convert input dates for comparisons for macOS
+        to_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${to}" "+%s")
+        from_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${from}" "+%s")
+    elif [ "$os_uname" = "Linux" ]; then
+        # overwrite defaults and convert input dates for comparisons for GNU
+        to_seconds=$(date -d "${to}" "+%s")
+        from_seconds=$(date -d "${from}" "+%s")
+    fi
 
     # check dates and ensure TO and FROM are set appropriately 
     if [ "${to_seconds}" -lt "${from_seconds}" ]; then
