@@ -16,13 +16,23 @@ limitations under the License.
 
 package subcommands
 
-import "github.com/urfave/cli/v2"
+import (
+	"fmt"
+
+	"github.com/rancher/dartboard/internal/actions"
+	"github.com/urfave/cli/v2"
+)
 
 func Destroy(cli *cli.Context) error {
-	tf, _, err := prepare(cli)
+	tf, r, err := prepare(cli)
 	if err != nil {
 		return err
 	}
 
+	clusterStatePath := fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, actions.ClustersStateFile)
+	err = actions.DestroyClusterState(clusterStatePath)
+	if err != nil {
+		return err
+	}
 	return tf.Destroy(cli.Context)
 }
