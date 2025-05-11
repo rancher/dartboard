@@ -4,17 +4,20 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/tofu"
 	yaml "gopkg.in/yaml.v2"
 )
 
 // ClusterStatus holds the state of each cluster.
 type ClusterStatus struct {
-	Name         string `yaml:"name"`
-	Created      bool   `yaml:"created"`
-	Imported     bool   `yaml:"imported"`
-	Provisioned  bool   `yaml:"provisioned"`
-	tofu.Cluster `yaml:"clusterdata"`
+	Name        string `yaml:"name"`
+	Created     bool   `yaml:"created"`
+	Imported    bool   `yaml:"imported"`
+	Provisioned bool   `yaml:"provisioned"`
+	// Only one of the following should be included
+	tofu.Cluster         `yaml:"cluster,omitempty"`          // For Imported Clusters
+	dart.ClusterTemplate `yaml:"cluster_template,omitempty"` // For Provisioned Clusters
 }
 
 const ClustersStateFile = "clusters_state.yaml"
@@ -25,7 +28,7 @@ func SaveClusterState(filePath string, statuses []ClusterStatus) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal Cluster state: %w", err)
 	}
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
+	if err := os.WriteFile(filePath, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write Cluster state file: %w", err)
 	}
 	return nil
