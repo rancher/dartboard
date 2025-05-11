@@ -48,7 +48,6 @@ module "tester_cluster" {
   node_module_variables     = var.tester_cluster.node_module_variables
 }
 
-
 module "downstream_clusters" {
   count                       = length(local.downstream_clusters)
   source                      = "../../${var.downstream_cluster_distro_module}"

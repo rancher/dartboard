@@ -51,9 +51,9 @@ variable "downstream_cluster_templates" {
     agent_count    = number // Number of agent nodes in the downstream cluster
     distro_version = string // Version of the Kubernetes distro in the downstream cluster
 
-    public_ip                   = bool // Whether the downstream cluster should have a public IP assigned
-    reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring
-    enable_audit_log            = bool // Enable audit log for the cluster
+    public_ip                   = bool // Whether the downstream cluster should have a public IP assigned. Default false
+    reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring. Default false
+    enable_audit_log            = bool // Enable audit log for the cluster. Default false
 
     node_module_variables = any // Node module-specific variables
   }))
@@ -65,7 +65,7 @@ variable "downstream_cluster_templates" {
 # https://github.com/opentofu/opentofu/issues/1896#issuecomment-2275763570 ->
 # https://github.com/opentofu/opentofu/issues/2155
 variable "downstream_cluster_distro_module" {
-  description = "Name of the module to use for the downstream clusters"
+  description = "Name of the module to use for downstream clusters. Default assumes imported cluster"
   default     = "generic/k3s"
 }
 

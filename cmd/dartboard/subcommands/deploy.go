@@ -17,20 +17,23 @@ limitations under the License.
 package subcommands
 
 import (
-	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/helm"
 	"github.com/rancher/dartboard/internal/kubectl"
 	"github.com/rancher/dartboard/internal/tofu"
+	"github.com/rancher/shepherd/pkg/session"
 	"github.com/urfave/cli/v2"
+
+	"github.com/rancher/dartboard/internal/actions"
 )
 
 type chart struct {
@@ -111,7 +114,48 @@ func Deploy(cli *cli.Context) error {
 	if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
 		return err
 	}
-	if err = importDownstreamClusters(r, rancherImageTag, tf, clusters); err != nil {
+
+	// Setup rancher
+	upstreamAdd, err := getAppAddressFor(upstream)
+	if err != nil {
+		return err
+	}
+
+	rancherSession := session.NewSession()
+	rancherSession.CleanupEnabled = false
+	log.Printf("Setting up Rancher Client's Config")
+	rancherHost := strings.Split(upstreamAdd.Public.HTTPSURL, "://")[1]
+	rancherConfig := actions.NewRancherConfig(rancherHost, "", r.ChartVariables.AdminPassword, true)
+	log.Printf("Setting up Rancher Client")
+	rancherClient, err := actions.SetupRancherClient(&rancherConfig, r.ChartVariables.AdminPassword, rancherSession)
+	if err != nil {
+		return err
+	}
+
+	// Get all downstream cluster info
+	downstreamClusters := []tofu.Cluster{}
+	for k, v := range clusters {
+		if strings.HasPrefix(k, "downstream") {
+			v.Name = k
+			downstreamClusters = append(downstreamClusters, v)
+		}
+	}
+	// Naively sort downstream clusters
+	// This does not actually sort in the way we want, due to how we name clusters like "downstream-0-5"
+	// TODO: Implement a true "natural" sort for this
+	sort.Slice(downstreamClusters, func(i, j int) bool {
+		return downstreamClusters[i].Name < downstreamClusters[j].Name
+	})
+
+	jsonBytes, err := json.MarshalIndent(downstreamClusters, "", "    ")
+	if err != nil {
+		fmt.Println("Error marshaling JSON:", err)
+		return err
+	}
+	fmt.Println("Import Clusters:\n", string(jsonBytes))
+
+	log.Printf("Importing Downstream Clusters")
+	if err = actions.ImportDownstreamClusters(r, downstreamClusters, r.ClusterBatchSize, rancherClient, &rancherConfig); err != nil {
 		return err
 	}
 
@@ -453,175 +497,4 @@ func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname
 	}
 
 	return result
-}
-
-func importDownstreamClusters(r *dart.Dart, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster) error {
-
-	log.Print("Import downstream clusters")
-
-	if err := importDownstreamClustersRancherSetup(r, clusters); err != nil {
-		return err
-	}
-
-	buffer := 10
-	clustersChan := make(chan string, buffer)
-	errorChan := make(chan error)
-	clustersCount := 0
-
-	for clusterName := range clusters {
-		if !strings.HasPrefix(clusterName, "downstream") {
-			continue
-		}
-		clustersCount++
-		go importDownstreamClusterDo(r, rancherImageTag, tf, clusters, clusterName, clustersChan, errorChan)
-	}
-
-	for {
-		if clustersCount == 0 {
-			return nil
-		}
-		select {
-		case err := <-errorChan:
-			return err
-		case completed := <-clustersChan:
-			log.Printf("Cluster %q imported successfully.\n", completed)
-			clustersCount--
-		}
-	}
-}
-
-func importDownstreamClusterDo(r *dart.Dart, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster, clusterName string, ch chan<- string, errCh chan<- error) {
-	log.Print("Import cluster " + clusterName)
-	yamlFile, err := os.CreateTemp("", "scli-"+clusterName+"-*.yaml")
-	if err != nil {
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
-	}
-	defer os.Remove(yamlFile.Name())
-	defer yamlFile.Close()
-
-	clusterID, err := importClustersDownstreamGetYAML(clusters, clusterName, yamlFile)
-	if err != nil {
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
-	}
-
-	downstream, ok := clusters[clusterName]
-	if !ok {
-		err := fmt.Errorf("error: cannot find access data for cluster %q", clusterName)
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
-	}
-	if r.ChartVariables.RancherImageTagOverride != "" {
-		err = importImageIntoK3d(tf, "rancher/rancher-agent:"+rancherImageTag, downstream)
-		if err != nil {
-			errCh <- fmt.Errorf("%s downstream k3d image import failed: %w", clusterName, err)
-			return
-		}
-	}
-
-	if err := kubectl.Apply(downstream.Kubeconfig, yamlFile.Name()); err != nil {
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
-	}
-
-	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
-		"clusters.management.cattle.io", clusterID, "", "ready", 10); err != nil {
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
-	}
-	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
-		"cluster.fleet.cattle.io", clusterName, "fleet-default", "ready", 10); err != nil {
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
-	}
-
-	err = kubectl.WaitForReadyCondition(downstream.Kubeconfig, "deployment", "rancher-webhook", "cattle-system", "available", 60)
-	if err != nil {
-		errCh <- fmt.Errorf("%s waiting for rancher-webhook failed: %w", clusterName, err)
-		return
-	}
-	if r.ChartVariables.DownstreamRancherMonitoring {
-		if err := chartInstallRancherMonitoring(r, &downstream); err != nil {
-			errCh <- fmt.Errorf("downstream monitoring installation on cluster %s failed: %w", clusterName, err)
-			return
-		}
-	}
-	ch <- clusterName
-}
-
-func importDownstreamClustersRancherSetup(r *dart.Dart, clusters map[string]tofu.Cluster) error {
-	tester := clusters["tester"]
-	upstream := clusters["upstream"]
-	upstreamAdd, err := getAppAddressFor(upstream)
-	if err != nil {
-		return err
-	}
-
-	downstreamClusters := []string{}
-	for clusterName := range clusters {
-		if strings.HasPrefix(clusterName, "downstream") {
-			downstreamClusters = append(downstreamClusters, clusterName)
-		}
-	}
-	importedClusterNames := strings.Join(downstreamClusters, ",")
-
-	envVars := map[string]string{
-		"BASE_URL":               upstreamAdd.Public.HTTPSURL,
-		"BOOTSTRAP_PASSWORD":     "admin",
-		"PASSWORD":               r.ChartVariables.AdminPassword,
-		"IMPORTED_CLUSTER_NAMES": importedClusterNames,
-	}
-
-	if err = kubectl.K6run(tester.Kubeconfig, "k6/rancher_setup.js", envVars, nil, true, upstreamAdd.Local.HTTPSURL, false); err != nil {
-		return err
-	}
-	return nil
-}
-
-func importClustersDownstreamGetYAML(clusters map[string]tofu.Cluster, name string, yamlFile *os.File) (clusterID string, err error) {
-	var status map[string]interface{}
-
-	upstream := clusters["upstream"]
-	upstreamAdd, err := getAppAddressFor(upstream)
-	if err != nil {
-		return
-	}
-
-	if status, err = kubectl.GetStatus(upstream.Kubeconfig, "clusters.provisioning.cattle.io", name, "fleet-default"); err != nil {
-		return
-	}
-	clusterID, ok := status["clusterName"].(string)
-	if !ok {
-		err = fmt.Errorf("error accessing fleet-default/%s clusters: no valid 'clusterName' in 'Status'", name)
-		return
-	}
-
-	if status, err = kubectl.GetStatus(upstream.Kubeconfig, "clusterregistrationtokens.management.cattle.io", "default-token", clusterID); err != nil {
-		return
-	}
-	token, ok := status["token"].(string)
-	if !ok {
-		err = fmt.Errorf("error accessing %s/default-token clusterregistrationtokens: no valid 'token' in 'Status'", clusterID)
-		return
-	}
-
-	url := fmt.Sprintf("%s/v3/import/%s_%s.yaml", upstreamAdd.Local.HTTPSURL, token, clusterID)
-	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
-	client := &http.Client{Transport: tr}
-	resp, err := client.Get(url)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-	_, err = io.Copy(yamlFile, resp.Body)
-	if err != nil {
-		return
-	}
-	if err = yamlFile.Sync(); err != nil {
-		return
-	}
-
-	return
 }
