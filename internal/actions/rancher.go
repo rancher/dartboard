@@ -15,8 +15,12 @@ import (
 	shepherdtokens "github.com/rancher/shepherd/extensions/token"
 	"github.com/rancher/shepherd/extensions/workloads/pods"
 	"github.com/rancher/shepherd/pkg/session"
+	shepherdwait "github.com/rancher/shepherd/pkg/wait"
 
+	clusteractions "github.com/rancher/tests/actions/clusters"
 	"github.com/rancher/tests/actions/pipeline"
+	"github.com/rancher/tests/actions/provisioning"
+	"github.com/rancher/tests/actions/reports"
 
 	"github.com/sirupsen/logrus"
 
@@ -71,12 +75,133 @@ func SetupRancherClient(rancherConfig *rancher.Config, bootstrapPassword string,
 	return client, err
 }
 
+// Provisions clusters in "batches" where batchSize is the maximum # of clusters to provision before sleeping for a short period and continuing
+// This will continue to provision clusters until template.ClusterCount # of Clusters have been provisioned
+func ProvisionClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, batchSize int, rancherClient *rancher.Client) error {
+	batchNum := 0
+	for i := 0; i < template.ClusterCount; i += batchSize {
+		// Number of clusters that can "fit" in this batch, if we have surpassed
+		// template.ClusterCount # of Clusters then just provision the leftovers
+		j := min(i+batchSize, template.ClusterCount)
+		numInBatch := j - i
+		sleepAfterBatch, err := ProvisionDownstreamClusterBatch(r, template, numInBatch, batchNum, rancherClient)
+		if err != nil {
+			return fmt.Errorf("error while provisioning clusters in batches: %v", err)
+		}
+		batchNum += 1
+		fmt.Printf("Finished provisioning Cluster batch.\n")
+		if sleepAfterBatch {
+			fmt.Printf("Sleeping between batches.\n")
+			time.Sleep(shepherddefaults.TwoMinuteTimeout)
+		}
+	}
+
+	return nil
+}
+
+// Provisions batchSize number of Clusters
+func ProvisionDownstreamClusterBatch(r *dart.Dart, template dart.ClusterTemplate, batchSize int, batchNum int, rancherClient *rancher.Client) (sleepAfterBatch bool, err error) {
+	iter := 0
+	numSkippedClusters := 0
+	clusterStatePath := fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, ClustersStateFile)
+
+	// Load or initialize []ClusterStatus
+	statuses, err := LoadClusterState(clusterStatePath)
+	if err != nil {
+		logrus.Fatalf("error loading Cluster state: %v\n", err)
+	}
+
+	for i := range batchSize {
+		clusterName := fmt.Sprintf("%s-%d-%d", template.NamePrefix, batchNum, i)
+		clusterStatus := FindClusterStatusByName(statuses, clusterName)
+		if clusterStatus == nil {
+			newClusterStatus := ClusterStatus{
+				Name:            clusterName,
+				Created:         false,
+				Imported:        false,
+				ClusterTemplate: template,
+			}
+			statuses = append(statuses, newClusterStatus)
+			clusterStatus = &statuses[len(statuses)-1]
+			fmt.Printf("Did not find existing ClusterStatus object for Cluster with name %s.\n", clusterName)
+		} else {
+			fmt.Printf("Found existing ClusterStatus object for Cluster with name %s.\n", clusterName)
+			if clusterStatus.Provisioned {
+				fmt.Printf("Cluster %s has already been provisioned, skipping...\n", clusterStatus.Name)
+				numSkippedClusters += 1
+				continue
+			}
+		}
+		fmt.Printf("Continuing with cluster provisioning...\n")
+
+		switch {
+		case strings.Contains(template.DistroVersion, "k3s"):
+			template.Config.K3SKubernetesVersions = []string{template.DistroVersion}
+		case strings.Contains(template.DistroVersion, "rke2"):
+			template.Config.RKE2KubernetesVersions = []string{template.DistroVersion}
+		default:
+			return (numSkippedClusters < batchSize/2), fmt.Errorf("error while parsing kubernetes version for version %v", template.DistroVersion)
+		}
+		nodeProvider := CreateProvider(template.Config.Providers[0])
+
+		templateClusterConfig := clusteractions.ConvertConfigToClusterConfig(template.Config)
+		templateClusterConfig.CNI = template.Config.CNIs[0]
+
+		// Uncomment below when we can set the clusterName directly
+		// clusterName := fmt.Sprintf("downstream-prov-%d-%d", batchNum, iter)
+		// TODO: Replace usage of rancher/tests/ functions with our own actions
+		clusterObject, err := provisioning.CreateProvisioningCluster(rancherClient, nodeProvider, templateClusterConfig, nil)
+		reports.TimeoutClusterReport(clusterObject, err)
+		if err != nil {
+			return (numSkippedClusters < batchSize/2), fmt.Errorf("error while provisioning cluster with ClusterConfig %v:\n%v", templateClusterConfig, err)
+		}
+		clusterStatus.Provisioned = true
+		err = SaveClusterState(clusterStatePath, statuses)
+		if err != nil {
+			return (numSkippedClusters < batchSize/2), err
+		}
+
+		fiveMinuteTimeout := int64(shepherddefaults.FiveMinuteTimeout)
+		listOpts := metav1.ListOptions{
+			FieldSelector:  "metadata.name=" + clusterObject.ID,
+			TimeoutSeconds: &fiveMinuteTimeout,
+		}
+		watchInterface, err := rancherClient.GetManagementWatchInterface(management.ClusterType, listOpts)
+		if err != nil {
+			return (numSkippedClusters < batchSize/2), fmt.Errorf("error while getting Management Watch Interface with Cluster %v and ListOptions %v:\n%v", clusterObject.ID, listOpts, err)
+		}
+
+		checkFunc := shepherdclusters.IsProvisioningClusterReady
+		err = shepherdwait.WatchWait(watchInterface, checkFunc)
+		reports.TimeoutClusterReport(clusterObject, err)
+		if err != nil {
+			return (numSkippedClusters < batchSize/2), fmt.Errorf("error while waiting for Provisioned Cluster to be Ready %v:\n%v", clusterObject.ID, err)
+		}
+
+		iter += 1
+	}
+	return (numSkippedClusters < batchSize/2), nil
+}
+
+func ProvisionDownstreamClusters(r *dart.Dart, templates []dart.ClusterTemplate, batchSize int, rancherClient *rancher.Client) error {
+	if batchSize <= 0 {
+		panic("ClusterBatchSize must be > 0")
+	}
+	for _, template := range templates {
+		err := ProvisionClustersInBatches(r, template, batchSize, rancherClient)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, batchSize int, rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
 	batchNum := 0
 	numClusters := len(clusters)
 	for i := 0; i < numClusters; i += batchSize {
 		// Number of clusters that can "fit" in this batch, if we have surpassed
-		// template.ClusterCount # of Clusters then just provision the leftovers
+		// len(clusters) # of Clusters then just provision the leftovers
 		j := min(i+batchSize, numClusters)
 		batch := clusters[i:j]
 		numInBatch := len(batch)

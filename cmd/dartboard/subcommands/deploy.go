@@ -159,6 +159,52 @@ func Deploy(cli *cli.Context) error {
 		return err
 	}
 
+	// Filter out Cluster Templates that are for provisioning
+	var provisionClusterTemplates []dart.ClusterTemplate
+	for _, template := range r.ClusterTemplates {
+		if template.Config != nil {
+			provisionClusterTemplates = append(provisionClusterTemplates, template)
+		} else {
+			return fmt.Errorf("error, did not find any Provision Cluster Templates")
+		}
+	}
+
+	if len(provisionClusterTemplates) > 0 {
+		// If we have provision Cluster Templates then setup Harvester Client + import Harvester Cluster into Rancher
+
+		log.Printf("Parsing Harvester's Kubeconfig")
+		var kubeconfig *actions.Kubeconfig
+		if len(r.TofuVariables["kubeconfig"].(string)) > 0 {
+			kubeconfig, err = actions.ParseKubeconfig(r.TofuVariables["kubeconfig"].(string))
+			if err != nil {
+				return fmt.Errorf("error while parsing kubeconfig at %v: %v", r.TofuVariables["kubeconfig"].(string), err)
+			}
+		}
+
+		var harvesterClient *actions.HarvesterImportClient
+		log.Printf("Setting up Harvester Client's Config")
+		harvesterHost := strings.Split(kubeconfig.Clusters[0].Server, "://")[1]
+		harvesterConfig := actions.NewHarvesterConfig(harvesterHost, kubeconfig.Users[0].User.Token, "", true)
+		if strings.Contains(r.TofuMainDirectory, "harvester") && len(r.ClusterTemplates) > 0 {
+			log.Printf("Setting up Harvester Client")
+			harvesterClient, err = actions.NewHarvesterImportClient(rancherClient, &harvesterConfig)
+			if err != nil {
+				return fmt.Errorf("error while setting up HarvesterImportClient with config %v: %v", harvesterConfig, err)
+			}
+
+			log.Printf("Importing Harvester Cluster into Rancher for provisioning")
+			err = harvesterClient.ImportCluster()
+			if err != nil {
+				return fmt.Errorf("error while importing Harvester cluster into Rancher %v: %v", harvesterConfig, err)
+			}
+		}
+
+		log.Printf("Provisioning Downstream Clusters")
+		if err = actions.ProvisionDownstreamClusters(r, provisionClusterTemplates, r.ClusterBatchSize, rancherClient); err != nil {
+			return err
+		}
+	}
+
 	return GetAccess(cli)
 }
 
