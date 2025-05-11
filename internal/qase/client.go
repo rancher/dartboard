@@ -247,7 +247,7 @@ func (c *CustomUnifiedClient) CreateTestResultV1(ctx context.Context, projectCod
 
 // CreateTestResultV2 creates a test result using the V2 API.
 func (c *CustomUnifiedClient) CreateTestResultV2(ctx context.Context, projectCode string, runID int64, result api_v2_client.ResultCreate) error {
-	res, err := c.V2Client.GetAPIClient().ResultsAPI.CreateResultV2(ctx, projectCode, runID).ResultCreate(result).Execute()
+	_, res, err := c.V2Client.GetAPIClient().ResultsAPI.CreateResultV2(ctx, projectCode, runID).ResultCreate(result).Execute()
 	logResponseBody(res, "CreateTestResultV2")
 	if err != nil {
 		return fmt.Errorf("failed to create v2 test result: %w", err)

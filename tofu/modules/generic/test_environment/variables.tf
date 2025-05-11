@@ -76,8 +76,7 @@ variable "downstream_cluster_templates" {
 # https://github.com/opentofu/opentofu/issues/1896#issuecomment-2275763570 ->
 # https://github.com/opentofu/opentofu/issues/2155
 variable "downstream_cluster_distro_module" {
-  description = "Name of the module to use for the downstream clusters"
-  type        = string
+  description = "Name of the module to use for downstream clusters. Default assumes imported cluster"
   default     = "generic/k3s"
 }
 

@@ -18,6 +18,7 @@ package subcommands
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/rancher/dartboard/internal/docker"
 	"github.com/rancher/dartboard/internal/k3d"
@@ -52,6 +53,12 @@ func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	tofuWorkspaceStatePath := fmt.Sprintf("%s/%s_config", d.TofuMainDirectory, d.TofuWorkspace)
+	absPath, err := filepath.Abs(tofuWorkspaceStatePath)
+	if err != nil {
+		return nil, nil, err
+	}
+	d.TofuWorkspaceStatePath = absPath
 	fmt.Printf("Using dart: %s\n", dartPath)
 	fmt.Printf("OpenTofu main directory: %s\n", d.TofuMainDirectory)
 	fmt.Printf("Using Tofu workspace: %s\n", d.TofuWorkspace)
