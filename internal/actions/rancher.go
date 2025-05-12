@@ -198,12 +198,17 @@ func ProvisionDownstreamClusters(r *dart.Dart, templates []dart.ClusterTemplate,
 }
 
 func importCluster(r *dart.Dart, cluster tofu.Cluster, statePath string, statuses map[string]*ClusterStatus, rancherClient *rancher.Client,
-	rancherConfig *rancher.Config, updates chan<- stateUpdate) (skipped bool, err error) {
-	stateMutex.Lock()
+	rancherConfig *rancher.Config, batchUpdater *SequencedBatchUpdater) (skipped bool, err error) {
+
 	clusterStatus := FindOrCreateStatusByName(statuses, cluster.Name)
 	clusterStatus.Cluster = cluster
-	stateMutex.Unlock()
-	updates <- stateUpdate{}
+	<-batchUpdater.seqCh
+	batchUpdater.Updates <- stateUpdate{
+		Name:      cluster.Name,
+		Stage:     StageNew,
+		Completed: time.Now(),
+	}
+	batchUpdater.seqCh <- struct{}{}
 
 	fmt.Printf("Found existing ClusterStatus object for Cluster with name %s.\n", cluster.Name)
 	if clusterStatus.Imported {
@@ -224,14 +229,14 @@ func importCluster(r *dart.Dart, cluster tofu.Cluster, statePath string, statuse
 		if err != nil {
 			return false, fmt.Errorf("error while creating Steve Cluster with Name %v:\n%w", importCluster.Name, err)
 		}
-		stateMutex.Lock()
-		clusterStatus.Created = true
-		// err = SaveClusterState(statePath, *statuses)
-		stateMutex.Unlock()
-		updates <- stateUpdate{}
-		if err != nil {
-			return false, fmt.Errorf("error during ClusterStatus save after Cluster creation: %w", err)
+
+		<-batchUpdater.seqCh
+		batchUpdater.Updates <- stateUpdate{
+			Name:      cluster.Name,
+			Stage:     StageCreated,
+			Completed: time.Now(),
 		}
+		batchUpdater.seqCh <- struct{}{}
 		fmt.Printf("Cluster named %s was created.\n", importCluster.Name)
 	}
 
@@ -277,14 +282,14 @@ func importCluster(r *dart.Dart, cluster tofu.Cluster, statePath string, statuse
 	if err != nil {
 		return false, err
 	}
-	stateMutex.Lock()
-	clusterStatus.Imported = true
-	// err = SaveClusterState(statePath, *statuses)
-	stateMutex.Unlock()
-	updates <- stateUpdate{}
-	if err != nil {
-		return false, err
+
+	<-batchUpdater.seqCh
+	batchUpdater.Updates <- stateUpdate{
+		Name:      cluster.Name,
+		Stage:     StageImported,
+		Completed: time.Now(),
 	}
+	batchUpdater.seqCh <- struct{}{}
 	fmt.Printf("Cluster named %s was imported.\n", updatedCluster.Name)
 
 	podErrors := pods.StatusPodsWithTimeout(rancherClient, updatedCluster.Status.ClusterName, shepherddefaults.OneMinuteTimeout)
@@ -306,37 +311,53 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, batchSize in
 		return err
 	}
 
-	// channel for all write requests
-	updates := make(chan stateUpdate, len(clusters)*2)
-	defer close(updates)
-
-	// start writer goroutine
-	go func() {
-		for range updates {
-			stateMutex.Lock()
-			if err := SaveClusterState(clusterStatePath, statuses); err != nil {
-				fmt.Printf("error saving state: %v", err)
-			}
-			stateMutex.Unlock()
-		}
-	}()
-
 	// Enqueue clusters in batches and collect results
 	for i := 0; i < len(clusters); i += batchSize {
-		jobs := make(chan tofu.Cluster, len(clusters))
+		j := min(i+batchSize, len(clusters))
+		batch := clusters[i:j]
+
+		batchUpdater := NewSequencedBatchUpdater(len(batch))
+
+		jobs := make(chan tofu.Cluster, len(batch))
 		results := make(chan struct {
 			skipped bool
 			err     error
-		}, len(clusters))
+		}, len(batch))
+
+		// Handle writer workers
+		var writerWG sync.WaitGroup
+		writerWG.Add(1)
+		go func() {
+			defer writerWG.Done()
+			for u := range batchUpdater.Updates {
+				stateMutex.Lock()
+				cs := statuses[u.Name]
+				switch u.Stage {
+				case StageCreated:
+					cs.Created = true
+				case StageImported:
+					cs.Imported = true
+				}
+				if err := SaveClusterState(clusterStatePath, statuses); err != nil {
+					switch u.Stage {
+					case StageCreated:
+						logrus.Errorf("error while saving ClusterStatus after Create: %v", err)
+					case StageImported:
+						logrus.Errorf("error while saving ClusterStatus after Import: %v", err)
+					}
+				}
+				stateMutex.Unlock()
+			}
+		}()
 
 		// Spawn N workers per batch
-		var wg sync.WaitGroup
-		for w := 0; w < maxWorkers; w++ {
-			wg.Add(1)
+		var workerWG sync.WaitGroup
+		for range maxWorkers {
+			workerWG.Add(1)
 			go func() {
-				defer wg.Done() // decrement WaitGroup counter by one after each goroutine is done
+				defer workerWG.Done() // decrement WaitGroup counter by one after each goroutine is done
 				for c := range jobs {
-					skipped, err := importCluster(r, c, clusterStatePath, statuses, rancherClient, rancherConfig, updates)
+					skipped, err := importCluster(r, c, clusterStatePath, statuses, rancherClient, rancherConfig, batchUpdater)
 					results <- struct {
 						skipped bool
 						err     error
@@ -344,9 +365,6 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, batchSize in
 				}
 			}()
 		}
-
-		j := min(i+batchSize, len(clusters))
-		batch := clusters[i:j]
 
 		// Send this batch as jobs
 		for _, c := range batch {
@@ -362,7 +380,12 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, batchSize in
 			res := <-results
 
 			if res.err != nil {
-				return fmt.Errorf("import error: %w", res.err)
+				// Clean up goroutines before returning
+				workerWG.Wait()
+				close(batchUpdater.Updates)
+				writerWG.Wait()
+				close(results)
+				return fmt.Errorf("error during import flow: %w", res.err)
 			}
 			if res.skipped {
 				numSkipped++
@@ -382,7 +405,9 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, batchSize in
 		}
 
 		// Wait for all of the batch's workers to be Done and close the batch's results channel
-		wg.Wait()
+		workerWG.Wait()
+		close(batchUpdater.Updates)
+		writerWG.Wait()
 		close(results)
 	}
 

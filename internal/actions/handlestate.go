@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/tofu"
@@ -16,6 +17,7 @@ type ClusterStatus struct {
 	Created     bool   `yaml:"created"`
 	Imported    bool   `yaml:"imported"`
 	Provisioned bool   `yaml:"provisioned"`
+	Stage       Stage  `yaml:"stage"`
 	// Only one of the following should be included
 	tofu.Cluster         `yaml:"cluster,omitempty"`          //For Imported Clusters
 	dart.ClusterTemplate `yaml:"cluster_template,omitempty"` //For Provisioned Clusters
@@ -23,11 +25,60 @@ type ClusterStatus struct {
 
 const ClustersStateFile = "clusters_state.yaml"
 
+// TODO: Potentially move -all- channel logic and needed fields into a "BatchRunner" that handles all cluster batch processing
+type SequencedBatchUpdater struct {
+	// Channel to sequence updates
+	seqCh chan struct{}
+	// Channel for all write requests
+	Updates chan stateUpdate
+}
+
+// NewBatchRunner constructs a new runner for one batch.
+func NewSequencedBatchUpdater(batchSize int) *SequencedBatchUpdater {
+	br := &SequencedBatchUpdater{
+		Updates: make(chan stateUpdate, batchSize*3),
+		seqCh:   make(chan struct{}, 1),
+	}
+	// seed the sequencer
+	br.seqCh <- struct{}{}
+	return br
+}
+
+// Setup an "enum" for handling stateUpdate "Stage" logic
+// See https://gobyexample.com/enums
+type Stage int
+
+const (
+	StageNew         Stage = iota // Cluster is not yet created
+	StageCreated                  // Cluster was created
+	StageImported                 // Cluster has been imported
+	StageProvisioned              // Cluster has been provisioned
+)
+
+// Gives a human-readable name for the Stage.
+func (s Stage) String() string {
+	switch s {
+	case StageCreated:
+		return "Created"
+	case StageImported:
+		return "Imported"
+	case StageProvisioned:
+		return "Provisioned"
+		// Return the int representing the Stage, if no case handles it
+	default:
+		return fmt.Sprintf("Stage(%d)", s)
+	}
+}
+
 // Mutex to sync map[string]*ClusterStatus mutations and file writes
 var stateMutex sync.Mutex
 
 // stateUpdate is a simple "signaling" struct for the writer goroutine to persist state
-type stateUpdate struct{}
+type stateUpdate struct {
+	Name      string
+	Stage     Stage
+	Completed time.Time
+}
 
 // SaveClusterState persists the map[string]*ClusterStatus to a YAML file.
 func SaveClusterState(filePath string, statuses map[string]*ClusterStatus) error {
@@ -35,9 +86,6 @@ func SaveClusterState(filePath string, statuses map[string]*ClusterStatus) error
 	if err != nil {
 		return fmt.Errorf("failed to marshal Cluster state: %w", err)
 	}
-
-	// stateMutex.Lock()
-	// defer stateMutex.Unlock()
 
 	if err := os.WriteFile(filePath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write Cluster state file: %w", err)
