@@ -373,12 +373,12 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, batchSize in
 
 		// After finishing this batch:
 		if sleepAfter {
-			// If fewer than half were skipped, go straight into the next batch
-			fmt.Printf("Batch done: %d/%d skipped; continuing without sleep.\n", numSkipped, len(batch))
-		} else {
-			// Otherwise, sleep briefly
-			time.Sleep(shepherddefaults.TwoMinuteTimeout)
+			// If fewer than half were skipped, sleep briefly
 			fmt.Printf("Batch done: %d/%d skipped; sleeping before next batch.\n", numSkipped, len(batch))
+			time.Sleep(shepherddefaults.TwoMinuteTimeout)
+		} else {
+			// Otherwise, go straight into the next batch
+			fmt.Printf("Batch done: %d/%d skipped; continuing without sleep.\n", numSkipped, len(batch))
 		}
 
 		// Wait for all of the batch's workers to be Done and close the batch's results channel
