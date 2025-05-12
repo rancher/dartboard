@@ -3,8 +3,6 @@ package actions
 import (
 	"fmt"
 	"os"
-	"sync"
-	"time"
 
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/tofu"
@@ -24,25 +22,6 @@ type ClusterStatus struct {
 }
 
 const ClustersStateFile = "clusters_state.yaml"
-
-// TODO: Potentially move -all- channel logic and needed fields into a "BatchRunner" that handles all cluster batch processing
-type SequencedBatchUpdater struct {
-	// Channel to sequence updates
-	seqCh chan struct{}
-	// Channel for all write requests
-	Updates chan stateUpdate
-}
-
-// NewBatchRunner constructs a new runner for one batch.
-func NewSequencedBatchUpdater(batchSize int) *SequencedBatchUpdater {
-	br := &SequencedBatchUpdater{
-		Updates: make(chan stateUpdate, batchSize*3),
-		seqCh:   make(chan struct{}, 1),
-	}
-	// seed the sequencer
-	br.seqCh <- struct{}{}
-	return br
-}
 
 // Setup an "enum" for handling stateUpdate "Stage" logic
 // See https://gobyexample.com/enums
@@ -68,16 +47,6 @@ func (s Stage) String() string {
 	default:
 		return fmt.Sprintf("Stage(%d)", s)
 	}
-}
-
-// Mutex to sync map[string]*ClusterStatus mutations and file writes
-var stateMutex sync.Mutex
-
-// stateUpdate is a simple "signaling" struct for the writer goroutine to persist state
-type stateUpdate struct {
-	Name      string
-	Stage     Stage
-	Completed time.Time
 }
 
 // SaveClusterState persists the map[string]*ClusterStatus to a YAML file.
