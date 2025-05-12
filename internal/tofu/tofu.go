@@ -33,40 +33,40 @@ import (
 )
 
 type ClusterAddress struct {
-	HTTPPort  uint   `json:"http_port"`
-	HTTPSPort uint   `json:"https_port"`
-	Name      string `json:"name"`
+	HTTPPort  uint   `json:"http_port" yaml:"http_port"`
+	HTTPSPort uint   `json:"https_port" yaml:"https_port"`
+	Name      string `json:"name" yaml:"name"`
 }
 
 type ClusterAppAddresses struct {
-	Private ClusterAddress `json:"private"`
-	Public  ClusterAddress `json:"public"`
-	Tunnel  ClusterAddress `json:"tunnel"`
+	Private ClusterAddress `json:"private" yaml:"private"`
+	Public  ClusterAddress `json:"public" yaml:"public"`
+	Tunnel  ClusterAddress `json:"tunnel" yaml:"tunnel"`
 }
 
 type Addresses struct {
-	Public  string `json:"public"`
-	Private string `json:"private"`
-	Tunnel  string `json:"tunnel"`
+	Public  string `json:"public" yaml:"public"`
+	Private string `json:"private" yaml:"private"`
+	Tunnel  string `json:"tunnel" yaml:"tunnel"`
 }
 
 type Cluster struct {
-	AppAddresses             ClusterAppAddresses `json:"app_addresses"`
-	Name                     string              `json:"name"`
-	Context                  string              `json:"context"`
-	IngressClassName         string              `json:"ingress_class_name"`
-	Kubeconfig               string              `json:"kubeconfig"`
-	NodeAccessCommands       map[string]string   `json:"node_access_commands"`
-	KubernetesAddresses      Addresses           `json:"kubernetes_addresses"`
-	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring"`
+	AppAddresses             ClusterAppAddresses `json:"app_addresses" yaml:"app_addresses"`
+	Name                     string              `json:"name" yaml:"name"`
+	Context                  string              `json:"context" yaml:"context"`
+	IngressClassName         string              `json:"ingress_class_name" yaml:"ingress_class_name"`
+	Kubeconfig               string              `json:"kubeconfig" yaml:"kubeconfig"`
+	NodeAccessCommands       map[string]string   `json:"node_access_commands" yaml:"node_access_commands"`
+	KubernetesAddresses      Addresses           `json:"kubernetes_addresses" yaml:"kubernetes_addresses"`
+	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring" yaml:"reserve_node_for_monitoring"`
 }
 
 type Clusters struct {
-	Value map[string]Cluster `json:"value"`
+	Value map[string]Cluster `json:"value" yaml:"value"`
 }
 
 type Output struct {
-	Clusters Clusters `json:"clusters"`
+	Clusters Clusters `json:"clusters" yaml:"clusters"`
 }
 
 type Tofu struct {

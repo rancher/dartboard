@@ -48,15 +48,15 @@ func ParseKubeconfig(kubeconfigPath string) (*Kubeconfig, error) {
 	if _, err := os.Stat(kubeconfigPath); err == nil {
 		kubeconfigBytes, err := os.ReadFile(kubeconfigPath)
 		if err != nil {
-			return nil, fmt.Errorf("error reading kubeconfig file at %v: %v", kubeconfigPath, err)
+			return nil, fmt.Errorf("error reading kubeconfig file at %s: %w", kubeconfigPath, err)
 		}
 
 		err = yaml.Unmarshal(kubeconfigBytes, &kubeconfig)
 		if err != nil {
-			return nil, fmt.Errorf("error unmarshaling kubeconfig YAML for %v: %v", kubeconfigBytes, err)
+			return nil, fmt.Errorf("error unmarshaling kubeconfig YAML for %s: %w", kubeconfigBytes, err)
 		}
 	} else {
-		return nil, fmt.Errorf("error could not find kubeconfig at %v: %v", kubeconfigPath, err)
+		return nil, fmt.Errorf("error could not find kubeconfig at %s: %w", kubeconfigPath, err)
 	}
 	return &kubeconfig, nil
 }
@@ -66,10 +66,10 @@ func GetKubeconfigBytes(kubeconfigPath string) ([]byte, error) {
 	if _, err := os.Stat(kubeconfigPath); err == nil {
 		kubeconfigBytes, err = os.ReadFile(kubeconfigPath)
 		if err != nil {
-			return nil, fmt.Errorf("error reading kubeconfig file at %v: %v", kubeconfigPath, err)
+			return nil, fmt.Errorf("error reading kubeconfig file at %s: %w", kubeconfigPath, err)
 		}
 	} else {
-		return nil, fmt.Errorf("error could not find kubeconfig at %v: %v", kubeconfigPath, err)
+		return nil, fmt.Errorf("error could not find kubeconfig at %s: %w", kubeconfigPath, err)
 	}
 
 	return kubeconfigBytes, nil
@@ -80,7 +80,19 @@ func GetKubeconfigBytes(kubeconfigPath string) ([]byte, error) {
 func GetRESTConfigFromBytes(kubeconfig []byte) (*rest.Config, error) {
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting Rest Config from kubeconfig bytes: %v", err)
+		return nil, fmt.Errorf("error while getting Rest Config from kubeconfig bytes: %w", err)
+	}
+	return restConfig, nil
+}
+
+func GetRESTConfigFromPath(kubeconfigPath string) (*rest.Config, error) {
+	clusterKubeconfig, err := GetKubeconfigBytes(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	restConfig, err := GetRESTConfigFromBytes(clusterKubeconfig)
+	if err != nil {
+		return nil, fmt.Errorf("error getting REST Config for Kubeconfig at %s:\n%w", kubeconfigPath, err)
 	}
 	return restConfig, nil
 }
