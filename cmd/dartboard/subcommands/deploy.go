@@ -111,7 +111,7 @@ func Deploy(cli *cli.Context) error {
 		return err
 	}
 
-	// Setup rancher
+	// Setup rancher client
 	upstreamAdd, err := getAppAddressFor(upstream)
 	if err != nil {
 		return err

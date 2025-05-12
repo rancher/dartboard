@@ -2,7 +2,9 @@ package actions
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/rancher/dartboard/internal/dart"
@@ -26,10 +28,11 @@ import (
 
 	provv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const fleetNamespace = "fleet-default"
+
+var maxWorkers = runtime.GOMAXPROCS(0) * 2
 
 func NewRancherConfig(host, adminToken, adminPassword string, insecure bool) rancher.Config {
 	defaultBool := false
@@ -43,13 +46,11 @@ func NewRancherConfig(host, adminToken, adminPassword string, insecure bool) ran
 }
 
 func SetupRancherClient(rancherConfig *rancher.Config, bootstrapPassword string, session *session.Session) (*rancher.Client, error) {
-	// adminToken, err := pipeline.CreateAdminToken(bootstrapPassword, rancherConfig)
-
 	adminUser := &management.User{
 		Username: "admin",
 		Password: "adminadminadmin",
 	}
-	logrus.Printf("Rancher Config:\nHost: %v\nAdminPassword: %v\nAdminToken: %v\nInsecure: %v", rancherConfig.Host, rancherConfig.AdminPassword, rancherConfig.AdminToken, *rancherConfig.Insecure)
+	fmt.Printf("Rancher Config:\nHost: %s\nAdminPassword: %s\nAdminToken: %s\nInsecure: %t\n", rancherConfig.Host, rancherConfig.AdminPassword, rancherConfig.AdminToken, *rancherConfig.Insecure)
 	adminToken, err := shepherdtokens.GenerateUserToken(adminUser, rancherConfig.Host)
 
 	if err != nil {
@@ -105,7 +106,7 @@ func ProvisionDownstreamClusterBatch(r *dart.Dart, template dart.ClusterTemplate
 	numSkippedClusters := 0
 	clusterStatePath := fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, ClustersStateFile)
 
-	// Load or initialize []ClusterStatus
+	// Load or initialize map[string]*ClusterStatus
 	statuses, err := LoadClusterState(clusterStatePath)
 	if err != nil {
 		logrus.Fatalf("error loading Cluster state: %v\n", err)
@@ -121,8 +122,8 @@ func ProvisionDownstreamClusterBatch(r *dart.Dart, template dart.ClusterTemplate
 				Imported:        false,
 				ClusterTemplate: template,
 			}
-			statuses = append(statuses, newClusterStatus)
-			clusterStatus = &statuses[len(statuses)-1]
+			statuses[clusterName] = &newClusterStatus
+			clusterStatus = statuses[clusterName]
 			fmt.Printf("Did not find existing ClusterStatus object for Cluster with name %s.\n", clusterName)
 		} else {
 			fmt.Printf("Found existing ClusterStatus object for Cluster with name %s.\n", clusterName)
@@ -196,165 +197,196 @@ func ProvisionDownstreamClusters(r *dart.Dart, templates []dart.ClusterTemplate,
 	return nil
 }
 
-func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, batchSize int, rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
-	batchNum := 0
-	numClusters := len(clusters)
-	for i := 0; i < numClusters; i += batchSize {
-		// Number of clusters that can "fit" in this batch, if we have surpassed
-		// len(clusters) # of Clusters then just provision the leftovers
-		j := min(i+batchSize, numClusters)
-		batch := clusters[i:j]
-		numInBatch := len(batch)
-		fmt.Printf("Number of Clusters in batch: %d\n", numInBatch)
-		sleepAfterBatch, err := ImportDownstreamClusterBatch(r, batch, numInBatch, batchNum, rancherClient, rancherConfig)
+func importCluster(r *dart.Dart, cluster tofu.Cluster, statePath string, statuses map[string]*ClusterStatus, rancherClient *rancher.Client,
+	rancherConfig *rancher.Config, updates chan<- stateUpdate) (skipped bool, err error) {
+	stateMutex.Lock()
+	clusterStatus := FindOrCreateStatusByName(statuses, cluster.Name)
+	clusterStatus.Cluster = cluster
+	stateMutex.Unlock()
+	updates <- stateUpdate{}
+
+	fmt.Printf("Found existing ClusterStatus object for Cluster with name %s.\n", cluster.Name)
+	if clusterStatus.Imported {
+		fmt.Printf("Cluster %s has already been imported, skipping...\n", clusterStatus.Name)
+		return true, nil
+	}
+	fmt.Printf("Continuing with cluster creation...\n")
+
+	importCluster := provv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cluster.Name,
+			Namespace: fleetNamespace,
+		},
+	}
+
+	if !clusterStatus.Created {
+		_, err = CreateK3SRKE2Cluster(rancherClient, rancherConfig, &importCluster)
 		if err != nil {
-			return fmt.Errorf("error while importing clusters in batches: %v", err)
+			return false, fmt.Errorf("error while creating Steve Cluster with Name %v:\n%w", importCluster.Name, err)
 		}
-		batchNum += 1
-		fmt.Printf("Finished importing Cluster batch.\n")
-		if sleepAfterBatch {
-			fmt.Printf("Sleeping between batches.\n")
+		stateMutex.Lock()
+		clusterStatus.Created = true
+		// err = SaveClusterState(statePath, *statuses)
+		stateMutex.Unlock()
+		updates <- stateUpdate{}
+		if err != nil {
+			return false, fmt.Errorf("error during ClusterStatus save after Cluster creation: %w", err)
+		}
+		fmt.Printf("Cluster named %s was created.\n", importCluster.Name)
+	}
+
+	updatedCluster := new(provv1.Cluster)
+	err = BackoffWait(30, func() (finished bool, err error) {
+		updatedCluster, _, err = shepherdclusters.GetProvisioningClusterByName(rancherClient, importCluster.Name, importCluster.Namespace)
+		if err != nil {
+			return false, fmt.Errorf("error while getting Cluster by Name %v in Namespace %v:\n%w", importCluster.Name, importCluster.Namespace, err)
+		}
+
+		if updatedCluster.Status.ClusterName != "" {
+			return true, nil
+		}
+
+		return false, nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	restConfig, err := GetRESTConfigFromPath(cluster.Kubeconfig)
+	if err != nil {
+		return false, err
+	}
+	// Apply client-side rate limiting
+	restConfig.QPS = 50
+	restConfig.Burst = 100
+
+	fmt.Printf("Importing Cluster: %s\n", updatedCluster.Status.ClusterName)
+	err = shepherdclusters.ImportCluster(rancherClient, updatedCluster, restConfig)
+	if err != nil {
+		return false, fmt.Errorf("error while creating Job for importing Cluster %v:\n%w", updatedCluster.Name, err)
+	}
+
+	err = BackoffWait(100, func() (finished bool, err error) {
+		updatedCluster, _, err = shepherdclusters.GetProvisioningClusterByName(rancherClient, importCluster.Name, importCluster.Namespace)
+		if err != nil {
+			return false, fmt.Errorf("error while getting Cluster by Name %v in Namespace %v:\n%w", importCluster.Name, importCluster.Namespace, err)
+		}
+
+		return updatedCluster.Status.Ready, nil
+	})
+	if err != nil {
+		return false, err
+	}
+	stateMutex.Lock()
+	clusterStatus.Imported = true
+	// err = SaveClusterState(statePath, *statuses)
+	stateMutex.Unlock()
+	updates <- stateUpdate{}
+	if err != nil {
+		return false, err
+	}
+	fmt.Printf("Cluster named %s was imported.\n", updatedCluster.Name)
+
+	podErrors := pods.StatusPodsWithTimeout(rancherClient, updatedCluster.Status.ClusterName, shepherddefaults.OneMinuteTimeout)
+	if len(podErrors) > 0 {
+		errorStrings := make([]string, len(podErrors))
+		for i, e := range podErrors {
+			errorStrings[i] = e.Error()
+		}
+		return false, fmt.Errorf("error while checking Status of Pods in Cluster %v:\n%s", updatedCluster.Status.ClusterName, strings.Join(errorStrings, "\n"))
+	}
+
+	return false, nil
+}
+
+func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, batchSize int, rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
+	clusterStatePath := fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, ClustersStateFile)
+	statuses, err := LoadClusterState(clusterStatePath)
+	if err != nil {
+		return err
+	}
+
+	// channel for all write requests
+	updates := make(chan stateUpdate, len(clusters)*2)
+	defer close(updates)
+
+	// start writer goroutine
+	go func() {
+		for range updates {
+			stateMutex.Lock()
+			if err := SaveClusterState(clusterStatePath, statuses); err != nil {
+				fmt.Printf("error saving state: %v", err)
+			}
+			stateMutex.Unlock()
+		}
+	}()
+
+	// Enqueue clusters in batches and collect results
+	for i := 0; i < len(clusters); i += batchSize {
+		jobs := make(chan tofu.Cluster, len(clusters))
+		results := make(chan struct {
+			skipped bool
+			err     error
+		}, len(clusters))
+
+		// Spawn N workers per batch
+		var wg sync.WaitGroup
+		for w := 0; w < maxWorkers; w++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done() // decrement WaitGroup counter by one after each goroutine is done
+				for c := range jobs {
+					skipped, err := importCluster(r, c, clusterStatePath, statuses, rancherClient, rancherConfig, updates)
+					results <- struct {
+						skipped bool
+						err     error
+					}{skipped, err}
+				}
+			}()
+		}
+
+		j := min(i+batchSize, len(clusters))
+		batch := clusters[i:j]
+
+		// Send this batch as jobs
+		for _, c := range batch {
+			jobs <- c
+		}
+		close(jobs)
+
+		// Reset skip count for this batch
+		numSkipped := 0
+		sleepAfter := false
+		// Collect batch results
+		for range batch {
+			res := <-results
+
+			if res.err != nil {
+				return fmt.Errorf("import error: %w", res.err)
+			}
+			if res.skipped {
+				numSkipped++
+			}
+			// Decide whether to sleep before propagating error
+			sleepAfter = numSkipped < len(batch)/2
+		}
+
+		// After finishing this batch:
+		if sleepAfter {
+			// If fewer than half were skipped, go straight into the next batch
+			fmt.Printf("Batch done: %d/%d skipped; continuing without sleep.\n", numSkipped, len(batch))
+		} else {
+			// Otherwise, sleep briefly
 			time.Sleep(shepherddefaults.TwoMinuteTimeout)
+			fmt.Printf("Batch done: %d/%d skipped; sleeping before next batch.\n", numSkipped, len(batch))
 		}
+
+		// Wait for all of the batch's workers to be Done and close the batch's results channel
+		wg.Wait()
+		close(results)
 	}
 
 	return nil
-}
-
-// Import Clusters in batches matching batchSize, tracking the state of each in a ClusterStatus struct which gets saved in a statefile within the Tofu module's "_config" dir
-// returns a bool which determines whether or not to sleep after this batch (will NOT sleep if less than half of the clusters in the batch were skipped)
-func ImportDownstreamClusterBatch(r *dart.Dart, clusters []tofu.Cluster, batchSize int, batchNum int, rancherClient *rancher.Client, rancherConfig *rancher.Config) (sleepAfterBatch bool, err error) {
-	iter := 0
-	numSkippedClusters := 0
-	clusterStatePath := fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, ClustersStateFile)
-
-	// Load or initialize []ClusterStatus
-	statuses, err := LoadClusterState(clusterStatePath)
-	if err != nil {
-		logrus.Fatalf("error loading Cluster state: %v\n", err)
-	}
-
-	for _, cluster := range clusters {
-		clusterStatus := FindClusterStatusByName(statuses, cluster.Name)
-		if clusterStatus == nil {
-			newClusterStatus := ClusterStatus{
-				Name:     cluster.Name,
-				Created:  false,
-				Imported: false,
-				Cluster:  cluster,
-			}
-			statuses = append(statuses, newClusterStatus)
-			clusterStatus = &statuses[len(statuses)-1]
-			fmt.Printf("Did not find existing ClusterStatus object for Cluster with name %s.\n", cluster.Name)
-		} else {
-			fmt.Printf("Found existing ClusterStatus object for Cluster with name %s.\n", cluster.Name)
-			if clusterStatus.Imported {
-				fmt.Printf("Cluster %s has already been imported, skipping...\n", clusterStatus.Name)
-				numSkippedClusters += 1
-				continue
-			}
-		}
-		fmt.Printf("Continuing with cluster creation...\n")
-
-		importCluster := provv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      cluster.Name,
-				Namespace: fleetNamespace,
-			},
-		}
-
-		if !clusterStatus.Created {
-			_, err = CreateK3SRKE2Cluster(rancherClient, rancherConfig, &importCluster)
-			if err != nil {
-				return (numSkippedClusters < batchSize/2), fmt.Errorf("error while creating Steve Cluster with Name %v:\n%v", importCluster.Name, err)
-			}
-			clusterStatus.Created = true
-			err = SaveClusterState(clusterStatePath, statuses)
-			if err != nil {
-				return (numSkippedClusters < batchSize/2), err
-			}
-		}
-
-		backoff := wait.Backoff{
-			Duration: 1 * time.Second,
-			Factor:   1.1,
-			Jitter:   0.1,
-			Steps:    30,
-		}
-
-		updatedCluster := new(provv1.Cluster)
-		err = wait.ExponentialBackoff(backoff, func() (finished bool, err error) {
-			updatedCluster, _, err = shepherdclusters.GetProvisioningClusterByName(rancherClient, importCluster.Name, importCluster.Namespace)
-			if err != nil {
-				return false, fmt.Errorf("error while getting Cluster by Name %v in Namespace %v:\n%v", importCluster.Name, importCluster.Namespace, err)
-			}
-
-			if updatedCluster.Status.ClusterName != "" {
-				return true, nil
-			}
-
-			return false, nil
-		})
-		if err != nil {
-			return (numSkippedClusters < batchSize/2), err
-		}
-
-		clusterKubeconfig, err := GetKubeconfigBytes(cluster.Kubeconfig)
-		if err != nil {
-			return (numSkippedClusters < batchSize/2), err
-		}
-		restConfig, err := GetRESTConfigFromBytes(clusterKubeconfig)
-		if err != nil {
-			return (numSkippedClusters < batchSize/2), fmt.Errorf("error getting REST Config for Import Cluster %v:\n%v", importCluster.Name, err)
-		}
-
-		fmt.Printf("Importing Cluster: %s", updatedCluster.Status.ClusterName)
-		err = shepherdclusters.ImportCluster(rancherClient, updatedCluster, restConfig)
-		if err != nil {
-			return (numSkippedClusters < batchSize/2), fmt.Errorf("error while creating Job for importing Cluster %v:\n%v", updatedCluster.Name, err)
-		}
-
-		backoff = wait.Backoff{
-			Duration: 1 * time.Second,
-			Factor:   1.1,
-			Jitter:   0.1,
-			Steps:    100,
-		}
-
-		err = wait.ExponentialBackoff(backoff, func() (finished bool, err error) {
-			updatedCluster, _, err = shepherdclusters.GetProvisioningClusterByName(rancherClient, importCluster.Name, importCluster.Namespace)
-			if err != nil {
-				return false, fmt.Errorf("error while getting Cluster by Name %v in Namespace %v:\n%v", importCluster.Name, importCluster.Namespace, err)
-			}
-
-			if updatedCluster.Status.Ready {
-				return true, nil
-			}
-
-			return false, nil
-		})
-		if err != nil {
-			return (numSkippedClusters < batchSize/2), err
-		}
-		clusterStatus.Imported = true
-		err = SaveClusterState(clusterStatePath, statuses)
-		if err != nil {
-			return (numSkippedClusters < batchSize/2), err
-		}
-
-		podErrors := pods.StatusPodsWithTimeout(rancherClient, updatedCluster.Status.ClusterName, 3*shepherddefaults.TenSecondTimeout)
-		if len(podErrors) > 0 {
-			var errorStrings []string
-			for _, e := range podErrors {
-				errorStrings = append(errorStrings, e.Error())
-			}
-			return (numSkippedClusters < batchSize/2), fmt.Errorf("error while checking Status of Pods in Cluster %v:\n%s", updatedCluster.Status.ClusterName, strings.Join(errorStrings, "\n"))
-		}
-
-		iter += 1
-	}
-
-	return (numSkippedClusters < batchSize/2), nil
 }
 
 func ImportDownstreamClusters(r *dart.Dart, clusters []tofu.Cluster, batchSize int, rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
