@@ -13,7 +13,6 @@ import (
 	shepherdclusters "github.com/rancher/shepherd/extensions/clusters"
 	shepherddefaults "github.com/rancher/shepherd/extensions/defaults"
 	shepherdtokens "github.com/rancher/shepherd/extensions/token"
-	"github.com/rancher/shepherd/extensions/workloads/pods"
 	"github.com/rancher/shepherd/pkg/session"
 	shepherdwait "github.com/rancher/shepherd/pkg/wait"
 
@@ -309,7 +308,7 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 	br.seqCh <- struct{}{}
 	fmt.Printf("Cluster named %s was imported.\n", updatedCluster.Name)
 
-	podErrors := pods.StatusPodsWithTimeout(rancherClient, updatedCluster.Status.ClusterName, shepherddefaults.OneMinuteTimeout)
+	podErrors := StatusPodsWithTimeout(rancherClient, updatedCluster.Status.ClusterName, shepherddefaults.OneMinuteTimeout)
 	if len(podErrors) > 0 {
 		errorStrings := make([]string, len(podErrors))
 		for i, e := range podErrors {
