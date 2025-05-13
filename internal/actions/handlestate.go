@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/rancher/dartboard/internal/dart"
-	"github.com/rancher/dartboard/internal/tofu"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -16,9 +14,9 @@ type ClusterStatus struct {
 	Imported    bool   `yaml:"imported"`
 	Provisioned bool   `yaml:"provisioned"`
 	Stage       Stage  `yaml:"stage"`
-	// Only one of the following should be included
-	tofu.Cluster         `yaml:"cluster,omitempty"`          //For Imported Clusters
-	dart.ClusterTemplate `yaml:"cluster_template,omitempty"` //For Provisioned Clusters
+	// // Only one of the following should be included
+	// tofu.Cluster         `yaml:"cluster,omitempty"`          //For Imported Clusters
+	// dart.ClusterTemplate `yaml:"cluster_template,omitempty"` //For Provisioned Clusters
 }
 
 const ClustersStateFile = "clusters_state.yaml"
