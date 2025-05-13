@@ -23,7 +23,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/rancher/dartboard/internal/dart"
@@ -140,12 +142,7 @@ func Deploy(cli *cli.Context) error {
 			downstreamClusters = append(downstreamClusters, v)
 		}
 	}
-	// Naively sort downstream clusters
-	// This does not actually sort in the way we want, due to how we name clusters like "downstream-0-5"
-	// TODO: Implement a true "natural" sort for this
-	sort.Slice(downstreamClusters, func(i, j int) bool {
-		return downstreamClusters[i].Name < downstreamClusters[j].Name
-	})
+	SortItemsNaturally(downstreamClusters, func(c tofu.Cluster) string { return c.Name })
 
 	jsonBytes, err := json.MarshalIndent(downstreamClusters, "", "    ")
 	if err != nil {
@@ -155,7 +152,7 @@ func Deploy(cli *cli.Context) error {
 	fmt.Println("Import Clusters:\n", string(jsonBytes))
 
 	log.Printf("Importing Downstream Clusters")
-	if err = actions.ImportDownstreamClusters(r, downstreamClusters, r.ClusterBatchSize, rancherClient, &rancherConfig); err != nil {
+	if err = actions.ImportDownstreamClusters(r, downstreamClusters, rancherClient, &rancherConfig); err != nil {
 		return err
 	}
 
@@ -200,7 +197,7 @@ func Deploy(cli *cli.Context) error {
 		}
 
 		log.Printf("Provisioning Downstream Clusters")
-		if err = actions.ProvisionDownstreamClusters(r, provisionClusterTemplates, r.ClusterBatchSize, rancherClient); err != nil {
+		if err = actions.ProvisionDownstreamClusters(r, provisionClusterTemplates, rancherClient); err != nil {
 			return err
 		}
 	}
@@ -543,4 +540,38 @@ func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname
 	}
 
 	return result
+}
+
+// naturalCompare compares strings a and b in "natural" alphanumeric order
+func naturalCompare(a, b string) bool {
+	var tokenRegex = regexp.MustCompile(`\d+|\D+`)
+	// split into tokens of numbers
+	aTokens := tokenRegex.FindAllString(a, -1)
+	bTokens := tokenRegex.FindAllString(b, -1)
+	for i := 0; i < len(aTokens) && i < len(bTokens); i++ {
+		aTok, bTok := aTokens[i], bTokens[i]
+		// If both tokens are numeric, compare as integers
+		if aNum, errA := strconv.Atoi(aTok); errA == nil {
+			if bNum, errB := strconv.Atoi(bTok); errB == nil {
+				if aNum != bNum {
+					return aNum < bNum
+				}
+				continue // numbers are equal, move to next token
+			}
+		}
+		// Fallback to default lexicographic compare
+		if aTok != bTok {
+			return aTok < bTok
+		}
+	}
+	// If all shared tokens are equal, the shorter string is less
+	return len(aTokens) < len(bTokens)
+}
+
+// SortItemsNaturally ia a generic function that sorts a slice of a given type
+// by "Name" (any provided string) using natural order
+func SortItemsNaturally[T any](items []T, getName func(T) string) {
+	sort.Slice(items, func(i, j int) bool {
+		return naturalCompare(getName(items[i]), getName(items[j]))
+	})
 }
