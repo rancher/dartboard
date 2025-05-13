@@ -90,12 +90,12 @@ main() {
     while [ "${to_seconds}" -gt "${from_seconds}" ]; do
 
         # reduce offset_seconds when last query time range will be less than offset
-        if [ $((${to_seconds} - ${from_seconds})) -lt ${offset_seconds} ]; then
-            offset_seconds=$((${to_seconds} - ${from_seconds}))
+        if [ $((to_seconds - from_seconds)) -lt "${offset_seconds}" ]; then
+            offset_seconds=$((to_seconds - from_seconds))
         fi
 
         # set date range for query
-        range=$((${to_seconds} - ${offset_seconds}))
+        range=$((to_seconds - offset_seconds))
 
         if [ "$os_uname" = "Darwin" ]; then 
             #convert seconds to date for macOS
@@ -146,7 +146,7 @@ main() {
         rm -r prometheus-export
 
         # increment time range by offset_seconds
-        to_seconds=$((${to_seconds} - ${offset_seconds}))
+        to_seconds=$((to_seconds - offset_seconds))
 
         # wait
         sleep 5
