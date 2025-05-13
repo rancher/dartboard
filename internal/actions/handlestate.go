@@ -35,6 +35,8 @@ const (
 // Gives a human-readable name for the Stage.
 func (s Stage) String() string {
 	switch s {
+	case StageNew:
+		return "New"
 	case StageCreated:
 		return "Created"
 	case StageImported:
