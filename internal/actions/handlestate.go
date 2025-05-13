@@ -128,11 +128,11 @@ func FindOrCreateStatusByName(statuses map[string]*ClusterStatus, name string) *
 			Provisioned: false,
 		}
 		statuses[name] = &newClusterStatus
-		fmt.Println("Created new ClusterStatus object. ClusterStatus. \"Cluster\" field must be set appropriately.")
+		fmt.Println("Created new ClusterStatus object. ClusterStatus.")
 
 		return statuses[name]
 	}
 
-	fmt.Printf("Found ClusterStatus object named %s. ClusterStatus. \"Cluster\" field must be set appropriately.\n", name)
+	fmt.Printf("Found ClusterStatus object named %s. ClusterStatus.", name)
 	return clusterStatus
 }
