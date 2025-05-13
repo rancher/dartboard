@@ -73,7 +73,7 @@ main() {
     kubectl apply -f "${PWD}"/mimirtool.yaml
 
     # wait for mimirtool pod to start
-    sleep 5
+    sleep 10
 
     # confirm mimirtool pod is running
     kubectl exec -n cattle-monitoring-system mimirtool --insecure-skip-tls-verify -i -t -- ls 1> /dev/null || exit 1
@@ -127,17 +127,23 @@ main() {
         # clear export data from pod 
         kubectl exec -n cattle-monitoring-system mimirtool --insecure-skip-tls-verify -i -t -- rm -rf prometheus-export
 
-        # unpack, navigate
+        # unpack, navigate, clean
         tar xf prometheus-export-"${ts2}".tar.gz 1> /dev/null
         cd prometheus-export
+        rm -r wal
 
         # aggregate tsdb
-        cp -R $(ls | grep -v "wal") ../ || printf " - No blocks to copy \n"
-        
+        tsdb_count=$(find "$PWD" -type d -not -path '*/.*' -mindepth 1 | wc -l)
+        if [ "$tsdb_count" -eq 0 ]; then
+            printf " - No blocks to copy \n"
+            rm ../prometheus-export-"${ts2}".tar.gz
+        else
+            cp -R "${PWD}"/* ../
+        fi
 
-        # cleanup
+        # navigate, cleanup
         cd ../
-        rm -rf prometheus-export
+        rm -r prometheus-export
 
         # increment time range by offset_seconds
         to_seconds=$((${to_seconds} - ${offset_seconds}))
@@ -151,7 +157,8 @@ main() {
     kubectl delete pod -n cattle-monitoring-system mimirtool
 
     # output command to run prometheus graph on metrics data (locally via docker, overlapping/obsolete blocks are handled during compaction)
-    printf "\n\e[32mMetrics import complete!\e[0m\nView metrics data locally via docker:\n\n"
+    printf "\n\e[32mMetrics import complete!\e[0m\nCopy and/or view metrics data locally:\n\n"
+    printf "scp -r -i path/for/key user@address:/path/on/remote/metrics-\* /path/for/local/ \n\n"
     printf "docker run --rm -u %s -ti -p 9090:9090 -v ${PWD}:/prometheus rancher/mirrored-prometheus-prometheus:v2.42.0 --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=1y --config.file=/dev/null \n\n" "$(id -u)"
 
 }
