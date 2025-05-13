@@ -23,10 +23,11 @@ type Dart struct {
 	ClusterBatchSize       int               `yaml:"cluster_batch_size"`
 	ClusterTemplates       []ClusterTemplate `yaml:"cluster_template"`
 	TestVariables          TestVariables     `yaml:"test_variables"`
-	TofuWorkspaceStatePath string
+	TofuWorkspaceStatePath string            `yaml:"-"` // omit from YAML output
 }
 
 type ClusterTemplate struct {
+	generatedName string
 	NamePrefix    string                    `yaml:"name_prefix"`
 	Config        *provisioninginput.Config `yaml:"provisioning_config"`
 	DistroVersion string                    `yaml:"distro_version"`
@@ -116,4 +117,12 @@ func needsPrime(version string) bool {
 	patch, _ := strconv.Atoi(versionSplits[2])
 	return (major == 2 && minor == 7 && patch >= 11) ||
 		(major == 2 && minor == 8 && patch >= 6)
+}
+
+func (ct *ClusterTemplate) SetGeneratedName(suffix string) {
+	ct.generatedName = fmt.Sprintf("%s-%s", ct.NamePrefix, suffix)
+}
+
+func (ct *ClusterTemplate) GeneratedName() string {
+	return ct.generatedName
 }

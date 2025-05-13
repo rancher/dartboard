@@ -2,6 +2,7 @@ package actions
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 	shepherddefaults "github.com/rancher/shepherd/extensions/defaults"
 	"github.com/sirupsen/logrus"
 )
+
+var maxWorkers = runtime.GOMAXPROCS(0) * 2
 
 // Mutex to sync map[string]*ClusterStatus mutations and file writes
 var stateMutex sync.Mutex
@@ -27,15 +30,23 @@ type jobResult struct {
 	err     error
 }
 
+type JobDataTypes interface {
+	tofu.Cluster | dart.ClusterTemplate
+}
+
+type job[T JobDataTypes] struct {
+	Data T
+}
+
 // SequencedBatchRunner contains all the channels and WaitGroups needed
-// for processing a batch of Clusters
-type SequencedBatchRunner struct {
+// for processing a batch of Clusters concurrently with sequenced state updates
+type SequencedBatchRunner[J JobDataTypes] struct {
 	// Channel to sequence updates
 	seqCh chan struct{}
 	// Channel for all write requests
 	Updates chan stateUpdate
 	// Channel for batch jobs
-	Jobs chan tofu.Cluster
+	Jobs chan J
 	// Channel for each individual job's results/error output
 	Results chan jobResult
 
@@ -44,12 +55,12 @@ type SequencedBatchRunner struct {
 	wgWriter  sync.WaitGroup
 }
 
-// NewBatchRunner constructs a new runner for one batch.
-func NewSequencedBatchRunner(batchSize int) *SequencedBatchRunner {
-	br := &SequencedBatchRunner{
+// NewSequencedBatchRunner constructs a new runner for one batch
+func NewSequencedBatchRunner[J JobDataTypes](batchSize int) *SequencedBatchRunner[J] {
+	br := &SequencedBatchRunner[J]{
 		Updates: make(chan stateUpdate, batchSize*3),
 		seqCh:   make(chan struct{}, 1),
-		Jobs:    make(chan tofu.Cluster, batchSize),
+		Jobs:    make(chan J, batchSize),
 		Results: make(chan jobResult, batchSize),
 	}
 	// seed the sequencer
@@ -58,7 +69,7 @@ func NewSequencedBatchRunner(batchSize int) *SequencedBatchRunner {
 }
 
 // Run executes the batch: starts the file writer, workers, enqueues jobs, collects results
-func (br *SequencedBatchRunner) Run(batch []tofu.Cluster, r *dart.Dart, statuses map[string]*ClusterStatus,
+func (br *SequencedBatchRunner[J]) Run(batch []J, r *dart.Dart, statuses map[string]*ClusterStatus,
 	statePath string, client *rancher.Client, config *rancher.Config) error {
 	// Start writer
 	br.wgWriter.Add(1)
@@ -84,10 +95,7 @@ func (br *SequencedBatchRunner) Run(batch []tofu.Cluster, r *dart.Dart, statuses
 		res := <-br.Results
 		if res.err != nil {
 			// Clean up in case of error
-			br.wgWorkers.Wait()
-			close(br.Updates)
-			br.wgWriter.Wait()
-			close(br.Results)
+			br.Wait()
 			return fmt.Errorf("error during batch run: %w", res.err)
 		}
 		if res.skipped {
@@ -108,25 +116,31 @@ func (br *SequencedBatchRunner) Run(batch []tofu.Cluster, r *dart.Dart, statuses
 	}
 
 	// Clean up
+	br.Wait()
+	return nil
+}
+
+func (br *SequencedBatchRunner[J]) Wait() {
 	br.wgWorkers.Wait()
 	close(br.Updates)
 	br.wgWriter.Wait()
 	close(br.Results)
-	return nil
 }
 
-// TODO: Make this more generic so we can utilize it across all Cluster Registration scenarios
-// writer serializes all state updates and persists immediately.
-func (br *SequencedBatchRunner) writer(statuses map[string]*ClusterStatus, statePath string) {
+// writer serializes all state updates and persists immediately
+func (br *SequencedBatchRunner[J]) writer(statuses map[string]*ClusterStatus, statePath string) {
 	defer br.wgWriter.Done()
 	for u := range br.Updates {
 		stateMutex.Lock()
 		cs := statuses[u.Name]
+		cs.Stage = u.Stage
 		switch u.Stage {
 		case StageCreated:
 			cs.Created = true
 		case StageImported:
 			cs.Imported = true
+		case StageProvisioned:
+			cs.Provisioned = true
 		}
 		if err := SaveClusterState(statePath, statuses); err != nil {
 			logrus.Errorf("failed to save state for %s:%s: %v", u.Name, u.Stage, err)
@@ -135,12 +149,21 @@ func (br *SequencedBatchRunner) writer(statuses map[string]*ClusterStatus, state
 	}
 }
 
-// TODO: Make this more generic so we can utilize it across all Cluster Registration scenarios
-// worker consumes Jobs, calls importClusterWithRunner, signals Updates and Results.
-func (br *SequencedBatchRunner) worker(statuses map[string]*ClusterStatus, client *rancher.Client, config *rancher.Config) {
+// worker consumes Jobs, calls importClusterWithRunner, signals Updates and Results
+func (br *SequencedBatchRunner[J]) worker(statuses map[string]*ClusterStatus, client *rancher.Client, config *rancher.Config) {
 	defer br.wgWorkers.Done()
-	for c := range br.Jobs {
-		skipped, err := importClusterWithRunner(br, c, statuses, client, config)
+	for job := range br.Jobs {
+		var skipped bool
+		var err error
+		// Use type assertion to determine which function to call
+		switch typedJob := any(job).(type) {
+		case tofu.Cluster:
+			skipped, err = importClusterWithRunner(br, typedJob, statuses, client, config)
+		case dart.ClusterTemplate:
+			skipped, err = provisionClusterWithRunner(br, typedJob, statuses, client)
+		default:
+			err = fmt.Errorf("unsupported job type: %T", job)
+		}
 		br.Results <- jobResult{skipped: skipped, err: err}
 		if err != nil {
 			return
