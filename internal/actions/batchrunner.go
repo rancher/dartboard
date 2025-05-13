@@ -15,7 +15,7 @@ import (
 
 var maxWorkers = runtime.GOMAXPROCS(0) * 2
 
-// Mutex to sync map[string]*ClusterStatus mutations and file writes
+// Mutex to sync map[string]*ClusterStatus mutations and state file writes
 var stateMutex sync.Mutex
 
 // stateUpdate is a simple "signaling" struct for the file writer goroutine to persist state
@@ -32,10 +32,6 @@ type jobResult struct {
 
 type JobDataTypes interface {
 	tofu.Cluster | dart.ClusterTemplate
-}
-
-type job[T JobDataTypes] struct {
-	Data T
 }
 
 // SequencedBatchRunner contains all the channels and WaitGroups needed
@@ -149,7 +145,7 @@ func (br *SequencedBatchRunner[J]) writer(statuses map[string]*ClusterStatus, st
 	}
 }
 
-// worker consumes Jobs, calls importClusterWithRunner, signals Updates and Results
+// worker consumes Jobs, calls the proper handler based on the Job Type, signals Updates and Results
 func (br *SequencedBatchRunner[J]) worker(statuses map[string]*ClusterStatus, client *rancher.Client, config *rancher.Config) {
 	defer br.wgWorkers.Done()
 	for job := range br.Jobs {

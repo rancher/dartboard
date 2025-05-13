@@ -70,12 +70,12 @@ func SetupRancherClient(rancherConfig *rancher.Config, bootstrapPassword string,
 	return client, err
 }
 
-func ProvisionDownstreamClusters(r *dart.Dart, templates []dart.ClusterTemplate, batchSize int, rancherClient *rancher.Client) error {
-	if batchSize <= 0 {
+func ProvisionDownstreamClusters(r *dart.Dart, templates []dart.ClusterTemplate, rancherClient *rancher.Client) error {
+	if r.ClusterBatchSize <= 0 {
 		panic("ClusterBatchSize must be > 0")
 	}
 	for _, template := range templates {
-		err := ProvisionClustersInBatches(r, template, batchSize, rancherClient)
+		err := ProvisionClustersInBatches(r, template, rancherClient)
 		if err != nil {
 			return err
 		}
@@ -83,9 +83,9 @@ func ProvisionDownstreamClusters(r *dart.Dart, templates []dart.ClusterTemplate,
 	return nil
 }
 
-// Provisions clusters in "batches" where batchSize is the maximum # of clusters to provision before sleeping for a short period and continuing
+// Provisions clusters in "batches" where r.ClusterBatchSize is the maximum # of clusters to provision before sleeping for a short period and continuing
 // This will continue to provision clusters until template.ClusterCount # of Clusters have been provisioned
-func ProvisionClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, batchSize int, rancherClient *rancher.Client) error {
+func ProvisionClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, rancherClient *rancher.Client) error {
 	clusterStatePath := fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, ClustersStateFile)
 	statuses, err := LoadClusterState(clusterStatePath)
 	if err != nil {
@@ -94,10 +94,10 @@ func ProvisionClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, bat
 
 	batchNum := 0
 	// Create batches of clusters from the template
-	for i := 0; i < template.ClusterCount; i += batchSize {
+	for i := 0; i < template.ClusterCount; i += r.ClusterBatchSize {
 		// Create a batch of templates with unique names
-		batchTemplates := make([]dart.ClusterTemplate, 0, batchSize)
-		j := min(i+batchSize, template.ClusterCount)
+		batchTemplates := make([]dart.ClusterTemplate, 0, r.ClusterBatchSize)
+		j := min(i+r.ClusterBatchSize, template.ClusterCount)
 
 		// Generate the name for each instance of the template and add the template instances to the batchTemplates slice
 		for k := i; k < j; k++ {
@@ -191,8 +191,8 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 	return false, nil
 }
 
-func ImportDownstreamClusters(r *dart.Dart, clusters []tofu.Cluster, batchSize int, rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
-	if batchSize <= 0 {
+func ImportDownstreamClusters(r *dart.Dart, clusters []tofu.Cluster, rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
+	if r.ClusterBatchSize <= 0 {
 		panic("ClusterBatchSize must be > 0")
 	}
 
@@ -200,7 +200,7 @@ func ImportDownstreamClusters(r *dart.Dart, clusters []tofu.Cluster, batchSize i
 		panic("No importable Clusters were provided")
 	}
 
-	err := ImportClustersInBatches(r, clusters, batchSize, rancherClient, rancherConfig)
+	err := ImportClustersInBatches(r, clusters, rancherClient, rancherConfig)
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func ImportDownstreamClusters(r *dart.Dart, clusters []tofu.Cluster, batchSize i
 	return nil
 }
 
-func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, batchSize int, rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
+func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
 	clusterStatePath := fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, ClustersStateFile)
 	statuses, err := LoadClusterState(clusterStatePath)
 	if err != nil {
@@ -216,8 +216,8 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, batchSize in
 	}
 
 	// Enqueue clusters in batches and collect results
-	for i := 0; i < len(clusters); i += batchSize {
-		j := min(i+batchSize, len(clusters))
+	for i := 0; i < len(clusters); i += r.ClusterBatchSize {
+		j := min(i+r.ClusterBatchSize, len(clusters))
 		batch := clusters[i:j]
 
 		batchRunner := NewSequencedBatchRunner[tofu.Cluster](len(batch))
