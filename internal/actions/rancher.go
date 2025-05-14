@@ -196,7 +196,7 @@ func ImportDownstreamClusters(r *dart.Dart, clusters []tofu.Cluster, rancherClie
 	}
 
 	if len(clusters) == 0 {
-		panic("No importable Clusters were provided")
+		fmt.Printf("No importable Clusters were provided.\n")
 	}
 
 	err := ImportClustersInBatches(r, clusters, rancherClient, rancherConfig)
@@ -318,4 +318,19 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 	}
 
 	return false, nil
+}
+
+func RegisterCustomClusters(r *dart.Dart, rancherClient *rancher.Client, rancherConfig *rancher.Config, clusters []dart.ClusterTemplate, nodes []tofu.Node) error {
+	cluster := &provv1.Cluster{}
+	clusterObject, err := CreateCustomCluster(rancherClient, rancherConfig, cluster, nodes)
+	reports.TimeoutClusterReport(clusterObject, err)
+	if err != nil {
+		return err
+	}
+
+	err = VerifyCluster(rancherClient, clusterObject)
+	if err != nil {
+		return err
+	}
+	return nil
 }

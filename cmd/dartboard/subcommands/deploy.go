@@ -19,9 +19,7 @@ package subcommands
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -30,7 +28,6 @@ import (
 
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/helm"
-	"github.com/rancher/dartboard/internal/kubectl"
 	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/rancher/shepherd/pkg/session"
 	"github.com/urfave/cli/v2"
@@ -66,20 +63,20 @@ func Deploy(cli *cli.Context) error {
 	}
 
 	// Helm charts
-	tester := clusters["tester"]
+	// tester := clusters["tester"]
 
-	if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, nil); err != nil {
-		return err
-	}
-	if err = chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, nil); err != nil {
-		return err
-	}
-	if err = chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, nil); err != nil {
-		return err
-	}
-	if err = chartInstallGrafana(r, &tester); err != nil {
-		return err
-	}
+	// if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, nil); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, nil); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, nil); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstallGrafana(r, &tester); err != nil {
+	// 	return err
+	// }
 
 	upstream := clusters["upstream"]
 	rancherVersion := r.ChartVariables.RancherVersion
@@ -96,26 +93,26 @@ func Deploy(cli *cli.Context) error {
 		}
 	}
 
-	if err = chartInstallCertManager(r, &upstream); err != nil {
-		return err
-	}
-	if err = chartInstallRancher(r, rancherImageTag, &upstream); err != nil {
-		return err
-	}
-	if err = chartInstallRancherIngress(&upstream); err != nil {
-		return err
-	}
-	if err = chartInstallCgroupsExporter(&upstream); err != nil {
-		return err
-	}
+	// if err = chartInstallCertManager(r, &upstream); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstallRancher(r, rancherImageTag, &upstream); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstallRancherIngress(&upstream); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstallCgroupsExporter(&upstream); err != nil {
+	// 	return err
+	// }
 
-	// Wait for Rancher deployments to be complete, or subsequent steps may fail
-	if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
-		return err
-	}
-	if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
-		return err
-	}
+	// // Wait for Rancher deployments to be complete, or subsequent steps may fail
+	// if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
+	// 	return err
+	// }
 
 	// Setup rancher client
 	upstreamAdd, err := getAppAddressFor(upstream)

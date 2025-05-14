@@ -3,16 +3,35 @@ package actions
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/rancher/dartboard/internal/tofu"
 	apisV1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
+	"github.com/rancher/tests/actions/clusters"
+	"github.com/rancher/tests/actions/registries"
+	"github.com/rancher/tests/actions/reports"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	mgmtv3 "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	shepherdclusters "github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/defaults"
 	shepherddefaults "github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/etcdsnapshot"
+	"github.com/rancher/shepherd/extensions/kubeconfig"
+	nodestat "github.com/rancher/shepherd/extensions/nodes"
+	"github.com/rancher/shepherd/extensions/tokenregistration"
+	"github.com/rancher/shepherd/extensions/workloads/pods"
+	shepherdnodes "github.com/rancher/shepherd/pkg/nodes"
 	"github.com/rancher/shepherd/pkg/wait"
 
+	"github.com/rancher/tests/actions/psact"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
@@ -20,19 +39,20 @@ import (
 
 // CreateK3SRKE2Cluster is a "helper" functions that takes a rancher client, and the rke2 cluster config as parameters.
 // This function registers a delete cluster function with a wait.WatchWait to ensure the cluster is removed cleanly
-func CreateK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, rke2Cluster *apisV1.Cluster) (*v1.SteveAPIObject, error) {
-	cluster, err := client.Steve.SteveType(shepherdclusters.ProvisioningSteveResourceType).Create(rke2Cluster)
+func CreateK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, cluster *apisV1.Cluster) (*v1.SteveAPIObject, error) {
+	clusterObj, err := client.Steve.SteveType(shepherdclusters.ProvisioningSteveResourceType).Create(cluster)
 	if err != nil {
 		return nil, err
 	}
 
-	err = kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
+	ctx := context.Background()
+	err = kwait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 2*time.Minute, true, func(c context.Context) (done bool, err error) {
 		client, err = client.ReLoginForConfig(config)
 		if err != nil {
 			return false, err
 		}
 
-		_, err = client.Steve.SteveType(shepherdclusters.ProvisioningSteveResourceType).ByID(cluster.ID)
+		_, err = client.Steve.SteveType(shepherdclusters.ProvisioningSteveResourceType).ByID(clusterObj.ID)
 		if err != nil {
 			return false, nil
 		}
@@ -55,8 +75,8 @@ func CreateK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, rke2Cl
 			return err
 		}
 
-		watchInterface, err := provKubeClient.Clusters(cluster.ObjectMeta.Namespace).Watch(context.TODO(), metav1.ListOptions{
-			FieldSelector:  "metadata.name=" + cluster.ObjectMeta.Name,
+		watchInterface, err := provKubeClient.Clusters(clusterObj.ObjectMeta.Namespace).Watch(context.TODO(), metav1.ListOptions{
+			FieldSelector:  "metadata.name=" + clusterObj.ObjectMeta.Name,
 			TimeoutSeconds: &shepherddefaults.WatchTimeoutSeconds,
 		})
 
@@ -69,7 +89,7 @@ func CreateK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, rke2Cl
 			return err
 		}
 
-		err = client.Steve.SteveType(shepherdclusters.ProvisioningSteveResourceType).Delete(cluster)
+		err = client.Steve.SteveType(shepherdclusters.ProvisioningSteveResourceType).Delete(clusterObj)
 		if err != nil {
 			return err
 		}
@@ -77,7 +97,7 @@ func CreateK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, rke2Cl
 		return wait.WatchWait(watchInterface, func(event watch.Event) (ready bool, err error) {
 			cluster := event.Object.(*apisV1.Cluster)
 			if event.Type == watch.Error {
-				return false, fmt.Errorf("there was an error deleting cluster")
+				return false, fmt.Errorf("there was an error deleting cluster %s: %w", cluster.Name, err)
 			} else if event.Type == watch.Deleted {
 				return true, nil
 			} else if cluster == nil {
@@ -87,7 +107,121 @@ func CreateK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, rke2Cl
 		})
 	})
 
-	return cluster, nil
+	return clusterObj, nil
+}
+
+// createRegistrationCommand is a helper for rke2/k3s custom clusters to create the registration command with advanced options configured per node
+func createRegistrationCommand(command, publicIP, privateIP string, machinePool apisV1.RKEMachinePool) string {
+	if len(publicIP) > 0 {
+		command += fmt.Sprintf(" --address %s", publicIP)
+	}
+	if len(privateIP) > 0 {
+		command += fmt.Sprintf(" --internal-address %s", privateIP)
+	}
+	for labelKey, labelValue := range machinePool.Labels {
+		command += fmt.Sprintf(" --label %s=%s", labelKey, labelValue)
+	}
+	for _, taint := range machinePool.Taints {
+		command += fmt.Sprintf(" --taints %s=%s:%s", taint.Key, taint.Value, taint.Effect)
+	}
+	return command
+}
+
+// CreateProvisioningCustomCluster provisions a non-rke1 cluster using a 3rd party client for its nodes, then runs verify checks
+func CreateCustomCluster(client *rancher.Client, config *rancher.Config, cluster *apisV1.Cluster, nodes []tofu.Node) (*v1.SteveAPIObject, error) {
+	rolesPerNode := []string{}
+	quantityPerPool := []int32{}
+	rolesPerPool := []string{}
+	for _, pool := range cluster.Spec.RKEConfig.MachinePools {
+		var finalRoleCommand string
+		if pool.ControlPlaneRole {
+			finalRoleCommand += " --controlplane"
+		}
+		if pool.EtcdRole {
+			finalRoleCommand += " --etcd"
+		}
+		if pool.WorkerRole {
+			finalRoleCommand += " --worker"
+		}
+
+		quantityPerPool = append(quantityPerPool, *pool.Quantity)
+		rolesPerPool = append(rolesPerPool, finalRoleCommand)
+		for i := int32(0); i < *pool.Quantity; i++ {
+			rolesPerNode = append(rolesPerNode, finalRoleCommand)
+		}
+	}
+
+	clusterResp, err := CreateK3SRKE2Cluster(client, config, cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	customCluster, err := client.Steve.SteveType(etcdsnapshot.ProvisioningSteveResouceType).ByID(clusterResp.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	clusterStatus := &apisV1.ClusterStatus{}
+	err = v1.ConvertToK8sType(customCluster.Status, clusterStatus)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := tokenregistration.GetRegistrationToken(client, clusterStatus.ClusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeProvisioningClient, err := client.GetKubeAPIProvisioningClient()
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := kubeProvisioningClient.Clusters(cluster.Namespace).Watch(context.TODO(), metav1.ListOptions{
+		FieldSelector:  "metadata.name=" + cluster.Name,
+		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	checkFunc := shepherdclusters.IsProvisioningClusterReady
+	var command string
+	totalNodesObserved := 0
+	for poolIndex, poolRole := range rolesPerPool {
+		for nodeIndex := 0; nodeIndex < int(quantityPerPool[poolIndex]); nodeIndex++ {
+			node := nodes[totalNodesObserved+nodeIndex]
+
+			logrus.Infof("Execute Registration Command for node named %s, ID %s", node.NodeName, node.NodeID)
+			logrus.Infof("Linux pool detected, using bash...")
+
+			command = fmt.Sprintf("%s %s", token.InsecureNodeCommand, poolRole)
+			command = createRegistrationCommand(command, node.PublicIPAddress, node.PrivateIPAddress, cluster.Spec.RKEConfig.MachinePools[poolIndex])
+			logrus.Infof("Node command: %s", command)
+
+			shepherdNode := shepherdnodes.Node{
+				NodeID:           node.NodeID,
+				PublicIPAddress:  node.PublicIPAddress,
+				PrivateIPAddress: node.PrivateIPAddress,
+				SSHUser:          node.SSHUser,
+				SSHKey:           node.SSHKey,
+			}
+			output, err := shepherdNode.ExecuteCommand(command)
+			if err != nil {
+				return nil, err
+			}
+			logrus.Infof(output)
+		}
+		totalNodesObserved += int(quantityPerPool[poolIndex])
+	}
+
+	err = wait.WatchWait(result, checkFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	createdCluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.Namespace + "/" + cluster.Name)
+	return createdCluster, err
 }
 
 // VerifyClusterCreated confirms that the cluster resource exists
@@ -110,4 +244,163 @@ func VerifyClusterImported(client *rancher.Client, name, namespace string) (bool
 		return false, nil
 	}
 	return obj.Status.Ready, nil
+}
+
+// VerifyCluster validates that a non-rke1 cluster and its resources are in a good state, matching a given config.
+func VerifyCluster(client *rancher.Client, cluster *v1.SteveAPIObject) error {
+	client, err := client.ReLogin()
+	if err != nil {
+		return err
+	}
+
+	adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+	if err != nil {
+		return err
+	}
+
+	kubeProvisioningClient, err := adminClient.GetKubeAPIProvisioningClient()
+	reports.TimeoutClusterReport(cluster, err)
+	if err != nil {
+		return err
+	}
+
+	watchInterface, err := kubeProvisioningClient.Clusters(cluster.Namespace).Watch(context.TODO(), metav1.ListOptions{
+		FieldSelector:  "metadata.name=" + cluster.Name,
+		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+	})
+	reports.TimeoutClusterReport(cluster, err)
+	if err != nil {
+		return err
+	}
+
+	checkFunc := shepherdclusters.IsProvisioningClusterReady
+	err = wait.WatchWait(watchInterface, checkFunc)
+	reports.TimeoutClusterReport(cluster, err)
+	if err != nil {
+		return err
+	}
+
+	clusterToken, err := clusters.CheckServiceAccountTokenSecret(client, cluster.Name)
+	reports.TimeoutClusterReport(cluster, err)
+	if err != nil {
+		return err
+	}
+	assert.NotEmpty(t, clusterToken)
+
+	err = nodestat.AllMachineReady(client, cluster.ID, defaults.ThirtyMinuteTimeout)
+	reports.TimeoutClusterReport(cluster, err)
+	if err != nil {
+		return err
+	}
+
+	status := &apisV1.ClusterStatus{}
+	err = v1.ConvertToK8sType(cluster.Status, status)
+	reports.TimeoutClusterReport(cluster, err)
+	if err != nil {
+		return err
+	}
+
+	clusterSpec := &apisV1.ClusterSpec{}
+	err = v1.ConvertToK8sType(cluster.Spec, clusterSpec)
+	reports.TimeoutClusterReport(cluster, err)
+	if err != nil {
+		return err
+	}
+
+	if clusterSpec.DefaultPodSecurityAdmissionConfigurationTemplateName != "" && len(clusterSpec.DefaultPodSecurityAdmissionConfigurationTemplateName) > 0 {
+
+		err := psact.CreateNginxDeployment(client, status.ClusterName, clusterSpec.DefaultPodSecurityAdmissionConfigurationTemplateName)
+		reports.TimeoutClusterReport(cluster, err)
+		if err != nil {
+			return err
+		}
+	}
+
+	if clusterSpec.RKEConfig.Registries != nil {
+		for registryName := range clusterSpec.RKEConfig.Registries.Configs {
+			havePrefix, err := registries.CheckAllClusterPodsForRegistryPrefix(client, status.ClusterName, registryName)
+			reports.TimeoutClusterReport(cluster, err)
+			if !havePrefix {
+				return fmt.Errorf("found cluster (%s) pods that do not have the expected registry prefix %s: %w", status.ClusterName, registryName, err)
+			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if clusterSpec.LocalClusterAuthEndpoint.Enabled {
+		mgmtClusterObject, err := adminClient.Management.Cluster.ByID(status.ClusterName)
+		reports.TimeoutClusterReport(cluster, err)
+		if err != nil {
+			return err
+		}
+		err = VerifyACE(adminClient, mgmtClusterObject)
+		if err != nil {
+			return err
+		}
+	}
+
+	podErrors := pods.StatusPods(client, status.ClusterName)
+	if len(podErrors) > 0 {
+		errorStrings := make([]string, len(podErrors))
+		for i, e := range podErrors {
+			errorStrings[i] = e.Error()
+		}
+		return fmt.Errorf("encountered pod errors: %s", strings.Join(errorStrings, ";"))
+	}
+	return nil
+}
+
+func VerifyACE(client *rancher.Client, cluster *mgmtv3.Cluster) error {
+	client, err := client.ReLogin()
+	if err != nil {
+		return err
+	}
+
+	kubeConfig, err := kubeconfig.GetKubeconfig(client, cluster.ID)
+	if err != nil {
+		return err
+	}
+
+	original, err := client.SwitchContext(cluster.Name, kubeConfig)
+	if err != nil {
+		return err
+	}
+
+	originalResp, err := original.Resource(corev1.SchemeGroupVersion.WithResource("pods")).Namespace("").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, pod := range originalResp.Items {
+		fmt.Printf("Pod %s", pod.GetName())
+	}
+
+	// each control plane has a context. For ACE, we should check these contexts
+	contexts, err := kubeconfig.GetContexts(kubeConfig)
+	if err != nil {
+		return err
+	}
+	var contextNames []string
+	for context := range contexts {
+		if strings.Contains(context, "pool") {
+			contextNames = append(contextNames, context)
+		}
+	}
+
+	for _, contextName := range contextNames {
+		dynamic, err := client.SwitchContext(contextName, kubeConfig)
+		if err != nil {
+			return err
+		}
+		resp, err := dynamic.Resource(corev1.SchemeGroupVersion.WithResource("pods")).Namespace("").List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Switched Context to %v", contextName)
+		for _, pod := range resp.Items {
+			fmt.Printf("Pod %v", pod.GetName())
+		}
+	}
+	return nil
 }
