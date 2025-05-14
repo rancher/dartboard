@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/rancher/shepherd/clients/rancher"
 	yaml "gopkg.in/yaml.v2"
 	"k8s.io/client-go/rest"
@@ -62,17 +63,12 @@ func ParseKubeconfig(kubeconfigPath string) (*Kubeconfig, error) {
 }
 
 func GetKubeconfigBytes(kubeconfigPath string) ([]byte, error) {
-	var kubeconfigBytes []byte
-	if _, err := os.Stat(kubeconfigPath); err == nil {
-		kubeconfigBytes, err = os.ReadFile(kubeconfigPath)
-		if err != nil {
-			return nil, fmt.Errorf("error reading kubeconfig file at %s: %w", kubeconfigPath, err)
-		}
-	} else {
-		return nil, fmt.Errorf("error could not find kubeconfig at %s: %w", kubeconfigPath, err)
+	kubeconfigBytes, err := tofu.ReadBytesFromPath(kubeconfigPath)
+	if err != nil {
+		return nil, err
 	}
 
-	return kubeconfigBytes, nil
+	return kubeconfigBytes, err
 }
 
 // RESTConfigFromKubeConfig is a convenience method to give back a restconfig from your kubeconfig bytes.

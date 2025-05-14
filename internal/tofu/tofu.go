@@ -61,12 +61,28 @@ type Cluster struct {
 	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring" yaml:"reserve_node_for_monitoring"`
 }
 
+type Node struct {
+	NodeName         string `json:"node_name" yaml:"node_name"`
+	NodeID           string `json:"nodeID" yaml:"nodeID"`
+	PublicIPAddress  string `json:"public_address" yaml:"public_address"`
+	PublicHostName   string `json:"public_name" yaml:"public_name"`
+	PrivateIPAddress string `json:"private_address" yaml:"private_address"`
+	PrivateHostName  string `json:"private_name" yaml:"private_name"`
+	SSHUser          string `json:"ssh_user" yaml:"ssh_user"`
+	SSHKey           []byte `json:"-" yaml:"-"`
+}
+
 type Clusters struct {
-	Value map[string]Cluster `json:"value" yaml:"value"`
+	Value map[string]Cluster `json:"value,omitempty" yaml:"value,omitempty"`
+}
+
+type Nodes struct {
+	Value map[string]Node `json:"value,omitempty" yaml:"value,omitempty"`
 }
 
 type Output struct {
-	Clusters Clusters `json:"clusters" yaml:"clusters"`
+	Clusters Clusters `json:"clusters,omitzero" yaml:"clusters,omitzero"`
+	Nodes    Nodes    `json:"nodes,omitzero" yaml:"nodes,omitzero"`
 }
 
 type Tofu struct {
@@ -227,4 +243,19 @@ func (t *Tofu) PrintVersion(ctx context.Context) error {
 func (t *Tofu) IsK3d() bool {
 	_, f := filepath.Split(t.dir)
 	return f == "k3d"
+}
+
+// ReadBytesFromPath reads in the file from the given path, returns the file in []byte format
+func ReadBytesFromPath(sshKeyPath string) ([]byte, error) {
+	var fileBytes []byte
+	if _, err := os.Stat(sshKeyPath); err == nil {
+		fileBytes, err = os.ReadFile(sshKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("error reading file at %s: %w", sshKeyPath, err)
+		}
+	} else {
+		return nil, fmt.Errorf("error could not find file at %s: %w", sshKeyPath, err)
+	}
+
+	return fileBytes, nil
 }
