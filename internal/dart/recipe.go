@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 
 	"github.com/rancher/tests/actions/provisioninginput"
 )
