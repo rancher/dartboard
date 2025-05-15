@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/rancher/dartboard/internal/actions"
-	"github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v2"
 )
 
 func Destroy(cli *cli.Context) error {
@@ -35,5 +35,5 @@ func Destroy(cli *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	return tf.Destroy(cli.Context)
+	return tf.Destroy()
 }
