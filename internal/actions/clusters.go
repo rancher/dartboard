@@ -12,7 +12,6 @@ import (
 	"github.com/rancher/tests/actions/registries"
 	"github.com/rancher/tests/actions/reports"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/rancher/shepherd/clients/rancher"
 	mgmtv3 "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
@@ -59,7 +58,6 @@ func CreateK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, cluste
 
 		return true, nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +77,6 @@ func CreateK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, cluste
 			FieldSelector:  "metadata.name=" + clusterObj.ObjectMeta.Name,
 			TimeoutSeconds: &shepherddefaults.WatchTimeoutSeconds,
 		})
-
 		if err != nil {
 			return err
 		}
@@ -285,7 +282,9 @@ func VerifyCluster(client *rancher.Client, cluster *v1.SteveAPIObject) error {
 	if err != nil {
 		return err
 	}
-	assert.NotEmpty(t, clusterToken)
+	if !clusterToken {
+		return fmt.Errorf("serviceAccountTokenSecret does not exist in this cluster: %s", cluster.Name)
+	}
 
 	err = nodestat.AllMachineReady(client, cluster.ID, defaults.ThirtyMinuteTimeout)
 	reports.TimeoutClusterReport(cluster, err)
