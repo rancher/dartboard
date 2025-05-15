@@ -24,30 +24,17 @@ selector='{__name__!=""}'
 # determine os for date commands
 os_uname=$(uname)
 
-# from - date for query to begin
-# to - date for query to end
-# default time range set for ONE HOUR from current utc time
-if [ "$os_uname" = "Darwin" ]; then 
+main() { 
 
-    from="$(date -u -v-1H +"%Y-%m-%dT%H:%M:%SZ")" 
-    to="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    # from - date for query to begin
+    # to - date for query to end
+    # default time range set for ONE HOUR from current utc time
+    from="$(get_date 1)" 
+    to="$(get_date)"
 
     # convert default dates for comparisons for macOS
-    to_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${to}" "+%s")
-    from_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${from}" "+%s")
-
-elif [ "$os_uname" = "Linux" ]; then
-
-    from="$(date -u --date="1 hour ago" +"%Y-%m-%dT%H:%M:%SZ")" 
-    to="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-
-    # convert default dates for comparisons for GNU
-    to_seconds=$(date -d "${to}" "+%s")
-    from_seconds=$(date -d "${from}" "+%s")
-
-fi
-
-main() { 
+    to_seconds="$(date_to_seconds "${to}")"
+    from_seconds="$(date_to_seconds "${from}")"
 
     # set input variables from script arguments
     process_args "$@"
@@ -97,15 +84,8 @@ main() {
         # set date range for query
         range=$((to_seconds - offset_seconds))
 
-        if [ "$os_uname" = "Darwin" ]; then 
-            #convert seconds to date for macOS
-            from=$(date -j -f "%s" "${range}" "+%Y-%m-%dT%H:%M:%SZ")
-            to=$(date -j -f "%s" "${to_seconds}" "+%Y-%m-%dT%H:%M:%SZ")
-        elif [ "$os_uname" = "Linux" ]; then
-            #convert seconds to date for GNU
-            from=$(date -d @"${range}" "+%Y-%m-%dT%H:%M:%SZ")
-            to=$(date -d @"${to_seconds}" "+%Y-%m-%dT%H:%M:%SZ")
-        fi
+        from="$(seconds_to_date "${range}")"
+        to="$(seconds_to_date "${to_seconds}")"
 
         # from separate mimirtool shell execute remote-read
         kubectl exec -n cattle-monitoring-system mimirtool --insecure-skip-tls-verify -i -t -- mimirtool remote-read export --tsdb-path ./prometheus-export --address http://rancher-monitoring-prometheus:9090 --remote-read-path /api/v1/read --to="${to}" --from="${from}" --selector "${selector}"
@@ -113,13 +93,8 @@ main() {
         # compress metrics data from export
         kubectl exec -n cattle-monitoring-system mimirtool --insecure-skip-tls-verify -i -t -- tar zcf /tmp/prometheus-export.tar.gz ./prometheus-export
 
-        if [ "$os_uname" = "Darwin" ]; then 
-            # set filename timestamp for macOS
-            ts2=$(date -j -f "%s" "${range}" "+%Y-%m-%dT%H-%M-%S")
-        elif [ "$os_uname" = "Linux" ]; then
-            # set filename timestamp for GNU
-            ts2=$(date -d @"${range}" "+%Y-%m-%dT%H-%M-%S")
-        fi
+        # set filename timestamp
+        ts2="$(get_timestamp "${range}")"
 
         # copy exported metrics data to timestamped tarball
         kubectl -n cattle-monitoring-system cp mimirtool:/tmp/prometheus-export.tar.gz ./prometheus-export-"${ts2}".tar.gz 1> /dev/null
@@ -163,6 +138,57 @@ main() {
 
 }
 
+# execute date command based on os, use default of 1 hour ago if any argument is present
+get_date(){
+
+    if [ "$os_uname" = "Darwin" ]; then 
+        if [ $# -eq 1 ]; then
+            date -u -v-1H +"%Y-%m-%dT%H:%M:%SZ"
+        else
+            date -u +"%Y-%m-%dT%H:%M:%SZ"
+        fi
+    elif [ "$os_uname" = "Linux" ]; then
+        if [ $# -eq 1 ]; then
+            date -u --date="1 hour ago" +"%Y-%m-%dT%H:%M:%SZ"
+        else
+            date -u +"%Y-%m-%dT%H:%M:%SZ"
+        fi
+    fi
+
+}
+
+# convert default dates to seconds for comparisons
+date_to_seconds(){
+
+    if [ "$os_uname" = "Darwin" ]; then 
+        date -j -f "%Y-%m-%dT%H:%M:%SZ" "$1" "+%s"
+    elif [ "$os_uname" = "Linux" ]; then
+        date -d "$1" "+%s"
+    fi
+
+}
+
+# convert seconds to default date format
+seconds_to_date(){
+
+    if [ "$os_uname" = "Darwin" ]; then 
+        date -j -f "%s" "$1" "+%Y-%m-%dT%H:%M:%SZ"
+    elif [ "$os_uname" = "Linux" ]; then
+        date -d @"$1" "+%Y-%m-%dT%H:%M:%SZ"
+    fi
+
+}
+
+# execute date command with timestamp format
+get_timestamp(){
+
+    if [ "$os_uname" = "Darwin" ]; then 
+        date -j -f "%s" "$1" "+%Y-%m-%dT%H-%M-%S"
+    elif [ "$os_uname" = "Linux" ]; then
+        date -d @"$1" "+%Y-%m-%dT%H-%M-%S"
+    fi
+
+}
 
 # set input variables from script arguments
 process_args(){
@@ -200,11 +226,7 @@ process_args(){
             fi
         
             if [ $date_count = 0 ]; then
-                if [ "$os_uname" = "Darwin" ]; then 
-                    temp_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${arg}" "+%s")
-                elif [ "$os_uname" = "Linux" ]; then
-                    temp_seconds=$(date -d "${arg}" "+%s")
-                fi
+                temp_seconds="$(date_to_seconds "$arg")"
                 if [ "$temp_seconds" -lt "$from_seconds" ]; then
                     from=$arg
                     date_count=$((date_count+1))
@@ -225,15 +247,9 @@ process_args(){
         fi
     fi
 
-    if [ "$os_uname" = "Darwin" ]; then 
-        # overwrite defaults and convert input dates for comparisons for macOS
-        to_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${to}" "+%s")
-        from_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "${from}" "+%s")
-    elif [ "$os_uname" = "Linux" ]; then
-        # overwrite defaults and convert input dates for comparisons for GNU
-        to_seconds=$(date -d "${to}" "+%s")
-        from_seconds=$(date -d "${from}" "+%s")
-    fi
+    # overwrite defaults and convert input dates for comparisons
+    to_seconds="$(date_to_seconds "${to}")"
+    from_seconds="$(date_to_seconds "${from}")"
 
     # check dates and ensure TO and FROM are set appropriately 
     if [ "${to_seconds}" -lt "${from_seconds}" ]; then
