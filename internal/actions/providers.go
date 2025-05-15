@@ -47,5 +47,5 @@ func CreateProvider(name string) provisioning.Provider {
 	}
 	panic(fmt.Sprintf("Provider:%v not found", name))
 	// Unreachable, but makes golangci-lint (govet) analyzer happy
-	return provider
+	// return provider
 }
