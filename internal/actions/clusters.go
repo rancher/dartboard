@@ -19,7 +19,7 @@ import (
 	shepherdclusters "github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/defaults"
 	shepherddefaults "github.com/rancher/shepherd/extensions/defaults"
-	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	stevetypes "github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/etcdsnapshot"
 	"github.com/rancher/shepherd/extensions/kubeconfig"
 	nodestat "github.com/rancher/shepherd/extensions/nodes"
@@ -45,7 +45,7 @@ func CreateK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, cluste
 	}
 
 	ctx := context.Background()
-	err = kwait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 2*time.Minute, true, func(c context.Context) (done bool, err error) {
+	err = kwait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 2*time.Minute, true, func(_ context.Context) (done bool, err error) {
 		client, err = client.ReLoginForConfig(config)
 		if err != nil {
 			return false, err
@@ -128,7 +128,7 @@ func createRegistrationCommand(command, publicIP, privateIP string, machinePool 
 
 // CreateProvisioningCustomCluster provisions a non-rke1 cluster using a 3rd party client for its nodes, then runs verify checks
 func CreateCustomCluster(client *rancher.Client, config *rancher.Config, cluster *apisV1.Cluster, nodes []tofu.Node) (*v1.SteveAPIObject, error) {
-	rolesPerNode := []string{}
+	// rolesPerNode := []string{}
 	quantityPerPool := []int32{}
 	rolesPerPool := []string{}
 	for _, pool := range cluster.Spec.RKEConfig.MachinePools {
@@ -145,9 +145,9 @@ func CreateCustomCluster(client *rancher.Client, config *rancher.Config, cluster
 
 		quantityPerPool = append(quantityPerPool, *pool.Quantity)
 		rolesPerPool = append(rolesPerPool, finalRoleCommand)
-		for i := int32(0); i < *pool.Quantity; i++ {
-			rolesPerNode = append(rolesPerNode, finalRoleCommand)
-		}
+		// for i := int32(0); i < *pool.Quantity; i++ {
+		// 	rolesPerNode = append(rolesPerNode, finalRoleCommand)
+		// }
 	}
 
 	clusterResp, err := CreateK3SRKE2Cluster(client, config, cluster)
@@ -209,7 +209,7 @@ func CreateCustomCluster(client *rancher.Client, config *rancher.Config, cluster
 			if err != nil {
 				return nil, err
 			}
-			logrus.Infof(output)
+			logrus.Info(output)
 		}
 		totalNodesObserved += int(quantityPerPool[poolIndex])
 	}

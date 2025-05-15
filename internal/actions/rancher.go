@@ -41,7 +41,7 @@ func NewRancherConfig(host, adminToken, adminPassword string, insecure bool) ran
 func SetupRancherClient(rancherConfig *rancher.Config, bootstrapPassword string, session *session.Session) (*rancher.Client, error) {
 	adminUser := &management.User{
 		Username: "admin",
-		Password: "adminadminadmin",
+		Password: bootstrapPassword,
 	}
 	fmt.Printf("Rancher Config:\nHost: %s\nAdminPassword: %s\nAdminToken: %s\nInsecure: %t\n", rancherConfig.Host, rancherConfig.AdminPassword, rancherConfig.AdminToken, *rancherConfig.Insecure)
 	adminToken, err := shepherdtokens.GenerateUserToken(adminUser, rancherConfig.Host)
@@ -107,7 +107,7 @@ func ProvisionClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, ran
 
 		// Create and run a batch runner for this batch of templates
 		batchRunner := NewSequencedBatchRunner[dart.ClusterTemplate](len(batchTemplates))
-		err := batchRunner.Run(batchTemplates, r, statuses, clusterStatePath, rancherClient, nil)
+		err := batchRunner.Run(batchTemplates, statuses, clusterStatePath, rancherClient, nil)
 		if err != nil {
 			return err
 		}
@@ -220,7 +220,10 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, rancherClien
 		batch := clusters[i:j]
 
 		batchRunner := NewSequencedBatchRunner[tofu.Cluster](len(batch))
-		batchRunner.Run(batch, r, statuses, clusterStatePath, rancherClient, rancherConfig)
+		err := batchRunner.Run(batch, statuses, clusterStatePath, rancherClient, rancherConfig)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -320,7 +323,7 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 	return false, nil
 }
 
-func RegisterCustomClusters(r *dart.Dart, rancherClient *rancher.Client, rancherConfig *rancher.Config, clusters []dart.ClusterTemplate, nodes []tofu.Node) error {
+func RegisterCustomClusters(_ *dart.Dart, rancherClient *rancher.Client, rancherConfig *rancher.Config, _ []dart.ClusterTemplate, nodes []tofu.Node) error {
 	cluster := &provv1.Cluster{}
 	clusterObject, err := CreateCustomCluster(rancherClient, rancherConfig, cluster, nodes)
 	reports.TimeoutClusterReport(clusterObject, err)
