@@ -65,7 +65,7 @@ func NewSequencedBatchRunner[J JobDataTypes](batchSize int) *SequencedBatchRunne
 }
 
 // Run executes the batch: starts the file writer, workers, enqueues jobs, collects results
-func (br *SequencedBatchRunner[J]) Run(batch []J, r *dart.Dart, statuses map[string]*ClusterStatus,
+func (br *SequencedBatchRunner[J]) Run(batch []J, statuses map[string]*ClusterStatus,
 	statePath string, client *rancher.Client, config *rancher.Config) error {
 	// Start writer
 	br.wgWriter.Add(1)

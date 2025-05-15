@@ -25,7 +25,7 @@ func StatusPodsWithTimeout(client *rancher.Client, clusterID string, timeout tim
 
 	steveClient := downstreamClient.SteveType(PodResourceSteveType)
 	ctx := context.Background()
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(c context.Context) (done bool, err error) {
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, func(_ context.Context) (done bool, err error) {
 		// emptying pod errors every time we poll so that we don't return stale errors
 		podErrors = []error{}
 

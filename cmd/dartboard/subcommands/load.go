@@ -25,7 +25,7 @@ import (
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/kubectl"
 	"github.com/rancher/dartboard/internal/tofu"
-	"github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v2"
 )
 
 // TODO: Make this command idempotent. Get count (# of resources) matching some unique identifier.
@@ -37,7 +37,7 @@ func Load(cli *cli.Context) error {
 		return err
 	}
 
-	clusters, err := tf.OutputClusters(cli.Context)
+	clusters, err := tf.OutputClusters()
 	if err != nil {
 		return err
 	}
