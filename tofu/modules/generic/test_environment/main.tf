@@ -3,6 +3,17 @@ locals {
     for i, template in var.downstream_cluster_templates : [
       for j in range(template.cluster_count) : merge(template, { name = "downstream-${i}-${j}" })
   ] if template.cluster_count > 0])
+  nodes = flatten([
+    for template_idx, template in var.node_templates : [
+      for idx in range(template.node_count) : {
+        name           = "${template.name_prefix}-${template_idx}-${idx}"
+        template_name  = template.name_prefix
+        template_idx   = template_idx
+        index          = idx
+        node_module_variables = template.node_module_variables
+      }
+    ]
+  ])
 }
 
 module "upstream_cluster" {
@@ -68,4 +79,23 @@ module "downstream_clusters" {
   node_module               = var.node_module
   network_config            = var.network_config
   node_module_variables     = local.downstream_clusters[count.index].node_module_variables
+}
+
+module "nodes" {
+  for_each = {for node in local.nodes: node.name => node}
+  source = "../node"
+  project_name         = var.project_name
+  name                 = each.value.name
+  ssh_private_key_path = var.ssh_private_key_path
+  ssh_user             = var.ssh_user
+  # if this node is the first server in its template, assign ports for tunnels
+  ssh_tunnels = each.value.index == 0 ? [
+    [var.first_kubernetes_api_port + 3 + each.value.template_idx, 6443],
+    [var.first_app_http_port + 3 + each.value.template_idx, 80],
+    [var.first_app_https_port + 3 + each.value.template_idx, 443],
+  ] : []
+  node_module           = var.node_module
+  node_module_variables = each.value.node_module_variables
+  network_config        = var.network_config
+  image_id              = var.image_id
 }

@@ -69,6 +69,14 @@ variable "downstream_cluster_distro_module" {
   default     = "generic/k3s"
 }
 
+variable "node_templates" {
+  type = list(object({
+    node_count              = number // Number of nodes in this configuration
+    name_prefix             = string // String to prefix the name of each node in this configuration
+    node_module_variables   = any    // Node module-specific variables
+  }))
+}
+
 # Tester cluster specifics
 variable "tester_cluster" {
   type = object({
