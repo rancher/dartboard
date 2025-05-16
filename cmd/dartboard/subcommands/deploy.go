@@ -58,7 +58,7 @@ func Deploy(cli *cli.Context) error {
 		}
 	}
 
-	clusters, err := tf.OutputClusters()
+	clusters, _, err := tf.ParseOutputs()
 	if err != nil {
 		return err
 	}
@@ -156,11 +156,72 @@ func Deploy(cli *cli.Context) error {
 
 	// Filter out Cluster Templates that are for provisioning
 	var provisionClusterTemplates []dart.ClusterTemplate
+	var customClusterTemplates []dart.ClusterTemplate
+	var nodeTemplates []map[string]any
+
 	for _, template := range r.ClusterTemplates {
 		if template.Config != nil {
-			provisionClusterTemplates = append(provisionClusterTemplates, template)
+			if !template.IsCustomCluster {
+				provisionClusterTemplates = append(provisionClusterTemplates, template)
+			} else {
+				// TODO: Determine total # of nodes needed for current template
+				// TODO: Build the corresponding dart.NodeTemplate[N] for current template
+				// TODO: Convert the dart.NodeTemplate into a map[string]any
+				// TODO: Append the map[string]any to nodeTemplates []map[string]any
+				// TODO: Pass this nodeTemplates var in for the dart.TofuVariables["node_templates"] var
+				// TODO: Re-apply the Tofu with the injected node templates
+				// TODO: Proceed with custom cluster registration flow
+				var dartNodeTemplate map[string]any
+				if template.NodeConfig != nil {
+					if template.NodeConfig.Harvester != nil {
+						nt := dart.NodeTemplate[dart.HarvesterNodeConfig]{
+							NodeCount:           "",
+							NamePrefix:          "",
+							NodeModuleVariables: dart.HarvesterNodeConfig{},
+						}
+						if err != nil {
+							return fmt.Errorf("failed to convert NodeConfig to map[string]any: %w", err)
+						}
+					}
+					nodeTemplates = append(nodeTemplates, dartNodeTemplate)
+				}
+				customClusterTemplates = append(customClusterTemplates, template)
+			}
 		} else {
-			return fmt.Errorf("error, did not find any Provision Cluster Templates")
+			return fmt.Errorf("error, did not find any Provisioning or Custom Cluster Templates")
+		}
+	}
+
+	if len(customClusterTemplates) > 0 {
+		dartPath := cli.String(ArgDart)
+		d, err := dart.Parse(dartPath)
+		if err != nil {
+			return err
+		}
+		switch {
+		case strings.Contains(d.TofuMainDirectory, "harvester"):
+			dartNodeTemplates := []dart.HarvesterNodeConfig{}
+		case strings.Contains(d.TofuMainDirectory, "aws"):
+			panic("AWS Custom Clusters not yet implemented")
+		case strings.Contains(d.TofuMainDirectory, "azure"):
+			panic("Azure Custom Clusters not yet implemented")
+		case strings.Contains(d.TofuMainDirectory, "k3d"):
+			panic("K3d Custom Clusters not yet implemented")
+		}
+		tf, err := tofu.New(d.TofuVariables, d.TofuMainDirectory, d.TofuWorkspace, d.TofuParallelism, true)
+		if err != nil {
+			return err
+		}
+
+		if err = tf.Apply(); err != nil {
+			return err
+		}
+		_, nodes, err := tf.ParseOutputs()
+		if err != nil {
+			return err
+		}
+		if err = actions.RegisterCustomClusters(r, customClusterTemplates, rancherClient, &rancherConfig); err != nil {
+			return err
 		}
 	}
 

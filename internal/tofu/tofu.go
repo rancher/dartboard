@@ -68,7 +68,7 @@ type Node struct {
 	PrivateIPAddress string `json:"private_address" yaml:"private_address"`
 	PrivateHostName  string `json:"private_name" yaml:"private_name"`
 	SSHUser          string `json:"ssh_user" yaml:"ssh_user"`
-	SSHKey           []byte `json:"-" yaml:"-"`
+	SSHKeyPath       string `json:"ssh_key_path" yaml:"ssh_key_path"`
 }
 
 type Clusters struct {
@@ -223,23 +223,23 @@ func (t *Tofu) commonArgs(command string) []string {
 	return args
 }
 
-func (t *Tofu) OutputClusters() (map[string]Cluster, error) {
+func (t *Tofu) ParseOutputs() (map[string]Cluster, map[string]Node, error) {
 	err := t.handleWorkspace()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	buffer := new(bytes.Buffer)
 	if err := t.exec(buffer, "output", "-json"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	output := &Output{}
 	if err := json.Unmarshal(buffer.Bytes(), output); err != nil {
-		return nil, fmt.Errorf("error: tofu OutputClusters: %w", err)
+		return nil, nil, fmt.Errorf("error: tofu ParseOutputs: %w", err)
 	}
 
-	return output.Clusters.Value, nil
+	return output.Clusters.Value, output.Nodes.Value, nil
 }
 
 // PrintVersion prints the Tofu version information
