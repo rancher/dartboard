@@ -16,7 +16,6 @@ import (
 	"github.com/rancher/shepherd/pkg/session"
 	shepherdwait "github.com/rancher/shepherd/pkg/wait"
 
-	clusteractions "github.com/rancher/tests/actions/clusters"
 	"github.com/rancher/tests/actions/pipeline"
 	"github.com/rancher/tests/actions/provisioning"
 	"github.com/rancher/tests/actions/reports"
@@ -45,7 +44,6 @@ func SetupRancherClient(rancherConfig *rancher.Config, bootstrapPassword string,
 	}
 	fmt.Printf("Rancher Config:\nHost: %s\nAdminPassword: %s\nAdminToken: %s\nInsecure: %t\n", rancherConfig.Host, rancherConfig.AdminPassword, rancherConfig.AdminToken, *rancherConfig.Insecure)
 	adminToken, err := shepherdtokens.GenerateUserToken(adminUser, rancherConfig.Host)
-
 	if err != nil {
 		return nil, fmt.Errorf("error while creating Admin Token with config %v:\n%v", &rancherConfig, err)
 	}
@@ -138,18 +136,17 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 	}
 	fmt.Printf("Continuing with cluster provisioning...\n")
 
-	switch {
-	case strings.Contains(template.DistroVersion, "k3s"):
-		template.Config.K3SKubernetesVersions = []string{template.DistroVersion}
-	case strings.Contains(template.DistroVersion, "rke2"):
-		template.Config.RKE2KubernetesVersions = []string{template.DistroVersion}
-	default:
-		return false, fmt.Errorf("error while parsing kubernetes version for version %v", template.DistroVersion)
-	}
+	// switch {
+	// case strings.Contains(template.DistroVersion, "k3s"):
+	// 	template.DistroVersion = []string{template.DistroVersion}
+	// case strings.Contains(template.DistroVersion, "rke2"):
+	// 	template.DistroVersion = []string{template.DistroVersion}
+	// default:
+	// 	return false, fmt.Errorf("error while parsing kubernetes version for version %v", template.DistroVersion)
+	// }
 
-	nodeProvider := CreateProvider(template.Config.Providers[0])
-	templateClusterConfig := clusteractions.ConvertConfigToClusterConfig(template.Config)
-	templateClusterConfig.CNI = template.Config.CNIs[0]
+	nodeProvider := CreateProvider(template.Config.Provider)
+	templateClusterConfig := ConvertConfigToClusterConfig(template.Config)
 
 	// Create the cluster
 	clusterObject, err := provisioning.CreateProvisioningCluster(rancherClient, nodeProvider, templateClusterConfig, nil)
@@ -323,17 +320,139 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 	return false, nil
 }
 
-func RegisterCustomClusters(_ *dart.Dart, rancherClient *rancher.Client, rancherConfig *rancher.Config, _ []dart.ClusterTemplate, nodes []tofu.Node) error {
-	cluster := &provv1.Cluster{}
-	clusterObject, err := CreateCustomCluster(rancherClient, rancherConfig, cluster, nodes)
-	reports.TimeoutClusterReport(clusterObject, err)
+func RegisterCustomClusters(r *dart.Dart, templates []dart.ClusterTemplate,
+	rancherClient *rancher.Client, rancherConfig *rancher.Config, nodes []tofu.Node) error {
+	if r.ClusterBatchSize <= 0 {
+		panic("ClusterBatchSize must be > 0")
+	}
+
+	if len(templates) == 0 {
+		fmt.Printf("No cluster templates were provided.\n")
+	}
+
+	assignableNodes := len(nodes)
+	neededNodes := 0
+	nodesIdx := 0
+	for _, template := range templates {
+		nodesPerPool := 0
+		nodeConfig := nil
+		for _, pool := range template.Config.MachinePools {
+
+			if template.NodeConfig != nil {
+				nodeConfig = template.NodeConfig
+			} else if pool.MachinePoolConfig.NodeConfig != nil {
+				nodeConfig = pool.MachinePoolConfig.NodeConfig
+			}
+
+			nodesPerPool += int(pool.MachinePoolConfig.Quantity)
+		}
+		neededNodes += template.ClusterCount * nodesPerPool
+		nodesIdx = neededNodes
+	}
+	if assignableNodes != neededNodes {
+		return fmt.Errorf("%s", strings.TrimSpace(`error, the total number of nodes available for custom cluster
+ registration must be equal to the total number of nodes required by the defined
+ cluster templates`))
+	}
+
+	for _, template := range templates {
+		err := RegisterCustomClustersInBatches(r, template, rancherClient, rancherConfig)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func RegisterCustomClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
+	clusterStatePath := fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, ClustersStateFile)
+	statuses, err := LoadClusterState(clusterStatePath)
 	if err != nil {
 		return err
 	}
 
+	batchNum := 0
+	// Enqueue clusters in batches and collect results
+	for i := 0; i < template.ClusterCount; i += r.ClusterBatchSize {
+		batchTemplates := make([]dart.ClusterTemplate, 0, r.ClusterBatchSize)
+		j := min(i+r.ClusterBatchSize, template.ClusterCount)
+
+		// Generate the name for each instance of the template and add the template instances to the batchTemplates slice
+		for k := i; k < j; k++ {
+			templateCopy := template
+			templateCopy.SetGeneratedName(fmt.Sprintf("%d-%d", batchNum, k-i))
+			batchTemplates = append(batchTemplates, templateCopy)
+		}
+
+		batchRunner := NewSequencedBatchRunner[dart.ClusterTemplate](len(batchTemplates))
+		err := batchRunner.Run(batchTemplates, statuses, clusterStatePath, rancherClient, rancherConfig)
+		if err != nil {
+			return err
+		}
+
+		batchNum++
+	}
+
+	return nil
+}
+
+func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], template dart.ClusterTemplate,
+	nodes []tofu.Node, statuses map[string]*ClusterStatus, rancherClient *rancher.Client,
+	rancherConfig *rancher.Config) (skipped bool, err error) {
+
+	clusterName := template.GeneratedName()
+	stateMutex.Lock()
+	cs := FindOrCreateStatusByName(statuses, clusterName)
+	stateMutex.Unlock()
+
+	<-br.seqCh
+	br.Updates <- stateUpdate{Name: clusterName, Stage: StageNew, Completed: time.Now()}
+	br.seqCh <- struct{}{}
+
+	if cs.Registered {
+		fmt.Printf("Cluster %s has already been registered, skipping...\n", cs.Name)
+		return true, nil
+	}
+	fmt.Printf("Continuing with cluster registration...\n")
+
+	provCluster := &provv1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Cluster",
+			APIVersion: "provisioning.cattle.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName,
+			Namespace: fleetNamespace,
+		},
+		Spec: provv1.ClusterSpec{
+			KubernetesVersion: template.DistroVersion,
+			DefaultPodSecurityAdmissionConfigurationTemplateName: psactRancherPrivileged,
+		},
+	}
+	clusterResp, err := CreateK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
+	if err != nil {
+		return false, err
+	}
+	<-br.seqCh
+	br.Updates <- stateUpdate{Name: clusterName, Stage: StageCreated, Completed: time.Now()}
+	br.seqCh <- struct{}{}
+	fmt.Printf("Cluster named %s was created.\n", provCluster.Name)
+
+	clusterObject, err := RegisterCustomCluster(rancherClient, rancherConfig, clusterResp, provCluster, nodes)
+	reports.TimeoutClusterReport(clusterObject, err)
+	if err != nil {
+		return false, err
+	}
+
 	err = VerifyCluster(rancherClient, clusterObject)
 	if err != nil {
-		return err
+		return false, err
 	}
-	return nil
+	<-br.seqCh
+	br.Updates <- stateUpdate{Name: clusterName, Stage: StageRegistered, Completed: time.Now()}
+	br.seqCh <- struct{}{}
+	fmt.Printf("Cluster named %s was registered.\n", clusterName)
+
+	return false, nil
 }

@@ -131,12 +131,18 @@ func (br *SequencedBatchRunner[J]) writer(statuses map[string]*ClusterStatus, st
 		cs := statuses[u.Name]
 		cs.Stage = u.Stage
 		switch u.Stage {
+		case StageNew:
+			cs.New = true
+		case StageInfra:
+			cs.Infra = true
 		case StageCreated:
 			cs.Created = true
 		case StageImported:
 			cs.Imported = true
 		case StageProvisioned:
 			cs.Provisioned = true
+		case StageRegistered:
+			cs.Registered = true
 		}
 		if err := SaveClusterState(statePath, statuses); err != nil {
 			logrus.Errorf("failed to save state for %s:%s: %v", u.Name, u.Stage, err)
@@ -154,9 +160,9 @@ func (br *SequencedBatchRunner[J]) worker(statuses map[string]*ClusterStatus, cl
 		// Use type assertion to determine which function to call
 		switch typedJob := any(job).(type) {
 		case tofu.Cluster:
-			skipped, err = importClusterWithRunner(br, typedJob, statuses, client, config)
+			skipped, err = importClusterWithRunner[J](br, typedJob, statuses, client, config)
 		case dart.ClusterTemplate:
-			skipped, err = provisionClusterWithRunner(br, typedJob, statuses, client)
+			skipped, err = provisionClusterWithRunner[J](br, typedJob, statuses, client)
 		default:
 			err = fmt.Errorf("unsupported job type: %T", job)
 		}
