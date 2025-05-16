@@ -17,20 +17,25 @@ limitations under the License.
 package subcommands
 
 import (
-	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/helm"
 	"github.com/rancher/dartboard/internal/kubectl"
 	"github.com/rancher/dartboard/internal/tofu"
-	"github.com/urfave/cli/v2"
+	"github.com/rancher/shepherd/pkg/session"
+	cli "github.com/urfave/cli/v2"
+
+	"github.com/rancher/dartboard/internal/actions"
 )
 
 type chart struct {
@@ -47,15 +52,15 @@ func Deploy(cli *cli.Context) error {
 	}
 
 	if !cli.Bool(ArgSkipApply) {
-		if err = tf.PrintVersion(cli.Context); err != nil {
+		if err = tf.PrintVersion(); err != nil {
 			return err
 		}
-		if err = tf.Apply(cli.Context); err != nil {
+		if err = tf.Apply(); err != nil {
 			return err
 		}
 	}
 
-	clusters, err := tf.OutputClusters(cli.Context)
+	clusters, _, err := tf.ParseOutputs()
 	if err != nil {
 		return err
 	}
@@ -107,8 +112,151 @@ func Deploy(cli *cli.Context) error {
 	if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
 		return err
 	}
-	if err = importDownstreamClusters(r, rancherImageTag, tf, clusters); err != nil {
+
+	// Setup rancher client
+	upstreamAdd, err := getAppAddressFor(upstream)
+	if err != nil {
 		return err
+	}
+
+	rancherSession := session.NewSession()
+	rancherSession.CleanupEnabled = false
+	log.Printf("Setting up Rancher Client's Config")
+	rancherHost := strings.Split(upstreamAdd.Public.HTTPSURL, "://")[1]
+	rancherConfig := actions.NewRancherConfig(rancherHost, "", r.ChartVariables.AdminPassword, true)
+	log.Printf("Setting up Rancher Client")
+	rancherClient, err := actions.SetupRancherClient(&rancherConfig, r.ChartVariables.AdminPassword, rancherSession)
+	if err != nil {
+		return err
+	}
+
+	// Get all downstream cluster info
+	downstreamClusters := []tofu.Cluster{}
+	for k, v := range clusters {
+		if strings.HasPrefix(k, "downstream") {
+			v.Name = k
+			downstreamClusters = append(downstreamClusters, v)
+		}
+	}
+	SortItemsNaturally(downstreamClusters, func(c tofu.Cluster) string { return c.Name })
+
+	jsonBytes, err := json.MarshalIndent(downstreamClusters, "", "    ")
+	if err != nil {
+		fmt.Println("Error marshaling JSON:", err)
+		return err
+	}
+	fmt.Println("Import Clusters:\n", string(jsonBytes))
+
+	log.Printf("Importing Downstream Clusters")
+	if err = actions.ImportDownstreamClusters(r, downstreamClusters, rancherClient, &rancherConfig); err != nil {
+		return err
+	}
+
+	// Filter out Cluster Templates that are for provisioning
+	var provisionClusterTemplates []dart.ClusterTemplate
+	var customClusterTemplates []dart.ClusterTemplate
+	var nodeTemplates []map[string]any
+
+	for _, template := range r.ClusterTemplates {
+		if template.Config != nil {
+			if !template.IsCustomCluster {
+				provisionClusterTemplates = append(provisionClusterTemplates, template)
+			} else {
+				// TODO: Determine total # of nodes needed for current template
+				// TODO: Build the corresponding dart.NodeTemplate[N] for current template
+				// TODO: Convert the dart.NodeTemplate into a map[string]any
+				// TODO: Append the map[string]any to nodeTemplates []map[string]any
+				// TODO: Pass this nodeTemplates var in for the dart.TofuVariables["node_templates"] var
+				// TODO: Re-apply the Tofu with the injected node templates
+				// TODO: Proceed with custom cluster registration flow
+				var dartNodeTemplate map[string]any
+				if template.NodeConfig != nil {
+					if template.NodeConfig.Harvester != nil {
+						nt := dart.NodeTemplate[dart.HarvesterNodeConfig]{
+							NodeCount:           "",
+							NamePrefix:          "",
+							NodeModuleVariables: dart.HarvesterNodeConfig{},
+						}
+						if err != nil {
+							return fmt.Errorf("failed to convert NodeConfig to map[string]any: %w", err)
+						}
+					}
+					nodeTemplates = append(nodeTemplates, dartNodeTemplate)
+				}
+				customClusterTemplates = append(customClusterTemplates, template)
+			}
+		} else {
+			return fmt.Errorf("error, did not find any Provisioning or Custom Cluster Templates")
+		}
+	}
+
+	if len(customClusterTemplates) > 0 {
+		dartPath := cli.String(ArgDart)
+		d, err := dart.Parse(dartPath)
+		if err != nil {
+			return err
+		}
+		switch {
+		case strings.Contains(d.TofuMainDirectory, "harvester"):
+			dartNodeTemplates := []dart.HarvesterNodeConfig{}
+		case strings.Contains(d.TofuMainDirectory, "aws"):
+			panic("AWS Custom Clusters not yet implemented")
+		case strings.Contains(d.TofuMainDirectory, "azure"):
+			panic("Azure Custom Clusters not yet implemented")
+		case strings.Contains(d.TofuMainDirectory, "k3d"):
+			panic("K3d Custom Clusters not yet implemented")
+		}
+		tf, err := tofu.New(d.TofuVariables, d.TofuMainDirectory, d.TofuWorkspace, d.TofuParallelism, true)
+		if err != nil {
+			return err
+		}
+
+		if err = tf.Apply(); err != nil {
+			return err
+		}
+		_, nodes, err := tf.ParseOutputs()
+		if err != nil {
+			return err
+		}
+		if err = actions.RegisterCustomClusters(r, customClusterTemplates, rancherClient, &rancherConfig); err != nil {
+			return err
+		}
+	}
+
+	if len(provisionClusterTemplates) > 0 {
+		// If we have provision Cluster Templates then setup Harvester Client + import Harvester Cluster into Rancher
+
+		log.Printf("Parsing Harvester's Kubeconfig")
+		var kubeconfig *actions.Kubeconfig
+		if len(r.TofuVariables["kubeconfig"].(string)) > 0 {
+			kubeconfig, err = actions.ParseKubeconfig(r.TofuVariables["kubeconfig"].(string))
+			if err != nil {
+				return fmt.Errorf("error while parsing kubeconfig at %v: %v", r.TofuVariables["kubeconfig"].(string), err)
+			}
+		}
+
+		var harvesterClient *actions.HarvesterImportClient
+		log.Printf("Setting up Harvester Client's Config")
+		harvesterHost := strings.Split(kubeconfig.Clusters[0].Server, "://")[1]
+		harvesterConfig := actions.NewHarvesterConfig(harvesterHost, kubeconfig.Users[0].User.Token, "", true)
+		if strings.Contains(r.TofuMainDirectory, "harvester") && len(r.ClusterTemplates) > 0 {
+			log.Printf("Setting up Harvester Client")
+			harvesterClient, err = actions.NewHarvesterImportClient(rancherClient, &harvesterConfig)
+			if err != nil {
+				return fmt.Errorf("error while setting up HarvesterImportClient with config %v: %v", harvesterConfig, err)
+			}
+
+			log.Printf("Importing Harvester Cluster into Rancher for provisioning")
+			err = harvesterClient.ImportCluster()
+			if err != nil {
+				return fmt.Errorf("error while importing Harvester cluster into Rancher %v: %v", harvesterConfig, err)
+			}
+		}
+
+		log.Printf("Provisioning Downstream Clusters")
+		if err = actions.ProvisionDownstreamClusters(r, provisionClusterTemplates, rancherClient); err != nil {
+			return err
+		}
 	}
 
 	return GetAccess(cli)
@@ -456,173 +604,36 @@ func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname
 	return result
 }
 
-func importDownstreamClusters(r *dart.Dart, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster) error {
-
-	log.Print("Import downstream clusters")
-
-	if err := importDownstreamClustersRancherSetup(r, clusters); err != nil {
-		return err
-	}
-
-	buffer := 10
-	clustersChan := make(chan string, buffer)
-	errorChan := make(chan error)
-	clustersCount := 0
-
-	for clusterName := range clusters {
-		if !strings.HasPrefix(clusterName, "downstream") {
-			continue
+// naturalCompare compares strings a and b in "natural" alphanumeric order
+func naturalCompare(a, b string) bool {
+	var tokenRegex = regexp.MustCompile(`\d+|\D+`)
+	// split into tokens of numbers
+	aTokens := tokenRegex.FindAllString(a, -1)
+	bTokens := tokenRegex.FindAllString(b, -1)
+	for i := 0; i < len(aTokens) && i < len(bTokens); i++ {
+		aTok, bTok := aTokens[i], bTokens[i]
+		// If both tokens are numeric, compare as integers
+		if aNum, errA := strconv.Atoi(aTok); errA == nil {
+			if bNum, errB := strconv.Atoi(bTok); errB == nil {
+				if aNum != bNum {
+					return aNum < bNum
+				}
+				continue // numbers are equal, move to next token
+			}
 		}
-		clustersCount++
-		go importDownstreamClusterDo(r, rancherImageTag, tf, clusters, clusterName, clustersChan, errorChan)
-	}
-
-	for {
-		if clustersCount == 0 {
-			return nil
-		}
-		select {
-		case err := <-errorChan:
-			return err
-		case completed := <-clustersChan:
-			log.Printf("Cluster %q imported successfully.\n", completed)
-			clustersCount--
+		// Fallback to default lexicographic compare
+		if aTok != bTok {
+			return aTok < bTok
 		}
 	}
+	// If all shared tokens are equal, the shorter string is less
+	return len(aTokens) < len(bTokens)
 }
 
-func importDownstreamClusterDo(r *dart.Dart, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster, clusterName string, ch chan<- string, errCh chan<- error) {
-	log.Print("Import cluster " + clusterName)
-	yamlFile, err := os.CreateTemp("", "scli-"+clusterName+"-*.yaml")
-	if err != nil {
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
-	}
-	defer os.Remove(yamlFile.Name())
-	defer yamlFile.Close()
-
-	clusterID, err := importClustersDownstreamGetYAML(clusters, clusterName, yamlFile)
-	if err != nil {
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
-	}
-
-	downstream, ok := clusters[clusterName]
-	if !ok {
-		err := fmt.Errorf("error: cannot find access data for cluster %q", clusterName)
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
-	}
-	if r.ChartVariables.RancherImageTagOverride != "" {
-		err = importImageIntoK3d(tf, "rancher/rancher-agent:"+rancherImageTag, downstream)
-		if err != nil {
-			errCh <- fmt.Errorf("%s downstream k3d image import failed: %w", clusterName, err)
-			return
-		}
-	}
-
-	if err := kubectl.Apply(downstream.Kubeconfig, yamlFile.Name()); err != nil {
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
-	}
-
-	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
-		"clusters.management.cattle.io", clusterID, "", "ready", 10); err != nil {
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
-	}
-	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
-		"cluster.fleet.cattle.io", clusterName, "fleet-default", "ready", 10); err != nil {
-		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
-		return
-	}
-
-	err = kubectl.WaitForReadyCondition(downstream.Kubeconfig, "deployment", "rancher-webhook", "cattle-system", "available", 60)
-	if err != nil {
-		errCh <- fmt.Errorf("%s waiting for rancher-webhook failed: %w", clusterName, err)
-		return
-	}
-	if r.ChartVariables.DownstreamRancherMonitoring {
-		if err := chartInstallRancherMonitoring(r, &downstream); err != nil {
-			errCh <- fmt.Errorf("downstream monitoring installation on cluster %s failed: %w", clusterName, err)
-			return
-		}
-	}
-	ch <- clusterName
-}
-
-func importDownstreamClustersRancherSetup(r *dart.Dart, clusters map[string]tofu.Cluster) error {
-	tester := clusters["tester"]
-	upstream := clusters["upstream"]
-	upstreamAdd, err := getAppAddressFor(upstream)
-	if err != nil {
-		return err
-	}
-
-	downstreamClusters := []string{}
-	for clusterName := range clusters {
-		if strings.HasPrefix(clusterName, "downstream") {
-			downstreamClusters = append(downstreamClusters, clusterName)
-		}
-	}
-	importedClusterNames := strings.Join(downstreamClusters, ",")
-
-	envVars := map[string]string{
-		"BASE_URL":               upstreamAdd.Public.HTTPSURL,
-		"BOOTSTRAP_PASSWORD":     "admin",
-		"PASSWORD":               r.ChartVariables.AdminPassword,
-		"IMPORTED_CLUSTER_NAMES": importedClusterNames,
-	}
-
-	if err = kubectl.K6run(tester.Kubeconfig, "k6/rancher_setup.js", envVars, nil, true, upstreamAdd.Local.HTTPSURL, false); err != nil {
-		return err
-	}
-	return nil
-}
-
-func importClustersDownstreamGetYAML(clusters map[string]tofu.Cluster, name string, yamlFile *os.File) (clusterID string, err error) {
-	var status map[string]interface{}
-
-	upstream := clusters["upstream"]
-	upstreamAdd, err := getAppAddressFor(upstream)
-	if err != nil {
-		return
-	}
-
-	if status, err = kubectl.GetStatus(upstream.Kubeconfig, "clusters.provisioning.cattle.io", name, "fleet-default"); err != nil {
-		return
-	}
-	clusterID, ok := status["clusterName"].(string)
-	if !ok {
-		err = fmt.Errorf("error accessing fleet-default/%s clusters: no valid 'clusterName' in 'Status'", name)
-		return
-	}
-
-	if status, err = kubectl.GetStatus(upstream.Kubeconfig, "clusterregistrationtokens.management.cattle.io", "default-token", clusterID); err != nil {
-		return
-	}
-	token, ok := status["token"].(string)
-	if !ok {
-		err = fmt.Errorf("error accessing %s/default-token clusterregistrationtokens: no valid 'token' in 'Status'", clusterID)
-		return
-	}
-
-	url := fmt.Sprintf("%s/v3/import/%s_%s.yaml", upstreamAdd.Local.HTTPSURL, token, clusterID)
-	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
-	client := &http.Client{Transport: tr}
-	resp, err := client.Get(url)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-	_, err = io.Copy(yamlFile, resp.Body)
-	if err != nil {
-		return
-	}
-	if err = yamlFile.Sync(); err != nil {
-		return
-	}
-
-	return
+// SortItemsNaturally ia a generic function that sorts a slice of a given type
+// by "Name" (any provided string) using natural order
+func SortItemsNaturally[T any](items []T, getName func(T) string) {
+	sort.Slice(items, func(i, j int) bool {
+		return naturalCompare(getName(items[i]), getName(items[j]))
+	})
 }

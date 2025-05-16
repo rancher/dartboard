@@ -16,7 +16,7 @@ limitations under the License.
 
 package subcommands
 
-import "github.com/urfave/cli/v2"
+import cli "github.com/urfave/cli/v2"
 
 func Apply(cli *cli.Context) error {
 	tf, _, err := prepare(cli)
@@ -24,10 +24,10 @@ func Apply(cli *cli.Context) error {
 		return err
 	}
 
-	if err = tf.PrintVersion(cli.Context); err != nil {
+	if err = tf.PrintVersion(); err != nil {
 		return err
 	}
-	if err = tf.Apply(cli.Context); err != nil {
+	if err = tf.Apply(); err != nil {
 		return err
 	}
 
