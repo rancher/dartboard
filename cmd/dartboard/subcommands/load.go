@@ -34,7 +34,7 @@ func Load(cli *cli.Context) error {
 		return err
 	}
 
-	clusters, err := tf.OutputClusters()
+	clusters, _, err := tf.ParseOutputs()
 	if err != nil {
 		return err
 	}
