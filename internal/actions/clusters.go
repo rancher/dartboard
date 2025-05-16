@@ -6,9 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/tofu"
 	apisV1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	"github.com/rancher/tests/actions/clusters"
+	rancherclusters "github.com/rancher/tests/actions/clusters"
 	"github.com/rancher/tests/actions/registries"
 	"github.com/rancher/tests/actions/reports"
 	"github.com/sirupsen/logrus"
@@ -35,6 +37,22 @@ import (
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 )
+
+const (
+	psactRancherPrivileged string = "rancher-privileged"
+)
+
+// ConvertConfigToClusterConfig converts the ClusterConfig from (user) input to a rancher/tests ClusterConfig
+func ConvertConfigToClusterConfig(config *dart.ClusterConfig) *rancherclusters.ClusterConfig {
+	var newConfig rancherclusters.ClusterConfig
+	for i := range config.MachinePools {
+		newConfig.MachinePools[i].Pools = config.MachinePools[i].Pools
+		newConfig.MachinePools[i].MachinePoolConfig = config.MachinePools[i].MachinePoolConfig.MachinePoolConfig
+	}
+	newConfig.Providers = &[]string{config.Provider}
+	newConfig.PSACT = psactRancherPrivileged
+	return &newConfig
+}
 
 // CreateK3SRKE2Cluster is a "helper" functions that takes a rancher client, and the rke2 cluster config as parameters.
 // This function registers a delete cluster function with a wait.WatchWait to ensure the cluster is removed cleanly
@@ -126,9 +144,8 @@ func createRegistrationCommand(command, publicIP, privateIP string, machinePool 
 	return command
 }
 
-// CreateProvisioningCustomCluster provisions a non-rke1 cluster using a 3rd party client for its nodes, then runs verify checks
-func CreateCustomCluster(client *rancher.Client, config *rancher.Config, cluster *apisV1.Cluster, nodes []tofu.Node) (*v1.SteveAPIObject, error) {
-	// rolesPerNode := []string{}
+// RegisterCustomCluster registers a non-rke1 cluster using a 3rd party client for its nodes
+func RegisterCustomCluster(client *rancher.Client, config *rancher.Config, steveObject *v1.SteveAPIObject, cluster *apisV1.Cluster, nodes []tofu.Node) (*v1.SteveAPIObject, error) {
 	quantityPerPool := []int32{}
 	rolesPerPool := []string{}
 	for _, pool := range cluster.Spec.RKEConfig.MachinePools {
@@ -145,17 +162,9 @@ func CreateCustomCluster(client *rancher.Client, config *rancher.Config, cluster
 
 		quantityPerPool = append(quantityPerPool, *pool.Quantity)
 		rolesPerPool = append(rolesPerPool, finalRoleCommand)
-		// for i := int32(0); i < *pool.Quantity; i++ {
-		// 	rolesPerNode = append(rolesPerNode, finalRoleCommand)
-		// }
 	}
 
-	clusterResp, err := CreateK3SRKE2Cluster(client, config, cluster)
-	if err != nil {
-		return nil, err
-	}
-
-	customCluster, err := client.Steve.SteveType(etcdsnapshot.ProvisioningSteveResouceType).ByID(clusterResp.ID)
+	customCluster, err := client.Steve.SteveType(etcdsnapshot.ProvisioningSteveResouceType).ByID(steveObject.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +197,7 @@ func CreateCustomCluster(client *rancher.Client, config *rancher.Config, cluster
 	var command string
 	totalNodesObserved := 0
 	for poolIndex, poolRole := range rolesPerPool {
-		for nodeIndex := 0; nodeIndex < int(quantityPerPool[poolIndex]); nodeIndex++ {
+		for nodeIndex := range int(quantityPerPool[poolIndex]) {
 			node := nodes[totalNodesObserved+nodeIndex]
 
 			logrus.Infof("Execute Registration Command for node named %s, ID %s", node.NodeName, node.NodeID)
@@ -198,12 +207,16 @@ func CreateCustomCluster(client *rancher.Client, config *rancher.Config, cluster
 			command = createRegistrationCommand(command, node.PublicIPAddress, node.PrivateIPAddress, cluster.Spec.RKEConfig.MachinePools[poolIndex])
 			logrus.Infof("Node command: %s", command)
 
+			nodeSSHKey, err := tofu.ReadBytesFromPath(node.SSHKeyPath)
+			if err != nil {
+				return nil, fmt.Errorf("error getting node's SSH Key from %s: %w", node.SSHKeyPath, err)
+			}
 			shepherdNode := shepherdnodes.Node{
 				NodeID:           node.NodeID,
 				PublicIPAddress:  node.PublicIPAddress,
 				PrivateIPAddress: node.PrivateIPAddress,
 				SSHUser:          node.SSHUser,
-				SSHKey:           node.SSHKey,
+				SSHKey:           nodeSSHKey,
 			}
 			output, err := shepherdNode.ExecuteCommand(command)
 			if err != nil {
@@ -219,8 +232,8 @@ func CreateCustomCluster(client *rancher.Client, config *rancher.Config, cluster
 		return nil, err
 	}
 
-	createdCluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.Namespace + "/" + cluster.Name)
-	return createdCluster, err
+	registeredCluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.Namespace + "/" + cluster.Name)
+	return registeredCluster, err
 }
 
 // VerifyClusterCreated confirms that the cluster resource exists

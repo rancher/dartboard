@@ -2,7 +2,6 @@ package actions
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/rancher/shepherd/clients/rancher"
@@ -46,19 +45,15 @@ type ContextData struct {
 
 func ParseKubeconfig(kubeconfigPath string) (*Kubeconfig, error) {
 	kubeconfig := Kubeconfig{}
-	if _, err := os.Stat(kubeconfigPath); err == nil {
-		kubeconfigBytes, err := os.ReadFile(kubeconfigPath)
-		if err != nil {
-			return nil, fmt.Errorf("error reading kubeconfig file at %s: %w", kubeconfigPath, err)
-		}
-
-		err = yaml.Unmarshal(kubeconfigBytes, &kubeconfig)
-		if err != nil {
-			return nil, fmt.Errorf("error unmarshaling kubeconfig YAML for %s: %w", kubeconfigBytes, err)
-		}
-	} else {
-		return nil, fmt.Errorf("error could not find kubeconfig at %s: %w", kubeconfigPath, err)
+	kubeconfigBytes, err := GetKubeconfigBytes(kubeconfigPath)
+	if err != nil {
+		return nil, err
 	}
+	err = yaml.Unmarshal(kubeconfigBytes, &kubeconfig)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling kubeconfig YAML for %s: %w", kubeconfigBytes, err)
+	}
+
 	return &kubeconfig, nil
 }
 
