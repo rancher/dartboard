@@ -10,9 +10,12 @@ import (
 // ClusterStatus holds the state of each cluster.
 type ClusterStatus struct {
 	Name        string `yaml:"name"`
+	New         bool   `yaml:"new"`
+	Infra       bool   `yaml:"infra"`
 	Created     bool   `yaml:"created"`
 	Imported    bool   `yaml:"imported"`
 	Provisioned bool   `yaml:"provisioned"`
+	Registered  bool   `yaml:"registered"`
 	Stage       Stage  `yaml:"stage"`
 	// // Only one of the following should be included
 	// tofu.Cluster         `yaml:"cluster,omitempty"`          //For Imported Clusters
@@ -27,9 +30,11 @@ type Stage int
 
 const (
 	StageNew         Stage = iota // Cluster is not yet created
+	StageInfra                    // Cluster infrastructure was created
 	StageCreated                  // Cluster was created
 	StageImported                 // Cluster has been imported
 	StageProvisioned              // Cluster has been provisioned
+	StageRegistered               // Cluster has been registered
 )
 
 // Gives a human-readable name for the Stage.
@@ -37,12 +42,16 @@ func (s Stage) String() string {
 	switch s {
 	case StageNew:
 		return "New"
+	case StageInfra:
+		return "Infra"
 	case StageCreated:
 		return "Created"
 	case StageImported:
 		return "Imported"
 	case StageProvisioned:
 		return "Provisioned"
+	case StageRegistered:
+		return "Registered"
 		// Return the int representing the Stage, if no case handles it
 	default:
 		return fmt.Sprintf("Stage(%d)", s)
