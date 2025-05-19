@@ -11,6 +11,9 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	shepherddefaults "github.com/rancher/shepherd/extensions/defaults"
 	"github.com/sirupsen/logrus"
+
+	harvclient "github.com/harvester/harvester/pkg/generated/clientset/versioned"
+	kubeclient "k8s.io/client-go/kubernetes"
 )
 
 var maxWorkers = runtime.GOMAXPROCS(0) * 2
@@ -36,7 +39,7 @@ type JobDataTypes interface {
 
 // SequencedBatchRunner contains all the channels and WaitGroups needed
 // for processing a batch of Clusters concurrently with sequenced state updates
-type SequencedBatchRunner[J JobDataTypes] struct {
+type SequencedBatchRunner[N dart.ProviderConfig, J JobDataTypes] struct {
 	// Channel to sequence updates
 	seqCh chan struct{}
 	// Channel for all write requests
@@ -52,8 +55,8 @@ type SequencedBatchRunner[J JobDataTypes] struct {
 }
 
 // NewSequencedBatchRunner constructs a new runner for one batch
-func NewSequencedBatchRunner[J JobDataTypes](batchSize int) *SequencedBatchRunner[J] {
-	br := &SequencedBatchRunner[J]{
+func NewSequencedBatchRunner[N dart.ProviderConfig, J JobDataTypes](batchSize int) *SequencedBatchRunner[N, J] {
+	br := &SequencedBatchRunner[N, J]{
 		Updates: make(chan stateUpdate, batchSize*3),
 		seqCh:   make(chan struct{}, 1),
 		Jobs:    make(chan J, batchSize),
@@ -65,8 +68,9 @@ func NewSequencedBatchRunner[J JobDataTypes](batchSize int) *SequencedBatchRunne
 }
 
 // Run executes the batch: starts the file writer, workers, enqueues jobs, collects results
-func (br *SequencedBatchRunner[J]) Run(batch []J, statuses map[string]*ClusterStatus,
-	statePath string, client *rancher.Client, config *rancher.Config) error {
+func (br *SequencedBatchRunner[N, J]) Run(batch []J, nts []dart.NodeTemplate[N],
+	statuses map[string]*ClusterStatus, statePath string, client *rancher.Client, config *rancher.Config,
+	h *harvclient.Clientset, k *kubeclient.Clientset) error {
 	// Start writer
 	br.wgWriter.Add(1)
 	go br.writer(statuses, statePath)
@@ -74,7 +78,7 @@ func (br *SequencedBatchRunner[J]) Run(batch []J, statuses map[string]*ClusterSt
 	// Spawn workers
 	for range maxWorkers {
 		br.wgWorkers.Add(1)
-		go br.worker(statuses, client, config)
+		go br.worker(statuses, nts, client, config, h, k)
 	}
 
 	// Enqueue and close jobs
@@ -116,7 +120,7 @@ func (br *SequencedBatchRunner[J]) Run(batch []J, statuses map[string]*ClusterSt
 	return nil
 }
 
-func (br *SequencedBatchRunner[J]) Wait() {
+func (br *SequencedBatchRunner[N, J]) Wait() {
 	br.wgWorkers.Wait()
 	close(br.Updates)
 	br.wgWriter.Wait()
@@ -124,7 +128,7 @@ func (br *SequencedBatchRunner[J]) Wait() {
 }
 
 // writer serializes all state updates and persists immediately
-func (br *SequencedBatchRunner[J]) writer(statuses map[string]*ClusterStatus, statePath string) {
+func (br *SequencedBatchRunner[N, J]) writer(statuses map[string]*ClusterStatus, statePath string) {
 	defer br.wgWriter.Done()
 	for u := range br.Updates {
 		stateMutex.Lock()
@@ -152,7 +156,8 @@ func (br *SequencedBatchRunner[J]) writer(statuses map[string]*ClusterStatus, st
 }
 
 // worker consumes Jobs, calls the proper handler based on the Job Type, signals Updates and Results
-func (br *SequencedBatchRunner[J]) worker(statuses map[string]*ClusterStatus, client *rancher.Client, config *rancher.Config) {
+func (br *SequencedBatchRunner[N, J]) worker(statuses map[string]*ClusterStatus, nts []dart.NodeTemplate[N],
+	client *rancher.Client, config *rancher.Config, h *harvclient.Clientset, k *kubeclient.Clientset) {
 	defer br.wgWorkers.Done()
 	for job := range br.Jobs {
 		var skipped bool
@@ -160,9 +165,16 @@ func (br *SequencedBatchRunner[J]) worker(statuses map[string]*ClusterStatus, cl
 		// Use type assertion to determine which function to call
 		switch typedJob := any(job).(type) {
 		case tofu.Cluster:
-			skipped, err = importClusterWithRunner[J](br, typedJob, statuses, client, config)
+			skipped, err = importClusterWithRunner(br, typedJob, statuses, client, config)
 		case dart.ClusterTemplate:
-			skipped, err = provisionClusterWithRunner[J](br, typedJob, statuses, client)
+			if typedJob.IsCustomCluster {
+				skipped, err = registerCustomClusterWithRunner(br, typedJob, nts, statuses, client, config, h, k)
+			} else {
+				skipped, err = provisionClusterWithRunner(br, typedJob, statuses, client)
+			}
+			// TODELETE:
+		// case CustomClusterTemplate:
+		// 	skipped, err = registerCustomClusterWithRunner(br, typedJob, statuses, client, config)
 		default:
 			err = fmt.Errorf("unsupported job type: %T", job)
 		}
