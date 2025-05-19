@@ -2,6 +2,6 @@ output "clusters" {
   value = module.test_environment.clusters
 }
 
-output "nodes" {
-  value = module.test_environment.nodes
+output "custom_clusters" {
+  value = module.test_environment.custom_clusters
 }
