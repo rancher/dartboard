@@ -71,11 +71,11 @@ type HarvesterDisk struct {
 }
 
 // Used for injection into Dart.TofuVariables["node_templates"]
-type NodeTemplate[N ProviderConfig] struct {
-	NodeCount             int    `json:"node_count" yaml:"node_count,omitempty"`
-	NamePrefix            string `json:"name_prefix" yaml:"name_prefix,omitempty"`
-	NodeModuleVariables   N      `json:"node_module_variables" yaml:"node_module_variables,omitempty"`
-	OriginClusterTemplate int    `json:"origin_cluster_template,omitempty" yaml:"origin_cluster_template,omitempty"`
+type NodeTemplate struct {
+	NodeCount             int            `json:"node_count" yaml:"node_count,omitempty"`
+	NamePrefix            string         `json:"name_prefix" yaml:"name_prefix,omitempty"`
+	NodeModuleVariables   ProviderConfig `json:"node_module_variables" yaml:"node_module_variables,omitempty"`
+	OriginClusterTemplate int            `json:"origin_cluster_template,omitempty" yaml:"origin_cluster_template,omitempty"`
 }
 
 type ClusterConfig struct {
@@ -153,7 +153,7 @@ func ToMap(a any) (map[string]interface{}, error) {
 
 // TODELETE:
 // func buildNodeTemplate[N AnyNodeConfig](config N, count int, prefix string) (map[string]any, error) {
-// 	nt := NodeTemplate[N]{
+// 	nt := NodeTemplate{
 // 		NodeCount:           count,
 // 		NamePrefix:          prefix,
 // 		NodeModuleVariables: config,
@@ -170,8 +170,8 @@ func ToMap(a any) (map[string]interface{}, error) {
 // 	return result, nil
 // }
 
-func buildNodeTemplate[N ProviderConfig](config N, count int, prefix string, templateIndex int) (NodeTemplate[N], error) {
-	nt := NodeTemplate[N]{
+func buildNodeTemplate[N AnyNodeConfig](config N, count int, prefix string, templateIndex int) (NodeTemplate, error) {
+	nt := NodeTemplate{
 		NodeCount:             count,
 		NamePrefix:            prefix,
 		NodeModuleVariables:   config,
@@ -179,7 +179,7 @@ func buildNodeTemplate[N ProviderConfig](config N, count int, prefix string, tem
 	}
 
 	if err := nt.NodeModuleVariables.Validate(); err != nil {
-		return NodeTemplate[N]{}, fmt.Errorf("error during %s ProviderConfig validation: %w", config.ProviderName(), err)
+		return NodeTemplate{}, fmt.Errorf("error during %s ProviderConfig validation: %w", config.ProviderName(), err)
 	}
 	return nt, nil
 }
