@@ -78,7 +78,7 @@ type VMSSHKey struct {
 	Namespace string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 }
 
-type VMInputs struct {
+type VMInput struct {
 	Count       int             `json:"count,omitempty" yaml:"count,omitempty"`
 	Name        string          `json:"name,omitempty" yaml:"name,omitempty"`
 	Namespace   string          `json:"namespace,omitempty" yaml:"namespace,omitempty"`
@@ -236,7 +236,7 @@ func DeleteVMWithPVC(c *harvclient.Clientset, vmExisting *VMv1.VirtualMachine, n
 }
 
 // CreateVM implements the CLI *vm create* command, there are two options, either to create a VM from a Harvester VM template or from a VM image
-func CreateVM(c *harvclient.Clientset, k *kubeclient.Clientset, vmInputs *VMInputs) error {
+func CreateVM(c *harvclient.Clientset, k *kubeclient.Clientset, vmInputs *VMInput) error {
 	if vmInputs.Template.Name != "" {
 		return createVMFromTemplate(c, k, vmInputs)
 	} else {
@@ -245,7 +245,7 @@ func CreateVM(c *harvclient.Clientset, k *kubeclient.Clientset, vmInputs *VMInpu
 }
 
 // createVMFromTemplate creates a VM from a VM template provided in the CLI command
-func createVMFromTemplate(c *harvclient.Clientset, k *kubeclient.Clientset, vmInputs *VMInputs) error {
+func createVMFromTemplate(c *harvclient.Clientset, k *kubeclient.Clientset, vmInputs *VMInput) error {
 	var err error
 	// checking if template exists
 	templateContent, err := c.HarvesterhciV1beta1().VirtualMachineTemplates(vmInputs.Namespace).Get(context.TODO(), vmInputs.Template.Name, k8smetav1.GetOptions{})
@@ -333,7 +333,7 @@ func fetchTemplateVersionFromInt(c *harvclient.Clientset, namespace, templateNam
 }
 
 // createVMFromImage creates a VM from a VM Image using the CLI command context to get information
-func createVMFromImage(c *harvclient.Clientset, k *kubeclient.Clientset, vmTemplate *VMv1.VirtualMachineInstanceTemplateSpec, vmInputs *VMInputs) error {
+func createVMFromImage(c *harvclient.Clientset, k *kubeclient.Clientset, vmTemplate *VMv1.VirtualMachineInstanceTemplateSpec, vmInputs *VMInput) error {
 	if vmInputs.Count == 0 {
 		return fmt.Errorf("VM count provided is 0, no VM will be created")
 	}
@@ -433,7 +433,7 @@ func createVMFromImage(c *harvclient.Clientset, k *kubeclient.Clientset, vmTempl
 			}
 		}
 
-		ubuntuVM := &VMv1.VirtualMachine{
+		vm := &VMv1.VirtualMachine{
 			ObjectMeta: k8smetav1.ObjectMeta{
 				Name:      vmName,
 				Namespace: vmInputs.Namespace,
@@ -455,7 +455,7 @@ func createVMFromImage(c *harvclient.Clientset, k *kubeclient.Clientset, vmTempl
 			return err
 		}
 
-		_, err = c.KubevirtV1().VirtualMachines(vmInputs.Namespace).Create(context.TODO(), ubuntuVM, k8smetav1.CreateOptions{})
+		_, err = c.KubevirtV1().VirtualMachines(vmInputs.Namespace).Create(context.TODO(), vm, k8smetav1.CreateOptions{})
 
 		if err != nil {
 			return err
@@ -465,7 +465,7 @@ func createVMFromImage(c *harvclient.Clientset, k *kubeclient.Clientset, vmTempl
 	return nil
 }
 
-func enrichVMTemplate(c *harvclient.Clientset, k *kubeclient.Clientset, vmTemplate *VMv1.VirtualMachineInstanceTemplateSpec, vmInputs *VMInputs) error {
+func enrichVMTemplate(c *harvclient.Clientset, k *kubeclient.Clientset, vmTemplate *VMv1.VirtualMachineInstanceTemplateSpec, vmInputs *VMInput) error {
 	if vmInputs.CPUs > 0 {
 		vmTemplate.Spec.Domain.CPU.Cores = uint32(vmInputs.CPUs)
 		cpuQuantity := k8sresource.NewQuantity(int64(vmInputs.CPUs), k8sresource.DecimalSI)
@@ -576,7 +576,7 @@ func getCloudInitData(k *kubeclient.Clientset, dataMap map[string]any, scope str
 }
 
 // BuildVMTemplate creates a *VMv1.VirtualMachineInstanceTemplateSpec from the CLI Flags and some computed values
-func BuildVMTemplate(c *harvclient.Clientset, k *kubeclient.Clientset, pvcName string, vmiLabels map[string]string, vmInputs *VMInputs) (vmTemplate *VMv1.VirtualMachineInstanceTemplateSpec, err error) {
+func BuildVMTemplate(c *harvclient.Clientset, k *kubeclient.Clientset, pvcName string, vmiLabels map[string]string, vmInputs *VMInput) (vmTemplate *VMv1.VirtualMachineInstanceTemplateSpec, err error) {
 	networkNS := vmInputs.Network.Namespace
 	if networkNS == "" {
 		networkNS = vmInputs.Namespace
@@ -782,7 +782,7 @@ func BuildVMListMatchingWildcard(c *harvclient.Clientset, namespace, vmNameWildc
 }
 
 // SetDefaultVMImage creates a default VM image based on Ubuntu if none has been provided at the command line.
-func SetDefaultVMImage(c *harvclient.Clientset, vmInputs *VMInputs) (result *v1beta1.VirtualMachineImage, err error) {
+func SetDefaultVMImage(c *harvclient.Clientset, vmInputs *VMInput) (result *v1beta1.VirtualMachineImage, err error) {
 
 	result = &v1beta1.VirtualMachineImage{}
 	vmImages, err := c.HarvesterhciV1beta1().VirtualMachineImages(vmInputs.Image.Namespace).List(context.TODO(), k8smetav1.ListOptions{})
@@ -845,7 +845,7 @@ func CreateVMImage(c *harvclient.Clientset, namespace string, imageName string, 
 }
 
 // SetDefaultSSHKey assign a default SSH key to the VM if none was provided at the command line
-func SetDefaultSSHKey(c *harvclient.Clientset, vmInputs *VMInputs) (sshKey *v1beta1.KeyPair, err error) {
+func SetDefaultSSHKey(c *harvclient.Clientset, vmInputs *VMInput) (sshKey *v1beta1.KeyPair, err error) {
 	sshKey = &v1beta1.KeyPair{}
 	sshKeys, err := c.HarvesterhciV1beta1().KeyPairs(vmInputs.Namespace).List(context.TODO(), k8smetav1.ListOptions{})
 
