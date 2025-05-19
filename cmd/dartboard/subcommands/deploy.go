@@ -58,7 +58,7 @@ func Deploy(cli *cli.Context) error {
 		}
 	}
 
-	clusters, err := tf.ParseOutputs()
+	clusters, custom_clusters, err := tf.ParseOutputs()
 	if err != nil {
 		return err
 	}
@@ -142,21 +142,22 @@ func Deploy(cli *cli.Context) error {
 	}
 	SortItemsNaturally(downstreamClusters, func(c tofu.Cluster) string { return c.Name })
 
-	// Filter out Cluster Templates that are for provisioning
-	var provisionClusterTemplates []dart.ClusterTemplate
-	var customClusterTemplates []dart.ClusterTemplate
+	// TODELETE:
+	// // Filter out Cluster Templates that are for provisioning
+	// var provisionClusterTemplates []dart.ClusterTemplate
+	// var customClusterTemplates []dart.ClusterTemplate
 
-	for _, template := range r.ClusterTemplates {
-		if template.ClusterConfig != nil {
-			if !template.IsCustomCluster {
-				provisionClusterTemplates = append(provisionClusterTemplates, template)
-			} else {
-				customClusterTemplates = append(customClusterTemplates, template)
-			}
-		} else {
-			return fmt.Errorf("error, did not find any Provisioning or Custom Cluster Templates")
-		}
-	}
+	// for _, template := range r.ClusterTemplates {
+	// 	if template.ClusterConfig != nil {
+	// 		if !template.IsCustomCluster {
+	// 			provisionClusterTemplates = append(provisionClusterTemplates, template)
+	// 		} else {
+	// 			customClusterTemplates = append(customClusterTemplates, template)
+	// 		}
+	// 	} else {
+	// 		return fmt.Errorf("error, did not find any Provisioning or Custom Cluster Templates")
+	// 	}
+	// }
 
 	jsonBytes, err := json.MarshalIndent(downstreamClusters, "", "    ")
 	if err != nil {
@@ -170,15 +171,9 @@ func Deploy(cli *cli.Context) error {
 		return err
 	}
 
-	// TODELETE:
-	// requestedCustomClusters := slices.ContainsFunc(r.ClusterTemplates, func(c dart.ClusterTemplate) bool {
-	// 	return c.IsCustomCluster
-	// })
-	// if requestedCustomClusters {
-	if len(customClusterTemplates) > 0 {
-		// return fmt.Errorf("error, expected to have non-empty map[string]tofu.CustomCluster")
-
-		if err := actions.RegisterCustomClusters(r, customClusterTemplates, rancherClient, &rancherConfig); err != nil {
+	if len(custom_clusters) > 0 {
+		// Get all custom cluster info
+		if err := actions.RegisterCustomClusters(r, custom_clusters, rancherClient, &rancherConfig); err != nil {
 			return err
 		}
 	}
@@ -190,7 +185,7 @@ func Deploy(cli *cli.Context) error {
 	// }
 	// }
 
-	if len(provisionClusterTemplates) > 0 {
+	if len(r.ClusterTemplates) > 0 {
 		// If we have provision Cluster Templates then setup Harvester Client + import Harvester Cluster into Rancher
 
 		log.Printf("Parsing Harvester's Kubeconfig")
@@ -221,7 +216,7 @@ func Deploy(cli *cli.Context) error {
 		}
 
 		log.Printf("Provisioning Downstream Clusters")
-		if err = actions.ProvisionDownstreamClusters(r, provisionClusterTemplates, rancherClient); err != nil {
+		if err = actions.ProvisionDownstreamClusters(r, r.ClusterTemplates, rancherClient); err != nil {
 			return err
 		}
 	}
