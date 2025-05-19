@@ -53,6 +53,7 @@ variable "downstream_cluster_distro_module" {
 variable "node_templates" {
   description = "List of node configurations. See tofu/modules/generic/test_environment/variables.tf for details"
   type        = list(any)
+  default     = []
 }
 
 variable "tester_cluster" {
@@ -126,7 +127,7 @@ variable "network" {
     vlan_id             = 100
     name                = "vmnet-shared"
     namespace           = "default"
-    interace_type       = "bridge"
+    interface_type       = "bridge"
     public              = true
     wait_for_lease      = true
   }
