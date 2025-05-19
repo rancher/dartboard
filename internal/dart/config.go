@@ -16,6 +16,13 @@ var (
 	ErrInvalidString   = errors.New("string must not be empty")
 )
 
+const (
+	HarvesterProvider = "harvester"
+	AWSProvider       = "aws"
+	AzureProvider     = "azure"
+	K3DProvider       = "k3d"
+)
+
 type AnyNodeConfig interface {
 	ProviderConfig
 	HarvesterNodeConfig | AWSNodeConfig | AzureNodeConfig | K3DNodeConfig
@@ -27,7 +34,7 @@ type ProviderConfig interface {
 }
 
 type NodeConfig struct {
-	Harvester     *HarvesterNodeConfig `yaml:"harvester,omitempty" json:"harvester,omitempty"`
+	Harvester     *HarvesterNodeConfig `json:"harvester,omitempty" yaml:"harvester,omitempty"`
 	AWS           *AWSNodeConfig       `json:"aws,omitempty" yaml:"aws,omitempty"`
 	Azure         *AzureNodeConfig     `json:"azure,omitempty" yaml:"azure,omitempty"`
 	K3DNodeConfig *K3DNodeConfig       `json:"k3d_node_config,omitempty" yaml:"k3d_node_config,omitempty"`
@@ -38,20 +45,20 @@ type AzureNodeConfig struct{}
 type K3DNodeConfig struct{}
 
 type HarvesterNodeConfig struct {
-	CPU                 int                 `json:"cpu" yaml:"cpu"`
-	Memory              int                 `json:"memory" yaml:"memory"`
-	Disks               []HarvesterDisk     `json:"disks" yaml:"disks"`
-	ImageName           string              `json:"image_name" yaml:"image_name"`
-	ImageNamespace      string              `json:"image_namespace" yaml:"image_namespace"`
-	Namespace           string              `json:"namespace" yaml:"namespace"`
-	Tags                map[string]string   `json:"tags" yaml:"tags"`
-	Password            string              `json:"password" yaml:"password"`
-	SSHSharedPublicKeys SSHSharedPublicKeys `json:"ssh_shared_public_keys" yaml:"ssh_shared_public_keys"`
-	EFI                 bool                `json:"efi" yaml:"efi"`
-	SecureBoot          bool                `json:"secure_boot" yaml:"secure_boot"`
+	CPU                 int                  `json:"cpu" yaml:"cpu"`
+	Memory              int                  `json:"memory" yaml:"memory"`
+	Disks               []HarvesterDisk      `json:"disks" yaml:"disks"`
+	ImageName           string               `json:"image_name" yaml:"image_name"`
+	ImageNamespace      string               `json:"image_namespace" yaml:"image_namespace"`
+	Namespace           string               `json:"namespace" yaml:"namespace"`
+	Tags                map[string]string    `json:"tags" yaml:"tags"`
+	Password            string               `json:"password" yaml:"password"`
+	SSHSharedPublicKeys []SSHSharedPublicKey `json:"ssh_shared_public_keys" yaml:"ssh_shared_public_keys"`
+	EFI                 bool                 `json:"efi" yaml:"efi"`
+	SecureBoot          bool                 `json:"secure_boot" yaml:"secure_boot"`
 }
 
-type SSHSharedPublicKeys struct {
+type SSHSharedPublicKey struct {
 	Name      string `json:"name" yaml:"name"`
 	Namespace string `json:"namespace" yaml:"namespace"`
 }
@@ -64,10 +71,11 @@ type HarvesterDisk struct {
 }
 
 // Used for injection into Dart.TofuVariables["node_templates"]
-type NodeTemplate[N AnyNodeConfig] struct {
-	NodeCount           int    `yaml:"node_count"`
-	NamePrefix          string `yaml:"name_prefix"`
-	NodeModuleVariables N      `yaml:"node_module_variables"`
+type NodeTemplate[N ProviderConfig] struct {
+	NodeCount             int    `json:"node_count" yaml:"node_count,omitempty"`
+	NamePrefix            string `json:"name_prefix" yaml:"name_prefix,omitempty"`
+	NodeModuleVariables   N      `json:"node_module_variables" yaml:"node_module_variables,omitempty"`
+	OriginClusterTemplate int    `json:"origin_cluster_template,omitempty" yaml:"origin_cluster_template,omitempty"`
 }
 
 type ClusterConfig struct {
@@ -75,17 +83,28 @@ type ClusterConfig struct {
 	Provider     string         `yaml:"provider"`
 }
 
+// TODELETE:
+// type MachinePools struct {
+// 	machinepools.Pools
+// 	MachinePoolConfig MachinePoolConfig `yaml:"machine_pool_config,omitempty" default:"[]"`
+// }
+
+// type MachinePoolConfig struct {
+// 	ControlPlane bool  `json:",omitempty" yaml:"controlplane,omitempty"`
+// 	Etcd         bool  `json:"etcd,omitempty" yaml:"etcd,omitempty"`
+// 	Worker       bool  `json:"worker,omitempty" yaml:"worker,omitempty"`
+// 	Quantity     int32 `json:"quantity" yaml:"quantity"`
+// }
+
 type MachinePools struct {
 	machinepools.Pools
-	MachinePoolConfig MachinePoolConfig `yaml:"machinePoolConfig,omitempty" default:"[]"`
+	MachinePoolConfig MachinePoolConfig `yaml:"machine_pool_config,omitempty" default:"[]"`
 }
 
 type MachinePoolConfig struct {
-	machinepools.MachinePoolConfig
 	ControlPlane bool       `json:"controlplane,omitempty" yaml:"controlplane,omitempty"`
 	Etcd         bool       `json:"etcd,omitempty" yaml:"etcd,omitempty"`
 	Worker       bool       `json:"worker,omitempty" yaml:"worker,omitempty"`
-	Windows      bool       `json:"windows,omitempty" yaml:"windows,omitempty"`
 	Quantity     int32      `json:"quantity" yaml:"quantity"`
 	NodeConfig   NodeConfig `yaml:"node_config"`
 }
@@ -132,22 +151,37 @@ func ToMap(a any) (map[string]interface{}, error) {
 	return result, nil
 }
 
-func buildNodeTemplate[N AnyNodeConfig](config N, count int, prefix string) (map[string]any, error) {
+// TODELETE:
+// func buildNodeTemplate[N AnyNodeConfig](config N, count int, prefix string) (map[string]any, error) {
+// 	nt := NodeTemplate[N]{
+// 		NodeCount:           count,
+// 		NamePrefix:          prefix,
+// 		NodeModuleVariables: config,
+// 	}
+
+// 	if err := nt.NodeModuleVariables.Validate(); err != nil {
+// 		return nil, fmt.Errorf("error during %s ProviderConfig validation: %w", config.ProviderName(), err)
+// 	}
+
+// 	result, err := ToMap(nt)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return result, nil
+// }
+
+func buildNodeTemplate[N ProviderConfig](config N, count int, prefix string, templateIndex int) (NodeTemplate[N], error) {
 	nt := NodeTemplate[N]{
-		NodeCount:           count,
-		NamePrefix:          prefix,
-		NodeModuleVariables: config,
+		NodeCount:             count,
+		NamePrefix:            prefix,
+		NodeModuleVariables:   config,
+		OriginClusterTemplate: templateIndex,
 	}
 
 	if err := nt.NodeModuleVariables.Validate(); err != nil {
-		return nil, fmt.Errorf("error during %s ProviderConfig validation: %w", config.ProviderName(), err)
+		return NodeTemplate[N]{}, fmt.Errorf("error during %s ProviderConfig validation: %w", config.ProviderName(), err)
 	}
-
-	result, err := ToMap(nt)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+	return nt, nil
 }
 
 // GetActiveConfig returns the single non‑nil ProviderConfig inside nc

@@ -2,14 +2,19 @@ package actions
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
+	harvclient "github.com/harvester/harvester/pkg/generated/clientset/versioned"
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/tofu"
+	yaml "gopkg.in/yaml.v2"
+	kubeclient "k8s.io/client-go/kubernetes"
 
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	shepherdclusters "github.com/rancher/shepherd/extensions/clusters"
 	shepherddefaults "github.com/rancher/shepherd/extensions/defaults"
 	shepherdtokens "github.com/rancher/shepherd/extensions/token"
@@ -71,7 +76,7 @@ func ProvisionDownstreamClusters(r *dart.Dart, templates []dart.ClusterTemplate,
 	if r.ClusterBatchSize <= 0 {
 		panic("ClusterBatchSize must be > 0")
 	}
-	for _, template := range templates {
+	for _, template := range r.ClusterTemplates {
 		err := ProvisionClustersInBatches(r, template, rancherClient)
 		if err != nil {
 			return err
@@ -105,7 +110,7 @@ func ProvisionClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, ran
 
 		// Create and run a batch runner for this batch of templates
 		batchRunner := NewSequencedBatchRunner[dart.ClusterTemplate](len(batchTemplates))
-		err := batchRunner.Run(batchTemplates, statuses, clusterStatePath, rancherClient, nil)
+		err := batchRunner.Run(batchTemplates, nil, statuses, clusterStatePath, rancherClient, nil)
 		if err != nil {
 			return err
 		}
@@ -116,7 +121,7 @@ func ProvisionClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, ran
 	return nil
 }
 
-func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], template dart.ClusterTemplate,
+func provisionClusterWithRunner[N dart.ProviderConfig, J JobDataTypes](br *SequencedBatchRunner[N, J], template dart.ClusterTemplate,
 	statuses map[string]*ClusterStatus, rancherClient *rancher.Client) (skipped bool, err error) {
 
 	clusterName := template.GeneratedName()
@@ -145,8 +150,8 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 	// 	return false, fmt.Errorf("error while parsing kubernetes version for version %v", template.DistroVersion)
 	// }
 
-	nodeProvider := CreateProvider(template.Config.Provider)
-	templateClusterConfig := ConvertConfigToClusterConfig(template.Config)
+	nodeProvider := CreateProvider(template.ClusterConfig.Provider)
+	templateClusterConfig := ConvertConfigToClusterConfig(template.ClusterConfig)
 
 	// Create the cluster
 	clusterObject, err := provisioning.CreateProvisioningCluster(rancherClient, nodeProvider, templateClusterConfig, nil)
@@ -217,7 +222,7 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, rancherClien
 		batch := clusters[i:j]
 
 		batchRunner := NewSequencedBatchRunner[tofu.Cluster](len(batch))
-		err := batchRunner.Run(batch, statuses, clusterStatePath, rancherClient, rancherConfig)
+		err := batchRunner.Run(batch, nil, statuses, clusterStatePath, rancherClient, rancherConfig)
 		if err != nil {
 			return err
 		}
@@ -226,7 +231,7 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, rancherClien
 	return nil
 }
 
-func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluster tofu.Cluster,
+func importClusterWithRunner[N dart.ProviderConfig, J JobDataTypes](br *SequencedBatchRunner[N, J], cluster tofu.Cluster,
 	statuses map[string]*ClusterStatus, rancherClient *rancher.Client, rancherConfig *rancher.Config,
 ) (skipped bool, err error) {
 	stateMutex.Lock()
@@ -321,7 +326,7 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 }
 
 func RegisterCustomClusters(r *dart.Dart, templates []dart.ClusterTemplate,
-	rancherClient *rancher.Client, rancherConfig *rancher.Config, nodes []tofu.Node) error {
+	rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
 	if r.ClusterBatchSize <= 0 {
 		panic("ClusterBatchSize must be > 0")
 	}
@@ -330,31 +335,18 @@ func RegisterCustomClusters(r *dart.Dart, templates []dart.ClusterTemplate,
 		fmt.Printf("No cluster templates were provided.\n")
 	}
 
-	assignableNodes := len(nodes)
-	neededNodes := 0
-	nodesIdx := 0
 	for _, template := range templates {
-		nodesPerPool := 0
-		nodeConfig := nil
-		for _, pool := range template.Config.MachinePools {
-
-			if template.NodeConfig != nil {
-				nodeConfig = template.NodeConfig
-			} else if pool.MachinePoolConfig.NodeConfig != nil {
-				nodeConfig = pool.MachinePoolConfig.NodeConfig
-			}
-
-			nodesPerPool += int(pool.MachinePoolConfig.Quantity)
+		yamlData, err := yaml.Marshal(template)
+		if err != nil {
+			log.Fatalf("Error marshaling YAML: %v", err)
 		}
-		neededNodes += template.ClusterCount * nodesPerPool
-		nodesIdx = neededNodes
-	}
-	if assignableNodes != neededNodes {
-		return fmt.Errorf("%s", strings.TrimSpace(`error, the total number of nodes available for custom cluster
- registration must be equal to the total number of nodes required by the defined
- cluster templates`))
+		fmt.Printf("\ntofu.CustomCluster: %s\n", string(yamlData))
 	}
 
+	// nts, err := dart.BuildNodeTemplates(templates)
+	// if err != nil {
+	// 	return err
+	// }
 	for _, template := range templates {
 		err := RegisterCustomClustersInBatches(r, template, rancherClient, rancherConfig)
 		if err != nil {
@@ -378,15 +370,30 @@ func RegisterCustomClustersInBatches(r *dart.Dart, template dart.ClusterTemplate
 		batchTemplates := make([]dart.ClusterTemplate, 0, r.ClusterBatchSize)
 		j := min(i+r.ClusterBatchSize, template.ClusterCount)
 
-		// Generate the name for each instance of the template and add the template instances to the batchTemplates slice
+    var nts []dart.NodeTemplate[dart.ProviderConfig]
+		// Generate the name for each instance of the template (each cluster) and add the template instances to the batchTemplates slice
+    // Build []NodeTemplate[dart.ProviderConfig] as well, so we know how many nodes to create + with what configurations
 		for k := i; k < j; k++ {
 			templateCopy := template
 			templateCopy.SetGeneratedName(fmt.Sprintf("%d-%d", batchNum, k-i))
+      switch {
+      case strings.Contains(templateCopy.ClusterConfig.Provider, dart.HarvesterProvider):
+        nts, err = dart.BuildNodeTemplates[dart.HarvesterNodeConfig](&templateCopy, k)
+      case strings.Contains(templateCopy.ClusterConfig.Provider, dart.AWSProvider):
+        panic("AWS Custom Cluster provider flow not yet supported")
+      case strings.Contains(templateCopy.ClusterConfig.Provider, dart.AzureProvider):
+        panic("Azure Custom Cluster provider flow not yet supported")
+      case strings.Contains(templateCopy.ClusterConfig.Provider, dart.K3DProvider):
+        panic("K3D Custom Cluster provider flow not yet supported")
+      }
+			if err != nil {
+				return err
+			}
 			batchTemplates = append(batchTemplates, templateCopy)
 		}
 
 		batchRunner := NewSequencedBatchRunner[dart.ClusterTemplate](len(batchTemplates))
-		err := batchRunner.Run(batchTemplates, statuses, clusterStatePath, rancherClient, rancherConfig)
+		err := batchRunner.Run(batchTemplates, nts, statuses, clusterStatePath, rancherClient, rancherConfig)
 		if err != nil {
 			return err
 		}
@@ -397,14 +404,19 @@ func RegisterCustomClustersInBatches(r *dart.Dart, template dart.ClusterTemplate
 	return nil
 }
 
-func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], template dart.ClusterTemplate,
-	nodes []tofu.Node, statuses map[string]*ClusterStatus, rancherClient *rancher.Client,
-	rancherConfig *rancher.Config) (skipped bool, err error) {
+func registerCustomClusterWithRunner[N dart.ProviderConfig, J JobDataTypes](br *SequencedBatchRunner[N, J], template dart.ClusterTemplate,
+	nts []dart.NodeTemplate[N], statuses map[string]*ClusterStatus, rancherClient *rancher.Client,
+	rancherConfig *rancher.Config, h *harvclient.Clientset, k *kubeclient.Clientset) (skipped bool, err error) {
 
 	clusterName := template.GeneratedName()
 	stateMutex.Lock()
 	cs := FindOrCreateStatusByName(statuses, clusterName)
 	stateMutex.Unlock()
+
+	// gather # nodes for this cluster
+  for _, nt := nts {
+
+  }
 
 	<-br.seqCh
 	br.Updates <- stateUpdate{Name: clusterName, Stage: StageNew, Completed: time.Now()}
@@ -428,24 +440,41 @@ func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J]
 		Spec: provv1.ClusterSpec{
 			KubernetesVersion: template.DistroVersion,
 			DefaultPodSecurityAdmissionConfigurationTemplateName: psactRancherPrivileged,
+			RKEConfig: &provv1.RKEConfig{},
 		},
 	}
-	clusterResp, err := CreateK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
-	if err != nil {
-		return false, err
+	var clusterResp *v1.SteveAPIObject
+	if !cs.Created {
+		fmt.Printf("Creating Cluster object for %s\n", cs.Name)
+		clusterResp, err = CreateK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
+		if err != nil {
+			return false, err
+		}
 	}
 	<-br.seqCh
 	br.Updates <- stateUpdate{Name: clusterName, Stage: StageCreated, Completed: time.Now()}
 	br.seqCh <- struct{}{}
 	fmt.Printf("Cluster named %s was created.\n", provCluster.Name)
 
-	clusterObject, err := RegisterCustomCluster(rancherClient, rancherConfig, clusterResp, provCluster, nodes)
+	var machinePools []provv1.RKEMachinePool
+	for _, pool := range template.ClusterConfig.MachinePools {
+		newPool := provv1.RKEMachinePool{
+			EtcdRole:         pool.MachinePoolConfig.Etcd,
+			ControlPlaneRole: pool.MachinePoolConfig.ControlPlane,
+			WorkerRole:       pool.MachinePoolConfig.Worker,
+			Quantity:         &pool.MachinePoolConfig.Quantity,
+		}
+		machinePools = append(machinePools, newPool)
+	}
+	provCluster.Spec.RKEConfig.MachinePools = machinePools
+
+	clusterObject, err := RegisterCustomCluster(rancherClient, clusterResp, provCluster, template.Nodes)
 	reports.TimeoutClusterReport(clusterObject, err)
 	if err != nil {
 		return false, err
 	}
 
-	err = VerifyCluster(rancherClient, clusterObject)
+	err = VerifyCluster(rancherClient, rancherConfig, clusterObject)
 	if err != nil {
 		return false, err
 	}

@@ -29,11 +29,29 @@ type ClusterTemplate struct {
 	NamePrefix      string         `yaml:"name_prefix"`
 	NodesPerCluster int            `yaml:"-"`
 	NodeConfig      *NodeConfig    `yaml:"node_config"` // If this != nil, use this config for all MachinePools
-	Config          *ClusterConfig `yaml:"cluster_config"`
+	ClusterConfig   *ClusterConfig `yaml:"cluster_config"`
 	DistroVersion   string         `yaml:"distro_version"`
 	ClusterCount    int            `yaml:"cluster_count"`
 	IsCustomCluster bool           `yaml:"is_custom_cluster"`
 }
+
+// TODELETE:
+// type CustomCluster struct {
+// 	generatedName string
+// 	NamePrefix    string         `yaml:"name_prefix"`
+// 	Nodes         []Node         `yaml:"nodes"`
+// 	MachinePools  []MachinePools `yaml:"machine_pools"`
+// 	DistroVersion string         `yaml:"distro_version"`
+// 	ClusterCount  int            `yaml:"cluster_count"`
+// }
+
+// func (cc *CustomCluster) SetGeneratedName(suffix string) {
+// 	cc.generatedName = fmt.Sprintf("%s-%s", cc.NamePrefix, suffix)
+// }
+
+// func (cc *CustomCluster) GeneratedName() string {
+// 	return cc.generatedName
+// }
 
 type ChartVariables struct {
 	RancherReplicas             int              `yaml:"rancher_replicas"`
@@ -122,6 +140,18 @@ func needsPrime(version string) bool {
 		(major == 2 && minor == 8 && patch >= 6)
 }
 
+func UpdateDart(r *Dart, path string) error {
+	data, err := yaml.Marshal(r)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Dart file: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("failed to write Dart file: %w", err)
+	}
+	return nil
+}
+
 func (ct *ClusterTemplate) SetGeneratedName(suffix string) {
 	ct.generatedName = fmt.Sprintf("%s-%s", ct.NamePrefix, suffix)
 }
@@ -131,47 +161,140 @@ func (ct *ClusterTemplate) GeneratedName() string {
 }
 
 func (ct *ClusterTemplate) ProcessNodesPerCluster() int {
-	sum := 0
-	for _, pool := range ct.Config.MachinePools {
-		sum += int(pool.MachinePoolConfig.Quantity)
+	var sum int32
+	yamlData, err := yaml.Marshal(ct.ClusterConfig)
+	if err != nil {
+		log.Fatalf("Error marshaling YAML: %v", err)
 	}
-	ct.NodesPerCluster = sum
+
+	fmt.Printf("\nClusterTemplate.Config: %s\n", string(yamlData))
+	for _, pool := range ct.ClusterConfig.MachinePools {
+		fmt.Printf("\nFound pool with %d quantity\n", int(pool.MachinePoolConfig.Quantity))
+		sum += pool.MachinePoolConfig.Quantity
+	}
+	fmt.Printf("\nFound a total of %d nodes across all pools\n", int(sum))
+	ct.NodesPerCluster = int(sum)
 	return ct.NodesPerCluster
 }
 
+// TODELETE:
+// // assembles all node‑templates and injects into the given Dart
+// func BuildNodeTemplates(cts []ClusterTemplate) ([]map[string]any, error) {
+// 	var nodeTemplates []map[string]any
+// 	var err error
+
+// 	for i := range cts {
+// 		var template map[string]any
+// 		// calculate count
+// 		nodeCount := ct.ProcessNodesPerCluster()
+// 		ct.NodesPerCluster = nodeCount
+// 		fmt.Printf("\nNodesPerCluster: %d\n", ct.NodesPerCluster)
+// 		if nodeCount == 0 {
+// 			fmt.Printf("\n\nFailed to process NodesPerCluster for ClusterTemplate %s\n\n", ct.NamePrefix)
+// 			return nil, fmt.Errorf("could not process NodesPerCluster for ClusterTemplate %s", ct.NamePrefix)
+// 		}
+
+// 		var providerConfig ProviderConfig
+// 		// If the top-level NodeConfig != nil, use it for all nodes
+// 		if ct.NodeConfig != nil {
+// 			providerConfig, err = ct.NodeConfig.GetActiveConfig()
+// 			if err != nil {
+// 				return nil, err
+// 			}
+// 			switch pc := providerConfig.(type) {
+// 			case HarvesterNodeConfig:
+// 				template, err = buildNodeTemplate(pc, nodeCount, ct.NamePrefix)
+// 			case AWSNodeConfig:
+// 				template, err = buildNodeTemplate(pc, nodeCount, ct.NamePrefix)
+// 			case AzureNodeConfig:
+// 				template, err = buildNodeTemplate(pc, nodeCount, ct.NamePrefix)
+// 			case K3DNodeConfig:
+// 				template, err = buildNodeTemplate(pc, nodeCount, ct.NamePrefix)
+// 			default:
+// 				// should never happen
+// 				return nil, fmt.Errorf("unsupported provider type %T", providerConfig)
+// 			}
+// 			if err != nil {
+// 				return nil, fmt.Errorf("error building NodeTemplate map for cluster with prefix %s: %w", ct.NamePrefix, err)
+// 			}
+
+// 			nodeTemplates = append(nodeTemplates, template)
+// 		} else {
+// 			// Otherwise, build the node template for each MachinePool's NodeConfig
+// 			for poolIdx, pool := range ct.ClusterConfig.MachinePools {
+// 				providerConfig, err = pool.MachinePoolConfig.NodeConfig.GetActiveConfig()
+// 				if err != nil {
+// 					return nil, err
+// 				}
+// 				switch pc := providerConfig.(type) {
+// 				case HarvesterNodeConfig:
+// 					template, err = buildNodeTemplate(pc, int(pool.MachinePoolConfig.Quantity), ct.NamePrefix)
+// 				case AWSNodeConfig:
+// 					template, err = buildNodeTemplate(pc, int(pool.MachinePoolConfig.Quantity), ct.NamePrefix)
+// 				case AzureNodeConfig:
+// 					template, err = buildNodeTemplate(pc, int(pool.MachinePoolConfig.Quantity), ct.NamePrefix)
+// 				case K3DNodeConfig:
+// 					template, err = buildNodeTemplate(pc, int(pool.MachinePoolConfig.Quantity), ct.NamePrefix)
+// 				default:
+// 					// should never happen
+// 					return nil, fmt.Errorf("unsupported provider type %T", providerConfig)
+// 				}
+// 				if err != nil {
+// 					return nil, fmt.Errorf("error building NodeTemplate map for pool-%d %s: %w", poolIdx, pool.CustomNodeNameSuffix, err)
+// 				}
+// 				nodeTemplates = append(nodeTemplates, template)
+// 			}
+// 		}
+// 	}
+
+// 	return nodeTemplates, nil
+// }
+
 // assembles all node‑templates and injects into the given Dart
-func (d *Dart) BuildNodeTemplates() error {
-	var nodeTemplates []map[string]any
+func BuildNodeTemplates[N ProviderConfig](ct *ClusterTemplate, index int) ([]NodeTemplate[N], error) {
+	var nodeTemplates []NodeTemplate[N]
+	var err error
 
-	for _, ct := range d.ClusterTemplates {
-		// calculate count
-		nodeCount := ct.ProcessNodesPerCluster()
-
-		// collect NodeConfigs to use
-		providerConfig, err := ct.NodeConfig.GetActiveConfig()
-		if err != nil {
-			return err
-		}
-
-		nodeVars, err := ToMap(providerConfig)
-		if err != nil {
-			return fmt.Errorf("converting ProviderConfig %q: %w", ct.NamePrefix, err)
-		}
-
-		template := map[string]any{
-			"node_count":            strconv.Itoa(nodeCount),
-			"name_prefix":           ct.NamePrefix,
-			"node_module_variables": nodeVars,
-		}
-
-		nodeTemplates = append(nodeTemplates, template)
+	var nt NodeTemplate[N]
+	// calculate count
+	nodeCount := ct.ProcessNodesPerCluster()
+	ct.NodesPerCluster = nodeCount
+	fmt.Printf("\nNodesPerCluster: %d\n", ct.NodesPerCluster)
+	if nodeCount == 0 {
+		fmt.Printf("\n\nFailed to process NodesPerCluster for ClusterTemplate %s\n\n", ct.NamePrefix)
+		return nil, fmt.Errorf("could not process NodesPerCluster for ClusterTemplate %s", ct.NamePrefix)
 	}
 
-	// 4) inject into Dart.TofuVariables
-	if d.TofuVariables == nil {
-		d.TofuVariables = make(map[string]any, 1)
-	}
-	d.TofuVariables["node_templates"] = nodeTemplates
+	var providerConfig ProviderConfig
+	// If the top-level NodeConfig != nil, use it for all nodes
+	if ct.NodeConfig != nil {
+		providerConfig, err = ct.NodeConfig.GetActiveConfig()
+		if err != nil {
+			return nil, err
+		}
 
-	return nil
+		nt, err = buildNodeTemplate(providerConfig.(N), nodeCount, ct.NamePrefix, index)
+		if err != nil {
+			return nil, fmt.Errorf("error building NodeTemplate map for cluster with prefix %s: %w", ct.NamePrefix, err)
+		}
+
+		nodeTemplates = append(nodeTemplates, nt)
+	} else {
+		// Otherwise, build the node template for each MachinePool's NodeConfig
+		for poolIdx, pool := range ct.ClusterConfig.MachinePools {
+			providerConfig, err = pool.MachinePoolConfig.NodeConfig.GetActiveConfig()
+			if err != nil {
+				return nil, err
+			}
+
+			nt, err = buildNodeTemplate(providerConfig.(N), int(pool.MachinePoolConfig.Quantity), ct.NamePrefix, index)
+			if err != nil {
+				return nil, fmt.Errorf("error building NodeTemplate map for pool-%d %s: %w", poolIdx, pool.CustomNodeNameSuffix, err)
+			}
+
+			nodeTemplates = append(nodeTemplates, nt)
+		}
+	}
+
+	return nodeTemplates, nil
 }
