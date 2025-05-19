@@ -19,7 +19,9 @@ package subcommands
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -596,7 +598,7 @@ func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname
 
 // naturalCompare compares strings a and b in "natural" alphanumeric order
 func naturalCompare(a, b string) bool {
-	var tokenRegex = regexp.MustCompile(`\d+|\D+`)
+	tokenRegex := regexp.MustCompile(`\d+|\D+`)
 	// split into tokens of numbers
 	aTokens := tokenRegex.FindAllString(a, -1)
 	bTokens := tokenRegex.FindAllString(b, -1)

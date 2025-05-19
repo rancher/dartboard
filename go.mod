@@ -59,6 +59,86 @@ replace (
 	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.8.3
 )
 
+// replace (
+// 	// Containerd (Harvester pins v1.7.27)
+// 	github.com/containerd/containerd => github.com/containerd/containerd v1.7.27
+// 	// Docker distribution & engine (for rancher-machine / oras deps)
+// 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible
+// 	github.com/docker/docker => github.com/docker/docker v20.10.27+incompatible
+
+// 	// Gin (Harvester pins v1.9.1)
+// 	github.com/gin-gonic/gin => github.com/gin-gonic/gin v1.9.1
+// 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.12
+
+// 	// OpenShift APIs
+// 	github.com/openshift/api => github.com/openshift/api v0.0.0-20191219222812-2987a591a72c
+// 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20200521150516-05eb9880269c
+
+// 	// Operator Lifecycle Manager (Harvester)
+// 	github.com/operator-framework/operator-lifecycle-manager => github.com/operator-framework/operator-lifecycle-manager v0.0.0-20190128024246-5eb7ae5bdb7a
+
+// 	// Rancher Lasso (Harvester)
+// 	github.com/rancher/lasso => github.com/rancher/lasso v0.0.0-20241202185148-04649f379358
+
+// 	// Rancher Server APIs (Harvester)
+// 	github.com/rancher/rancher => github.com/rancher/rancher v0.0.0-20240919204204-3da2ae0cabd1
+// 	github.com/rancher/rancher/pkg/apis => github.com/rancher/rancher/pkg/apis v0.0.0-20250410003522-2a1bf3d05723
+// 	github.com/rancher/rancher/pkg/client => github.com/rancher/rancher/pkg/client v0.0.0-20240919204204-3da2ae0cabd1
+
+// 	// OpenTelemetry
+// 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.53.0
+// 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0
+// 	go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.28.0
+// 	go.opentelemetry.io/otel/metric => go.opentelemetry.io/otel/metric v1.28.0
+// 	go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.28.0
+// 	go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.28.0
+// 	go.opentelemetry.io/proto/otlp => go.opentelemetry.io/proto/otlp v1.3.1
+
+// 	// Qase client (Rancher fork)
+// 	go.qase.io/client => github.com/rancher/qase-go/client v0.0.0-20231114201952-65195ec001fa
+
+// 	// Helm (Rancher fork)
+// 	helm.sh/helm/v3 => github.com/rancher/helm/v3 v3.16.1-rancher1
+
+// 	// Kubernetes core modules (pin all to v0.32.2)
+// 	k8s.io/api => k8s.io/api v0.32.2
+// 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.32.2
+// 	k8s.io/apimachinery => k8s.io/apimachinery v0.32.2
+// 	k8s.io/apiserver => k8s.io/apiserver v0.32.2
+// 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.32.2
+// 	k8s.io/client-go => k8s.io/client-go v0.32.2
+// 	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.32.2
+// 	k8s.io/code-generator => k8s.io/code-generator v0.32.2
+// 	k8s.io/component-base => k8s.io/component-base v0.32.2
+// 	k8s.io/component-helpers => k8s.io/component-helpers v0.32.2
+// 	k8s.io/controller-manager => k8s.io/controller-manager v0.32.2
+// 	k8s.io/cri-api => k8s.io/cri-api v0.32.2
+// 	k8s.io/cri-client => k8s.io/cri-client v0.32.2
+// 	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.32.2
+// 	k8s.io/dynamic-resource-allocation => k8s.io/dynamic-resource-allocation v0.32.2
+// 	k8s.io/endpointslice => k8s.io/endpointslice v0.32.2
+// 	k8s.io/externaljwt => k8s.io/externaljwt v0.33.0
+// 	k8s.io/kms => k8s.io/kms v0.32.2
+// 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.32.2
+// 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20240411171206-dc4e619f62f3
+// 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.32.2
+// 	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.32.2
+// 	k8s.io/kubectl => k8s.io/kubectl v0.32.2
+// 	k8s.io/kubelet => k8s.io/kubelet v0.32.2
+// 	k8s.io/kubernetes => k8s.io/kubernetes v1.32.2
+// 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.32.2
+// 	k8s.io/metrics => k8s.io/metrics v0.32.2
+// 	k8s.io/mount-utils => k8s.io/mount-utils v0.32.2
+// 	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.32.2
+// 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.32.2
+
+// 	// ORAS (for Docker compatibility)
+// 	oras.land/oras-go => oras.land/oras-go v1.2.2
+
+// 	// Cluster API
+// 	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.8.3
+// )
+
 require (
 	al.essio.dev/pkg/shellescape v1.6.0
 	github.com/harvester/harvester v1.7.0
@@ -209,25 +289,26 @@ require (
 	go.opentelemetry.io/otel/trace v1.36.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	go.yaml.in/yaml/v2 v2.4.3 // indirect
+	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.45.0 // indirect
-	golang.org/x/mod v0.29.0 // indirect
-	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/mod v0.26.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/term v0.37.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250519155744-55703ea1f237 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250528174236-200df99c418a // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250519155744-55703ea1f237 // indirect
 	google.golang.org/grpc v1.72.2 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
-	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
+	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/validator.v2 v2.0.1 // indirect
+	gotest.tools/v3 v3.5.2 // indirect
 	k8s.io/apiextensions-apiserver v0.34.0 // indirect
 	k8s.io/apiserver v0.34.1 // indirect
 	k8s.io/cli-runtime v0.34.1 // indirect
@@ -238,14 +319,14 @@ require (
 	k8s.io/kube-openapi v0.31.9 // indirect
 	k8s.io/kubectl v0.34.1 // indirect
 	k8s.io/kubernetes v1.32.2 // indirect
-	k8s.io/pod-security-admission v0.34.1 // indirect
-	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
+	k8s.io/pod-security-admission v0.32.2 // indirect
+	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 // indirect
 	kubevirt.io/containerized-data-importer-api v1.62.0 // indirect
 	kubevirt.io/controller-lifecycle-operator-sdk/api v0.0.0-20220329064328-f3cc58c6ed90 // indirect
 	sigs.k8s.io/cli-utils v0.37.2 // indirect
 	sigs.k8s.io/cluster-api v1.9.5 // indirect
 	sigs.k8s.io/controller-runtime v0.20.4 // indirect
-	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
+	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/kustomize/api v0.20.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.20.1 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
