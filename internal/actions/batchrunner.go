@@ -11,9 +11,6 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	shepherddefaults "github.com/rancher/shepherd/extensions/defaults"
 	"github.com/sirupsen/logrus"
-
-	harvclient "github.com/harvester/harvester/pkg/generated/clientset/versioned"
-	kubeclient "k8s.io/client-go/kubernetes"
 )
 
 var maxWorkers = runtime.GOMAXPROCS(0) * 2
@@ -34,7 +31,7 @@ type jobResult struct {
 }
 
 type JobDataTypes interface {
-	tofu.Cluster | dart.ClusterTemplate
+	tofu.Cluster | dart.ClusterTemplate | tofu.CustomCluster
 }
 
 // SequencedBatchRunner contains all the channels and WaitGroups needed
@@ -68,9 +65,9 @@ func NewSequencedBatchRunner[J JobDataTypes](batchSize int) *SequencedBatchRunne
 }
 
 // Run executes the batch: starts the file writer, workers, enqueues jobs, collects results
-func (br *SequencedBatchRunner[J]) Run(batch []J, nts []dart.NodeTemplate,
-	statuses map[string]*ClusterStatus, statePath string, client *rancher.Client, config *rancher.Config,
-	h *harvclient.Clientset, k *kubeclient.Clientset) error {
+func (br *SequencedBatchRunner[J]) Run(batch []J,
+	statuses map[string]*ClusterStatus, statePath string, client *rancher.Client,
+	config *rancher.Config) error {
 	// Start writer
 	br.wgWriter.Add(1)
 	go br.writer(statuses, statePath)
@@ -78,7 +75,7 @@ func (br *SequencedBatchRunner[J]) Run(batch []J, nts []dart.NodeTemplate,
 	// Spawn workers
 	for range maxWorkers {
 		br.wgWorkers.Add(1)
-		go br.worker(statuses, nts, client, config, h, k)
+		go br.worker(statuses, client, config)
 	}
 
 	// Enqueue and close jobs
@@ -156,8 +153,8 @@ func (br *SequencedBatchRunner[J]) writer(statuses map[string]*ClusterStatus, st
 }
 
 // worker consumes Jobs, calls the proper handler based on the Job Type, signals Updates and Results
-func (br *SequencedBatchRunner[J]) worker(statuses map[string]*ClusterStatus, nts []dart.NodeTemplate,
-	client *rancher.Client, config *rancher.Config, h *harvclient.Clientset, k *kubeclient.Clientset) {
+func (br *SequencedBatchRunner[J]) worker(statuses map[string]*ClusterStatus,
+	client *rancher.Client, config *rancher.Config) {
 	defer br.wgWorkers.Done()
 	for job := range br.Jobs {
 		var skipped bool
@@ -167,14 +164,9 @@ func (br *SequencedBatchRunner[J]) worker(statuses map[string]*ClusterStatus, nt
 		case tofu.Cluster:
 			skipped, err = importClusterWithRunner(br, typedJob, statuses, client, config)
 		case dart.ClusterTemplate:
-			if typedJob.IsCustomCluster {
-				skipped, err = registerCustomClusterWithRunner(br, typedJob, nts, statuses, client, config, h, k)
-			} else {
-				skipped, err = provisionClusterWithRunner(br, typedJob, statuses, client)
-			}
-			// TODELETE:
-		// case CustomClusterTemplate:
-		// 	skipped, err = registerCustomClusterWithRunner(br, typedJob, statuses, client, config)
+			skipped, err = provisionClusterWithRunner(br, typedJob, statuses, client)
+		case tofu.CustomCluster:
+			skipped, err = registerCustomClusterWithRunner(br, typedJob, statuses, client, config)
 		default:
 			err = fmt.Errorf("unsupported job type: %T", job)
 		}
