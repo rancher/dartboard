@@ -39,7 +39,7 @@ type JobDataTypes interface {
 
 // SequencedBatchRunner contains all the channels and WaitGroups needed
 // for processing a batch of Clusters concurrently with sequenced state updates
-type SequencedBatchRunner[N dart.ProviderConfig, J JobDataTypes] struct {
+type SequencedBatchRunner[J JobDataTypes] struct {
 	// Channel to sequence updates
 	seqCh chan struct{}
 	// Channel for all write requests
@@ -55,8 +55,8 @@ type SequencedBatchRunner[N dart.ProviderConfig, J JobDataTypes] struct {
 }
 
 // NewSequencedBatchRunner constructs a new runner for one batch
-func NewSequencedBatchRunner[N dart.ProviderConfig, J JobDataTypes](batchSize int) *SequencedBatchRunner[N, J] {
-	br := &SequencedBatchRunner[N, J]{
+func NewSequencedBatchRunner[J JobDataTypes](batchSize int) *SequencedBatchRunner[J] {
+	br := &SequencedBatchRunner[J]{
 		Updates: make(chan stateUpdate, batchSize*3),
 		seqCh:   make(chan struct{}, 1),
 		Jobs:    make(chan J, batchSize),
@@ -68,7 +68,7 @@ func NewSequencedBatchRunner[N dart.ProviderConfig, J JobDataTypes](batchSize in
 }
 
 // Run executes the batch: starts the file writer, workers, enqueues jobs, collects results
-func (br *SequencedBatchRunner[N, J]) Run(batch []J, nts []dart.NodeTemplate[N],
+func (br *SequencedBatchRunner[J]) Run(batch []J, nts []dart.NodeTemplate,
 	statuses map[string]*ClusterStatus, statePath string, client *rancher.Client, config *rancher.Config,
 	h *harvclient.Clientset, k *kubeclient.Clientset) error {
 	// Start writer
@@ -120,7 +120,7 @@ func (br *SequencedBatchRunner[N, J]) Run(batch []J, nts []dart.NodeTemplate[N],
 	return nil
 }
 
-func (br *SequencedBatchRunner[N, J]) Wait() {
+func (br *SequencedBatchRunner[J]) Wait() {
 	br.wgWorkers.Wait()
 	close(br.Updates)
 	br.wgWriter.Wait()
@@ -128,7 +128,7 @@ func (br *SequencedBatchRunner[N, J]) Wait() {
 }
 
 // writer serializes all state updates and persists immediately
-func (br *SequencedBatchRunner[N, J]) writer(statuses map[string]*ClusterStatus, statePath string) {
+func (br *SequencedBatchRunner[J]) writer(statuses map[string]*ClusterStatus, statePath string) {
 	defer br.wgWriter.Done()
 	for u := range br.Updates {
 		stateMutex.Lock()
@@ -156,7 +156,7 @@ func (br *SequencedBatchRunner[N, J]) writer(statuses map[string]*ClusterStatus,
 }
 
 // worker consumes Jobs, calls the proper handler based on the Job Type, signals Updates and Results
-func (br *SequencedBatchRunner[N, J]) worker(statuses map[string]*ClusterStatus, nts []dart.NodeTemplate[N],
+func (br *SequencedBatchRunner[J]) worker(statuses map[string]*ClusterStatus, nts []dart.NodeTemplate,
 	client *rancher.Client, config *rancher.Config, h *harvclient.Clientset, k *kubeclient.Clientset) {
 	defer br.wgWorkers.Done()
 	for job := range br.Jobs {
