@@ -19,10 +19,12 @@ package tofu
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -60,20 +62,52 @@ type Cluster struct {
 	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring" yaml:"reserve_node_for_monitoring"`
 }
 
+// type CustomCluster struct {
+// 	generatedName string
+// 	NamePrefix    string         `yaml:"name_prefix"`
+// 	Nodes         []Node         `yaml:"nodes"`
+// 	MachinePools  []MachinePools `yaml:"machine_pools"`
+// 	DistroVersion string         `yaml:"distro_version"`
+// 	ClusterCount  int            `yaml:"cluster_count"`
+// }
+
+// func (cc *CustomCluster) SetGeneratedName(suffix string) {
+// 	cc.generatedName = fmt.Sprintf("%s-%s", cc.NamePrefix, suffix)
+// }
+
+// func (cc *CustomCluster) GeneratedName() string {
+// 	return cc.generatedName
+// }
+
+// type MachinePools struct {
+// 	machinepools.Pools
+// 	MachinePoolConfig MachinePoolConfig `yaml:"machine_pool_config,omitempty" default:"[]"`
+// }
+
+// type MachinePoolConfig struct {
+// 	ControlPlane bool  `json:",omitempty" yaml:"controlplane,omitempty"`
+// 	Etcd         bool  `json:"etcd,omitempty" yaml:"etcd,omitempty"`
+// 	Worker       bool  `json:"worker,omitempty" yaml:"worker,omitempty"`
+// 	Quantity     int32 `json:"quantity" yaml:"quantity"`
+// }
+
 type Node struct {
-	NodeName         string `json:"node_name" yaml:"node_name"`
-	NodeID           string `json:"nodeID" yaml:"nodeID"`
-	PublicIPAddress  string `json:"public_address" yaml:"public_address"`
-	PublicHostName   string `json:"public_name" yaml:"public_name"`
-	PrivateIPAddress string `json:"private_address" yaml:"private_address"`
-	PrivateHostName  string `json:"private_name" yaml:"private_name"`
-	SSHUser          string `json:"ssh_user" yaml:"ssh_user"`
-	SSHKeyPath       string `json:"ssh_key_path" yaml:"ssh_key_path"`
+	Name            string `json:"name" yaml:"name"`
+	PublicIP        string `json:"public_ip,omitempty" yaml:"public_ip,omitempty"`
+	PublicHostName  string `json:"public_name,omitempty" yaml:"public_name,omitempty"`
+	PrivateIP       string `json:"private_ip,omitempty" yaml:"private_ip,omitempty"`
+	PrivateHostName string `json:"private_name,omitempty" yaml:"private_name,omitempty"`
+	SSHUser         string `json:"ssh_user" yaml:"ssh_user"`
+	SSHKeyPath      string `json:"ssh_key_path" yaml:"ssh_key_path"`
 }
 
 type Clusters struct {
 	Value map[string]Cluster `json:"value,omitempty" yaml:"value,omitempty"`
 }
+
+// type CustomClusters struct {
+// 	Value map[string]CustomCluster `json:"value,omitempty" yaml:"value,omitempty"`
+// }
 
 type Nodes struct {
 	Value map[string]Node `json:"value,omitempty" yaml:"value,omitempty"`
@@ -81,7 +115,7 @@ type Nodes struct {
 
 type Output struct {
 	Clusters Clusters `json:"clusters,omitzero" yaml:"clusters,omitzero"`
-	Nodes    Nodes    `json:"nodes,omitzero" yaml:"nodes,omitzero"`
+	// CustomClusters CustomClusters `json:"custom_clusters,omitzero" yaml:"custom_clusters,omitzero"`
 }
 
 type Tofu struct {
@@ -223,23 +257,23 @@ func (t *Tofu) commonArgs(command string) []string {
 	return args
 }
 
-func (t *Tofu) ParseOutputs() (map[string]Cluster, map[string]Node, error) {
+func (t *Tofu) ParseOutputs() (map[string]Cluster, error) {
 	err := t.handleWorkspace()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	buffer := new(bytes.Buffer)
 	if err := t.exec(buffer, "output", "-json"); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	output := &Output{}
 	if err := json.Unmarshal(buffer.Bytes(), output); err != nil {
-		return nil, nil, fmt.Errorf("error: tofu ParseOutputs: %w", err)
+		return nil, fmt.Errorf("error: tofu ParseOutputs: %w", err)
 	}
 
-	return output.Clusters.Value, output.Nodes.Value, nil
+	return output.Clusters.Value, nil
 }
 
 // PrintVersion prints the Tofu version information
@@ -256,14 +290,37 @@ func (t *Tofu) IsK3d() bool {
 // ReadBytesFromPath reads in the file from the given path, returns the file in []byte format
 func ReadBytesFromPath(sshKeyPath string) ([]byte, error) {
 	var fileBytes []byte
-	if _, err := os.Stat(sshKeyPath); err == nil {
-		fileBytes, err = os.ReadFile(sshKeyPath)
+	var path string
+	if strings.Contains(sshKeyPath, "~") {
+		usr, err := user.Current()
 		if err != nil {
-			return nil, fmt.Errorf("error reading file at %s: %w", sshKeyPath, err)
+			return nil, errors.New("error retrieving current user")
+		}
+		path = strings.Replace(sshKeyPath, "~", usr.HomeDir, 1)
+	} else {
+		path = sshKeyPath
+	}
+	if _, err := os.Stat(path); err == nil {
+		fileBytes, err = os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("error reading file at %s: %w", path, err)
 		}
 	} else {
-		return nil, fmt.Errorf("error could not find file at %s: %w", sshKeyPath, err)
+		return nil, fmt.Errorf("error could not find file at %s: %w", path, err)
 	}
 
 	return fileBytes, nil
+}
+
+// GetNodesByPrefix takes a flat map of nodes and returns a map
+// from prefix → slice of Nodes whose key begins with that prefix.
+func GetNodesByPrefix(all map[string]Node, prefix string) []Node {
+	grouped := []Node{}
+	for key := range all {
+		if strings.HasPrefix(key, prefix) {
+			fmt.Printf("Appending node: %v", all[key])
+			grouped = append(grouped, all[key])
+		}
+	}
+	return grouped
 }

@@ -11,6 +11,7 @@ import (
 	apisV1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	"github.com/rancher/tests/actions/clusters"
 	rancherclusters "github.com/rancher/tests/actions/clusters"
+	"github.com/rancher/tests/actions/machinepools"
 	"github.com/rancher/tests/actions/registries"
 	"github.com/rancher/tests/actions/reports"
 	"github.com/sirupsen/logrus"
@@ -42,12 +43,25 @@ const (
 	psactRancherPrivileged string = "rancher-privileged"
 )
 
+// TODELETE:
+// type CustomClusterTemplate struct {
+// 	dart.ClusterTemplate
+// 	Nodes []tofu.Node `yaml:"nodes"`
+// }
+
 // ConvertConfigToClusterConfig converts the ClusterConfig from (user) input to a rancher/tests ClusterConfig
 func ConvertConfigToClusterConfig(config *dart.ClusterConfig) *rancherclusters.ClusterConfig {
 	var newConfig rancherclusters.ClusterConfig
 	for i := range config.MachinePools {
 		newConfig.MachinePools[i].Pools = config.MachinePools[i].Pools
-		newConfig.MachinePools[i].MachinePoolConfig = config.MachinePools[i].MachinePoolConfig.MachinePoolConfig
+		newConfig.MachinePools[i].MachinePoolConfig = machinepools.MachinePoolConfig{
+			NodeRoles: machinepools.NodeRoles{
+				ControlPlane: config.MachinePools[i].MachinePoolConfig.ControlPlane,
+				Etcd:         config.MachinePools[i].MachinePoolConfig.Etcd,
+				Worker:       config.MachinePools[i].MachinePoolConfig.Worker,
+				Quantity:     config.MachinePools[i].MachinePoolConfig.Quantity,
+			},
+		}
 	}
 	newConfig.Providers = &[]string{config.Provider}
 	newConfig.PSACT = psactRancherPrivileged
@@ -145,9 +159,10 @@ func createRegistrationCommand(command, publicIP, privateIP string, machinePool 
 }
 
 // RegisterCustomCluster registers a non-rke1 cluster using a 3rd party client for its nodes
-func RegisterCustomCluster(client *rancher.Client, config *rancher.Config, steveObject *v1.SteveAPIObject, cluster *apisV1.Cluster, nodes []tofu.Node) (*v1.SteveAPIObject, error) {
+func RegisterCustomCluster(client *rancher.Client, steveObject *v1.SteveAPIObject, cluster *apisV1.Cluster, nodes []tofu.Node) (*v1.SteveAPIObject, error) {
 	quantityPerPool := []int32{}
 	rolesPerPool := []string{}
+	fmt.Println("Building role oommand")
 	for _, pool := range cluster.Spec.RKEConfig.MachinePools {
 		var finalRoleCommand string
 		if pool.ControlPlaneRole {
@@ -200,11 +215,11 @@ func RegisterCustomCluster(client *rancher.Client, config *rancher.Config, steve
 		for nodeIndex := range int(quantityPerPool[poolIndex]) {
 			node := nodes[totalNodesObserved+nodeIndex]
 
-			logrus.Infof("Execute Registration Command for node named %s, ID %s", node.NodeName, node.NodeID)
+			logrus.Infof("Execute Registration Command for node named %s", node.Name)
 			logrus.Infof("Linux pool detected, using bash...")
 
 			command = fmt.Sprintf("%s %s", token.InsecureNodeCommand, poolRole)
-			command = createRegistrationCommand(command, node.PublicIPAddress, node.PrivateIPAddress, cluster.Spec.RKEConfig.MachinePools[poolIndex])
+			command = createRegistrationCommand(command, node.PublicIP, node.PrivateIP, cluster.Spec.RKEConfig.MachinePools[poolIndex])
 			logrus.Infof("Node command: %s", command)
 
 			nodeSSHKey, err := tofu.ReadBytesFromPath(node.SSHKeyPath)
@@ -212,9 +227,8 @@ func RegisterCustomCluster(client *rancher.Client, config *rancher.Config, steve
 				return nil, fmt.Errorf("error getting node's SSH Key from %s: %w", node.SSHKeyPath, err)
 			}
 			shepherdNode := shepherdnodes.Node{
-				NodeID:           node.NodeID,
-				PublicIPAddress:  node.PublicIPAddress,
-				PrivateIPAddress: node.PrivateIPAddress,
+				PublicIPAddress:  node.PublicIP,
+				PrivateIPAddress: node.PrivateIP,
 				SSHUser:          node.SSHUser,
 				SSHKey:           nodeSSHKey,
 			}
@@ -259,8 +273,8 @@ func VerifyClusterImported(client *rancher.Client, name, namespace string) (bool
 }
 
 // VerifyCluster validates that a non-rke1 cluster and its resources are in a good state, matching a given config.
-func VerifyCluster(client *rancher.Client, cluster *v1.SteveAPIObject) error {
-	client, err := client.ReLogin()
+func VerifyCluster(client *rancher.Client, config *rancher.Config, cluster *v1.SteveAPIObject) error {
+	client, err := client.ReLoginForConfig(config)
 	if err != nil {
 		return err
 	}
