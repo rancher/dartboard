@@ -51,12 +51,47 @@ variable "downstream_cluster_templates" {
     agent_count    = number // Number of agent nodes in the downstream cluster
     distro_version = string // Version of the Kubernetes distro in the downstream cluster
 
+    is_custom_cluster           = bool // Whether the downstream cluster is a custom cluster (it should only have nodes created)
     public_ip                   = bool // Whether the downstream cluster should have a public IP assigned. Default false
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring. Default false
     enable_audit_log            = bool // Enable audit log for the cluster. Default false
 
+    machine_pools = optional(list(object({
+      machine_pool_config = object({
+        etcd = bool
+        controlplane = bool
+        worker = bool
+        quantity = number
+        node_module_variables = optional(any)
+      })
+    })))
     node_module_variables = any // Node module-specific variables
   }))
+
+  validation {
+    condition     = alltrue(flatten([for i, template in var.downstream_cluster_templates : template.is_custom_cluster ? length(template.machine_pools) > 0 : true]))
+    error_message = "Custom cluster templates must have at least one machine pool."
+  }
+  validation {
+    condition     = alltrue(flatten([for i, template in var.downstream_cluster_templates : template.is_custom_cluster ? length(template.machine_pools) > 0 ? contains([1, 3, 5], sum([for j, pool in template.machine_pools: pool.machine_pool_config.etcd ? pool.machine_pool_config.quantity : 0])) : false : true]))
+    error_message = "The number of etcd nodes per Custom cluster template must be one of [1, 3, 5]."
+  }
+  validation {
+    condition     = alltrue(flatten([for i, template in var.downstream_cluster_templates : template.is_custom_cluster ? length(template.machine_pools) > 0 ? sum([for j, pool in template.machine_pools: pool.machine_pool_config.controlplane ? pool.machine_pool_config.quantity : 0]) > 0 : false : true]))
+    error_message = "Custom cluster templates must have at least one controlplane node."
+  }
+  validation {
+    condition     = alltrue(flatten([for i, template in var.downstream_cluster_templates : template.is_custom_cluster ? length(template.machine_pools) > 0 ? sum([for j, pool in template.machine_pools: pool.machine_pool_config.worker ? pool.machine_pool_config.quantity : 0]) > 0 : false : true]))
+    error_message = "Custom cluster templates must have at least one worker node."
+  }
+  validation {
+    condition     = alltrue(flatten([for i, template in var.downstream_cluster_templates : template.is_custom_cluster ? sum([for j, pool in template.machine_pools: pool.machine_pool_config.quantity]) == template.server_count : true]))
+    error_message = "Custom cluster templates must have enough nodes for the given machine pool configuration."
+  }
+  validation {
+    condition     = alltrue([for i, template in var.downstream_cluster_templates : template.cluster_count > 0 ? template.server_count > 0 ? true : false : true ])
+    error_message = "Must have more than one server per cluster template when cluster_count > 0."
+  }
 }
 
 # Note: this is kept constant for all templates because OpenTofu v1.8.2 does not allow to use
