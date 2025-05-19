@@ -251,11 +251,11 @@ func (ct *ClusterTemplate) ProcessNodesPerCluster() int {
 // }
 
 // assembles all node‑templates and injects into the given Dart
-func BuildNodeTemplates[N ProviderConfig](ct *ClusterTemplate, index int) ([]NodeTemplate[N], error) {
-	var nodeTemplates []NodeTemplate[N]
+func BuildNodeTemplates[N AnyNodeConfig](ct *ClusterTemplate, index int) ([]NodeTemplate, error) {
+	var nodeTemplates []NodeTemplate
 	var err error
 
-	var nt NodeTemplate[N]
+	var nt NodeTemplate
 	// calculate count
 	nodeCount := ct.ProcessNodesPerCluster()
 	ct.NodesPerCluster = nodeCount
