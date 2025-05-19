@@ -62,14 +62,15 @@ type Cluster struct {
 	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring" yaml:"reserve_node_for_monitoring"`
 }
 
-// type CustomCluster struct {
-// 	generatedName string
-// 	NamePrefix    string         `yaml:"name_prefix"`
-// 	Nodes         []Node         `yaml:"nodes"`
-// 	MachinePools  []MachinePools `yaml:"machine_pools"`
-// 	DistroVersion string         `yaml:"distro_version"`
-// 	ClusterCount  int            `yaml:"cluster_count"`
-// }
+type CustomCluster struct {
+	// generatedName string
+	Name          string         `json:"name" yaml:"name"`
+	NamePrefix    string         `yaml:"name_prefix"`
+	Nodes         []Node         `yaml:"nodes"`
+	MachinePools  []MachinePools `yaml:"machine_pools"`
+	DistroVersion string         `yaml:"distro_version"`
+	ClusterCount  int            `yaml:"cluster_count"`
+}
 
 // func (cc *CustomCluster) SetGeneratedName(suffix string) {
 // 	cc.generatedName = fmt.Sprintf("%s-%s", cc.NamePrefix, suffix)
@@ -79,17 +80,17 @@ type Cluster struct {
 // 	return cc.generatedName
 // }
 
-// type MachinePools struct {
-// 	machinepools.Pools
-// 	MachinePoolConfig MachinePoolConfig `yaml:"machine_pool_config,omitempty" default:"[]"`
-// }
+type MachinePools struct {
+	// machinepools.Pools
+	MachinePoolConfig MachinePoolConfig `yaml:"machine_pool_config,omitempty" default:"[]"`
+}
 
-// type MachinePoolConfig struct {
-// 	ControlPlane bool  `json:",omitempty" yaml:"controlplane,omitempty"`
-// 	Etcd         bool  `json:"etcd,omitempty" yaml:"etcd,omitempty"`
-// 	Worker       bool  `json:"worker,omitempty" yaml:"worker,omitempty"`
-// 	Quantity     int32 `json:"quantity" yaml:"quantity"`
-// }
+type MachinePoolConfig struct {
+	ControlPlane bool  `json:",omitempty" yaml:"controlplane,omitempty"`
+	Etcd         bool  `json:"etcd,omitempty" yaml:"etcd,omitempty"`
+	Worker       bool  `json:"worker,omitempty" yaml:"worker,omitempty"`
+	Quantity     int32 `json:"quantity" yaml:"quantity"`
+}
 
 type Node struct {
 	Name            string `json:"name" yaml:"name"`
@@ -105,17 +106,17 @@ type Clusters struct {
 	Value map[string]Cluster `json:"value,omitempty" yaml:"value,omitempty"`
 }
 
-// type CustomClusters struct {
-// 	Value map[string]CustomCluster `json:"value,omitempty" yaml:"value,omitempty"`
-// }
+type CustomClusters struct {
+	Value []CustomCluster `json:"value,omitempty" yaml:"value,omitempty"`
+}
 
 type Nodes struct {
 	Value map[string]Node `json:"value,omitempty" yaml:"value,omitempty"`
 }
 
 type Output struct {
-	Clusters Clusters `json:"clusters,omitzero" yaml:"clusters,omitzero"`
-	// CustomClusters CustomClusters `json:"custom_clusters,omitzero" yaml:"custom_clusters,omitzero"`
+	Clusters       Clusters       `json:"clusters,omitzero" yaml:"clusters,omitzero"`
+	CustomClusters CustomClusters `json:"custom_clusters,omitzero" yaml:"custom_clusters,omitzero"`
 }
 
 type Tofu struct {
@@ -257,23 +258,23 @@ func (t *Tofu) commonArgs(command string) []string {
 	return args
 }
 
-func (t *Tofu) ParseOutputs() (map[string]Cluster, error) {
+func (t *Tofu) ParseOutputs() (map[string]Cluster, []CustomCluster, error) {
 	err := t.handleWorkspace()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	buffer := new(bytes.Buffer)
 	if err := t.exec(buffer, "output", "-json"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	output := &Output{}
 	if err := json.Unmarshal(buffer.Bytes(), output); err != nil {
-		return nil, fmt.Errorf("error: tofu ParseOutputs: %w", err)
+		return nil, nil, fmt.Errorf("error: tofu ParseOutputs: %w", err)
 	}
 
-	return output.Clusters.Value, nil
+	return output.Clusters.Value, output.CustomClusters.Value, nil
 }
 
 // PrintVersion prints the Tofu version information
