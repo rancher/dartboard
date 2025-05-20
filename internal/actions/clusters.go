@@ -71,30 +71,34 @@ func ConvertConfigToClusterConfig(config *dart.ClusterConfig) *rancherclusters.C
 // GetK3SRKE2Cluster is a "helper" functions that takes a rancher client, and the rke2 cluster config as parameters.
 // This function registers a delete cluster function with a wait.WatchWait to ensure the cluster is removed cleanly
 func GetK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, cluster *apisV1.Cluster) (*v1.SteveAPIObject, error) {
-	clusterObj, err := client.Steve.SteveType(shepherdclusters.ProvisioningSteveResourceType).Create(cluster)
+	clusterObjs, err := client.Steve.SteveType(shepherdclusters.ProvisioningSteveResourceType).ListAll(nil)
 	if err != nil {
 		return nil, err
 	}
+	for _, obj := range clusterObjs.Data {
+		if obj.Name == cluster.Name {
+			ctx := context.Background()
+			err = kwait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 2*time.Minute, true, func(_ context.Context) (done bool, err error) {
+				client, err = client.ReLoginForConfig(config)
+				if err != nil {
+					return false, err
+				}
 
-	ctx := context.Background()
-	err = kwait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 2*time.Minute, true, func(_ context.Context) (done bool, err error) {
-		client, err = client.ReLoginForConfig(config)
-		if err != nil {
-			return false, err
+				_, err = client.Steve.SteveType(shepherdclusters.ProvisioningSteveResourceType).ByID(obj.ID)
+				if err != nil {
+					return false, nil
+				}
+
+				return true, nil
+			})
+
+			if err != nil {
+				return nil, err
+			}
+			return &obj, nil
 		}
-
-		_, err = client.Steve.SteveType(shepherdclusters.ProvisioningSteveResourceType).ByID(clusterObj.ID)
-		if err != nil {
-			return false, nil
-		}
-
-		return true, nil
-	})
-
-	if err != nil {
-		return nil, err
 	}
-	return clusterObj, nil
+	return nil, fmt.Errorf("Could not find expected Cluster")
 }
 
 // CreateK3SRKE2Cluster is a "helper" functions that takes a rancher client, and the rke2 cluster config as parameters.
@@ -307,8 +311,11 @@ func VerifyCluster(client *rancher.Client, config *rancher.Config, cluster *v1.S
 	if err != nil {
 		return err
 	}
+	fmt.Printf("\nRELOGIN CLIENT: %v\n", client)
+	fmt.Printf("\nRANCHER CONFIG: %v\n", config)
+	fmt.Printf("\nCLUSTER OBJECT: %v\n", cluster)
 
-	adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+	adminClient, err := rancher.NewClientForConfig(client.RancherConfig.AdminToken, config, client.Session)
 	if err != nil {
 		return err
 	}
