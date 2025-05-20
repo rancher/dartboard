@@ -2,8 +2,8 @@ import {check, fail, sleep} from 'k6';
 import exec from 'k6/execution';
 import http from 'k6/http';
 import {Gauge} from 'k6/metrics';
-import {getCookies, login} from "./rancher_utils.js";
-import {getPrincipalIds, getCurrentUserPrincipalId, getClusterIds} from "./rancher_users_utils.js"
+import {getCookies, login} from "../rancher_utils.js";
+import {getPrincipalIds, getCurrentUserPrincipalId, getClusterIds} from "../rancher_users_utils.js"
 
 // Parameters
 const projectCount = Number(__ENV.PROJECT_COUNT)
