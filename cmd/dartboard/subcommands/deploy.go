@@ -30,6 +30,7 @@ import (
 
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/helm"
+	"github.com/rancher/dartboard/internal/kubectl"
 	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/rancher/shepherd/pkg/session"
 	cli "github.com/urfave/cli/v2"
@@ -64,21 +65,21 @@ func Deploy(cli *cli.Context) error {
 		return err
 	}
 
-	// // Helm charts
-	// tester := clusters["tester"]
+	// Helm charts
+	tester := clusters["tester"]
 
-	// if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, nil); err != nil {
-	// 	return err
-	// }
-	// if err = chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, nil); err != nil {
-	// 	return err
-	// }
-	// if err = chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, nil); err != nil {
-	// 	return err
-	// }
-	// if err = chartInstallGrafana(r, &tester); err != nil {
-	// 	return err
-	// }
+	if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, nil); err != nil {
+		return err
+	}
+	if err = chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, nil); err != nil {
+		return err
+	}
+	if err = chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, nil); err != nil {
+		return err
+	}
+	if err = chartInstallGrafana(r, &tester); err != nil {
+		return err
+	}
 
 	upstream := clusters["upstream"]
 	rancherVersion := r.ChartVariables.RancherVersion
@@ -95,26 +96,26 @@ func Deploy(cli *cli.Context) error {
 		}
 	}
 
-	// if err = chartInstallCertManager(r, &upstream); err != nil {
-	// 	return err
-	// }
-	// if err = chartInstallRancher(r, rancherImageTag, &upstream); err != nil {
-	// 	return err
-	// }
-	// if err = chartInstallRancherIngress(&upstream); err != nil {
-	// 	return err
-	// }
-	// if err = chartInstallCgroupsExporter(&upstream); err != nil {
-	// 	return err
-	// }
+	if err = chartInstallCertManager(r, &upstream); err != nil {
+		return err
+	}
+	if err = chartInstallRancher(r, rancherImageTag, &upstream); err != nil {
+		return err
+	}
+	if err = chartInstallRancherIngress(&upstream); err != nil {
+		return err
+	}
+	if err = chartInstallCgroupsExporter(&upstream); err != nil {
+		return err
+	}
 
-	// // Wait for Rancher deployments to be complete, or subsequent steps may fail
-	// if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
-	// 	return err
-	// }
-	// if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
-	// 	return err
-	// }
+	// Wait for Rancher deployments to be complete, or subsequent steps may fail
+	if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
+		return err
+	}
+	if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
+		return err
+	}
 
 	// Setup rancher client
 	upstreamAdd, err := getAppAddressFor(upstream)
@@ -143,23 +144,6 @@ func Deploy(cli *cli.Context) error {
 	}
 	SortItemsNaturally(downstreamClusters, func(c tofu.Cluster) string { return c.Name })
 
-	// TODELETE:
-	// // Filter out Cluster Templates that are for provisioning
-	// var provisionClusterTemplates []dart.ClusterTemplate
-	// var customClusterTemplates []dart.ClusterTemplate
-
-	// for _, template := range r.ClusterTemplates {
-	// 	if template.ClusterConfig != nil {
-	// 		if !template.IsCustomCluster {
-	// 			provisionClusterTemplates = append(provisionClusterTemplates, template)
-	// 		} else {
-	// 			customClusterTemplates = append(customClusterTemplates, template)
-	// 		}
-	// 	} else {
-	// 		return fmt.Errorf("error, did not find any Provisioning or Custom Cluster Templates")
-	// 	}
-	// }
-
 	jsonBytes, err := json.MarshalIndent(downstreamClusters, "", "    ")
 	if err != nil {
 		fmt.Println("Error marshaling JSON:", err)
@@ -180,13 +164,6 @@ func Deploy(cli *cli.Context) error {
 			return err
 		}
 	}
-
-	// TODELETE:
-	// err = handleCustomClusters(cli, r, custom_clusters, rancherClient, &rancherConfig)
-	// if err != nil {
-	// 	return err
-	// }
-	// }
 
 	if len(r.ClusterTemplates) > 0 {
 		// If we have provision Cluster Templates then setup Harvester Client + import Harvester Cluster into Rancher
