@@ -72,7 +72,7 @@ func SaveClusterState(filePath string, statuses map[string]*ClusterStatus) error
 }
 
 // LoadClusterState reads the YAML state file and unmarshals into map[string]*ClusterStatus.
-// If the file does not exist, it returns an empty [] without error.
+// If the file does not exist, it returns an empty map[string]*ClusterStatus without error.
 func LoadClusterState(filePath string) (map[string]*ClusterStatus, error) {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		fmt.Printf("Did not find existing Cluster state file at %s.\n Creating new Cluster state file and returning new empty map[string]*ClusterStatus\n", filePath)
@@ -131,13 +131,11 @@ func FindOrCreateStatusByName(statuses map[string]*ClusterStatus, name string) *
 		fmt.Printf("Did not find existing ClusterStatus object for Cluster with name %s.\n", name)
 
 		newClusterStatus := ClusterStatus{
-			Name:        name,
-			Created:     false,
-			Imported:    false,
-			Provisioned: false,
+			Name: name,
 		}
 		statuses[name] = &newClusterStatus
 		fmt.Println("Created new ClusterStatus object. ClusterStatus.")
+		fmt.Printf("\n%v\n", statuses)
 
 		return statuses[name]
 	}

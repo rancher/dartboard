@@ -28,7 +28,6 @@ import (
 
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/helm"
-	"github.com/rancher/dartboard/internal/kubectl"
 	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/rancher/shepherd/pkg/session"
 	cli "github.com/urfave/cli/v2"
@@ -63,21 +62,21 @@ func Deploy(cli *cli.Context) error {
 		return err
 	}
 
-	// Helm charts
-	tester := clusters["tester"]
+	// // Helm charts
+	// tester := clusters["tester"]
 
-	if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, nil); err != nil {
-		return err
-	}
-	if err = chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, nil); err != nil {
-		return err
-	}
-	if err = chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, nil); err != nil {
-		return err
-	}
-	if err = chartInstallGrafana(r, &tester); err != nil {
-		return err
-	}
+	// if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, nil); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, nil); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, nil); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstallGrafana(r, &tester); err != nil {
+	// 	return err
+	// }
 
 	upstream := clusters["upstream"]
 	rancherVersion := r.ChartVariables.RancherVersion
@@ -94,26 +93,26 @@ func Deploy(cli *cli.Context) error {
 		}
 	}
 
-	if err = chartInstallCertManager(r, &upstream); err != nil {
-		return err
-	}
-	if err = chartInstallRancher(r, rancherImageTag, &upstream); err != nil {
-		return err
-	}
-	if err = chartInstallRancherIngress(&upstream); err != nil {
-		return err
-	}
-	if err = chartInstallCgroupsExporter(&upstream); err != nil {
-		return err
-	}
+	// if err = chartInstallCertManager(r, &upstream); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstallRancher(r, rancherImageTag, &upstream); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstallRancherIngress(&upstream); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstallCgroupsExporter(&upstream); err != nil {
+	// 	return err
+	// }
 
-	// Wait for Rancher deployments to be complete, or subsequent steps may fail
-	if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
-		return err
-	}
-	if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
-		return err
-	}
+	// // Wait for Rancher deployments to be complete, or subsequent steps may fail
+	// if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
+	// 	return err
+	// }
+	// if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
+	// 	return err
+	// }
 
 	// Setup rancher client
 	upstreamAdd, err := getAppAddressFor(upstream)
@@ -171,7 +170,9 @@ func Deploy(cli *cli.Context) error {
 		return err
 	}
 
+	fmt.Printf("\nBEFORE CUSTOM CLUSTER LOGIC\n")
 	if len(custom_clusters) > 0 {
+		fmt.Printf("\nIN CUSTOM CLUSTER LOGIC\n")
 		// Get all custom cluster info
 		if err := actions.RegisterCustomClusters(r, custom_clusters, rancherClient, &rancherConfig); err != nil {
 			return err
@@ -187,21 +188,21 @@ func Deploy(cli *cli.Context) error {
 
 	if len(r.ClusterTemplates) > 0 {
 		// If we have provision Cluster Templates then setup Harvester Client + import Harvester Cluster into Rancher
-
-		log.Printf("Parsing Harvester's Kubeconfig")
-		var kubeconfig *actions.Kubeconfig
-		if len(r.TofuVariables["kubeconfig"].(string)) > 0 {
-			kubeconfig, err = actions.ParseKubeconfig(r.TofuVariables["kubeconfig"].(string))
-			if err != nil {
-				return fmt.Errorf("error while parsing kubeconfig at %v: %v", r.TofuVariables["kubeconfig"].(string), err)
+		if strings.Contains(r.TofuMainDirectory, "harvester") {
+			log.Printf("Parsing Harvester's Kubeconfig")
+			var kubeconfig *actions.Kubeconfig
+			if len(r.TofuVariables["kubeconfig"].(string)) > 0 {
+				kubeconfig, err = actions.ParseKubeconfig(r.TofuVariables["kubeconfig"].(string))
+				if err != nil {
+					return fmt.Errorf("error while parsing kubeconfig at %v: %v", r.TofuVariables["kubeconfig"].(string), err)
+				}
 			}
-		}
 
-		var harvesterClient *actions.HarvesterImportClient
-		log.Printf("Setting up Harvester Client's Config")
-		harvesterHost := strings.Split(kubeconfig.Clusters[0].Server, "://")[1]
-		harvesterConfig := actions.NewHarvesterConfig(harvesterHost, kubeconfig.Users[0].User.Token, "", true)
-		if strings.Contains(r.TofuMainDirectory, "harvester") && len(r.ClusterTemplates) > 0 {
+			var harvesterClient *actions.HarvesterImportClient
+			log.Printf("Setting up Harvester Client's Config")
+			harvesterHost := strings.Split(kubeconfig.Clusters[0].Cluster.Server, "://")[1]
+			harvesterConfig := actions.NewHarvesterConfig(harvesterHost, kubeconfig.Users[0].User.Token, "", true)
+
 			log.Printf("Setting up Harvester Client")
 			harvesterClient, err = actions.NewHarvesterImportClient(rancherClient, &harvesterConfig)
 			if err != nil {

@@ -68,6 +68,35 @@ func ConvertConfigToClusterConfig(config *dart.ClusterConfig) *rancherclusters.C
 	return &newConfig
 }
 
+// GetK3SRKE2Cluster is a "helper" functions that takes a rancher client, and the rke2 cluster config as parameters.
+// This function registers a delete cluster function with a wait.WatchWait to ensure the cluster is removed cleanly
+func GetK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, cluster *apisV1.Cluster) (*v1.SteveAPIObject, error) {
+	clusterObj, err := client.Steve.SteveType(shepherdclusters.ProvisioningSteveResourceType).Create(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	err = kwait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 2*time.Minute, true, func(_ context.Context) (done bool, err error) {
+		client, err = client.ReLoginForConfig(config)
+		if err != nil {
+			return false, err
+		}
+
+		_, err = client.Steve.SteveType(shepherdclusters.ProvisioningSteveResourceType).ByID(clusterObj.ID)
+		if err != nil {
+			return false, nil
+		}
+
+		return true, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return clusterObj, nil
+}
+
 // CreateK3SRKE2Cluster is a "helper" functions that takes a rancher client, and the rke2 cluster config as parameters.
 // This function registers a delete cluster function with a wait.WatchWait to ensure the cluster is removed cleanly
 func CreateK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, cluster *apisV1.Cluster) (*v1.SteveAPIObject, error) {
