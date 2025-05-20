@@ -70,31 +70,10 @@ type HarvesterDisk struct {
 	Bus  string `json:"bus" yaml:"bus"`
 }
 
-// Used for injection into Dart.TofuVariables["node_templates"]
-type NodeTemplate struct {
-	NodeCount             int            `json:"node_count" yaml:"node_count,omitempty"`
-	NamePrefix            string         `json:"name_prefix" yaml:"name_prefix,omitempty"`
-	NodeModuleVariables   ProviderConfig `json:"node_module_variables" yaml:"node_module_variables,omitempty"`
-	OriginClusterTemplate int            `json:"origin_cluster_template,omitempty" yaml:"origin_cluster_template,omitempty"`
-}
-
 type ClusterConfig struct {
 	MachinePools []MachinePools `yaml:"machine_pools"`
 	Provider     string         `yaml:"provider"`
 }
-
-// TODELETE:
-// type MachinePools struct {
-// 	machinepools.Pools
-// 	MachinePoolConfig MachinePoolConfig `yaml:"machine_pool_config,omitempty" default:"[]"`
-// }
-
-// type MachinePoolConfig struct {
-// 	ControlPlane bool  `json:",omitempty" yaml:"controlplane,omitempty"`
-// 	Etcd         bool  `json:"etcd,omitempty" yaml:"etcd,omitempty"`
-// 	Worker       bool  `json:"worker,omitempty" yaml:"worker,omitempty"`
-// 	Quantity     int32 `json:"quantity" yaml:"quantity"`
-// }
 
 type MachinePools struct {
 	machinepools.Pools
@@ -149,39 +128,6 @@ func ToMap(a any) (map[string]interface{}, error) {
 	}
 
 	return result, nil
-}
-
-// TODELETE:
-// func buildNodeTemplate[N AnyNodeConfig](config N, count int, prefix string) (map[string]any, error) {
-// 	nt := NodeTemplate{
-// 		NodeCount:           count,
-// 		NamePrefix:          prefix,
-// 		NodeModuleVariables: config,
-// 	}
-
-// 	if err := nt.NodeModuleVariables.Validate(); err != nil {
-// 		return nil, fmt.Errorf("error during %s ProviderConfig validation: %w", config.ProviderName(), err)
-// 	}
-
-// 	result, err := ToMap(nt)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return result, nil
-// }
-
-func buildNodeTemplate[N AnyNodeConfig](config N, count int, prefix string, templateIndex int) (NodeTemplate, error) {
-	nt := NodeTemplate{
-		NodeCount:             count,
-		NamePrefix:            prefix,
-		NodeModuleVariables:   config,
-		OriginClusterTemplate: templateIndex,
-	}
-
-	if err := nt.NodeModuleVariables.Validate(); err != nil {
-		return NodeTemplate{}, fmt.Errorf("error during %s ProviderConfig validation: %w", config.ProviderName(), err)
-	}
-	return nt, nil
 }
 
 // GetActiveConfig returns the single non‑nil ProviderConfig inside nc
