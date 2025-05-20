@@ -105,7 +105,7 @@ func (br *SequencedBatchRunner[J]) Run(batch []J,
 	// After finishing this batch:
 	if sleepAfter {
 		// If fewer than half were skipped, sleep briefly
-		fmt.Printf("Batch done: %d/%d skipped; sleeping before next batch.\n", numSkipped, len(batch))
+		logrus.Infof("Batch done: %d/%d skipped; sleeping before next batch.\n", numSkipped, len(batch))
 		time.Sleep(shepherddefaults.TwoMinuteTimeout)
 	} else {
 		// Otherwise, go straight into the next batch
@@ -129,8 +129,8 @@ func (br *SequencedBatchRunner[J]) writer(statuses map[string]*ClusterStatus, st
 	defer br.wgWriter.Done()
 	for u := range br.Updates {
 		stateMutex.Lock()
-		fmt.Printf("\nIN WRITER\n")
-		fmt.Printf("\n%v\n", statuses)
+		logrus.Debugf("\nIN WRITER\n")
+		logrus.Debugf("\n%v\n", statuses)
 		cs := statuses[u.Name]
 		cs.Stage = u.Stage
 		switch u.Stage {

@@ -28,7 +28,6 @@ import (
 
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/helm"
-	"github.com/rancher/dartboard/internal/kubectl"
 	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/rancher/shepherd/pkg/session"
 	cli "github.com/urfave/cli/v2"
@@ -65,18 +64,19 @@ func Deploy(cli *cli.Context) error {
 
 	// Helm charts
 	tester := clusters["tester"]
-
-	if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, nil); err != nil {
-		return err
-	}
-	if err = chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, nil); err != nil {
-		return err
-	}
-	if err = chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, nil); err != nil {
-		return err
-	}
-	if err = chartInstallGrafana(r, &tester); err != nil {
-		return err
+	if len(tester.Kubeconfig) > 0 {
+		if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, nil); err != nil {
+			return err
+		}
+		if err = chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, nil); err != nil {
+			return err
+		}
+		if err = chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, nil); err != nil {
+			return err
+		}
+		if err = chartInstallGrafana(r, &tester); err != nil {
+			return err
+		}
 	}
 
 	upstream := clusters["upstream"]
