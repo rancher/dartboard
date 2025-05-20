@@ -64,12 +64,13 @@ type Cluster struct {
 
 type CustomCluster struct {
 	// generatedName string
-	Name          string         `json:"name" yaml:"name"`
-	NamePrefix    string         `yaml:"name_prefix"`
-	Nodes         []Node         `yaml:"nodes"`
-	MachinePools  []MachinePools `yaml:"machine_pools"`
-	DistroVersion string         `yaml:"distro_version"`
-	ClusterCount  int            `yaml:"cluster_count"`
+	Name          string              `json:"name,omitempty" yaml:"name"`
+	NamePrefix    string              `yaml:"name_prefix" json:"name_prefix,omitempty"`
+	Nodes         []Node              `yaml:"nodes" json:"nodes,omitempty"`
+	MachinePools  []MachinePoolConfig `yaml:"machine_pools" json:"machine_pools,omitempty"`
+	DistroVersion string              `yaml:"distro_version" json:"distro_version,omitempty"`
+	ClusterCount  int                 `yaml:"cluster_count" json:"cluster_count,omitempty"`
+	ServerCount   int                 `yaml:"server_count" json:"server_count,omitempty"`
 }
 
 // func (cc *CustomCluster) SetGeneratedName(suffix string) {
@@ -89,7 +90,7 @@ type MachinePoolConfig struct {
 	ControlPlane bool  `json:",omitempty" yaml:"controlplane,omitempty"`
 	Etcd         bool  `json:"etcd,omitempty" yaml:"etcd,omitempty"`
 	Worker       bool  `json:"worker,omitempty" yaml:"worker,omitempty"`
-	Quantity     int32 `json:"quantity" yaml:"quantity"`
+	Quantity     int32 `json:"quantity,omitempty" yaml:"quantity,omitempty"`
 }
 
 type Node struct {
@@ -289,17 +290,17 @@ func (t *Tofu) IsK3d() bool {
 }
 
 // ReadBytesFromPath reads in the file from the given path, returns the file in []byte format
-func ReadBytesFromPath(sshKeyPath string) ([]byte, error) {
+func ReadBytesFromPath(filePath string) ([]byte, error) {
 	var fileBytes []byte
 	var path string
-	if strings.Contains(sshKeyPath, "~") {
+	if strings.Contains(filePath, "~") {
 		usr, err := user.Current()
 		if err != nil {
 			return nil, errors.New("error retrieving current user")
 		}
-		path = strings.Replace(sshKeyPath, "~", usr.HomeDir, 1)
+		path = strings.Replace(filePath, "~", usr.HomeDir, 1)
 	} else {
-		path = sshKeyPath
+		path = filePath
 	}
 	if _, err := os.Stat(path); err == nil {
 		fileBytes, err = os.ReadFile(path)

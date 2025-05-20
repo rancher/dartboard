@@ -328,16 +328,12 @@ func RegisterCustomClusters(r *dart.Dart, templates []tofu.CustomCluster,
 		panic("ClusterBatchSize must be > 0")
 	}
 
-	if len(templates) == 0 {
-		fmt.Printf("No cluster templates were provided.\n")
-	}
-
 	for _, template := range templates {
 		yamlData, err := yaml.Marshal(template)
 		if err != nil {
 			log.Fatalf("Error marshaling YAML: %v", err)
 		}
-		fmt.Printf("\ntofu.CustomCluster: %s\n", string(yamlData))
+		fmt.Printf("\ntofu.CustomCluster:\n%s\n", string(yamlData))
 	}
 
 	for _, template := range templates {
@@ -356,42 +352,35 @@ func RegisterCustomClustersInBatches(r *dart.Dart, template tofu.CustomCluster, 
 	if err != nil {
 		return err
 	}
+	var custom_clusters []tofu.CustomCluster
+	// Build []tofu.CustomCluster, length = template.ClusterCount
+	startNodes := 0
+	nodeBatchSize := len(template.Nodes) / template.ClusterCount
+	endNodes := nodeBatchSize
+	for i := 0; i < template.ClusterCount; i++ {
+		customCluster := template
+		customCluster.Name = fmt.Sprintf("%s-%d", template.Name, i)
+		customCluster.Nodes = template.Nodes[startNodes:endNodes]
+		startNodes += nodeBatchSize
+		endNodes += nodeBatchSize
+		custom_clusters = append(custom_clusters, customCluster)
+	}
 
-	batchNum := 0
-	// Enqueue clusters in batches and collect results
-	for i := 0; i < template.ClusterCount; i += r.ClusterBatchSize {
-		batchTemplates := make([]tofu.CustomCluster, 0, r.ClusterBatchSize)
-		j := min(i+r.ClusterBatchSize, template.ClusterCount)
+	// batchTemplates := make([]tofu.CustomCluster, 0, r.ClusterBatchSize)
 
-		// var nts []dart.NodeTemplate
-		// Generate the name for each instance of the template (each cluster) and add the template instances to the batchTemplates slice
-		// Build []NodeTemplate[dart.ProviderConfig] as well, so we know how many nodes to create + with what configurations
-		for k := i; k < j; k++ {
-			// templateCopy := template
-			// templateCopy.SetGeneratedName(fmt.Sprintf("%d-%d", batchNum, k-i))
-			// switch {
-			// case strings.Contains(templateCopy.ClusterConfig.Provider, dart.HarvesterProvider):
-			// 	nts, err = dart.BuildNodeTemplates[dart.HarvesterNodeConfig](&templateCopy, k)
-			// case strings.Contains(templateCopy.ClusterConfig.Provider, dart.AWSProvider):
-			// 	panic("AWS Custom Cluster provider flow not yet supported")
-			// case strings.Contains(templateCopy.ClusterConfig.Provider, dart.AzureProvider):
-			// 	panic("Azure Custom Cluster provider flow not yet supported")
-			// case strings.Contains(templateCopy.ClusterConfig.Provider, dart.K3DProvider):
-			// 	panic("K3D Custom Cluster provider flow not yet supported")
-			// }
-			// if err != nil {
-			// 	return err
-			// }
-			batchTemplates = append(batchTemplates, template)
-		}
+	startTemplate := 0
+	endTemplate := min(r.ClusterBatchSize-1, len(custom_clusters))
+	for j := 0; j < len(custom_clusters); j += r.ClusterBatchSize {
+
+		batchTemplates := custom_clusters[startTemplate:endTemplate]
 
 		batchRunner := NewSequencedBatchRunner[tofu.CustomCluster](len(batchTemplates))
 		err := batchRunner.Run(batchTemplates, statuses, clusterStatePath, rancherClient, rancherConfig)
 		if err != nil {
 			return err
 		}
-
-		batchNum++
+		startTemplate += r.ClusterBatchSize
+		endTemplate += min(r.ClusterBatchSize, len(custom_clusters)-endTemplate)
 	}
 
 	return nil
@@ -401,61 +390,11 @@ func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J]
 	template tofu.CustomCluster, statuses map[string]*ClusterStatus,
 	rancherClient *rancher.Client, rancherConfig *rancher.Config) (skipped bool, err error) {
 
+	fmt.Printf("\nregisterCustomClusterWithRunner\n")
 	clusterName := template.Name
 	stateMutex.Lock()
 	cs := FindOrCreateStatusByName(statuses, clusterName)
 	stateMutex.Unlock()
-
-	// gather # nodes for this cluster
-	// for _, nt := range nts {
-	// 	harvesterNodeVars := nt.NodeModuleVariables.(dart.HarvesterNodeConfig)
-	// 	switch {
-	// 	case strings.Contains(template.ClusterConfig.Provider, dart.HarvesterProvider):
-	// 		var diskSizes []string
-	// 		for _, disk := range harvesterNodeVars.Disks {
-	// 			diskSizes = append(diskSizes, fmt.Sprintf("%dGi", disk.Size))
-	// 		}
-	// 		// var sshKeys []harvester.VMSSHKey
-	// 		// for _, sshKey := range harvesterNodeVars.SSHSharedPublicKeys {
-	// 		// 	sshKeys = append(sshKeys, harvester.VMSSHKey{
-	// 		// 		Name:      sshKey.Name,
-	// 		// 		Namespace: sshKey.Namespace,
-	// 		// 	})
-	// 		// }
-	// 		vmInput := harvester.VMInput{
-	// 			Count:       nt.NodeCount,
-	// 			Name:        nt.NamePrefix,
-	// 			Namespace:   harvesterNodeVars.Namespace,
-	// 			Description: "",
-	// 			Image: harvester.VMImage{
-	// 				ID:        "",
-	// 				Name:      harvesterNodeVars.ImageName,
-	// 				Namespace: harvesterNodeVars.ImageNamespace,
-	// 			},
-	// 			CPUs:      harvesterNodeVars.CPU,
-	// 			Memory:    harvesterNodeVars.Memory,
-	// 			DiskSizes: diskSizes,
-	// 			User: harvester.VMUser{
-	// 				Name: "opensuse",
-	// 			},
-	// 			Network: harvester.VMNetworkInput{
-	// 				Name:      "vlan2179-public",
-	// 				Namespace: "harvester-public",
-	// 			},
-	// 			SSHKey: harvester.VMSSHKey{
-	// 				Name:      "ival-ssh-key",
-	// 				Namespace: "bullseye",
-	// 			},
-	// 		}
-	// 		err = harvester.CreateVMs(h, k, &vmInput)
-	// 	case strings.Contains(template.ClusterConfig.Provider, dart.AWSProvider):
-	// 		panic("AWS Custom Cluster provider flow not yet supported")
-	// 	case strings.Contains(template.ClusterConfig.Provider, dart.AzureProvider):
-	// 		panic("Azure Custom Cluster provider flow not yet supported")
-	// 	case strings.Contains(template.ClusterConfig.Provider, dart.K3DProvider):
-	// 		panic("K3D Custom Cluster provider flow not yet supported")
-	// 	}
-	// }
 
 	<-br.seqCh
 	br.Updates <- stateUpdate{Name: clusterName, Stage: StageNew, Completed: time.Now()}
@@ -486,40 +425,28 @@ func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J]
 	if !cs.Created {
 		fmt.Printf("Creating Cluster object for %s\n", cs.Name)
 		clusterResp, err = CreateK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
-		if err != nil {
-			return false, err
-		}
+		<-br.seqCh
+		br.Updates <- stateUpdate{Name: clusterName, Stage: StageCreated, Completed: time.Now()}
+		br.seqCh <- struct{}{}
+		fmt.Printf("Cluster named %s was created.\n", provCluster.Name)
+	} else {
+		clusterResp, err = GetK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
 	}
-	<-br.seqCh
-	br.Updates <- stateUpdate{Name: clusterName, Stage: StageCreated, Completed: time.Now()}
-	br.seqCh <- struct{}{}
-	fmt.Printf("Cluster named %s was created.\n", provCluster.Name)
+	if err != nil {
+		return false, err
+	}
 
 	var machinePools []provv1.RKEMachinePool
 	for _, pool := range template.MachinePools {
 		newPool := provv1.RKEMachinePool{
-			EtcdRole:         pool.MachinePoolConfig.Etcd,
-			ControlPlaneRole: pool.MachinePoolConfig.ControlPlane,
-			WorkerRole:       pool.MachinePoolConfig.Worker,
-			Quantity:         &pool.MachinePoolConfig.Quantity,
+			EtcdRole:         pool.Etcd,
+			ControlPlaneRole: pool.ControlPlane,
+			WorkerRole:       pool.Worker,
+			Quantity:         &pool.Quantity,
 		}
 		machinePools = append(machinePools, newPool)
 	}
 	provCluster.Spec.RKEConfig.MachinePools = machinePools
-
-	// vmiMap, vms, vmData, err := harvester.ListVMs(h, "bullseye")
-	// var tofuNodes []tofu.Node
-	// for i, data := range vmData {
-	// 	tofuNodes = append(tofuNodes, tofu.Node{
-	// 		Name:            data.Name,
-	// 		PublicIP:        vmiMap[data.Name].Status.Interfaces[0].IPs[0],
-	// 		PublicHostName:  vms[i].Spec.Template.Spec.Hostname,
-	// 		PrivateIP:       vmiMap[data.Name].Status.Interfaces[0].IPs[1],
-	// 		PrivateHostName: "",
-	// 		SSHUser:         "opensuse",
-	// 		SSHKeyPath:      "~/.ssh/jenkins-elliptic-validation.pem",
-	// 	})
-	// }
 
 	clusterObject, err := RegisterCustomCluster(rancherClient, clusterResp, provCluster, template.Nodes)
 	reports.TimeoutClusterReport(clusterObject, err)
