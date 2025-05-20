@@ -13,6 +13,7 @@ replace (
 	github.com/rancher/rancher/pkg/apis => github.com/rancher/rancher/pkg/apis v0.0.0-20250410003522-2a1bf3d05723
 	github.com/rancher/rancher/pkg/client => github.com/rancher/rancher/pkg/client v0.0.0-20250212213103-5c3550f55322
 	github.com/rancher/shepherd => github.com/rancher/shepherd v0.0.0-20250514182450-235145b2fd2a
+	// github.com/rancher/shepherd => ../shepherd
 
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.53.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0
@@ -247,7 +248,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.1.0 // indirect
+	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opencontainers/runc v1.2.1 // indirect
 	github.com/openshift/custom-resource-status v1.1.2 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
@@ -259,13 +260,13 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	github.com/rancher/aks-operator v1.11.5 // indirect
-	github.com/rancher/apiserver v0.6.2 // indirect
-	github.com/rancher/eks-operator v1.11.5 // indirect
-	github.com/rancher/fleet/pkg/apis v0.12.3 // indirect
-	github.com/rancher/gke-operator v1.11.5 // indirect
+	github.com/rancher/aks-operator v1.12.1 // indirect
+	github.com/rancher/apiserver v0.7.0 // indirect
+	github.com/rancher/eks-operator v1.12.1 // indirect
+	github.com/rancher/fleet/pkg/apis v0.13.0 // indirect
+	github.com/rancher/gke-operator v1.12.1 // indirect
 	github.com/rancher/lasso v0.2.3 // indirect
-	github.com/rancher/norman v0.6.0 // indirect
+	github.com/rancher/norman v0.7.0 // indirect
 	github.com/rancher/rancher v0.0.0-20250228094653-6e82729d08cf // indirect
 	github.com/rancher/rke v1.8.5 // indirect
 	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20250710162344-185ff9f785cd // indirect
@@ -282,7 +283,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.5 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.5 // indirect
-	go.etcd.io/etcd/client/v2 v2.305.16 // indirect
+	go.etcd.io/etcd/client/v2 v2.305.21 // indirect
 	go.etcd.io/etcd/client/v3 v3.6.5 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.36.0 // indirect
@@ -301,9 +302,9 @@ require (
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250519155744-55703ea1f237 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250519155744-55703ea1f237 // indirect
-	google.golang.org/grpc v1.72.2 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250528174236-200df99c418a // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250728155136-f173205681a0 // indirect
+	google.golang.org/grpc v1.74.2 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -318,14 +319,14 @@ require (
 	k8s.io/kube-aggregator v0.33.2 // indirect
 	k8s.io/kube-openapi v0.31.9 // indirect
 	k8s.io/kubectl v0.34.1 // indirect
-	k8s.io/kubernetes v1.32.2 // indirect
-	k8s.io/pod-security-admission v0.32.2 // indirect
+	k8s.io/kubernetes v1.33.2 // indirect
+	k8s.io/pod-security-admission v0.33.2 // indirect
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 // indirect
 	kubevirt.io/containerized-data-importer-api v1.62.0 // indirect
 	kubevirt.io/controller-lifecycle-operator-sdk/api v0.0.0-20220329064328-f3cc58c6ed90 // indirect
 	sigs.k8s.io/cli-utils v0.37.2 // indirect
-	sigs.k8s.io/cluster-api v1.9.5 // indirect
-	sigs.k8s.io/controller-runtime v0.20.4 // indirect
+	sigs.k8s.io/cluster-api v1.10.2 // indirect
+	sigs.k8s.io/controller-runtime v0.21.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/kustomize/api v0.20.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.20.1 // indirect
