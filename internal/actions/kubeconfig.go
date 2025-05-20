@@ -13,10 +13,15 @@ import (
 type Kubeconfig struct {
 	APIVersion     string
 	Kind           string
-	Clusters       []ClusterInfo
+	Clusters       []Cluster
 	Users          []User
 	Contexts       []Context
 	CurrentContext string
+}
+
+type Cluster struct {
+	Name    string
+	Cluster ClusterInfo
 }
 
 type ClusterInfo struct {

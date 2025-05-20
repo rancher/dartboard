@@ -129,6 +129,8 @@ func (br *SequencedBatchRunner[J]) writer(statuses map[string]*ClusterStatus, st
 	defer br.wgWriter.Done()
 	for u := range br.Updates {
 		stateMutex.Lock()
+		fmt.Printf("\nIN WRITER\n")
+		fmt.Printf("\n%v\n", statuses)
 		cs := statuses[u.Name]
 		cs.Stage = u.Stage
 		switch u.Stage {
