@@ -357,7 +357,7 @@ func RegisterCustomClustersInBatches(r *dart.Dart, template tofu.CustomCluster, 
 	startNodes := 0
 	nodeBatchSize := len(template.Nodes) / template.ClusterCount
 	endNodes := nodeBatchSize
-	for i := 0; i < template.ClusterCount; i++ {
+	for i := range template.ClusterCount {
 		customCluster := template
 		customCluster.Name = fmt.Sprintf("%s-%d", template.Name, i)
 		customCluster.Nodes = template.Nodes[startNodes:endNodes]
@@ -366,12 +366,9 @@ func RegisterCustomClustersInBatches(r *dart.Dart, template tofu.CustomCluster, 
 		custom_clusters = append(custom_clusters, customCluster)
 	}
 
-	// batchTemplates := make([]tofu.CustomCluster, 0, r.ClusterBatchSize)
-
-	startTemplate := 0
-	endTemplate := min(r.ClusterBatchSize-1, len(custom_clusters))
-	for j := 0; j < len(custom_clusters); j += r.ClusterBatchSize {
-
+	// endTemplate := min(r.ClusterBatchSize, len(custom_clusters))
+	for startTemplate := 0; startTemplate < len(custom_clusters); startTemplate += r.ClusterBatchSize {
+		endTemplate := min(startTemplate+r.ClusterBatchSize, len(custom_clusters))
 		batchTemplates := custom_clusters[startTemplate:endTemplate]
 
 		batchRunner := NewSequencedBatchRunner[tofu.CustomCluster](len(batchTemplates))
@@ -379,8 +376,7 @@ func RegisterCustomClustersInBatches(r *dart.Dart, template tofu.CustomCluster, 
 		if err != nil {
 			return err
 		}
-		startTemplate += r.ClusterBatchSize
-		endTemplate += min(r.ClusterBatchSize, len(custom_clusters)-endTemplate)
+		// endTemplate += min(r.ClusterBatchSize, len(custom_clusters)-endTemplate)
 	}
 
 	return nil

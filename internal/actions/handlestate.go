@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -134,8 +135,8 @@ func FindOrCreateStatusByName(statuses map[string]*ClusterStatus, name string) *
 			Name: name,
 		}
 		statuses[name] = &newClusterStatus
-		fmt.Println("Created new ClusterStatus object. ClusterStatus.")
-		fmt.Printf("\n%v\n", statuses)
+		logrus.Debugf("Created new ClusterStatus object. ClusterStatus.")
+		logrus.Debugf("\n%v\n", statuses)
 
 		return statuses[name]
 	}
