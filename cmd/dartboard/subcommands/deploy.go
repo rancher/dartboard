@@ -33,6 +33,8 @@ import (
 	"github.com/rancher/shepherd/pkg/session"
 	cli "github.com/urfave/cli/v2"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/rancher/dartboard/internal/actions"
 )
 
@@ -155,9 +157,9 @@ func Deploy(cli *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("\nBEFORE CUSTOM CLUSTER LOGIC\n")
+	logrus.Debugf("\nBEFORE CUSTOM CLUSTER LOGIC\n")
 	if len(custom_clusters) > 0 {
-		fmt.Printf("\nIN CUSTOM CLUSTER LOGIC\n")
+		logrus.Debugf("\nIN CUSTOM CLUSTER LOGIC\n")
 		// Get all custom cluster info
 		if err := actions.RegisterCustomClusters(r, custom_clusters, rancherClient, &rancherConfig); err != nil {
 			return err
@@ -573,71 +575,3 @@ func SortItemsNaturally[T any](items []T, getName func(T) string) {
 		return naturalCompare(getName(items[i]), getName(items[j]))
 	})
 }
-
-// TODELETE:
-// Failed attempt at utilizing a locally modified version of our tofu module to provision our nodes for each custom cluster
-// func handleCustomClusters(cli *cli.Context, r *dart.Dart, templates map[string]tofu.CustomCluster, rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
-// 	// if node_templates was passed, error because the user needs to decide on how they want to proceed
-// 	// if _, ok := r.TofuVariables["node_templates"]; ok {
-// 	// 	return fmt.Errorf("error, cannot set 'node_templates' TofuVariable while also deploying ClusterTemplates for Custom Clusters")
-// 	// }
-
-// 	// nts, err := dart.BuildNodeTemplates(templates)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-
-// 	// r.TofuVariables["node_templates"] = nts
-
-// 	// dartPath := cli.String(ArgDart)
-// 	// fmt.Printf("\nUpdating Dart file at %s with injected node_templates\n", dartPath)
-// 	// err = dart.UpdateDart(r, dartPath)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-
-// 	// clusterStatePath := fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, actions.ClustersStateFile)
-// 	// statuses, err := actions.LoadClusterState(clusterStatePath)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-
-// 	// clusterCount := 0
-// 	// for _, template := range templates {
-// 	// 	clusterCount += template.ClusterCount
-// 	// }
-
-// 	// fmt.Println("Re-applying Tofu module with injected node_templates based on the given 'Custom Cluster' cluster_templates")
-// 	// tf, err := tofu.New(r.TofuVariables, r.TofuMainDirectory, r.TofuWorkspace, r.TofuParallelism, true)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-
-// 	// If our # of tracked ClusterStatus objects == # of Clusters we want to create then re-apply (destroys existing progress)
-// 	// if len(statuses) == clusterCount {
-// 	// if err = tf.Apply(); err != nil {
-// 	// 	return err
-// 	// }
-// 	// // }
-
-// 	// _, nodes, err := tf.ParseOutputs()
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-
-// 	// var customClusterTemplates []actions.CustomClusterTemplate
-// 	// fmt.Println("Grouping created nodes by ClusterTemplate prefix")
-// 	// for _, template := range templates {
-// 	// 	fmt.Printf("\nTemplate Name Prefix: %s\nNodesPerCluster: %d\n", template.Name, template.NodesPerCluster)
-// 	// 	customClusterTemplates = append(customClusterTemplates, actions.CustomClusterTemplate{
-// 	// 		ClusterTemplate: template,
-// 	// 		Nodes:           tofu.GetNodesByPrefix(nodes, template.NamePrefix),
-// 	// 	})
-// 	// }
-
-// 	if err := actions.RegisterCustomClusters(r, templates, rancherClient, rancherConfig); err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
