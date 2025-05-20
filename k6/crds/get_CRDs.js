@@ -2,8 +2,8 @@ import http from 'k6/http'
 import { check, fail, sleep } from 'k6';
 import exec from 'k6/execution';
 import { Trend } from 'k6/metrics';
-import { getCookies, login } from "./rancher_utils.js";
-import * as k8s from './k8s.js'
+import { getCookies, login } from "../rancher_utils.js";
+import * as k8s from '../k8s.js'
 import * as crdUtil from "./crd_utils.js";
 
 
