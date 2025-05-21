@@ -18,6 +18,7 @@ yum install -y postgresql15 postgresql15-server
 # use data disk if available (see mount_ephemeral.sh)
 if [ -d /data ]; then
   mkdir -p /data/pgsql
+  mv /var/lib/pgsql /data/pgsql
   ln -sf /data/pgsql /var/lib/pgsql
 endif
 
