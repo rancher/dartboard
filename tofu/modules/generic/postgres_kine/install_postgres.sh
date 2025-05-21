@@ -27,6 +27,9 @@ ls /var/lib/pgsql/15/initdb.log || /usr/pgsql-15/bin/postgresql-15-setup initdb
 
 # Set basic tuning parameters
 cat >>/var/lib/pgsql/15/data/postgresql.conf <<EOF
+# Listen to any incoming connections
+listen_addresses = '*'
+
 # Tuning parameters from https://pgtune.leopard.in.ua/ based on instance type m6id.4xlarge
 # DB Version: 15
 # OS Type: linux
@@ -52,6 +55,11 @@ max_worker_processes = 16
 max_parallel_workers_per_gather = 4
 max_parallel_workers = 16
 max_parallel_maintenance_workers = 4
+EOF
+
+cat >>/var/lib/pgsql/15/data/pg_hba.conf <<EOF
+# Password-authenticate any incoming connections
+host    all             all             0.0.0.0/0            scram-sha-256
 EOF
 
 # Start DB
