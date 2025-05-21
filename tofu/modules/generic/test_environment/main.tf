@@ -105,16 +105,10 @@ module "nodes" {
   # for_each = {for node in local.nodes: node.name => node}
   count = length(local.nodes)
   source = "../node"
-  project_name         = var.project_name
-  name                 = local.nodes[count.index].name
-  ssh_private_key_path = var.ssh_private_key_path
-  ssh_user             = var.ssh_user
-  # # if this node is the first server in its template, assign ports for tunnels
-  # ssh_tunnels = local.nodes[count.index].index == 0 ? [
-  #   [var.first_kubernetes_api_port + 3 + local.nodes[count.index].origin_index, 6443],
-  #   [var.first_app_http_port + 3 + local.nodes[count.index].origin_index, 80],
-  #   [var.first_app_https_port + 3 + local.nodes[count.index].origin_index, 443],
-  # ] : []
+  project_name          = var.project_name
+  name                  = local.nodes[count.index].name
+  ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
   node_module           = var.node_module
   node_module_variables = local.nodes[count.index].node_module_variables
   network_config        = var.network_config
