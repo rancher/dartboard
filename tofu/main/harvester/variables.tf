@@ -50,12 +50,6 @@ variable "downstream_cluster_distro_module" {
   default     = "generic/k3s"
 }
 
-variable "node_templates" {
-  description = "List of node configurations. See tofu/modules/generic/test_environment/variables.tf for details"
-  type        = list(any)
-  default     = []
-}
-
 variable "tester_cluster" {
   description = "Tester cluster configuration. See tofu/modules/generic/test_environment/variables.tf for details"
   type        = any
