@@ -20,7 +20,7 @@ if [ -d /data ]; then
   mkdir -p /data/pgsql
   mv /var/lib/pgsql /data/pgsql
   ln -sf /data/pgsql /var/lib/pgsql
-endif
+fi
 
 # Initialize the database and enable automatic start
 ls /var/lib/pgsql/15/initdb.log || /usr/pgsql-15/bin/postgresql-15-setup initdb
