@@ -72,7 +72,7 @@ export function createConfigMaps() {
             "name": name,
             "namespace": namespace
         },
-        "data": {"data": data.toString}
+        "data": {"data": data}
     }
 
     k8s.create(`${baseUrl}/api/v1/namespaces/${namespace}/configmaps`, body)
