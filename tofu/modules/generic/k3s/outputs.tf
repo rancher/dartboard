@@ -9,7 +9,7 @@ output "config" {
       public = var.server_count > 0 ? "https://${module.server_nodes[0].public_name}:6443" : null
       // resolvable from the network this cluster runs in
       private = var.server_count > 0 ? "https://${module.server_nodes[0].private_name}:6443" : null
-      // resolvable from the host running OpenTofu
+      // resolvable from the host running OpenTofu when create_tunnels == true
       tunnel = local.local_kubernetes_api_url
     }
 
@@ -25,7 +25,7 @@ output "config" {
         http_port  = 80
         https_port = 443
       }
-      tunnel = { // resolvable from the host running OpenTofu
+      tunnel = { // resolvable from the host running OpenTofu when create_tunnels == true
         name       = "${var.name}.local.gd"
         http_port  = var.tunnel_app_http_port
         https_port = var.tunnel_app_https_port
@@ -39,5 +39,7 @@ output "config" {
     })
     ingress_class_name          = null
     reserve_node_for_monitoring = var.reserve_node_for_monitoring
+    server_nodes = module.server_nodes
+    agent_nodes = module.agent_nodes
   }
 }

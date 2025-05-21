@@ -55,6 +55,7 @@ variable "downstream_cluster_templates" {
     public_ip                   = bool // Whether the downstream cluster should have a public IP assigned. Default false
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring. Default false
     enable_audit_log            = bool // Enable audit log for the cluster. Default false
+    create_tunnels              = bool // Whether ssh tunnels to the downstream cluster's first server node should be created. Default false
 
     machine_pools = optional(list(object({
       machine_pool_config = object({
@@ -102,14 +103,6 @@ variable "downstream_cluster_templates" {
 variable "downstream_cluster_distro_module" {
   description = "Name of the module to use for downstream clusters. Default assumes imported cluster"
   default     = "generic/k3s"
-}
-
-variable "node_templates" {
-  type = list(object({
-    node_count              = number // Number of nodes in this configuration
-    name_prefix             = string // String to prefix the name of each node in this configuration
-    node_module_variables   = any    // Node module-specific variables
-  }))
 }
 
 # Tester cluster specifics

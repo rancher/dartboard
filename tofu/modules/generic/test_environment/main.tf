@@ -25,6 +25,7 @@ module "upstream_cluster" {
   distro_version              = var.upstream_cluster.distro_version
   reserve_node_for_monitoring = var.upstream_cluster.reserve_node_for_monitoring
   enable_audit_log            = var.upstream_cluster.enable_audit_log
+  create_tunnels              = true
 
   sans                      = ["upstream.local.gd"]
   local_kubernetes_api_port = var.first_kubernetes_api_port
@@ -47,6 +48,7 @@ module "tester_cluster" {
   distro_version              = var.tester_cluster.distro_version
   reserve_node_for_monitoring = var.tester_cluster.reserve_node_for_monitoring
   enable_audit_log            = var.tester_cluster.enable_audit_log
+  create_tunnels              = true
 
   sans                      = ["tester.local.gd"]
   local_kubernetes_api_port = var.first_kubernetes_api_port + 1
@@ -69,34 +71,28 @@ module "downstream_clusters" {
   distro_version              = local.downstream_clusters[count.index].distro_version
   reserve_node_for_monitoring = local.downstream_clusters[count.index].reserve_node_for_monitoring
   enable_audit_log            = local.downstream_clusters[count.index].enable_audit_log
-
-  sans                      = ["${local.downstream_clusters[count.index].name}.local.gd"]
-  local_kubernetes_api_port = var.first_kubernetes_api_port + 2 + count.index
-  tunnel_app_http_port      = var.first_app_http_port + 2 + count.index
-  tunnel_app_https_port     = var.first_app_https_port + 2 + count.index
-  ssh_private_key_path      = var.ssh_private_key_path
-  ssh_user                  = var.ssh_user
-  node_module               = var.node_module
-  network_config            = var.network_config
-  node_module_variables     = local.downstream_clusters[count.index].node_module_variables
+  create_tunnels              = local.downstream_clusters[count.index].create_tunnels
+  sans                        = ["${local.downstream_clusters[count.index].name}.local.gd"]
+  local_kubernetes_api_port   = var.first_kubernetes_api_port + 2 + count.index
+  tunnel_app_http_port        = var.first_app_http_port + 2 + count.index
+  tunnel_app_https_port       = var.first_app_https_port + 2 + count.index
+  ssh_private_key_path        = var.ssh_private_key_path
+  ssh_user                    = var.ssh_user
+  node_module                 = var.node_module
+  network_config              = var.network_config
+  image_id                    = var.image_id
+  node_module_variables       = local.downstream_clusters[count.index].node_module_variables
 }
 
 module "nodes" {
   # for_each = {for node in local.nodes: node.name => node}
   count = length(local.nodes)
   source = "../node"
-  project_name         = var.project_name
-  name                 = local.nodes[count.index].name
-  ssh_private_key_path = var.ssh_private_key_path
-  ssh_user             = var.ssh_user
-  # # if this node is the first server in its template, assign ports for tunnels
-  # ssh_tunnels = local.nodes[count.index].index == 0 ? [
-  #   [var.first_kubernetes_api_port + 3 + local.nodes[count.index].origin_index, 6443],
-  #   [var.first_app_http_port + 3 + local.nodes[count.index].origin_index, 80],
-  #   [var.first_app_https_port + 3 + local.nodes[count.index].origin_index, 443],
-  # ] : []
+  project_name          = var.project_name
+  name                  = local.nodes[count.index].name
+  ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
   node_module           = var.node_module
   node_module_variables = local.nodes[count.index].node_module_variables
   network_config        = var.network_config
-  image_id              = var.image_id
 }
