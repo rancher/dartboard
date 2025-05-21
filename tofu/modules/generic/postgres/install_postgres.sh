@@ -73,30 +73,3 @@ su - postgres -c psql <<EOF
   GRANT ALL ON DATABASE kine TO kineuser;
   ALTER DATABASE kine OWNER TO kineuser;
 EOF
-
-# Install kine
-if [ -s /tmp/kine ]; then
-  mv -f /tmp/kine /usr/bin/kine
-else
-  curl -L -o /usr/bin/kine https://github.com/k3s-io/kine/releases/download/${kine_version}/kine-`uname -m | sed 's/x86_64/amd64/'`
-  chmod +x /usr/bin/kine
-fi
-
-cat >/etc/systemd/system/kine.service <<EOF
-[Unit]
-Description=kine
-
-[Service]
-ExecStart=/usr/bin/kine --endpoint postgres://kineuser:kinepassword@localhost:5432/kine?sslmode=disable
-%{ if gogc != null ~}
-Environment="GOGC=${gogc}"
-%{ endif ~}
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl daemon-reload
-
-# Start kine
-systemctl enable kine
-systemctl start kine
