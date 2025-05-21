@@ -83,7 +83,7 @@ variable "enable_audit_log" {
 }
 
 variable "datastore_endpoint" {
-  description = "Override datastore with a custom endpoint string"
+  description = "External datastore connection string, see https://docs.rke2.io/datastore/external"
   type        = string
   default     = null
 }

@@ -76,6 +76,12 @@ variable "node_cidr_mask_size" {
   default     = null
 }
 
+variable "datastore_endpoint" {
+  description = "Ignored"
+  type        = string
+  default     = null
+}
+
 variable "enable_audit_log" {
   description = "Whether to enable audit logging"
   default     = false

@@ -78,6 +78,12 @@ variable "node_cidr_mask_size" {
   default     = 24
 }
 
+variable "datastore_endpoint" {
+  description = "External datastore connection string, see https://docs.rke2.io/datastore/external"
+  type        = string
+  default     = null
+}
+
 variable "enable_audit_log" {
   description = "Ignored for RKE2"
   default     = false
