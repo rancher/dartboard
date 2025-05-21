@@ -4,7 +4,7 @@ import { Gauge } from 'k6/metrics';
 import * as k8s from './k8s.js'
 
 // Parameters
-const namespace = "scalability-test"
+const namespace = __ENV.NAMESPACE || "scalability-test"
 const configMapCount = Number(__ENV.CONFIG_MAP_COUNT)
 const secretCount = Number(__ENV.SECRET_COUNT)
 const data = encoding.b64encode("a".repeat(10*1024))
