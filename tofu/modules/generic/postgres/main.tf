@@ -11,6 +11,7 @@ module "server_node" {
   project_name          = var.project_name
   name                  = "${var.name}-server"
   ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
   node_module           = var.node_module
   node_module_variables = var.node_module_variables
   network_config        = var.network_config
@@ -23,7 +24,7 @@ resource "ssh_resource" "install_postgres" {
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
   bastion_host = var.network_config.ssh_bastion_host
-  bastion_user = var.network_config.ssh_user
+  bastion_user = var.network_config.ssh_bastion_user
 
   file {
     content = templatefile("${path.module}/install_postgres.sh", {
