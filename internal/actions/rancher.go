@@ -256,6 +256,19 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 		if _, err = CreateK3SRKE2Cluster(rancherClient, rancherConfig, &importCluster); err != nil {
 			return false, fmt.Errorf("error while creating Steve Cluster with Name %s:\n%w", importCluster.Name, err)
 		}
+		err = BackoffWait(30, func() (finished bool, err error) {
+			updatedCluster, _, err := shepherdclusters.GetProvisioningClusterByName(rancherClient, importCluster.Name, importCluster.Namespace)
+			if err != nil {
+				return false, fmt.Errorf("error while getting Cluster by Name %s in Namespace %s:\n%w", importCluster.Name, importCluster.Namespace, err)
+			}
+			if updatedCluster.Status.ClusterName != "" {
+				return true, nil
+			}
+			return false, nil
+		})
+		if err != nil {
+			return false, err
+		}
 		// sequence the Created event
 		<-br.seqCh
 		br.Updates <- stateUpdate{Name: cluster.Name, Stage: StageCreated, Completed: time.Now()}
@@ -421,15 +434,22 @@ func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J]
 	if !cs.Created {
 		fmt.Printf("Creating Cluster object for %s\n", cs.Name)
 		clusterResp, err = CreateK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
+		if err != nil {
+			return false, err
+		}
+		_, err = GetK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
+		if err != nil {
+			return false, err
+		}
 		<-br.seqCh
 		br.Updates <- stateUpdate{Name: clusterName, Stage: StageCreated, Completed: time.Now()}
 		br.seqCh <- struct{}{}
 		fmt.Printf("Cluster named %s was created.\n", provCluster.Name)
 	} else {
 		clusterResp, err = GetK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
-	}
-	if err != nil {
-		return false, err
+		if err != nil {
+			return false, err
+		}
 	}
 
 	var machinePools []provv1.RKEMachinePool
