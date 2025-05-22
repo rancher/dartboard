@@ -58,6 +58,10 @@ func Deploy(cli *cli.Context) error {
 		if err = tf.Apply(); err != nil {
 			return err
 		}
+	} else {
+		if err = tf.Output(nil, false); err != nil {
+			return err
+		}
 	}
 
 	clusters, custom_clusters, err := tf.ParseOutputs()
@@ -67,7 +71,7 @@ func Deploy(cli *cli.Context) error {
 
 	// Helm charts
 	tester := clusters["tester"]
-	if len(tester.Kubeconfig) > 0 {
+	if len(tester.Kubeconfig) > 0 && !cli.Bool(ArgSkipCharts) {
 		if err = chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, nil); err != nil {
 			return err
 		}
@@ -97,25 +101,27 @@ func Deploy(cli *cli.Context) error {
 		}
 	}
 
-	if err = chartInstallCertManager(r, &upstream); err != nil {
-		return err
-	}
-	if err = chartInstallRancher(r, rancherImageTag, &upstream); err != nil {
-		return err
-	}
-	if err = chartInstallRancherIngress(&upstream); err != nil {
-		return err
-	}
-	if err = chartInstallCgroupsExporter(&upstream); err != nil {
-		return err
-	}
+	if !cli.Bool(ArgSkipCharts) {
+		if err = chartInstallCertManager(r, &upstream); err != nil {
+			return err
+		}
+		if err = chartInstallRancher(r, rancherImageTag, &upstream); err != nil {
+			return err
+		}
+		if err = chartInstallRancherIngress(&upstream); err != nil {
+			return err
+		}
+		if err = chartInstallCgroupsExporter(&upstream); err != nil {
+			return err
+		}
 
-	// Wait for Rancher deployments to be complete, or subsequent steps may fail
-	if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
-		return err
-	}
-	if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
-		return err
+		// Wait for Rancher deployments to be complete, or subsequent steps may fail
+		if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
+			return err
+		}
+		if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
+			return err
+		}
 	}
 
 	// Setup rancher client
