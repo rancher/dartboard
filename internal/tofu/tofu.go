@@ -29,6 +29,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/rancher/dartboard/internal/tofu/format"
 	"github.com/rancher/dartboard/internal/vendored"
 )
@@ -63,7 +65,6 @@ type Cluster struct {
 }
 
 type CustomCluster struct {
-	// generatedName string
 	Name          string              `json:"name,omitempty" yaml:"name"`
 	NamePrefix    string              `yaml:"name_prefix" json:"name_prefix,omitempty"`
 	Nodes         []Node              `yaml:"nodes" json:"nodes,omitempty"`
@@ -72,14 +73,6 @@ type CustomCluster struct {
 	ClusterCount  int                 `yaml:"cluster_count" json:"cluster_count,omitempty"`
 	ServerCount   int                 `yaml:"server_count" json:"server_count,omitempty"`
 }
-
-// func (cc *CustomCluster) SetGeneratedName(suffix string) {
-// 	cc.generatedName = fmt.Sprintf("%s-%s", cc.NamePrefix, suffix)
-// }
-
-// func (cc *CustomCluster) GeneratedName() string {
-// 	return cc.generatedName
-// }
 
 type MachinePools struct {
 	// machinepools.Pools
@@ -238,6 +231,28 @@ func (t *Tofu) Apply() error {
 	return t.exec(nil, args...)
 }
 
+func (t *Tofu) Output(out io.Writer, jsonFormat bool) error {
+	err := t.handleWorkspace()
+	if err != nil {
+		return err
+	}
+
+	var args []string
+	if jsonFormat {
+		args = []string{"output", "-json"}
+	} else {
+		args = []string{"output"}
+	}
+
+	writer := out
+	if out == nil {
+		logrus.Debugf("\nLogging to stdout since no io.Writer was provided\n")
+		writer = os.Stdout
+	}
+
+	return t.exec(writer, args...)
+}
+
 func (t *Tofu) Destroy() error {
 	err := t.handleWorkspace()
 	if err != nil {
@@ -266,7 +281,7 @@ func (t *Tofu) ParseOutputs() (map[string]Cluster, []CustomCluster, error) {
 	}
 
 	buffer := new(bytes.Buffer)
-	if err := t.exec(buffer, "output", "-json"); err != nil {
+	if err := t.Output(buffer, true); err != nil {
 		return nil, nil, err
 	}
 
