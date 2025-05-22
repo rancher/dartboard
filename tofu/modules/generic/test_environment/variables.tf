@@ -33,6 +33,7 @@ variable "upstream_cluster" {
     public_ip                   = bool // Whether the upstream cluster should have a public IP assigned
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the upstream cluster to reserve it for monitoring
     enable_audit_log            = bool // Enable audit log for the cluster
+    create_tunnels              = bool // Whether ssh tunnels to the downstream cluster's first server node should be created. Default false
 
     node_module_variables = any // Node module-specific variables
   })
@@ -115,6 +116,7 @@ variable "tester_cluster" {
     public_ip                   = bool // Whether the tester cluster should have a public IP assigned
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the tester cluster to reserve it for monitoring
     enable_audit_log            = bool // Enable audit log for the cluster
+    create_tunnels              = bool // Whether ssh tunnels to the downstream cluster's first server node should be created. Default false
 
     node_module_variables = any // Node module-specific variables
   })                            # If null, no tester cluster will be created

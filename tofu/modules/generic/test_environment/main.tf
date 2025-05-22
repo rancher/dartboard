@@ -25,7 +25,7 @@ module "upstream_cluster" {
   distro_version              = var.upstream_cluster.distro_version
   reserve_node_for_monitoring = var.upstream_cluster.reserve_node_for_monitoring
   enable_audit_log            = var.upstream_cluster.enable_audit_log
-  create_tunnels              = true
+  create_tunnels              = var.upstream_cluster.create_tunnels
 
   sans                      = ["upstream.local.gd"]
   local_kubernetes_api_port = var.first_kubernetes_api_port
@@ -48,7 +48,7 @@ module "tester_cluster" {
   distro_version              = var.tester_cluster.distro_version
   reserve_node_for_monitoring = var.tester_cluster.reserve_node_for_monitoring
   enable_audit_log            = var.tester_cluster.enable_audit_log
-  create_tunnels              = true
+  create_tunnels              = var.tester_cluster.create_tunnels
 
   sans                      = ["tester.local.gd"]
   local_kubernetes_api_port = var.first_kubernetes_api_port + 1
