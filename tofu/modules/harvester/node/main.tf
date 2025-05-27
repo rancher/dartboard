@@ -61,6 +61,7 @@ resource "harvester_virtualmachine" "this" {
   // Allow for more than the default time for VM destruction
   timeouts {
     delete = "15m"
+    create = "5m"
   }
 }
 
