@@ -25,11 +25,11 @@ output "config" {
         http_port  = 80
         https_port = 443
       }
-      tunnel = { // resolvable from the host running OpenTofu when create_tunnels == true
+      tunnel = var.create_tunnels ? { // resolvable from the host running OpenTofu when create_tunnels == true
         name       = "${var.name}.local.gd"
         http_port  = var.tunnel_app_http_port
         https_port = var.tunnel_app_https_port
-      }
+      } : {}
     }
 
     node_access_commands = merge({
