@@ -81,7 +81,11 @@ func Deploy(cli *cli.Context) error {
 	rancherImageTag := "v" + rancherVersion
 	if r.ChartVariables.RancherImageTagOverride != "" {
 		rancherImageTag = r.ChartVariables.RancherImageTagOverride
-		err = importImageIntoK3d(tf, "rancher/rancher:"+rancherImageTag, upstream)
+		image := "rancher/rancher"
+		if r.ChartVariables.RancherImageOverride != "" {
+			image = r.ChartVariables.RancherImageOverride
+		}
+		err = importImageIntoK3d(tf, image+":"+rancherImageTag, upstream)
 		if err != nil {
 			return err
 		}
@@ -114,7 +118,7 @@ func Deploy(cli *cli.Context) error {
 	return GetAccess(cli)
 }
 
-func chartInstall(kubeConf string, chart chart, vals map[string]any, extraArgs ...string) error {
+func chartInstall(kubeConf string, chart chart, vals map[string]any) error {
 	var err error
 
 	name := chart.name
@@ -126,7 +130,7 @@ func chartInstall(kubeConf string, chart chart, vals map[string]any, extraArgs .
 
 	log.Printf("Installing chart %q (%s)\n", namespace+"/"+name, path)
 
-	if err = helm.Install(kubeConf, path, name, namespace, vals, extraArgs...); err != nil {
+	if err = helm.Install(kubeConf, path, name, namespace, vals); err != nil {
 		return fmt.Errorf("chart %s: %w", name, err)
 	}
 	return nil
@@ -161,18 +165,25 @@ func chartInstallCertManager(r *dart.Dart, cluster *tofu.Cluster) error {
 }
 
 func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Cluster) error {
-	rancherRepo := "https://releases.rancher.com/server-charts/"
+	var rancherRepo string
 
-	// one of "alpha", "latest" or "stable"
-	if strings.Contains(r.ChartVariables.RancherVersion, "alpha") {
-		rancherRepo += "alpha"
+	if r.ChartVariables.RancherChartRepoOverride != "" {
+		rancherRepo = r.ChartVariables.RancherChartRepoOverride
 	} else {
-		rancherRepo += "latest"
-	}
+		baseRepo := "https://releases.rancher.com/server-charts/"
 
-	// or "prime"
-	if r.ChartVariables.ForcePrimeRegistry {
-		rancherRepo = "https://charts.rancher.com/server-charts/prime"
+		// otherwise, if one of "alpha", or "latest"
+		if strings.Contains(r.ChartVariables.RancherVersion, "alpha") {
+			rancherRepo = baseRepo + "alpha"
+		} else {
+			rancherRepo = baseRepo + "latest"
+		}
+
+		// "prime"
+		if r.ChartVariables.ForcePrimeRegistry {
+			rancherRepo = "https://charts.rancher.com/server-charts/prime"
+		}
+
 	}
 
 	chartRancher := chart{
@@ -188,31 +199,32 @@ func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Clu
 	rancherClusterName := clusterAdd.Public.Name
 	rancherClusterURL := clusterAdd.Public.HTTPSURL
 
-	chartVals := getRancherValsJSON(r.ChartVariables.RancherImageOverride, rancherImageTag, r.ChartVariables.AdminPassword, rancherClusterName, rancherClusterURL, r.ChartVariables.RancherReplicas)
+	var extraEnv []map[string]any
+	extraEnv = []map[string]any{
+		{
+			"name":  "CATTLE_SERVER_URL",
+			"value": rancherClusterURL,
+		},
+		{
+			"name":  "CATTLE_PROMETHEUS_METRICS",
+			"value": "true",
+		},
+		{
+			"name":  "CATTLE_DEV_MODE",
+			"value": "true",
+		},
+	}
+	extraEnv = append(extraEnv, r.ChartVariables.ExtraEnvironmentVariables...)
 
-	var extraArgs []string
-	if r.ChartVariables.RancherValues != "" {
-		p, err := writeValuesFile(r.ChartVariables.RancherValues)
-		if err != nil {
-			return fmt.Errorf("writing extra values file: %w", err)
-		}
-		defer os.Remove(p)
+	chartVals := getRancherValsJSON(r.ChartVariables.RancherImageOverride, rancherImageTag, r.ChartVariables.AdminPassword, rancherClusterName, extraEnv, r.ChartVariables.RancherReplicas)
 
-		extraArgs = append(extraArgs, "-f", p)
+	fmt.Printf("\n\nRANCHER CHART VALS:\n")
+
+	for key, value := range chartVals {
+		fmt.Printf("\t%s = %v\n", key, value)
 	}
 
-	return chartInstall(cluster.Kubeconfig, chartRancher, chartVals, extraArgs...)
-}
-
-func writeValuesFile(content string) (string, error) {
-	p, err := os.CreateTemp("", "values-*.yaml")
-	if err != nil {
-		return "", err
-	}
-	if _, err := io.WriteString(p, content); err != nil {
-		return "", err
-	}
-	return p.Name(), nil
+	return chartInstall(cluster.Kubeconfig, chartRancher, chartVals)
 }
 
 func chartInstallRancherIngress(cluster *tofu.Cluster) error {
@@ -322,7 +334,7 @@ func getRancherMonitoringValsJSON(reserveNodeForMonitoring bool, mimirURL string
 				"evaluationInterval": "1m",
 				"nodeSelector":       nodeSelector,
 				"tolerations":        tolerations,
-				"resources":          map[string]any{"limits": map[string]any{"memory": "5000Mi"}},
+				"resources":          map[string]any{"limits": map[string]any{"memory": "10000Mi"}},
 				"retentionSize":      "50GiB",
 				"scrapeInterval":     "1m",
 
@@ -423,26 +435,13 @@ func getGrafanaValsJSON(r *dart.Dart, name, url, ingressClass string) map[string
 	}
 }
 
-func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname, serverURL string, replicas int) map[string]any {
+func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname string, extraEnv []map[string]any, replicas int) map[string]any {
 	result := map[string]any{
 		"bootstrapPassword": bootPwd,
 		"hostname":          hostname,
 		"replicas":          replicas,
 		"rancherImageTag":   rancherImageTag,
-		"extraEnv": []map[string]any{
-			{
-				"name":  "CATTLE_SERVER_URL",
-				"value": serverURL,
-			},
-			{
-				"name":  "CATTLE_PROMETHEUS_METRICS",
-				"value": "true",
-			},
-			{
-				"name":  "CATTLE_DEV_MODE",
-				"value": "true",
-			},
-		},
+		"extraEnv":          extraEnv,
 		"livenessProbe": map[string]any{
 			"initialDelaySeconds": 30,
 			"periodSeconds":       3600,
