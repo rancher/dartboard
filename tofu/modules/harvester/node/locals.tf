@@ -18,5 +18,5 @@ locals {
     ip_address     = network.ip_address
     } if var.network_config.public
   ]
-  image_namespace = replace(lower(var.node_module_variables.image_namespace), "/[^a-z0-9-]/", "-") # Convert to valid Kubernetes name
+  image_namespace = replace(lower(var.node_module_variables.image_namespace != null ? var.node_module_variables.image_namespace : var.network_config.namespace), "/[^a-z0-9-]/", "-")  # Convert to valid Kubernetes name
 }
