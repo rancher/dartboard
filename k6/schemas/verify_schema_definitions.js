@@ -1,8 +1,8 @@
 import { check, fail, sleep } from 'k6';
-import { getCookies, login } from "./rancher_utils.js";
+import { getCookies, login } from "../rancher_utils.js";
 import { Trend } from 'k6/metrics';
 import * as crdUtil from "./crd_utils.js";
-import { verifySchemaExistsPolling } from "./schema_utils.js"
+import { verifySchemaExistsPolling, verifySchemaDefinitionExistsPolling } from "./schema_utils.js"
 
 const vus = __ENV.K6_VUS || 1
 const perVuIterations = __ENV.PER_VU_ITERATIONS || 1
@@ -35,10 +35,12 @@ export const options = {
     // If we want to only consider data points for a particular URL/endpoint we can filter by URL.
     header_data_recv: ['p(95) < 1024'],
     [`endpoint_data_recv{url:'/v1/schemas/<schemaID>'}`]: ['p(99) < 2048'], // bytes in this case
-    [`endpoint_data_recv{url:'/v1/apiextensions.k8s.io.customresources/<CRD ID>'}`]: ['min > 2048'], // bytes in this case
-    [`endpoint_data_recv{url:'/v1/apiextensions.k8s.io.customresources'}`]: ['min > 2048'], // bytes in this case
-    [`endpoint_data_recv{url:'/v1/apiextensions.k8s.io.customresources/<CRD Name>'}`]: ['min > 2048'], // bytes in this case
+    [`endpoint_data_recv{url:'/v1/schemaDefinitions/<schemaID>'}`]: ['min > 2048'], // bytes in this case
+    [`endpoint_data_recv{url:'/v1/apiextensions.k8s.io.customresourcedefinitions/<CRD ID>'}`]: ['min > 2048'], // bytes in this case
+    [`endpoint_data_recv{url:'/v1/apiextensions.k8s.io.customresourcedefinitions'}`]: ['min > 2048'], // bytes in this case
+    [`endpoint_data_recv{url:'/v1/apiextensions.k8s.io.customresourcedefinitions/<CRD Name>'}`]: ['min > 2048'], // bytes in this case
     [`time_polled{url:'/v1/schemas/<schemaID>'}`]: ['p(99) < 500', `avg < 250`],
+    [`time_polled{url:'/v1/schemaDefinitions/<schemaID>'}`]: ['p(99) < 5000', 'avg < 2500'],
   },
   setupTimeout: '30m',
   teardownTimeout: '30m'
@@ -97,9 +99,41 @@ export function setup() {
   let deleteAllFailed = cleanup(cookies, namePrefix)
   if (deleteAllFailed) fail("Failed to delete all existing crontab CRDs during setup!")
   let { _, crdArray } = crdUtil.getCRDsMatchingName(baseUrl, cookies, namePrefix)
-
   return { cookies: cookies, crdArray: generateCRDArray(cookies) }
 }
+
+
+export function checkAndBuildCRDArray(cookies, crdArray) {
+  let retries = 3
+  let attempts = 0
+  while (crdArray.length != crdCount && attempts < retries) {
+    console.log("Creating needed CRDs")
+    // delete leftovers, if any so that we create exactly crdCount
+    if (crdArray.length == crdCount) {
+      console.log("Finished setting up expected CRD count")
+      break;
+    }
+    if (crdArray.length > 0) {
+      let deleteAllFailed = cleanup(cookies,)
+      if (deleteAllFailed && attempts == (retries - 1)) fail("Failed to delete all existing crontab CRDs during setup!")
+    }
+    for (let i = 0; i < crdCount; i++) {
+      let crdSuffix = `${i}`
+      let res = crdUtil.createCRD(baseUrl, cookies, crdSuffix)
+      crdUtil.trackDataMetricsPerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
+      sleep(0.25)
+    }
+    let { res: res, crdArray: crds } = crdUtil.getCRDsMatchingName(baseUrl, cookies, namePrefix)
+    if (Array.isArray(crds) && crds.length) crdArray = crds
+    if (res.status != 200 && attempts == (retries - 1)) fail("Failed to retrieve expected CRDs during setup")
+    attempts += 1
+  }
+  if (crdArray.length != crdCount) fail("Failed to create expected # of CRDs")
+  console.log("Expected number of CRDs accounted for ", crdArray.length)
+  sleep(300)
+  return crdArray
+}
+
 
 export function generateCRDArray(cookies) {
   for (let i = 0; i < crdCount; i++) {
@@ -115,22 +149,22 @@ export function generateCRDArray(cookies) {
   }
   let finalCRD = crdArray[crdArray.length - 1]
   let schemaID = finalCRD.spec.group + "." + finalCRD.spec.names.singular
-  let { res, timeSpent } = verifySchemaExistsPolling(baseUrl, cookies, schemaID, finalCRD.spec.versions[1].name, crdUtil.crdRefreshDelayMs * 5)
-  crdUtil.trackDataMetricsPerURL(res, crdUtil.schemasTag, headerDataRecv, epDataRecv)
+  let { res, timeSpent } = verifySchemaDefinitionExistsPolling(baseUrl, cookies, schemaID, finalCRD.spec.versions[1].name, crdUtil.crdRefreshDelayMs * 5)
+  crdUtil.trackDataMetricsPerURL(res, crdUtil.schemaDefinitionTag, headerDataRecv, epDataRecv)
   console.log("TIME SPENT: ", timeSpent)
-  timePolled.add(timeSpent, crdUtil.schemasTag)
+  timePolled.add(timeSpent, crdUtil.schemaDefinitionTag)
   if (res.status != 200) {
-    fail("Did not receive a HTTP 200 status on the final CRD's schemas.")
+    fail("Did not receive a HTTP 200 status on the final CRD's schemaDefinition.")
   }
 
   crdArray.forEach((crd, i) => {
     schemaID = crd.spec.group + "." + crd.spec.names.singular
-    let { res, timeSpent } = verifySchemaExistsPolling(baseUrl, cookies, schemaID, crd.spec.versions[1].name, crdUtil.crdRefreshDelayMs * 5)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.schemasTag, headerDataRecv, epDataRecv)
+    let { res, timeSpent } = verifySchemaDefinitionExistsPolling(baseUrl, cookies, schemaID, crd.spec.versions[1].name, crdUtil.crdRefreshDelayMs * 5)
+    crdUtil.trackDataMetricsPerURL(res, crdUtil.schemaDefinitionTag, headerDataRecv, epDataRecv)
     console.log("TIME SPENT: ", timeSpent)
-    timePolled.add(timeSpent, crdUtil.schemasTag)
+    timePolled.add(timeSpent, crdUtil.schemaDefinitionTag)
     if (res.status != 200) {
-      fail("Did not receive a HTTP 200 status on a CRD's schemas.")
+      fail("Did not receive a HTTP 200 status on a CRD's schemaDefinition.")
     }
   })
 
@@ -173,6 +207,15 @@ export function verifySchemas(data) {
     let schemaBytes = res.body.length
     crdUtil.trackDataMetricsPerURL(res, crdUtil.schemasTag, headerDataRecv, epDataRecv)
     timePolled.add(timeSpent, crdUtil.schemasTag)
+    console.log("3rd definition");
+    ({ res: res, timeSpent: timeSpent } = verifySchemaDefinitionExistsPolling(baseUrl, data.cookies, id, newSchema.name, crdUtil.crdRefreshDelayMs * 5))
+    console.log("TIME SPENT: ", timeSpent)
+    crdUtil.trackDataMetricsPerURL(res, crdUtil.schemaDefinitionTag, headerDataRecv, epDataRecv)
+    timePolled.add(timeSpent, crdUtil.schemaDefinitionTag)
+    let schemaDefBytes = res.body.length
+    check(schemaDefBytes, {
+      [`schemaDefinition size (${schemaDefBytes}) > schema size (${schemaBytes})`]: (s) => s > schemaBytes
+    })
   })
 
   let reverted = 0
@@ -205,6 +248,15 @@ export function verifySchemas(data) {
     let schemaBytes = res.body.length
     crdUtil.trackDataMetricsPerURL(res, crdUtil.schemasTag, headerDataRecv, epDataRecv)
     timePolled.add(timeSpent, crdUtil.schemasTag)
+    console.log("4th definition");
+    ({ res: res, timeSpent: timeSpent } = verifySchemaDefinitionExistsPolling(baseUrl, data.cookies, id, CRDs[0].spec.versions[1].name, crdUtil.crdRefreshDelayMs * 5))
+    console.log("TIME SPENT: ", timeSpent)
+    crdUtil.trackDataMetricsPerURL(res, crdUtil.schemaDefinitionTag, headerDataRecv, epDataRecv)
+    timePolled.add(timeSpent, crdUtil.schemaDefinitionTag)
+    let schemaDefBytes = res.body.length
+    check(schemaDefBytes, {
+      [`schemaDefinition size (${schemaDefBytes}) > schema size (${schemaBytes})`]: (s) => s > schemaBytes
+    })
   })
 }
 
