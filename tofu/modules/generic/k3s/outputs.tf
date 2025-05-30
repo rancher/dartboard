@@ -33,9 +33,9 @@ output "config" {
     }
 
     node_access_commands = merge({
-      for node in module.server_nodes : node.name => node.ssh_script_filename
+      for node in module.server_nodes : node.name => abspath(node.ssh_script_filename)
       }, {
-      for node in module.agent_nodes : node.name => node.ssh_script_filename
+      for node in module.agent_nodes : node.name => abspath(node.ssh_script_filename)
     })
     ingress_class_name          = null
     reserve_node_for_monitoring = var.reserve_node_for_monitoring
