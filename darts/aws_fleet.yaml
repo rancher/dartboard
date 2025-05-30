@@ -54,6 +54,14 @@ tofu_variables:
         root_volume_size_gb: 50
   downstream_cluster_distro_module: generic/k3s
 
+  standalone_node_templates:
+    - name: faker
+      node_count: 3
+      node_module_variables:
+        instance_type: t4g.xlarge
+        ami: ami-04effc0585c8f1e3e # openSUSE-Leap-15-6-v20250408-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
+        root_volume_size_gb: 50
+
   first_kubernetes_api_port: 7445
   first_app_http_port: 9080
   first_app_https_port: 9443
