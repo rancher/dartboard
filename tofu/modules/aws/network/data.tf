@@ -29,7 +29,7 @@ data "aws_subnet" "public" {
 }
 
 data "aws_subnet" "private" {
-  count = local.create_vpc ? 0 : 1
+  count = !local.create_vpc ? 1 : 0
   vpc_id = one(data.aws_vpc.existing[*].id)
   availability_zone = var.availability_zone
 
@@ -40,7 +40,7 @@ data "aws_subnet" "private" {
 }
 
 data "aws_subnet" "secondary_private" {
-  count = local.create_vpc && var.secondary_availability_zone != null ? 0 : 1
+  count = !local.create_vpc && var.secondary_availability_zone != null ? 1 : 0
   vpc_id = one(data.aws_vpc.existing[*].id)
   availability_zone = var.secondary_availability_zone
 
