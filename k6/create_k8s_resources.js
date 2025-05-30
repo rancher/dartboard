@@ -4,11 +4,12 @@ import { Gauge } from 'k6/metrics';
 import * as k8s from './k8s.js'
 
 // Parameters
-const namespace = "scalability-test"
+const namespace = __ENV.NAMESPACE || "scalability-test"
 const configMapCount = Number(__ENV.CONFIG_MAP_COUNT)
 const secretCount = Number(__ENV.SECRET_COUNT)
-const data = encoding.b64encode("a".repeat(10*1024))
-const vus = 1
+const dataSize = Number(__ENV.DATA_SIZE || 10*1024)
+const data = encoding.b64encode("a".repeat(dataSize))
+const vus = Number(__ENV.VUS || 11)
 
 // Option setting
 const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
@@ -71,7 +72,7 @@ export function createConfigMaps() {
             "name": name,
             "namespace": namespace
         },
-        "data": {"data": data.toString}
+        "data": {"data": data}
     }
 
     k8s.create(`${baseUrl}/api/v1/namespaces/${namespace}/configmaps`, body)
