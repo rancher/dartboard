@@ -6,7 +6,6 @@ import * as YAML from './lib/js-yaml-4.1.0.mjs'
 
 import { URL } from './lib/url-1.0.0.js';
 
-const limit = 5000
 const timeout = '3600s'
 
 // loads connection variables from kubeconfig's specified context
@@ -59,7 +58,7 @@ export function del(url){
 const continueRegex = /"continue":"([A-Za-z0-9]+)"/;
 
 // lists k8s resources
-export function list(url) {
+export function list(url, limit) {
     let _continue = 'first'
     let responses = []
 
