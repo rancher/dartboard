@@ -44,6 +44,7 @@ variable "node_module_variables" {
     Harvester-specific VM configuration variables.
     image_name: Image name for this VM. If null, the image created by the network module will be used
     image_namespace: Namespace for image_name. If null, the image created by the network module will be used
+    image_id: Image ID as an alternative to name and namespace. If null, the image created by the network module will be used
     cpu: Number of CPUs to allocate for the VM(s)
     memory: Number of GB of Memory to allocate for the VM(s)
     tags: A map of strings to add as VM tags
@@ -56,6 +57,7 @@ variable "node_module_variables" {
   type = object({
     image_name      = optional(string)
     image_namespace = optional(string)
+    image_id        = optional(string)
     cpu             = number
     memory          = number
     tags            = optional(map(string))
@@ -127,11 +129,4 @@ variable "network_config" {
     ssh_bastion_user     = optional(string)
     ssh_bastion_key_path = optional(string)
   })
-}
-
-variable "image_id" {
-  description = "ID of a Harvester image, if one was created. Otherwise null"
-  type        = string
-  default     = null
-  nullable    = true
 }
