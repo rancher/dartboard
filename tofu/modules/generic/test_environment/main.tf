@@ -27,6 +27,17 @@ module "upstream_postgres" {
   ssh_private_key_path  = var.ssh_private_key_path
 }
 
+module "upstream_etcd" {
+  count  = var.upstream_cluster.etcd_node_variables != {} ? 1 : 0
+  source = "../etcd"
+
+  name                  = "upstream-etcd"
+  network_config        = var.network_config
+  node_module           = var.node_module
+  node_module_variables = var.upstream_cluster.etcd_node_variables
+  ssh_private_key_path  = var.ssh_private_key_path
+}
+
 module "upstream_cluster" {
   count                       = var.upstream_cluster != null ? 1 : 0
   source                      = "../../${var.upstream_cluster_distro_module}"
@@ -49,7 +60,7 @@ module "upstream_cluster" {
   node_module               = var.node_module
   network_config            = var.network_config
   node_module_variables     = var.upstream_cluster.node_module_variables
-  datastore_endpoint        = var.upstream_cluster.postgres_node_variables != {} ? module.upstream_postgres[0].datastore_endpoint : null
+  datastore_endpoint        = var.upstream_cluster.postgres_node_variables != {} ? module.upstream_postgres[0].datastore_endpoint : var.upstream_cluster.etcd_node_variables != {} ? module.upstream_etcd[0].datastore_endpoint : null
 }
 
 module "tester_cluster" {

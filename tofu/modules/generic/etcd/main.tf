@@ -28,7 +28,7 @@ module "server_nodes" {
 
 resource "ssh_sensitive_resource" "node_installation" {
   count               = var.server_count
-  host                = module.server_nodes[count.index].private_ip
+  host                = module.server_nodes[count.index].private_name
   private_key         = file(var.ssh_private_key_path)
   user                = var.ssh_user
   bastion_host        = var.network_config.ssh_bastion_host
