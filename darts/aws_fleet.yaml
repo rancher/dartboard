@@ -1,0 +1,59 @@
+# Deploys clusters and prepares them for performance tests
+
+tofu_main_directory: ./tofu/main/aws
+tofu_parallelism: 10
+
+tofu_variables:
+  project_name: st
+  region: us-east-1
+  availability_zone: us-east-1a
+  aws_profile: AWSPowerUserAccess-$YOUR_BIG_NUMBER
+  ssh_public_key_path: ~/.ssh/id_ed25519.pub
+  ssh_private_key_path: ~/.ssh/id_ed25519
+  ssh_user: root
+  ssh_bastion_user: root
+  bastion_host_ami: ami-04effc0585c8f1e3e # openSUSE-Leap-15-6-v20250408-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
+
+  upstream_cluster:
+    server_count: 3
+    agent_count: 1
+    distro_version: v1.32.4+rke2r1
+    public_ip: false
+    reserve_node_for_monitoring: true
+    enable_audit_log: false
+    node_module_variables:
+      instance_type: i3.4xlarge
+      ami: ami-02889b173d15868e5 # openSUSE-Leap-15-6-v20250408-hvm-ssd-x86_64-5535c495-72d4-4355-b169-54ffa874f849
+      root_volume_size_gb: 50
+  upstream_cluster_distro_module: generic/rke2
+
+  tester_cluster:
+    server_count: 1
+    agent_count: 0
+    distro_version: v1.26.9+k3s1
+    public_ip: false
+    reserve_node_for_monitoring: false
+    enable_audit_log: false
+    node_module_variables:
+      instance_type: t3a.large
+      ami: ami-02889b173d15868e5 # openSUSE-Leap-15-6-v20250408-hvm-ssd-x86_64-5535c495-72d4-4355-b169-54ffa874f849
+      root_volume_size_gb: 50
+  tester_cluster_distro_module: generic/k3s
+
+  downstream_cluster_templates:
+    - cluster_count: 1
+      server_count: 1
+      agent_count: 0
+      distro_version: v1.26.9+k3s1
+      public_ip: false
+      reserve_node_for_monitoring: false
+      enable_audit_log: false
+      node_module_variables:
+        instance_type: t4g.large
+        ami: ami-04effc0585c8f1e3e # openSUSE-Leap-15-6-v20250408-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
+        root_volume_size_gb: 50
+  downstream_cluster_distro_module: generic/k3s
+
+  first_kubernetes_api_port: 7445
+  first_app_http_port: 9080
+  first_app_https_port: 9443
