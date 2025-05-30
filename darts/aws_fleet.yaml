@@ -4,7 +4,7 @@ tofu_main_directory: ./tofu/main/aws
 tofu_parallelism: 10
 
 tofu_variables:
-  project_name: st
+  project_name: fleet-standalone
   region: us-east-1
   availability_zone: us-east-1a
   aws_profile: AWSPowerUserAccess-$YOUR_BIG_NUMBER
