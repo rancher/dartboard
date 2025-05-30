@@ -207,8 +207,8 @@ resource "k3d_cluster" "cluster" {
             node_filters = ["server:*"]
           }
         ] : [],
-        // normally k3s defaults to sqlite for 1-node clusters and embedded etcd for multi-node ones
-        // it is possible to force use of the embedded etcd for 1-node clusters via --cluster-init
+        // normally k3s defaults to sqlite for 1-node clusters and embedded etcd-internal-default for multi-node ones
+        // it is possible to force use of the embedded etcd-internal-default for 1-node clusters via --cluster-init
         var.datastore == "embedded_etcd" && var.server_count == 1 && var.agent_count == 0 ? [
           {
             arg          = "--cluster-init",

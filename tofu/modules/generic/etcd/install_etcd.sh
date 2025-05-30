@@ -12,7 +12,7 @@ tar xzvf /tmp/etcd-$ETCD_VER-linux-amd64.tar.gz -C /usr/bin --strip-components=1
 if [ -d /data ]; then
   mkdir -p /data/etcd
   ln -sf /data/etcd /var/lib/etcd
-endif
+fi
 
 cat >/etc/systemd/system/etcd.service <<EOF
 [Unit]

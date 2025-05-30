@@ -25,7 +25,7 @@ resource "ssh_sensitive_resource" "node_installation" {
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
   bastion_host = var.network_config.ssh_bastion_host
-  bastion_user = var.network_config.ssh_user
+  bastion_user = var.network_config.ssh_bastion_user
   timeout      = "600s"
 
   file {

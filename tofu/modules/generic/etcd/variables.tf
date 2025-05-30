@@ -5,7 +5,7 @@ variable "project_name" {
 
 variable "etcd_version" {
   description = "etcd version"
-  default     = "v3.5.6"
+  default     = "v3.5.21"
 }
 
 variable "name" {
