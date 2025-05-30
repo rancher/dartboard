@@ -31,6 +31,7 @@ module "test_environment" {
   downstream_cluster_distro_module = var.downstream_cluster_distro_module
   tester_cluster                   = var.tester_cluster
   tester_cluster_distro_module     = var.tester_cluster_distro_module
+  standalone_node_templates        = var.standalone_node_templates
   node_module                      = "harvester/node"
   ssh_user                         = var.ssh_user
   ssh_private_key_path             = var.ssh_private_key_path

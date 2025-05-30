@@ -98,6 +98,16 @@ variable "tester_cluster_distro_module" {
   default     = "generic/k3s"
 }
 
+# standalone node specifics
+variable "standalone_node_templates" {
+  type = list(object({
+    name                  = string // Prefix for standalone nodes in this template
+    node_count            = number // Number of standalone nodes that should be created using this configuration
+    node_module_variables = any    // Node module-specific variables
+  }))
+  default = []
+}
+
 # "Multi-tenancy" variables
 variable "project_name" {
   description = "Name of this project, used as prefix for resources it creates"

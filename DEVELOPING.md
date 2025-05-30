@@ -40,7 +40,7 @@ In this project modules are organized according to these rules:
    - **cluster**: a Kubernetes cluster - possibly a set of nodes with a distribution installed, or a managed service
    - **network**: anything that is shared among clusters and nodes and allows them to work together (actual networks, firewalls, rules, bastion hosts...)
       - `network_configuration` is a block of outputs passed as-is from a platform-specific network module to node modules of the same platform. It contains details that are common to all VMs
-   - **test environment**: an upstream cluster, any number of downstream clusters and a tester cluster, all glued together with a single network
+   - **test environment**: an upstream cluster, any number of downstream clusters, a tester cluster, and possibly standalone nodes all glued together with a single network
    - everything else, typically generic software that can be installed onto nodes
 
 Assumptions:

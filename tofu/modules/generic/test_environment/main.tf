@@ -3,6 +3,10 @@ locals {
     for i, template in var.downstream_cluster_templates : [
       for j in range(template.cluster_count) : merge(template, { name = "downstream-${i}-${j}" })
   ] if template.cluster_count > 0])
+  standalone_nodes = flatten([
+    for i, template in var.standalone_node_templates : [
+      for j in range(template.node_count) : merge(template, { name = "${template.name}-${i}-${j}" })
+    ] if template.node_count > 0])
 }
 
 module "upstream_cluster" {
@@ -72,4 +76,14 @@ module "downstream_clusters" {
   network_config            = var.network_config
   image_id                  = var.image_id
   node_module_variables     = local.downstream_clusters[count.index].node_module_variables
+}
+
+module "standalone_nodes" {
+  count                       = length(local.standalone_nodes)
+  source                      = "../node"
+  name                        = local.standalone_nodes[count.index].name
+  network_config              = var.network_config
+  node_module                 = var.node_module
+  node_module_variables       = local.standalone_nodes[count.index].node_module_variables
+  ssh_private_key_path        = var.ssh_private_key_path
 }

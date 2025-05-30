@@ -49,6 +49,12 @@ variable "tester_cluster_distro_module" {
   default     = "generic/k3s"
 }
 
+variable "standalone_node_templates" {
+  description = "Standalone node configuration. See tofu/modules/generic/test_environment/variables.tf for details"
+  type        = any
+  default     = []
+}
+
 # "Multi-tenancy" variables
 variable "project_name" {
   description = "Name of this project, used as prefix for resources it creates"
