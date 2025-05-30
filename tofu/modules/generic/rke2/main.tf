@@ -22,7 +22,6 @@ module "server_nodes" {
   node_module           = var.node_module
   node_module_variables = var.node_module_variables
   network_config        = var.network_config
-  image_id              = var.image_id
 }
 
 module "agent_nodes" {
@@ -35,7 +34,6 @@ module "agent_nodes" {
   node_module           = var.node_module
   node_module_variables = var.node_module_variables
   network_config        = var.network_config
-  image_id              = var.image_id
 }
 
 resource "ssh_sensitive_resource" "first_server_installation" {

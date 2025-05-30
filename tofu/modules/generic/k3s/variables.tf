@@ -102,11 +102,3 @@ variable "network_config" {
   description = "Network module outputs, to be passed to node_module"
   type        = any
 }
-
-# Only used for Harvester module atm
-variable "image_id" {
-  description = "ID of a Harvester image, if one was created. Otherwise null"
-  type        = string
-  default     = null
-  nullable    = true
-}
