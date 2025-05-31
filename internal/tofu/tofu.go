@@ -220,13 +220,17 @@ func (t *Tofu) newWorkspace() error {
 	return t.exec(nil, args...)
 }
 
-func (t *Tofu) Apply() error {
+func (t *Tofu) Apply(skipRefresh bool) error {
 	err := t.handleWorkspace()
 	if err != nil {
 		return err
 	}
 
 	args := t.commonArgs("apply")
+
+	if skipRefresh {
+		args = append(args, "-refresh=false")
+	}
 
 	return t.exec(nil, args...)
 }

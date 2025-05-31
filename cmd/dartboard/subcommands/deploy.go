@@ -51,11 +51,13 @@ func Deploy(cli *cli.Context) error {
 		return err
 	}
 
+	skipRefresh := cli.Bool(ArgSkipRefresh)
+
 	if !cli.Bool(ArgSkipApply) {
 		if err = tf.PrintVersion(); err != nil {
 			return err
 		}
-		if err = tf.Apply(); err != nil {
+		if err = tf.Apply(skipRefresh); err != nil {
 			return err
 		}
 	} else {
