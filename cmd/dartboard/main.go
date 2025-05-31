@@ -63,6 +63,12 @@ func main() {
 						Usage:       "skip 'helm install' for all charts, assume charts have already been installed for upstream and tester clusters",
 						DefaultText: "false",
 					},
+					&cli.BoolFlag{
+						Name:        subcommands.ArgSkipRefresh,
+						Value:       false,
+						Usage:       "skip refresh phase for tofu resources, assume resources are refreshed and up-to-date",
+						DefaultText: "false",
+					},
 				},
 			},
 			{
