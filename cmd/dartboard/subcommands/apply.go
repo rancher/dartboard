@@ -27,7 +27,10 @@ func Apply(cli *cli.Context) error {
 	if err = tf.PrintVersion(); err != nil {
 		return err
 	}
-	if err = tf.Apply(); err != nil {
+
+	skipRefresh := cli.Bool(ArgSkipRefresh)
+
+	if err = tf.Apply(skipRefresh); err != nil {
 		return err
 	}
 

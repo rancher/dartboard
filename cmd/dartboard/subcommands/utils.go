@@ -31,9 +31,10 @@ import (
 )
 
 const (
-	ArgDart       = "dart"
-	ArgSkipApply  = "skip-apply"
-	ArgSkipCharts = "skip-charts"
+	ArgDart        = "dart"
+	ArgSkipApply   = "skip-apply"
+	ArgSkipCharts  = "skip-charts"
+	ArgSkipRefresh = "skip-refresh"
 )
 
 type clusterAddress struct {
