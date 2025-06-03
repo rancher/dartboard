@@ -86,17 +86,15 @@ module "downstream_clusters" {
   reserve_node_for_monitoring = local.downstream_clusters[count.index].reserve_node_for_monitoring
   enable_audit_log            = local.downstream_clusters[count.index].enable_audit_log
   create_tunnels              = local.downstream_clusters[count.index].create_tunnels
-  public                      = local.downstream_clusters[count.index].public_ip
-
-  sans                      = ["${local.downstream_clusters[count.index].name}.local.gd"]
-  local_kubernetes_api_port = var.first_kubernetes_api_port + 2 + count.index
-  tunnel_app_http_port      = var.first_app_http_port + 2 + count.index
-  tunnel_app_https_port     = var.first_app_https_port + 2 + count.index
-  ssh_private_key_path      = var.ssh_private_key_path
-  ssh_user                  = var.ssh_user
-  node_module               = var.node_module
-  network_config            = var.network_config
-  node_module_variables     = local.downstream_clusters[count.index].node_module_variables
+  sans                        = ["${local.downstream_clusters[count.index].name}.local.gd"]
+  local_kubernetes_api_port   = var.first_kubernetes_api_port + 2 + count.index
+  tunnel_app_http_port        = var.first_app_http_port + 2 + count.index
+  tunnel_app_https_port       = var.first_app_https_port + 2 + count.index
+  ssh_private_key_path        = var.ssh_private_key_path
+  ssh_user                    = var.ssh_user
+  node_module                 = var.node_module
+  network_config              = var.network_config
+  node_module_variables       = local.downstream_clusters[count.index].node_module_variables
 }
 
 module "nodes" {
