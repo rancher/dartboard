@@ -186,7 +186,7 @@ resource "local_file" "kubeconfig" {
       {
         context = {
           cluster = var.name
-          user : "master-user"
+          user = "admin@${var.name}"
         }
         name = var.name
       }
@@ -200,7 +200,7 @@ resource "local_file" "kubeconfig" {
           client-certificate-data : base64encode(tls_locally_signed_cert.master_user.cert_pem)
           client-key-data : base64encode(tls_private_key.master_user.private_key_pem)
         }
-        name : "master-user"
+        name = "admin@${var.name}"
       }
     ]
   })
