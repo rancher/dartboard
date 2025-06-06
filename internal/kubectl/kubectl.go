@@ -241,7 +241,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 		output = os.Stdout
 	}
 
-	err = Exec(kubeconfig, output, "run", "k6", "--http-debug=full", "--image="+k6Image, "--namespace=tester", "--rm", "--stdin", "--restart=Never", "--overrides="+string(overrideJSON))
+	err = Exec(kubeconfig, output, "run", "k6", "--image="+k6Image, "--namespace=tester", "--rm", "--stdin", "--restart=Never", "--overrides="+string(overrideJSON))
 	if err != nil {
 		return err
 	}
