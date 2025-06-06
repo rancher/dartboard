@@ -25,6 +25,12 @@ variable "ssh_tunnels" {
   default     = []
 }
 
+variable "create_tunnels" {
+  description = "Flag determining if we should create any SSH tunnels at all. SSH scripts to manually create the tunnels will be created regardless."
+  type = bool
+  default = false
+}
+
 variable "host_configuration_commands" {
   description = "Commands to run when the host is deployed"
   default     = ["cat /etc/os-release"]
