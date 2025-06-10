@@ -1,7 +1,7 @@
 import { check, fail, sleep } from 'k6';
-import http from 'k6/http';
+import http from 'k6/http'
 import { Trend } from 'k6/metrics';
-import { getCookies, login } from "../rancher_utils.js";
+import { getCookies, login } from "../rancher/rancher_utils.js";
 import exec from "k6/execution";
 import { randomString } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import * as crdUtil from "./crd_utils.js";

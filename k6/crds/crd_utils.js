@@ -1,6 +1,6 @@
 import { check, fail, sleep } from 'k6';
 import http from 'k6/http'
-import { retryUntilExpected } from "../rancher_utils.js";
+import { retryUntilExpected } from "../rancher/rancher_utils.js";
 import * as YAML from '../lib/js-yaml-4.1.0.mjs'
 
 export const baseCRDPath = "v1/apiextensions.k8s.io.customresourcedefinitions"

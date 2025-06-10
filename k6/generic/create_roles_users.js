@@ -2,7 +2,7 @@ import { check, sleep } from 'k6'
 import exec from 'k6/execution';
 import http from 'k6/http';
 import {Gauge} from 'k6/metrics';
-import {retryOnConflict} from "../rancher_utils.js";
+import {retryOnConflict} from "../rancher/rancher_utils.js";
 
 // Parameters
 const roleCount = Number(__ENV.ROLE_COUNT)
