@@ -1,7 +1,7 @@
 import { check, fail, sleep } from 'k6';
-import { getCookies, login } from "./rancher_utils.js";
+import { getCookies, login } from "../rancher/rancher_utils.js";
 import { Trend } from 'k6/metrics';
-import * as crdUtil from "./crd_utils.js";
+import * as crdUtil from "../crds/crd_utils.js";
 import { verifySchemaExistsPolling, verifySchemaDefinitionExistsPolling } from "./schema_utils.js"
 
 const vus = __ENV.K6_VUS || 1

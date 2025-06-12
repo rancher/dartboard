@@ -2,9 +2,9 @@ import { check } from 'k6';
 import { sleep } from 'k6';
 import encoding from 'k6/encoding';
 import http from 'k6/http';
-import * as YAML from './lib/js-yaml-4.1.0.mjs'
+import * as YAML from '../lib/js-yaml-4.1.0.mjs'
 
-import { URL } from './lib/url-1.0.0.js';
+import { URL } from '../lib/url-1.0.0.js';
 
 const timeout = '3600s'
 

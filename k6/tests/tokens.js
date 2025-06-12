@@ -1,8 +1,8 @@
 import { check, fail, sleep } from 'k6';
 import exec from 'k6/execution';
 import http from 'k6/http';
-import { getCookies, login, generateAuthorizationHeader, addMinutes } from "./rancher_utils.js";
-import { getPrincipalIds, getCurrentUserId, getClusterIds, getCurrentUserPrincipal, createUser } from "./rancher_users_utils.js"
+import { getCookies, login, generateAuthorizationHeader, addMinutes } from "../rancher/rancher_utils.js";
+import { getPrincipalIds, getCurrentUserId, getClusterIds, getCurrentUserPrincipal, createUser } from "../rancher/rancher_users_utils.js"
 
 
 // Parameters
