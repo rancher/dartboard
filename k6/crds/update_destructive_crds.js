@@ -1,10 +1,10 @@
 import { check, fail, sleep } from 'k6';
 import http from 'k6/http'
 import { Trend } from 'k6/metrics';
-import { getCookies, login } from "./rancher_utils.js";
+import { getCookies, login } from "../rancher/rancher_utils.js";
 import { vu as metaVU } from 'k6/execution'
 import * as crdUtil from "./crd_utils.js";
-import * as k8s from './k8s.js'
+import * as k8s from '../generic/k8s.js'
 
 
 const vus = __ENV.K6_VUS || 20
