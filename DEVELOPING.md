@@ -48,6 +48,53 @@ Assumptions:
  - Deployed nodes and clusters will be able to reach one another with the same domain names, from the same network. That network might not be the same network of the machine running OpenTofu
  - Deployed clusters may or may not be directly reachable from the machine running OpenTofu. In the current `aws` implementation, for example, all access goes through an SSH bastion host and tunnels, but that is an implementation detail and may change in future. For new platforms there is no requirement - clusters might be directly reachable with an Internet-accessible FQDN, or be behind a bastion host, Tailscale, Boundary or other mechanism
 
+```mermaid
+graph TD
+    subgraph "Platform Modules"
+        aws[aws]
+    end
+
+    subgraph "Core Infrastructure"
+        network[network]
+        test_environment[test_environment]
+    end
+
+    subgraph "Environment Modules"
+        upstream[upstream]
+        downstream[downstream]
+        standalone[standalone]
+    end
+
+    subgraph "Generic Modules"
+        generic_rke2[generic/rke2]
+        generic_node[generic/node]
+        generic_k3s[generic/k3s]
+    end
+
+    subgraph "Platform Specific Modules"
+        aws_node[aws/node]
+    end
+
+    aws --> network
+    aws --> test_environment
+
+    network --> aws_node
+
+    test_environment --> upstream
+    test_environment --> downstream
+    test_environment --> standalone
+
+    upstream -.-> |configurable| generic_rke2
+    downstream -.-> |configurable| generic_k3s
+
+    standalone --> generic_node
+
+    generic_rke2 --> generic_node
+    generic_k3s --> generic_node
+    generic_node --> aws_node
+
+```
+
 ## Vendored binaries
 
 Dartboard vendors binaries it uses like OpenTofu, kubectl and Helm. These are decompressed and stored in the `.bin` directory at runtime.
