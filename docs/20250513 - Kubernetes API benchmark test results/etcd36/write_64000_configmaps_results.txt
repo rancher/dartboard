@@ -1,0 +1,554 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+     execution: local
+        script: /k6/create_k8s_resources.js
+        output: -
+
+     scenarios: (100.00%) 2 scenarios, 20 max VUs, 1h0m30s max duration (incl. graceful stop):
+              * createConfigMaps: 64000 iterations shared among 10 VUs (maxDuration: 1h0m0s, exec: createConfigMaps, gracefulStop: 30s)
+              * createSecrets: 10 iterations shared among 10 VUs (maxDuration: 1h0m0s, exec: createSecrets, gracefulStop: 30s)
+
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+running (0h01m13.8s), 10/20 VUs, 1100 complete and 0 interrupted iterations
+createConfigMaps   [   2% ] 10 VUs  0h00m00.9s/1h0m0s  01090/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m14.8s), 10/20 VUs, 2337 complete and 0 interrupted iterations
+createConfigMaps   [   4% ] 10 VUs  0h00m01.9s/1h0m0s  02327/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m15.8s), 10/20 VUs, 3381 complete and 0 interrupted iterations
+createConfigMaps   [   5% ] 10 VUs  0h00m02.9s/1h0m0s  03371/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m16.8s), 10/20 VUs, 4708 complete and 0 interrupted iterations
+createConfigMaps   [   7% ] 10 VUs  0h00m03.9s/1h0m0s  04698/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m17.8s), 10/20 VUs, 5910 complete and 0 interrupted iterations
+createConfigMaps   [   9% ] 10 VUs  0h00m04.9s/1h0m0s  05900/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m18.8s), 10/20 VUs, 7171 complete and 0 interrupted iterations
+createConfigMaps   [  11% ] 10 VUs  0h00m05.9s/1h0m0s  07161/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m19.8s), 10/20 VUs, 8287 complete and 0 interrupted iterations
+createConfigMaps   [  13% ] 10 VUs  0h00m06.9s/1h0m0s  08277/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m20.8s), 10/20 VUs, 9413 complete and 0 interrupted iterations
+createConfigMaps   [  15% ] 10 VUs  0h00m07.9s/1h0m0s  09403/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m21.8s), 10/20 VUs, 10370 complete and 0 interrupted iterations
+createConfigMaps   [  16% ] 10 VUs  0h00m08.9s/1h0m0s  10360/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m22.8s), 10/20 VUs, 11606 complete and 0 interrupted iterations
+createConfigMaps   [  18% ] 10 VUs  0h00m09.9s/1h0m0s  11596/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m23.8s), 10/20 VUs, 12934 complete and 0 interrupted iterations
+createConfigMaps   [  20% ] 10 VUs  0h00m10.9s/1h0m0s  12924/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m24.8s), 10/20 VUs, 14213 complete and 0 interrupted iterations
+createConfigMaps   [  22% ] 10 VUs  0h00m11.9s/1h0m0s  14203/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m25.8s), 10/20 VUs, 15554 complete and 0 interrupted iterations
+createConfigMaps   [  24% ] 10 VUs  0h00m12.9s/1h0m0s  15544/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m26.8s), 10/20 VUs, 16866 complete and 0 interrupted iterations
+createConfigMaps   [  26% ] 10 VUs  0h00m13.9s/1h0m0s  16856/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m27.8s), 10/20 VUs, 17789 complete and 0 interrupted iterations
+createConfigMaps   [  28% ] 10 VUs  0h00m14.9s/1h0m0s  17779/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m28.8s), 10/20 VUs, 18933 complete and 0 interrupted iterations
+createConfigMaps   [  30% ] 10 VUs  0h00m15.9s/1h0m0s  18923/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m29.8s), 10/20 VUs, 20076 complete and 0 interrupted iterations
+createConfigMaps   [  31% ] 10 VUs  0h00m16.9s/1h0m0s  20066/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m30.8s), 10/20 VUs, 21185 complete and 0 interrupted iterations
+createConfigMaps   [  33% ] 10 VUs  0h00m17.9s/1h0m0s  21175/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m31.8s), 10/20 VUs, 22550 complete and 0 interrupted iterations
+createConfigMaps   [  35% ] 10 VUs  0h00m18.9s/1h0m0s  22540/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m32.8s), 10/20 VUs, 23800 complete and 0 interrupted iterations
+createConfigMaps   [  37% ] 10 VUs  0h00m19.9s/1h0m0s  23790/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m33.8s), 10/20 VUs, 24758 complete and 0 interrupted iterations
+createConfigMaps   [  39% ] 10 VUs  0h00m20.9s/1h0m0s  24748/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m34.8s), 10/20 VUs, 25831 complete and 0 interrupted iterations
+createConfigMaps   [  40% ] 10 VUs  0h00m21.9s/1h0m0s  25821/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m35.8s), 10/20 VUs, 27139 complete and 0 interrupted iterations
+createConfigMaps   [  42% ] 10 VUs  0h00m22.9s/1h0m0s  27129/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m36.8s), 10/20 VUs, 28403 complete and 0 interrupted iterations
+createConfigMaps   [  44% ] 10 VUs  0h00m23.9s/1h0m0s  28393/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m37.8s), 10/20 VUs, 29649 complete and 0 interrupted iterations
+createConfigMaps   [  46% ] 10 VUs  0h00m24.9s/1h0m0s  29639/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m38.8s), 10/20 VUs, 30928 complete and 0 interrupted iterations
+createConfigMaps   [  48% ] 10 VUs  0h00m25.9s/1h0m0s  30918/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m39.8s), 10/20 VUs, 31933 complete and 0 interrupted iterations
+createConfigMaps   [  50% ] 10 VUs  0h00m26.9s/1h0m0s  31923/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m40.8s), 10/20 VUs, 32783 complete and 0 interrupted iterations
+createConfigMaps   [  51% ] 10 VUs  0h00m27.9s/1h0m0s  32773/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m41.8s), 10/20 VUs, 34029 complete and 0 interrupted iterations
+createConfigMaps   [  53% ] 10 VUs  0h00m28.9s/1h0m0s  34019/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m42.8s), 10/20 VUs, 35338 complete and 0 interrupted iterations
+createConfigMaps   [  55% ] 10 VUs  0h00m29.9s/1h0m0s  35328/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m43.8s), 10/20 VUs, 36685 complete and 0 interrupted iterations
+createConfigMaps   [  57% ] 10 VUs  0h00m30.9s/1h0m0s  36675/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m44.8s), 10/20 VUs, 37978 complete and 0 interrupted iterations
+createConfigMaps   [  59% ] 10 VUs  0h00m31.9s/1h0m0s  37968/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m45.8s), 10/20 VUs, 39023 complete and 0 interrupted iterations
+createConfigMaps   [  61% ] 10 VUs  0h00m32.9s/1h0m0s  39013/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m46.8s), 10/20 VUs, 40074 complete and 0 interrupted iterations
+createConfigMaps   [  63% ] 10 VUs  0h00m33.9s/1h0m0s  40064/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m47.8s), 10/20 VUs, 41234 complete and 0 interrupted iterations
+createConfigMaps   [  64% ] 10 VUs  0h00m34.9s/1h0m0s  41224/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m48.8s), 10/20 VUs, 42499 complete and 0 interrupted iterations
+createConfigMaps   [  66% ] 10 VUs  0h00m35.9s/1h0m0s  42489/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m49.8s), 10/20 VUs, 43605 complete and 0 interrupted iterations
+createConfigMaps   [  68% ] 10 VUs  0h00m36.9s/1h0m0s  43595/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m50.8s), 10/20 VUs, 44616 complete and 0 interrupted iterations
+createConfigMaps   [  70% ] 10 VUs  0h00m37.9s/1h0m0s  44606/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m51.8s), 10/20 VUs, 45815 complete and 0 interrupted iterations
+createConfigMaps   [  72% ] 10 VUs  0h00m38.9s/1h0m0s  45805/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m52.8s), 10/20 VUs, 46755 complete and 0 interrupted iterations
+createConfigMaps   [  73% ] 10 VUs  0h00m39.9s/1h0m0s  46745/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m53.8s), 10/20 VUs, 48112 complete and 0 interrupted iterations
+createConfigMaps   [  75% ] 10 VUs  0h00m40.9s/1h0m0s  48102/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m54.8s), 10/20 VUs, 49460 complete and 0 interrupted iterations
+createConfigMaps   [  77% ] 10 VUs  0h00m41.9s/1h0m0s  49450/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m55.8s), 10/20 VUs, 50791 complete and 0 interrupted iterations
+createConfigMaps   [  79% ] 10 VUs  0h00m42.9s/1h0m0s  50781/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m56.8s), 10/20 VUs, 52121 complete and 0 interrupted iterations
+createConfigMaps   [  81% ] 10 VUs  0h00m43.9s/1h0m0s  52111/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m57.8s), 10/20 VUs, 53009 complete and 0 interrupted iterations
+createConfigMaps   [  83% ] 10 VUs  0h00m44.9s/1h0m0s  52999/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m58.8s), 10/20 VUs, 53987 complete and 0 interrupted iterations
+createConfigMaps   [  84% ] 10 VUs  0h00m45.9s/1h0m0s  53977/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h01m59.8s), 10/20 VUs, 55100 complete and 0 interrupted iterations
+createConfigMaps   [  86% ] 10 VUs  0h00m46.9s/1h0m0s  55090/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h02m00.8s), 10/20 VUs, 56190 complete and 0 interrupted iterations
+createConfigMaps   [  88% ] 10 VUs  0h00m47.9s/1h0m0s  56180/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h02m01.8s), 10/20 VUs, 57521 complete and 0 interrupted iterations
+createConfigMaps   [  90% ] 10 VUs  0h00m48.9s/1h0m0s  57511/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h02m02.8s), 10/20 VUs, 58749 complete and 0 interrupted iterations
+createConfigMaps   [  92% ] 10 VUs  0h00m49.9s/1h0m0s  58739/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h02m03.8s), 10/20 VUs, 59869 complete and 0 interrupted iterations
+createConfigMaps   [  94% ] 10 VUs  0h00m50.9s/1h0m0s  59859/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h02m04.8s), 10/20 VUs, 60919 complete and 0 interrupted iterations
+createConfigMaps   [  95% ] 10 VUs  0h00m51.9s/1h0m0s  60909/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h02m05.8s), 10/20 VUs, 62229 complete and 0 interrupted iterations
+createConfigMaps   [  97% ] 10 VUs  0h00m52.9s/1h0m0s  62219/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h02m06.8s), 10/20 VUs, 63565 complete and 0 interrupted iterations
+createConfigMaps   [  99% ] 10 VUs  0h00m53.9s/1h0m0s  63555/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+     ✓ POST returns status 201 or 409
+
+     █ setup
+
+       ✓ DELETE returns status 200 or 404
+       ✓ POST returns status 201 or 409
+
+   ✓ checks.........................: 100.00% 64157 out of 64157
+     data_received..................: 34 MB   268 kB/s
+     data_sent......................: 11 MB   89 kB/s
+     http_req_blocked...............: avg=5.43µs   min=180ns   med=460ns    max=26.58ms  p(90)=570ns    p(95)=620ns   
+     http_req_connecting............: avg=1.04µs   min=0s      med=0s       max=6.36ms   p(90)=0s       p(95)=0s      
+     http_req_duration..............: avg=8.23ms   min=2.5ms   med=7.48ms   max=732.27ms p(90)=12.35ms  p(95)=14.65ms 
+       { expected_response:true }...: avg=8.24ms   min=2.5ms   med=7.48ms   max=732.27ms p(90)=12.36ms  p(95)=14.65ms 
+     http_req_failed................: 0.22%   145 out of 64157
+     http_req_receiving.............: avg=864.84µs min=18.87µs med=493.91µs max=20.49ms  p(90)=2.04ms   p(95)=2.81ms  
+     http_req_sending...............: avg=110.38µs min=30.12µs med=80.67µs  max=22.26ms  p(90)=132.58µs p(95)=183.33µs
+     http_req_tls_handshaking.......: avg=3.44µs   min=0s      med=0s       max=21.9ms   p(90)=0s       p(95)=0s      
+     http_req_waiting...............: avg=7.26ms   min=0s      med=6.54ms   max=730.14ms p(90)=11.04ms  p(95)=13.14ms 
+     http_reqs......................: 64157   504.698796/s
+     iteration_duration.............: avg=8.46ms   min=2.66ms  med=7.69ms   max=732.42ms p(90)=12.6ms   p(95)=14.92ms 
+     iterations.....................: 64010   503.542402/s
+     test_resources.................: 64010   min=64010          max=64010
+     vus............................: 10      min=0              max=10   
+     vus_max........................: 20      min=20             max=20   
+
+
+running (0h02m07.1s), 00/20 VUs, 64010 complete and 0 interrupted iterations
+createConfigMaps ✓ [ 100% ] 10 VUs  0h00m54.2s/1h0m0s  64000/64000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters

@@ -1,0 +1,158 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+     execution: local
+        script: /k6/create_k8s_resources.js
+        output: -
+
+     scenarios: (100.00%) 2 scenarios, 20 max VUs, 1h0m30s max duration (incl. graceful stop):
+              * createConfigMaps: 2000 iterations shared among 10 VUs (maxDuration: 1h0m0s, exec: createConfigMaps, gracefulStop: 30s)
+              * createSecrets: 10 iterations shared among 10 VUs (maxDuration: 1h0m0s, exec: createSecrets, gracefulStop: 30s)
+
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+running (0h00m09.8s), 10/20 VUs, 38 complete and 0 interrupted iterations
+createConfigMaps   [   1% ] 10 VUs  0h00m00.7s/1h0m0s  0028/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m10.8s), 10/20 VUs, 121 complete and 0 interrupted iterations
+createConfigMaps   [   6% ] 10 VUs  0h00m01.7s/1h0m0s  0111/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m11.8s), 10/20 VUs, 216 complete and 0 interrupted iterations
+createConfigMaps   [  10% ] 10 VUs  0h00m02.7s/1h0m0s  0206/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m12.8s), 10/20 VUs, 317 complete and 0 interrupted iterations
+createConfigMaps   [  15% ] 10 VUs  0h00m03.7s/1h0m0s  0307/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m13.8s), 10/20 VUs, 429 complete and 0 interrupted iterations
+createConfigMaps   [  21% ] 10 VUs  0h00m04.7s/1h0m0s  0419/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m14.8s), 10/20 VUs, 536 complete and 0 interrupted iterations
+createConfigMaps   [  26% ] 10 VUs  0h00m05.7s/1h0m0s  0526/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m15.8s), 10/20 VUs, 635 complete and 0 interrupted iterations
+createConfigMaps   [  31% ] 10 VUs  0h00m06.7s/1h0m0s  0625/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m16.8s), 10/20 VUs, 737 complete and 0 interrupted iterations
+createConfigMaps   [  36% ] 10 VUs  0h00m07.7s/1h0m0s  0727/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m17.8s), 10/20 VUs, 845 complete and 0 interrupted iterations
+createConfigMaps   [  42% ] 10 VUs  0h00m08.7s/1h0m0s  0835/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m18.8s), 10/20 VUs, 961 complete and 0 interrupted iterations
+createConfigMaps   [  48% ] 10 VUs  0h00m09.7s/1h0m0s  0951/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m19.8s), 10/20 VUs, 1059 complete and 0 interrupted iterations
+createConfigMaps   [  52% ] 10 VUs  0h00m10.7s/1h0m0s  1049/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m20.8s), 10/20 VUs, 1168 complete and 0 interrupted iterations
+createConfigMaps   [  58% ] 10 VUs  0h00m11.7s/1h0m0s  1158/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m21.8s), 10/20 VUs, 1282 complete and 0 interrupted iterations
+createConfigMaps   [  64% ] 10 VUs  0h00m12.7s/1h0m0s  1272/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m22.8s), 10/20 VUs, 1385 complete and 0 interrupted iterations
+createConfigMaps   [  69% ] 10 VUs  0h00m13.7s/1h0m0s  1375/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m23.8s), 10/20 VUs, 1497 complete and 0 interrupted iterations
+createConfigMaps   [  74% ] 10 VUs  0h00m14.7s/1h0m0s  1487/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m24.8s), 10/20 VUs, 1610 complete and 0 interrupted iterations
+createConfigMaps   [  80% ] 10 VUs  0h00m15.7s/1h0m0s  1600/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m25.8s), 10/20 VUs, 1715 complete and 0 interrupted iterations
+createConfigMaps   [  85% ] 10 VUs  0h00m16.7s/1h0m0s  1705/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m26.8s), 10/20 VUs, 1818 complete and 0 interrupted iterations
+createConfigMaps   [  90% ] 10 VUs  0h00m17.7s/1h0m0s  1808/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+running (0h00m27.8s), 10/20 VUs, 1917 complete and 0 interrupted iterations
+createConfigMaps   [  95% ] 10 VUs  0h00m18.7s/1h0m0s  1907/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
+
+     ✓ POST returns status 201 or 409
+
+     █ setup
+
+       ✓ DELETE returns status 200 or 404
+       ✓ POST returns status 201 or 409
+
+   ✓ checks.........................: 100.00% 2032 out of 2032
+     data_received..................: 1.1 MB  39 kB/s
+     data_sent......................: 374 kB  13 kB/s
+     http_req_blocked...............: avg=112.46µs min=190ns   med=540ns    max=15.93ms  p(90)=760ns    p(95)=890ns   
+     http_req_connecting............: avg=42.05µs  min=0s      med=0s       max=8.97ms   p(90)=0s       p(95)=0s      
+     http_req_duration..............: avg=97.11ms  min=5.31ms  med=46.85ms  max=543.06ms p(90)=233.05ms p(95)=275.24ms
+       { expected_response:true }...: avg=98.01ms  min=5.41ms  med=48.17ms  max=543.06ms p(90)=233.96ms p(95)=276.6ms 
+     http_req_failed................: 0.98%   20 out of 2032
+     http_req_receiving.............: avg=178.77µs min=25.64µs med=86.38µs  max=6.71ms   p(90)=399.37µs p(95)=611.73µs
+     http_req_sending...............: avg=146.98µs min=40.01µs med=107.39µs max=6.72ms   p(90)=202.2µs  p(95)=320.05µs
+     http_req_tls_handshaking.......: avg=65.77µs  min=0s      med=0s       max=10.3ms   p(90)=0s       p(95)=0s      
+     http_req_waiting...............: avg=96.79ms  min=5.04ms  med=46.68ms  max=542.19ms p(90)=232.89ms p(95)=274.89ms
+     http_reqs......................: 2032    71.020342/s
+     iteration_duration.............: avg=98.55ms  min=6.67ms  med=48.57ms  max=543.26ms p(90)=234.43ms p(95)=276.86ms
+     iterations.....................: 2010    70.251421/s
+     test_resources.................: 2010    min=2010         max=2010
+     vus............................: 10      min=0            max=10  
+     vus_max........................: 20      min=20           max=20  
+
+
+running (0h00m28.6s), 00/20 VUs, 2010 complete and 0 interrupted iterations
+createConfigMaps ✓ [ 100% ] 10 VUs  0h00m19.6s/1h0m0s  2000/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.5s/1h0m0s  10/10 shared iters
