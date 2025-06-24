@@ -1,0 +1,89 @@
+#!groovy
+
+node {
+  def job_name = "${JOB_NAME}"
+  if (job_name.contains('/')) {
+    job_names = job_name.split('/')
+    job_name = job_names[job_names.size() - 1]
+  }
+
+  def testContainer = "${job_name}${env.BUILD_NUMBER}_test"
+  def imageName = "vai-tests-${job_name}${env.BUILD_NUMBER}"
+  def envFile = ".env"
+  def branch = "main"
+  if (env.BRANCH && env.BRANCH != "null") {
+    branch = env.BRANCH
+  }
+
+  def repo = scm.userRemoteConfigs
+  if (env.REPO && env.REPO != "null") {
+    repo = [[url: env.REPO]]
+  }
+  def timeout = "60m"
+  if (env.TIMEOUT && env.TIMEOUT != "null") {
+    timeout = env.TIMEOUT
+  }
+
+  wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm', 'defaultFg': 2, 'defaultBg': 1]) {
+    withFolderProperties {
+      def paramsMap = params.findAll { it.value?.trim() }.collectEntries { [(it.key): it.value] }
+      withCredentials([
+        string(credentialsId: 'ADMIN_PASSWORD', variable: 'ADMIN_PASSWORD'),
+      ]) {
+        withEnv(paramsMap.collect { k, v -> "$k=$v" }) {
+          stage('Checkout') {
+            deleteDir()
+            checkout([
+              $class: 'GitSCM',
+              branches: [[name: "*/${branch}"]],
+              extensions: scm.extensions + [[$class: 'CleanCheckout']],
+              userRemoteConfigs: repo
+            ])
+          }
+          dir('./') {
+            try {
+              stage('Configure and Build') {
+                stage('Docker Build') {
+                  try {
+                    sh './scripts/configure.sh'
+                    sh './scripts/build.sh'
+                  } catch(err) {
+                    sh "docker stop ${testContainer} || true"
+                    sh "docker rm -v ${testContainer} || true"
+                    sh "docker rmi -f ${imageName} || true"
+                    error "Build Environment had failures."
+                  }
+                }
+              }
+              stage('Run k6 Tests') {
+                  try {
+                    sh """
+                    docker run --name ${testContainer} \ 
+                      -t ${imageName} run \ 
+                      -e KUBECONFIG=${env.KUBECONFIG} \
+                      -e CONTEXT=${env.CONTEXT} \
+                      -e SECRET_COUNT=${env.SECRET_COUNT} \
+                      -e CONFIGMAP_COUNT=${env.CONFIGMAP_COUNT} \
+                      -e DEPLOYMENT_COUNT=${env.DEPLOYMENT_COUNT} \
+                      -e USERNAME=${env.USERNAME} \
+                      -e PASSWORD=${env.PASSWORD} \
+                      -e BASE_URL=${env.BASE_URL} \
+                      ${env.TEST}
+                     """
+                  } catch(err) {
+                    echo 'Validation tests had failures. Aborting'
+                  }
+                }
+            } finally {
+              stage('Cleanup') {
+                sh "docker stop ${testContainer} || true"
+                sh "docker rm -v ${testContainer} || true"
+                sh "docker rmi -f ${imageName} || true"
+              } // stage
+            } // finally
+          } // dir
+        } // withEnv
+      } // withCredentials
+    } // withFolderProperties
+  } // wrap
+} // node
