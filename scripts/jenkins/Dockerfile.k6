@@ -1,0 +1,5 @@
+FROM grafana/k6
+
+COPY . .
+
+CMD [ "sleep", "6000" ]
