@@ -33,6 +33,7 @@ variable "upstream_cluster" {
     public_ip                   = bool // Whether the upstream cluster should have a public IP assigned
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the upstream cluster to reserve it for monitoring
     enable_audit_log            = bool // Enable audit log for the cluster
+    postgres_node_variables     = any  // Node module-specific variables for the Postgres-backed Kine
 
     node_module_variables = any // Node module-specific variables
   })
