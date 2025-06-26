@@ -1,0 +1,41 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+     execution: local
+        script: /k6/k8s_api_benchmark.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 10 max VUs, 24h0m30s max duration (incl. graceful stop):
+              * list: 30 iterations for each of 10 VUs (maxDuration: 24h0m0s, exec: list, gracefulStop: 30s)
+
+
+running (0d00h00m00.9s), 10/10 VUs, 173 complete and 0 interrupted iterations
+list   [  58% ] 10 VUs  0d00h00m00.9s/24h0m0s  173/300 iters, 30 per VU
+
+     ✓ list returns status 200
+
+   ✓ checks.........................: 100.00% 300 out of 300
+     data_received..................: 234 MB  136 MB/s
+     data_sent......................: 61 kB   35 kB/s
+     http_req_blocked...............: avg=553.83µs min=230ns   med=560ns    max=22.36ms  p(90)=761ns   p(95)=1.04µs  
+     http_req_connecting............: avg=37.99µs  min=0s      med=0s       max=2.06ms   p(90)=0s      p(95)=0s      
+     http_req_duration..............: avg=47.23ms  min=17.49ms med=40.51ms  max=157.97ms p(90)=77.17ms p(95)=89.86ms 
+       { expected_response:true }...: avg=47.23ms  min=17.49ms med=40.51ms  max=157.97ms p(90)=77.17ms p(95)=89.86ms 
+     http_req_failed................: 0.00%   0 out of 300
+     http_req_receiving.............: avg=7.85ms   min=1.21ms  med=4.29ms   max=64.14ms  p(90)=15.79ms p(95)=27.03ms 
+     http_req_sending...............: avg=993.97µs min=39.19µs med=100.66µs max=17.77ms  p(90)=3.36ms  p(95)=4.79ms  
+     http_req_tls_handshaking.......: avg=136.72µs min=0s      med=0s       max=5.71ms   p(90)=0s      p(95)=0s      
+     http_req_waiting...............: avg=38.38ms  min=14.93ms med=32.61ms  max=147.36ms p(90)=60.44ms p(95)=76.62ms 
+     http_reqs......................: 300     174.563548/s
+     iteration_duration.............: avg=54ms     min=23.02ms med=47.39ms  max=164ms    p(90)=84.06ms p(95)=103.65ms
+     iterations.....................: 300     174.563548/s
+     vus............................: 10      min=10         max=10
+     vus_max........................: 10      min=10         max=10
+
+
+running (0d00h00m01.7s), 00/10 VUs, 300 complete and 0 interrupted iterations
+list ✓ [ 100% ] 10 VUs  0d00h00m01.7s/24h0m0s  300/300 iters, 30 per VU

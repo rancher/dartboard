@@ -1,0 +1,82 @@
+# Deploys Rancher and prepares it for performance tests
+
+tofu_main_directory: ./tofu/main/aws
+tofu_parallelism: 10
+
+tofu_variables:
+  project_name: st
+  region: us-east-1
+  availability_zone: us-east-1a
+# Uncomment to authenticate via `aws sso login --profile AWSPowerUserAccess-1234567890`
+  aws_profile: AWSPowerUserAccess-312662503588
+  ssh_public_key_path: ~/.ssh/id_ed25519.pub
+  ssh_private_key_path: ~/.ssh/id_ed25519
+  ssh_user: root
+  ssh_bastion_user: root
+  bastion_host_ami: ami-04effc0585c8f1e3e # openSUSE-Leap-15-6-v20250408-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
+
+  upstream_cluster:
+    server_count: 3
+    agent_count: 1
+    distro_version: v1.32.4+rke2r1
+    public_ip: false
+    reserve_node_for_monitoring: true
+    enable_audit_log: false
+    node_module_variables:
+      instance_type: i3.xlarge
+      ami: ami-02889b173d15868e5 # openSUSE-Leap-15-6-v20250408-hvm-ssd-x86_64-5535c495-72d4-4355-b169-54ffa874f849
+      root_volume_size_gb: 50
+    etcd_node_variables: { }
+    postgres_node_variables:
+      instance_type: m6id.4xlarge
+      ami: ami-085386e29e44dacd7 # Amazon Linux 2 Kernel 5.10 AMI 2.0.20250428.0 x86_64 HVM gp2
+      root_volume_size_gb: 50
+  upstream_cluster_distro_module: generic/rke2
+
+  tester_cluster:
+    server_count: 1
+    agent_count: 0
+    distro_version: v1.26.9+k3s1
+    public_ip: false
+    reserve_node_for_monitoring: false
+    enable_audit_log: false
+    node_module_variables:
+      instance_type: t3a.large
+      ami: ami-02889b173d15868e5 # openSUSE-Leap-15-6-v20250408-hvm-ssd-x86_64-5535c495-72d4-4355-b169-54ffa874f849
+      root_volume_size_gb: 50
+  tester_cluster_distro_module: generic/k3s
+
+  downstream_cluster_templates:
+    - cluster_count: 0
+      server_count: 1
+      agent_count: 0
+      distro_version: v1.26.9+k3s1
+      public_ip: false
+      reserve_node_for_monitoring: false
+      enable_audit_log: false
+      node_module_variables:
+        instance_type: t4g.large
+        ami: ami-04effc0585c8f1e3e # openSUSE-Leap-15-6-v20250408-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
+        root_volume_size_gb: 50
+  downstream_cluster_distro_module: generic/k3s
+
+  first_kubernetes_api_port: 7445
+  first_app_http_port: 9080
+  first_app_https_port: 9443
+
+chart_variables:
+  rancher_replicas: 3
+  downstream_rancher_monitoring: false
+  admin_password: adminadminadmin
+  rancher_monitoring_version: 105.1.3+up61.3.2 # see https://github.com/rancher/charts/tree/release-v2.11/assets/rancher-monitoring-crd
+  cert_manager_version: 1.12.17
+  tester_grafana_version: 6.56.5
+  rancher_version: 2.11.1
+  force_prime_registry: false
+
+test_variables:
+  test_config_maps: 10000
+  test_secrets: 10000
+  test_roles: 20
+  test_users: 10
+  test_projects: 20

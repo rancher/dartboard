@@ -1,0 +1,90 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+     execution: local
+        script: /k6/create_k8s_resources.js
+        output: -
+
+     scenarios: (100.00%) 2 scenarios, 20 max VUs, 1h0m30s max duration (incl. graceful stop):
+              * createConfigMaps: 2000 iterations shared among 10 VUs (maxDuration: 1h0m0s, exec: createConfigMaps, gracefulStop: 30s)
+              * createSecrets: 10 iterations shared among 10 VUs (maxDuration: 1h0m0s, exec: createSecrets, gracefulStop: 30s)
+
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+Run                [ 100% ] setup()
+createConfigMaps   [   0% ]
+createSecrets      [   0% ]
+
+running (0h00m08.8s), 10/20 VUs, 146 complete and 0 interrupted iterations
+createConfigMaps   [   7% ] 10 VUs  0h00m00.2s/1h0m0s  0136/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h00m09.8s), 10/20 VUs, 978 complete and 0 interrupted iterations
+createConfigMaps   [  48% ] 10 VUs  0h00m01.2s/1h0m0s  0968/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+running (0h00m10.8s), 10/20 VUs, 1821 complete and 0 interrupted iterations
+createConfigMaps   [  91% ] 10 VUs  0h00m02.2s/1h0m0s  1811/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
+
+     ✓ POST returns status 201 or 409
+
+     █ setup
+
+       ✓ DELETE returns status 200 or 404
+       ✓ POST returns status 201 or 409
+
+   ✓ checks.........................: 100.00% 2027 out of 2027
+     data_received..................: 1.1 MB  99 kB/s
+     data_sent......................: 373 kB  34 kB/s
+     http_req_blocked...............: avg=159.69µs min=190ns   med=470ns    max=20.98ms p(90)=624ns    p(95)=750ns   
+     http_req_connecting............: avg=59.29µs  min=0s      med=0s       max=12.02ms p(90)=0s       p(95)=0s      
+     http_req_duration..............: avg=12ms     min=4.66ms  med=11.28ms  max=37.26ms p(90)=16.04ms  p(95)=19.05ms 
+       { expected_response:true }...: avg=12.04ms  min=4.66ms  med=11.3ms   max=37.26ms p(90)=16.07ms  p(95)=19.06ms 
+     http_req_failed................: 0.74%   15 out of 2027
+     http_req_receiving.............: avg=790.04µs min=21.35µs med=374.88µs max=25.37ms p(90)=1.79ms   p(95)=2.86ms  
+     http_req_sending...............: avg=181.4µs  min=44.89µs med=94.43µs  max=10.83ms p(90)=255.25µs p(95)=413.25µs
+     http_req_tls_handshaking.......: avg=91.1µs   min=0s      med=0s       max=13.64ms p(90)=0s       p(95)=0s      
+     http_req_waiting...............: avg=11.03ms  min=4.21ms  med=10.46ms  max=35.48ms p(90)=14.6ms   p(95)=16.89ms 
+     http_reqs......................: 2027    182.969253/s
+     iteration_duration.............: avg=12.61ms  min=6.24ms  med=11.68ms  max=55ms    p(90)=16.64ms  p(95)=19.45ms 
+     iterations.....................: 2010    181.434731/s
+     test_resources.................: 2010    min=2010         max=2010
+     vus............................: 10      min=0            max=10  
+     vus_max........................: 20      min=20           max=20  
+
+
+running (0h00m11.1s), 00/20 VUs, 2010 complete and 0 interrupted iterations
+createConfigMaps ✓ [ 100% ] 10 VUs  0h00m02.5s/1h0m0s  2000/2000 shared iters
+createSecrets    ✓ [ 100% ] 10 VUs  0h00m00.1s/1h0m0s  10/10 shared iters
