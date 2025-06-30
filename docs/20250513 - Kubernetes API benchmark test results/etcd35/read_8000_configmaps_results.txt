@@ -1,0 +1,71 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+     execution: local
+        script: /k6/k8s_api_benchmark.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 10 max VUs, 24h0m30s max duration (incl. graceful stop):
+              * list: 30 iterations for each of 10 VUs (maxDuration: 24h0m0s, exec: list, gracefulStop: 30s)
+
+
+running (0d00h00m00.9s), 10/10 VUs, 20 complete and 0 interrupted iterations
+list   [   7% ] 10 VUs  0d00h00m00.9s/24h0m0s  020/300 iters, 30 per VU
+
+running (0d00h00m01.9s), 10/10 VUs, 52 complete and 0 interrupted iterations
+list   [  17% ] 10 VUs  0d00h00m01.9s/24h0m0s  052/300 iters, 30 per VU
+
+running (0d00h00m02.9s), 10/10 VUs, 77 complete and 0 interrupted iterations
+list   [  26% ] 10 VUs  0d00h00m02.9s/24h0m0s  077/300 iters, 30 per VU
+
+running (0d00h00m03.9s), 10/10 VUs, 102 complete and 0 interrupted iterations
+list   [  34% ] 10 VUs  0d00h00m03.9s/24h0m0s  102/300 iters, 30 per VU
+
+running (0d00h00m04.9s), 10/10 VUs, 124 complete and 0 interrupted iterations
+list   [  41% ] 10 VUs  0d00h00m04.9s/24h0m0s  124/300 iters, 30 per VU
+
+running (0d00h00m05.9s), 10/10 VUs, 147 complete and 0 interrupted iterations
+list   [  49% ] 10 VUs  0d00h00m05.9s/24h0m0s  147/300 iters, 30 per VU
+
+running (0d00h00m06.9s), 10/10 VUs, 179 complete and 0 interrupted iterations
+list   [  60% ] 10 VUs  0d00h00m06.9s/24h0m0s  179/300 iters, 30 per VU
+
+running (0d00h00m07.9s), 10/10 VUs, 206 complete and 0 interrupted iterations
+list   [  69% ] 10 VUs  0d00h00m07.9s/24h0m0s  206/300 iters, 30 per VU
+
+running (0d00h00m08.9s), 10/10 VUs, 231 complete and 0 interrupted iterations
+list   [  77% ] 10 VUs  0d00h00m08.9s/24h0m0s  231/300 iters, 30 per VU
+
+running (0d00h00m09.9s), 10/10 VUs, 259 complete and 0 interrupted iterations
+list   [  86% ] 10 VUs  0d00h00m09.9s/24h0m0s  259/300 iters, 30 per VU
+
+running (0d00h00m10.9s), 05/10 VUs, 290 complete and 0 interrupted iterations
+list   [  97% ] 10 VUs  0d00h00m10.9s/24h0m0s  290/300 iters, 30 per VU
+
+     ✓ list returns status 200
+
+   ✓ checks.........................: 100.00% 600 out of 600
+     data_received..................: 937 MB  83 MB/s
+     data_sent......................: 397 kB  35 kB/s
+     http_req_blocked...............: avg=365.48µs min=270ns    med=550ns    max=30.3ms  p(90)=770ns    p(95)=870ns   
+     http_req_connecting............: avg=18.46µs  min=0s       med=0s       max=1.65ms  p(90)=0s       p(95)=0s      
+     http_req_duration..............: avg=176.2ms  min=54.27ms  med=156.71ms max=1.04s   p(90)=255.23ms p(95)=291.01ms
+       { expected_response:true }...: avg=176.2ms  min=54.27ms  med=156.71ms max=1.04s   p(90)=255.23ms p(95)=291.01ms
+     http_req_failed................: 0.00%   0 out of 600
+     http_req_receiving.............: avg=12.73ms  min=1.58ms   med=8.14ms   max=77.03ms p(90)=29.03ms  p(95)=39.06ms 
+     http_req_sending...............: avg=536.17µs min=36.18µs  med=111.77µs max=24.57ms p(90)=1.37ms   p(95)=3.7ms   
+     http_req_tls_handshaking.......: avg=63.94µs  min=0s       med=0s       max=5.82ms  p(90)=0s       p(95)=0s      
+     http_req_waiting...............: avg=162.93ms min=44.77ms  med=143.52ms max=1.03s   p(90)=243.2ms  p(95)=275.57ms
+     http_reqs......................: 600     53.142234/s
+     iteration_duration.............: avg=364.6ms  min=138.04ms med=331.77ms max=1.2s    p(90)=483.14ms p(95)=588.4ms 
+     iterations.....................: 300     26.571117/s
+     vus............................: 5       min=5          max=10
+     vus_max........................: 10      min=10         max=10
+
+
+running (0d00h00m11.3s), 00/10 VUs, 300 complete and 0 interrupted iterations
+list ✓ [ 100% ] 10 VUs  0d00h00m11.3s/24h0m0s  300/300 iters, 30 per VU
