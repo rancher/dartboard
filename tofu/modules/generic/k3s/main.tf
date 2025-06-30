@@ -183,7 +183,7 @@ resource "local_file" "kubeconfig" {
       {
         cluster = {
           certificate-authority-data = base64encode(tls_self_signed_cert.server_ca_cert.cert_pem)
-          server                     = local.local_kubernetes_api_url
+          server                     = var.create_tunnels ? local.local_kubernetes_api_url : "https://${module.server_nodes[0].public_name}:6443"
         }
         name = var.name
       }
