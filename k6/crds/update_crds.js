@@ -87,7 +87,7 @@ function cleanup(cookies) {
 // Test functions, in order of execution
 export function setup() {
   // log in
-  if (!login(baseUrl, {}, username, password)) {
+  if (login(baseUrl, {}, username, password).status !== 200) {
     fail(`could not login into cluster`)
   }
   const cookies = getCookies(baseUrl)

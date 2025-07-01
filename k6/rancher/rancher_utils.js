@@ -1,6 +1,6 @@
 import { check, fail, sleep } from 'k6'
 import http from 'k6/http'
-import { getUserId, getUserPreferences, setUserPreferences } from "./rancher_users_utils.js"
+import { getCurrentUserId, getUserPreferences, setUserPreferences } from "./rancher_users_utils.js"
 import encoding from 'k6/encoding';
 
 
@@ -27,13 +27,13 @@ export function login(baseUrl, cookies, username, password) {
     'login works': (r) => r.status === 200 || r.status === 401,
   })
 
-  return response.status === 200
+  return response
 }
 
 export function firstLogin(baseUrl, cookies, bootstrapPassword, password) {
   let response
 
-  if (login(baseUrl, cookies, "admin", bootstrapPassword)) {
+  if (login(baseUrl, cookies, "admin", bootstrapPassword).status === 200) {
     response = http.post(
       `${baseUrl}/v3/users?action=changepassword`,
       JSON.stringify({ "currentPassword": bootstrapPassword, "newPassword": password }),
@@ -54,11 +54,11 @@ export function firstLogin(baseUrl, cookies, bootstrapPassword, password) {
   }
   else {
     console.warn("bootstrap password already changed")
-    if (!login(baseUrl, cookies, "admin", password)) {
+    if (login(baseUrl, cookies, "admin", password).status !== 200) {
       fail('neither bootstrap nor normal passwords were accepted')
     }
   }
-  const userId = getUserId(baseUrl, cookies)
+  const userId = getCurrentUserId(baseUrl, cookies)
   const userPreferences = getUserPreferences(baseUrl, cookies);
 
   userPreferences["data"]["locale"] = "en-us"
@@ -195,7 +195,7 @@ export function addMinutes(date, minutes) {
 export function createImportedCluster(baseUrl, cookies, name) {
   let response
 
-  const userId = getUserId(baseUrl, cookies)
+  const userId = getCurrentUserId(baseUrl, cookies)
   const userPreferences = getUserPreferences(baseUrl, cookies);
 
   userPreferences["last-visited"] = "{\"name\":\"c-cluster-product\",\"params\":{\"cluster\":\"_\",\"product\":\"manager\"}}"
