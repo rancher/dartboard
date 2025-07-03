@@ -397,13 +397,42 @@ export function generateAuthorizationHeader(token) {
 // Retries result-returning function for up to 10 times
 // until a non-409 status is returned, waiting for up to 1s
 // between retries
-export function retryOnConflict(f) {
+export function retryOnConflict(attempts=9, f) {
   for (let i = 0; i < 9; i++) {
     const res = f()
     if (res.status !== 409) {
       return res
     }
+    console.warn(`attempt #${attempts + 1} failed with status ${res.status}`)
     // expected conflict. Sleep a bit and retry
+    sleep(Math.random())
+  }
+  // all previous attempts failed, try one last time
+  return f()
+}
+
+export function retryUntilExpected(expectedStatus, attempts=9, f) {
+  for (let i = 0; i < attempts; i++) {
+    const res = f()
+    if (res.status === expectedStatus) {
+      return res
+    }
+    console.warn(`attempt #${attempts + 1} failed with status ${res.status}`)
+    // status doesn't match expected. Sleep a bit and retry
+    sleep(Math.random())
+  }
+  // all previous attempts failed, try one last time
+  return f()
+}
+
+export function retryUntilOneOf(expectedStatuses=[200, 201, 204], attempts=9, f) {
+  for (let i = 0; i < attempts; i++) {
+    const res = f()
+    if (expectedStatuses.includes(res.status)) {
+      return res
+    }
+    console.warn(`attempt #${attempts + 1} failed with status ${res.status}`)
+    // status doesn't match expected. Sleep a bit and retry
     sleep(Math.random())
   }
   // all previous attempts failed, try one last time
