@@ -116,7 +116,7 @@ export function checkAndBuildCRDArray(cookies, crdArray) {
     for (let i = 0; i < crdCount; i++) {
       let crdSuffix = `${i}`;
       let res = crdUtil.createCRD(baseUrl, cookies, crdSuffix);
-      crdUtil.trackDataMetricsPerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv);
+      crdUtil.trackResponseSizePerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv);
       sleep(0.25);
     }
     sleep(0.15);
@@ -142,7 +142,7 @@ export function loadCRDs(data) {
       }
       let res = crdUtil.getCRD(baseUrl, data.cookies, c.id);
       let modifyCRD = JSON.parse(res.body);
-      crdUtil.trackDataMetricsPerURL(res, crdUtil.crdTag, headerDataRecv, epDataRecv);
+      crdUtil.trackResponseSizePerURL(res, crdUtil.crdTag, headerDataRecv, epDataRecv);
 
       modifyCRD.spec.versions[1].storage = false;
       modifyCRD.spec.versions[2] = newSchema;
@@ -150,7 +150,7 @@ export function loadCRDs(data) {
         fail("CRD DOES NOT HAVE EXPECTED # OF VERSIONS (3)");
       }
       res = crdUtil.updateCRD(baseUrl, data.cookies, modifyCRD);
-      crdUtil.trackDataMetricsPerURL(res, crdUtil.putCRDTag, headerDataRecv, epDataRecv);
+      crdUtil.trackResponseSizePerURL(res, crdUtil.putCRDTag, headerDataRecv, epDataRecv);
     })
     let { res, timeSpent } = crdUtil.verifyCRDs(baseUrl, data.cookies, namePrefix, crdCount, crdUtil.crdRefreshDelayMs * 5);
     console.log("VERIFY STATUS: ", res.status);

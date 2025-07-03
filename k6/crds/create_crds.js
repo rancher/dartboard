@@ -71,7 +71,7 @@ export function createCRDs(cookies) {
   for (let i = 0; i < crdCount; i++) {
     let crdSuffix = `${exec.vu.idInTest}-${randomString(4)}`
     let res = crdUtil.createCRD(baseUrl, cookies, crdSuffix)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
+    crdUtil.trackResponseSizePerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
     sleep(0.5)
   }
   sleep(0.15)
