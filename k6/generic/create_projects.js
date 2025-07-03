@@ -2,6 +2,7 @@ import {check, fail, sleep} from 'k6';
 import exec from 'k6/execution';
 import http from 'k6/http';
 import {Gauge} from 'k6/metrics';
+import * as projectUtil from "../projects/project_utils.js";
 import {getCookies, login} from "../rancher/rancher_utils.js";
 import {getPrincipalIds, getCurrentUserPrincipalId, getClusterIds} from "../rancher/rancher_users_utils.js"
 
@@ -42,14 +43,13 @@ const projectsMetric = new Gauge('test_projects')
 
 export function setup() {
     // log in
-    if (!login(baseUrl, {}, username, password)) {
+    if (!login(baseUrl, {}, username, password).status === 200) {
         fail(`could not login into cluster`)
     }
     const cookies = getCookies(baseUrl)
 
     // delete leftovers, if any
     cleanup(cookies)
-
     // return data that remains constant throughout the test
     return {
         cookies: cookies,
@@ -64,12 +64,13 @@ function cleanup(cookies) {
     check(res, {
         '/v1/management.cattle.io.projects returns status 200': (r) => r.status === 200,
     })
-    JSON.parse(res.body)["data"].filter(r => r["spec"]["description"].startsWith("Test ")).forEach(r => {
-        res = http.del(`${baseUrl}/v3/projects/${r["id"].replace("/", ":")}`, {cookies: cookies})
-        check(res, {
-            'DELETE /v3/projects returns status 200': (r) => r.status === 200,
-        })
-    })
+    let { _, projectArray } = projectUtil.getNormanProjectsMatchingName(baseUrl, cookies, "Test ")
+      console.log(`Found ${projectArray.length} projects to clean up`)
+      projectArray.forEach(r => {
+        let delRes = projectUtil.deleteNormanProject(baseUrl, cookies, r["id"])
+        if (delRes.status !== 200 && delRes.status !== 204) deleteAllFailed = true
+        sleep(0.5)
+      })
 }
 
 const mainRoleTemplateIds = ["project-owner", "project-member", "read-only", "custom"]

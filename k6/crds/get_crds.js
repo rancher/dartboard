@@ -68,7 +68,7 @@ export function checkAndBuildCRDArray(cookies, crdArray) {
     for (let i = 0; i < crdCount; i++) {
       let crdSuffix = `${i}`
       let res = crdUtil.createCRD(baseUrl, cookies, crdSuffix)
-      crdUtil.trackDataMetricsPerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
+      crdUtil.trackResponseSizePerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
       sleep(0.25)
     }
     let { res, crdArray } = crdUtil.getCRDsMatchingName(baseUrl, cookies, namePrefix)
@@ -82,6 +82,6 @@ export function checkAndBuildCRDArray(cookies, crdArray) {
 
 export function getCRDs(data) {
   let res = crdUtil.getCRDs(baseUrl, data.cookies)
-  crdUtil.trackDataMetricsPerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
+  crdUtil.trackResponseSizePerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
   return res
 }
