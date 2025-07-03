@@ -5,7 +5,7 @@ import { getCookies, login } from "../rancher/rancher_utils.js";
 import exec from "k6/execution";
 import { randomString } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import * as crdUtil from "./crd_utils.js";
-
+import * as k6Util from "../generic/k6_utils.js";
 
 const vus = __ENV.K6_VUS || 20
 const crdCount = __ENV.CRD_COUNT || 500
@@ -71,7 +71,7 @@ export function createCRDs(cookies) {
   for (let i = 0; i < crdCount; i++) {
     let crdSuffix = `${exec.vu.idInTest}-${randomString(4)}`
     let res = crdUtil.createCRD(baseUrl, cookies, crdSuffix)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
     sleep(0.5)
   }
   sleep(0.15)

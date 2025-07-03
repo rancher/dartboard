@@ -169,7 +169,7 @@ export function createUsers(cookies) {
     const id = JSON.parse(res.body)["id"]
 
     for (let j = 0; j < bindingsPerUser; j++) {
-        const res = retryOnConflict(() => {
+        const res = retryOnConflict(9, () => {
             return http.post(
                 `${baseUrl}/v3/globalrolebindings`,
                 JSON.stringify({
