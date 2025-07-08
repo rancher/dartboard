@@ -73,12 +73,13 @@ graph TD
 
     subgraph "Platform Specific Modules"
         aws_node[aws/node]
+        bastion[bastion]
     end
 
     aws --> network
     aws --> test_environment
 
-    network --> aws_node
+    network --> bastion
 
     test_environment --> upstream
     test_environment --> downstream
@@ -92,7 +93,6 @@ graph TD
     generic_rke2 --> generic_node
     generic_k3s --> generic_node
     generic_node --> aws_node
-
 ```
 
 ## Vendored binaries

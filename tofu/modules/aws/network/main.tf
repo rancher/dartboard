@@ -302,7 +302,7 @@ resource "aws_security_group" "private" {
 
 # Update the bastion module configuration
 module "bastion" {
-  source               = "../node"
+  source               = "../bastion"
   project_name         = var.project_name
   name                 = "bastion"
   ssh_private_key_path = var.ssh_private_key_path

@@ -10,6 +10,7 @@ module "network" {
   availability_zone    = var.availability_zone
   existing_vpc_name    = var.existing_vpc_name
   bastion_host_ami     = length(var.bastion_host_ami) > 0 ? var.bastion_host_ami : null
+  bastion_host_instance_type = "t4g.xlarge"
   ssh_bastion_user     = var.ssh_bastion_user
   ssh_public_key_path  = var.ssh_public_key_path
   ssh_private_key_path = var.ssh_private_key_path
