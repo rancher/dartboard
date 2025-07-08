@@ -89,6 +89,7 @@ resource "ssh_sensitive_resource" "first_server_installation" {
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
       datastore_endpoint     = var.datastore_endpoint
+      registry_mirror        = var.network_config.ssh_bastion_host
     })
     destination = "/tmp/install_k3s.sh"
     permissions = "0700"
@@ -145,6 +146,7 @@ resource "ssh_resource" "additional_server_installation" {
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
       datastore_endpoint     = var.datastore_endpoint
+      registry_mirror        = var.network_config.ssh_bastion_host
     })
     destination = "/tmp/install_k3s.sh"
     permissions = "0700"
@@ -197,6 +199,7 @@ resource "ssh_resource" "agent_installation" {
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
       datastore_endpoint     = var.datastore_endpoint
+      registry_mirror        = var.network_config.ssh_bastion_host
     })
     destination = "/tmp/install_k3s.sh"
     permissions = "0700"

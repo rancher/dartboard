@@ -37,6 +37,11 @@ resource "null_resource" "host_configuration" {
   }
 
   provisioner "file" {
+    source      = "${path.module}/docker-proxy.service"
+    destination = "/etc/systemd/system/docker-proxy.service"
+  }
+
+  provisioner "file" {
     source      = "${path.module}/dbus_max.connections.conf"
     destination = "/etc/dbus-1/system.d/max.connections.conf"
   }
@@ -62,6 +67,9 @@ resource "null_resource" "host_configuration" {
       "chmod +x /tmp/mount_ephemeral.sh",
       "sudo /tmp/mount_ephemeral.sh",
       "systemctl reload sshd",
+      "systemctl enable --now docker",
+      "systemctl daemon-reload",
+      "systemctl enable --now docker-proxy",
     ]
   }
 
