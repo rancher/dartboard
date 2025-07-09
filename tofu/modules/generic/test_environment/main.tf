@@ -102,7 +102,6 @@ module "downstream_clusters" {
 }
 
 module "nodes" {
-  # for_each = {for node in local.nodes: node.name => node}
   count = length(local.nodes)
   source = "../node"
   project_name          = var.project_name
