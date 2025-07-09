@@ -2,6 +2,7 @@
 
 set -xe
 
+<<<<<<< HEAD
 mkdir -p /tmp/rke2-artifacts
 pushd /tmp/rke2-artifacts
   version=$(echo "${distro_version}" | sed 's/+/%2B/g')
@@ -12,6 +13,8 @@ pushd /tmp/rke2-artifacts
   wget -c https://prime.ribs.rancher.io/rke2/"$version"/sha256sum-amd64.txt
 popd
 
+=======
+>>>>>>> 053f2d7 (fix ssh tunnel enable/disable)
 # use data disk if available (see mount_ephemeral.sh)
 if [ -d /data ]; then
   mkdir -p /data/rancher
@@ -145,4 +148,3 @@ fi
 
 systemctl enable rke2-${type}.service
 systemctl restart rke2-${type}.service
-

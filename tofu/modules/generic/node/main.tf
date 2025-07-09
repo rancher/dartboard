@@ -43,7 +43,7 @@ resource "local_file" "open_tunnels" {
 }
 
 resource "null_resource" "open_tunnels" {
-  count = var.create_tunnels && length(var.ssh_tunnels) > 0 ? 1 : 0
+  count = length(var.ssh_tunnels) > 0 ? 1 : 0
   provisioner "local-exec" {
     interpreter = ["bash", "-c"]
     command     = local_file.open_tunnels[0].filename
