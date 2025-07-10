@@ -3,6 +3,7 @@ import http from 'k6/http'
 import { retryUntilExpected } from "../rancher/rancher_utils.js";
 import * as YAML from '../lib/js-yaml-4.1.0.mjs'
 
+
 export const baseCRDPath = "v1/apiextensions.k8s.io.customresourcedefinitions"
 export const crdTag = { url: `/v1/apiextensions.k8s.io.customresourcedefinitions/<CRD ID>` }
 export const crdsTag = { url: `/v1/apiextensions.k8s.io.customresourcedefinitions` }
@@ -25,20 +26,6 @@ export function cleanupMatchingCRDs(baseUrl, cookies, namePrefix) {
       'DELETE /v1/apiextensions.k8s.io.customresourcedefinitions returns status 204': (r) => r.status === 204,
     })
   })
-}
-
-export function sizeOfHeaders(hdrs) {
-  return Object.keys(hdrs).reduce((sum, key) => sum + key.length + hdrs[key].length, 0);
-}
-
-export function trackDataMetricsPerURL(res, tags, headerDataRecv, epDataRecv) {
-  // Add data points for received data
-  headerDataRecv.add(sizeOfHeaders(res.headers));
-  if (res.hasOwnProperty('body') && res.body) {
-    epDataRecv.add(res.body.length, tags);
-  } else {
-    epDataRecv.add(0, tags)
-  }
 }
 
 export function getCRD(baseUrl, cookies, id) {
@@ -66,7 +53,7 @@ export function verifyCRDs(baseUrl, cookies, namePrefix, expectedLength, timeout
   let currentLength = -1
   // Poll customresourcedefinitions until receiving a 200
   while (new Date() - timeWas < timeoutMs) {
-    res = retryUntilExpected(200, () => { return getCRDs(baseUrl, cookies) })
+    res = retryUntilExpected(200, 9, () => { return getCRDs(baseUrl, cookies) })
     timeSpent = new Date() - timeWas
     if (res.status === 200) {
       let data = JSON.parse(res.body)["data"]

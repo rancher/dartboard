@@ -3,6 +3,7 @@ import { getCookies, login } from "../rancher/rancher_utils.js";
 import { Trend } from 'k6/metrics';
 import * as crdUtil from "../crds/crd_utils.js";
 import { verifySchemaExistsPolling, verifySchemaDefinitionExistsPolling } from "./schema_utils.js"
+import * as k6Util from "../generic/k6_utils.js";
 
 const vus = __ENV.K6_VUS || 1
 const perVuIterations = __ENV.PER_VU_ITERATIONS || 1
@@ -120,7 +121,7 @@ export function checkAndBuildCRDArray(cookies, crdArray) {
     for (let i = 0; i < crdCount; i++) {
       let crdSuffix = `${i}`
       let res = crdUtil.createCRD(baseUrl, cookies, crdSuffix)
-      crdUtil.trackDataMetricsPerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
+      k6Util.trackResponseSizePerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
       sleep(0.25)
     }
     let { res: res, crdArray: crds } = crdUtil.getCRDsMatchingName(baseUrl, cookies, namePrefix)
@@ -139,7 +140,7 @@ export function generateCRDArray(cookies) {
   for (let i = 0; i < crdCount; i++) {
     let crdSuffix = `${i}`
     let res = crdUtil.createCRD(baseUrl, cookies, crdSuffix)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
   }
 
   let crdArray = crdUtil.getCRDsMatchingNameVersions(baseUrl, cookies, namePrefix, 2)
@@ -150,7 +151,7 @@ export function generateCRDArray(cookies) {
   let finalCRD = crdArray[crdArray.length - 1]
   let schemaID = finalCRD.spec.group + "." + finalCRD.spec.names.singular
   let { res, timeSpent } = verifySchemaDefinitionExistsPolling(baseUrl, cookies, schemaID, finalCRD.spec.versions[1].name, crdUtil.crdRefreshDelayMs * 5)
-  crdUtil.trackDataMetricsPerURL(res, crdUtil.schemaDefinitionTag, headerDataRecv, epDataRecv)
+  k6Util.trackResponseSizePerURL(res, crdUtil.schemaDefinitionTag, headerDataRecv, epDataRecv)
   console.log("TIME SPENT: ", timeSpent)
   timePolled.add(timeSpent, crdUtil.schemaDefinitionTag)
   if (res.status != 200) {
@@ -160,7 +161,7 @@ export function generateCRDArray(cookies) {
   crdArray.forEach((crd, i) => {
     schemaID = crd.spec.group + "." + crd.spec.names.singular
     let { res, timeSpent } = verifySchemaDefinitionExistsPolling(baseUrl, cookies, schemaID, crd.spec.versions[1].name, crdUtil.crdRefreshDelayMs * 5)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.schemaDefinitionTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.schemaDefinitionTag, headerDataRecv, epDataRecv)
     console.log("TIME SPENT: ", timeSpent)
     timePolled.add(timeSpent, crdUtil.schemaDefinitionTag)
     if (res.status != 200) {
@@ -185,7 +186,7 @@ export function verifySchemas(data) {
     }
     res = crdUtil.getCRD(baseUrl, data.cookies, crd.id)
     let modifyCRD = JSON.parse(res.body)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.crdTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.crdTag, headerDataRecv, epDataRecv)
 
     modifyCRD.spec.versions[2] = newSchema
     // Unset previously stored version
@@ -198,19 +199,19 @@ export function verifySchemas(data) {
     let existingID = modifyCRD.spec.group + "." + modifyCRD.spec.names.singular
     existingIDs.push(existingID)
     res = crdUtil.updateCRD(baseUrl, data.cookies, modifyCRD)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.putCRDTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.putCRDTag, headerDataRecv, epDataRecv)
     updated += 1
   })
 
   existingIDs.forEach(id => {
     let { res, timeSpent } = verifySchemaExistsPolling(baseUrl, data.cookies, id, newSchema.name, crdUtil.crdRefreshDelayMs)
     let schemaBytes = res.body.length
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.schemasTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.schemasTag, headerDataRecv, epDataRecv)
     timePolled.add(timeSpent, crdUtil.schemasTag)
     console.log("3rd definition");
     ({ res: res, timeSpent: timeSpent } = verifySchemaDefinitionExistsPolling(baseUrl, data.cookies, id, newSchema.name, crdUtil.crdRefreshDelayMs * 5))
     console.log("TIME SPENT: ", timeSpent)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.schemaDefinitionTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.schemaDefinitionTag, headerDataRecv, epDataRecv)
     timePolled.add(timeSpent, crdUtil.schemaDefinitionTag)
     let schemaDefBytes = res.body.length
     check(schemaDefBytes, {
@@ -225,33 +226,33 @@ export function verifySchemas(data) {
     // get latest version of each CRD
     let res = crdUtil.getCRD(baseUrl, data.cookies, crd.id)
     let updatedCRD = JSON.parse(res.body)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.crdTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.crdTag, headerDataRecv, epDataRecv)
     // swap out active versions
     updatedCRD.spec.versions[2].storage = false
     updatedCRD.spec.versions[2].served = false
     updatedCRD.spec.versions[1].storage = true
 
     res = crdUtil.updateCRD(baseUrl, data.cookies, updatedCRD)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.putCRDTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.putCRDTag, headerDataRecv, epDataRecv)
     sleep(crdUtil.crdRefreshDelaySeconds + 1)
     res = crdUtil.getCRD(baseUrl, data.cookies, crd.id)
     updatedCRD = JSON.parse(res.body)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.crdTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.crdTag, headerDataRecv, epDataRecv)
     updatedCRD.status.storedVersions.splice(1, 1)
     res = crdUtil.updateCRD(baseUrl, data.cookies, updatedCRD)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.putCRDTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.putCRDTag, headerDataRecv, epDataRecv)
     reverted += 1
   })
 
   existingIDs.forEach(id => {
     let { res, timeSpent } = verifySchemaExistsPolling(baseUrl, data.cookies, id, CRDs[0].spec.versions[1].name, crdUtil.crdRefreshDelayMs)
     let schemaBytes = res.body.length
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.schemasTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.schemasTag, headerDataRecv, epDataRecv)
     timePolled.add(timeSpent, crdUtil.schemasTag)
     console.log("4th definition");
     ({ res: res, timeSpent: timeSpent } = verifySchemaDefinitionExistsPolling(baseUrl, data.cookies, id, CRDs[0].spec.versions[1].name, crdUtil.crdRefreshDelayMs * 5))
     console.log("TIME SPENT: ", timeSpent)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.schemaDefinitionTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.schemaDefinitionTag, headerDataRecv, epDataRecv)
     timePolled.add(timeSpent, crdUtil.schemaDefinitionTag)
     let schemaDefBytes = res.body.length
     check(schemaDefBytes, {

@@ -4,7 +4,7 @@ import { Trend } from 'k6/metrics';
 import { getCookies, login } from "../rancher/rancher_utils.js";
 import { vu as metaVU } from 'k6/execution'
 import * as crdUtil from "./crd_utils.js";
-
+import * as k6Util from "../generic/k6_utils.js";
 
 const vus = __ENV.K6_VUS || 20
 const crdCount = __ENV.CRD_COUNT || 500
@@ -86,7 +86,7 @@ export function checkAndBuildCRDArray(cookies, crdArray) {
     for (let i = 0; i < crdCount; i++) {
       let crdSuffix = `${i}`
       let res = crdUtil.createCRD(baseUrl, cookies, crdSuffix)
-      crdUtil.trackDataMetricsPerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
+      k6Util.trackResponseSizePerURL(res, crdUtil.crdsTag, headerDataRecv, epDataRecv)
       sleep(0.25)
     }
     let { res, crdArray: crds } = crdUtil.getCRDsMatchingName(baseUrl, cookies, namePrefix)
@@ -103,7 +103,7 @@ export function checkAndBuildCRDArray(cookies, crdArray) {
 export function deleteCRDs(data) {
   data.crdArray.forEach(c => {
     let res = crdUtil.deleteCRD(baseUrl, data.cookies, c.id)
-    crdUtil.trackDataMetricsPerURL(res, crdUtil.crdTag, headerDataRecv, epDataRecv)
+    k6Util.trackResponseSizePerURL(res, crdUtil.crdTag, headerDataRecv, epDataRecv)
     sleep(0.15)
   })
   let { _, timeSpent } = crdUtil.verifyCRDs(baseUrl, data.cookies, namePrefix, 0, crdUtil.crdRefreshDelayMs * 5)
