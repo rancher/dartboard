@@ -1,4 +1,4 @@
-import { check, fail } from 'k6';
+import { check, fail, sleep } from 'k6';
 import http from 'k6/http';
 
 // Parameters
@@ -15,6 +15,7 @@ const paginationStyle = __ENV.PAGINATION_STYLE || "k8s"
 const pageSize = __ENV.PAGE_SIZE || 100
 const firstPageOnly = __ENV.FIRST_PAGE_ONLY === "true"
 const urlSuffix = __ENV.URL_SUFFIX || ""
+const pauseSeconds = __ENV.PAUSE_SECONDS || 0
 
 // Option setting
 export const options = {
@@ -55,13 +56,18 @@ export function setup() {
             'logging in returns status 200': (r) => r.status === 200,
         })
 
+        pause()
+
         return http.cookieJar().cookiesForURL(res.url)
     }
 
     return {}
 }
 
-
+// Simulate a pause after a click - on average pauseSeconds, +/- a random quantity up to 50%
+function pause() {
+    sleep(pauseSeconds + (Math.random() - 0.5) * 2 * pauseSeconds/2)
+}
 
 export function list(cookies) {
     if (api === "steve") {
@@ -119,6 +125,8 @@ function listWithK8sStylePagination(url, cookies) {
             }
             throw e
         }
+
+        pause()
     }
 }
 
@@ -153,6 +161,8 @@ function listWithSteveStylePagination(url, cookies) {
             }
             throw e
         }
+
+        pause()
     }
 }
 
@@ -178,5 +188,7 @@ function listWithNormanStylePagination(url, cookies) {
             }
             throw e
         }
+
+        pause()
     }
 }
