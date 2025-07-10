@@ -3,7 +3,7 @@ import http from 'k6/http';
 
 // Parameters
 const vus = __ENV.VUS || 1
-const perVuIterations = __ENV.PER_VU_ITERATIONS || 30
+const perVuIterations = parseInt(__ENV.PER_VU_ITERATIONS || 30)
 const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
@@ -12,10 +12,10 @@ const cluster = __ENV.CLUSTER || "local"
 const resource = __ENV.RESOURCE || "management.cattle.io.setting"
 const api = __ENV.API || "steve"
 const paginationStyle = __ENV.PAGINATION_STYLE || "k8s"
-const pageSize = __ENV.PAGE_SIZE || 100
+const pageSize = parseInt(__ENV.PAGE_SIZE || 100)
 const firstPageOnly = __ENV.FIRST_PAGE_ONLY === "true"
 const urlSuffix = __ENV.URL_SUFFIX || ""
-const pauseSeconds = __ENV.PAUSE_SECONDS || 0
+const pauseSeconds = parseFloat(__ENV.PAUSE_SECONDS || 0.0)
 
 // Option setting
 export const options = {
