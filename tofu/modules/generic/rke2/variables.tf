@@ -66,6 +66,12 @@ variable "sans" {
   default     = []
 }
 
+variable "create_tunnels" {
+  description = "Flag determining if we should create any SSH tunnels at all."
+  type = bool
+  default = false
+}
+
 variable "max_pods" {
   description = "Maximum number of pods per node"
   type        = number
@@ -80,6 +86,11 @@ variable "node_cidr_mask_size" {
 
 variable "enable_audit_log" {
   description = "Ignored for RKE2"
+  default     = false
+}
+
+variable "public" {
+  description = "Whether the node is publicly accessible"
   default     = false
 }
 
