@@ -9,11 +9,12 @@ import http from 'k6/http';
 // Parameters
 const namespace = "scalability-test"
 const secretData = encoding.b64encode("a".repeat(10*1024))
-const confgMapData = encoding.b64encode("a".repeat(10*1024))
+const configMapData = encoding.b64encode("a".repeat(10*1024))
 const secretCount = Number(__ENV.SECRET_COUNT)
 const configMapCount = Number(__ENV.CONFIGMAP_COUNT)
 const deploymentCount =Number(__ENV.DEPLOYMENT_COUNT)
-const vus = 10
+const cluster = __ENV.CLUSTER || "local"
+const vus = 5
 
 // Option setting
 const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
@@ -75,8 +76,12 @@ export function setup() {
 
     const cookies = http.cookieJar().cookiesForURL(res.url)
 
+    const del_url = cluster === "local"?
+        `${baseUrl}/v1/namespaces/${namespace}` :
+        `${baseUrl}/k8s/clusters/${cluster}/v1/namespaces/${namespace}`
+
     // delete leftovers, if any
-    k8s.del(`${baseUrl}/api/v1/namespaces/${namespace}`)
+    k8s.del(`${del_url}`)
 
     // create empty namespace
     const body = {
@@ -85,7 +90,12 @@ export function setup() {
             
         },
     }
-    k8s.create(`${baseUrl}/api/v1/namespaces`, body)
+
+    const create_url = cluster === "local"?
+        `${baseUrl}/v1/namespaces` :
+        `${baseUrl}/k8s/clusters/${cluster}/v1/namespaces`
+
+    k8s.create(`${create_url}`, body)
 
     return cookies
 }
@@ -93,17 +103,17 @@ export function setup() {
 // create secrets
 export function createVaiResourcesSecrets(cookies) {
     const iter = exec.scenario.iterationInTest
-    createSecrets(iter, namespace, baseUrl, secretData, cookies)
+    createSecrets(baseUrl, cookies, cluster, namespace, secretData, iter)
 }
 
 // create config maps
 export function createVaiResourcesConfigMaps(cookies) {
     const iter = exec.scenario.iterationInTest
-    createConfigMaps(iter, namespace, baseUrl, confgMapData, cookies)
+    createConfigMaps(baseUrl, cookies, cluster, namespace, configMapData, iter)
 }
 
 // create deployments
 export function createVaiResourcesDeployments(cookies) {
     const iter = exec.scenario.iterationInTest
-    createDeployments(iter, namespace, baseUrl, cookies)
+    createDeployments(baseUrl, cookies, cluster, namespace, iter)
 }
