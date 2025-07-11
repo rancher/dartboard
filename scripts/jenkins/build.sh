@@ -14,7 +14,7 @@ fi
 
 count=0
 while [[ 3 -gt $count ]]; do
-    docker build . -f scripts/Dockerfile.k6 -t k6-dartboard-"${TRIM_JOB_NAME}""${BUILD_NUMBER}"
+    docker build . -f scripts/jenkins/Dockerfile.k6 -t k6-dartboard-"${TRIM_JOB_NAME}""${BUILD_NUMBER}"
 
     BUILD_EXIT_CODE=$?
     if [[ $BUILD_EXIT_CODE -eq 0 ]]; then break; fi
