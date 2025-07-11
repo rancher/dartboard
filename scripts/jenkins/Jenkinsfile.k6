@@ -8,7 +8,7 @@ node {
   }
 
   def testContainer = "${job_name}${env.BUILD_NUMBER}_test"
-  def imageName = "vai-tests-${job_name}${env.BUILD_NUMBER}"
+  def imageName = "k6-standalone-${job_name}${env.BUILD_NUMBER}"
   def envFile = ".env"
   def branch = "main"
   if (env.BRANCH && env.BRANCH != "null") {
