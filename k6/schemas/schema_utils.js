@@ -1,5 +1,6 @@
 import { check, fail, sleep } from 'k6';
 import http, { del } from 'k6/http'
+import { retryUntilExpected } from "../rancher/rancher_utils.js";
 
 export const schemasTag = { url: `/v1/schemas/<schemaID>` }
 export const schemaDefinitionTag = { url: `/v1/schemaDefinitions/<schemaID>` }
@@ -22,7 +23,7 @@ export function verifySchemaExistsPolling(baseUrl, cookies, existingID, expected
   let currentVersion = ""
   // Poll schemaDefinition until receiving a 200
   while (new Date() - timeWas < timeoutMs) {
-    res = retryUntilExpected(200, () => { return getSchema(baseUrl, cookies, existingID) })
+    res = retryUntilExpected(200, 9, () => { return getSchema(baseUrl, cookies, existingID) })
     timeSpent = new Date() - timeWas
     console.log("SCHEMA STATUS: ", res.status)
     if (res.status === 200) {
@@ -62,7 +63,7 @@ export function verifySchemaDefinitionExistsPolling(baseUrl, cookies, existingID
   let res = null
   // Poll schemaDefinition until receiving a 200
   while (new Date() - timeWas < timeoutMs) {
-    res = retryUntilExpected(200, () => { return getSchemaDefinition(baseUrl, cookies, existingID) })
+    res = retryUntilExpected(200, 9, () => { return getSchemaDefinition(baseUrl, cookies, existingID) })
     timeSpent = new Date() - timeWas
     console.log("SCHEMADEFINITION STATUS: ", res.status)
     if (res.status === 200) {
