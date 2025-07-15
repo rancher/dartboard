@@ -27,6 +27,7 @@ type ChartVariables struct {
 	AdminPassword               string           `yaml:"admin_password"`
 	RancherVersion              string           `yaml:"rancher_version"`
 	ForcePrimeRegistry          bool             `yaml:"force_prime_registry"`
+	RancherAppsRepoOverride     string           `yaml:"rancher_apps_repo_override"`
 	RancherChartRepoOverride    string           `yaml:"rancher_chart_repo_override"`
 	RancherImageOverride        string           `yaml:"rancher_image_override"`
 	RancherImageTagOverride     string           `yaml:"rancher_image_tag_override"`
