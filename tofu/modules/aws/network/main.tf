@@ -104,6 +104,7 @@ resource "aws_key_pair" "key_pair" {
 }
 
 resource "aws_main_route_table_association" "vpc_internet" {
+  count          = local.create_vpc ? 1 : 0
   vpc_id         = local.vpc_id
   route_table_id = aws_route_table.public.id
 }
@@ -256,14 +257,14 @@ module "bastion" {
     host_configuration_commands : []
   }
   network_config = {
-    availability_zone : var.availability_zone,
+    availability_zone : var.availability_zone
     public_subnet_id : local.public_subnet_id
     private_subnet_id : local.private_subnet_id
     secondary_private_subnet_id : local.secondary_private_subnet_id
     public_security_group_id : aws_security_group.public.id
     private_security_group_id : aws_security_group.private.id
     ssh_key_name : aws_key_pair.key_pair.key_name
-    ssh_bastion_host : null,
-    ssh_bastion_user : null,
+    ssh_bastion_host : null
+    ssh_bastion_user : null
   }
 }
