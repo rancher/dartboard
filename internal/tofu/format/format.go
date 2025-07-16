@@ -106,6 +106,12 @@ func ConvertValueToHCL(value any, isNested bool) string {
 		v = sliceToHclString(slice)
 	} else if m, isMap := value.(map[string]any); isMap {
 		v = mapToHclString(m)
+	} else if sliceMap, isSliceMap := value.([]map[string]any); isSliceMap {
+		anySlice := make([]any, len(sliceMap))
+		for i, m := range sliceMap {
+			anySlice[i] = m
+		}
+		v = sliceToHclString(anySlice)
 	} else {
 		v, err = primitiveToHclString(value, isNested)
 	}

@@ -14,7 +14,7 @@ module "server_nodes" {
   name                 = "${var.name}-server-${count.index}"
   ssh_private_key_path = var.ssh_private_key_path
   ssh_user             = var.ssh_user
-  ssh_tunnels = count.index == 0 ? [
+  ssh_tunnels = count.index == 0 && var.create_tunnels ? [
     [var.local_kubernetes_api_port, 6443],
     [var.tunnel_app_http_port, 80],
     [var.tunnel_app_https_port, 443],
@@ -22,6 +22,7 @@ module "server_nodes" {
   node_module           = var.node_module
   node_module_variables = var.node_module_variables
   network_config        = var.network_config
+  public                = var.public
 }
 
 module "agent_nodes" {
@@ -61,7 +62,6 @@ resource "ssh_sensitive_resource" "first_server_installation" {
       server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
       request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
       request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
-      sleep_time             = 0
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
@@ -109,7 +109,6 @@ resource "ssh_resource" "additional_server_installation" {
       server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
       request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
       request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
-      sleep_time             = count.index * 60
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
@@ -153,7 +152,6 @@ resource "ssh_resource" "agent_installation" {
       server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
       request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
       request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
-      sleep_time             = 0
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
@@ -177,7 +175,7 @@ resource "local_file" "kubeconfig" {
       {
         cluster = {
           certificate-authority-data = base64encode(tls_self_signed_cert.server_ca_cert.cert_pem)
-          server                     = local.local_kubernetes_api_url
+          server                     = var.create_tunnels ? local.local_kubernetes_api_url : "https://${module.server_nodes[0].public_name}:6443"
         }
         name = var.name
       }
