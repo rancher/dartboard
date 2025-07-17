@@ -58,7 +58,7 @@ resource "aws_subnet" "public" {
   count                   = local.create_vpc ? 1 : 0
   availability_zone       = var.availability_zone
   vpc_id                  = local.vpc_id
-  cidr_block              = "172.16.0.0/24"
+  cidr_block              = "172.16.0.0/20"
   map_public_ip_on_launch = true
 
   tags = {
@@ -71,7 +71,7 @@ resource "aws_subnet" "private" {
   count                   = local.create_vpc ? 1 : 0
   availability_zone       = var.availability_zone
   vpc_id                  = local.vpc_id
-  cidr_block              = "172.16.1.0/24"
+  cidr_block              = "172.16.96.0/20"
   map_public_ip_on_launch = false
 
   tags = {
@@ -84,7 +84,7 @@ resource "aws_subnet" "secondary_private" {
   count                   = local.create_vpc && var.secondary_availability_zone != null ? 1 : 0
   availability_zone       = var.secondary_availability_zone
   vpc_id                  = local.vpc_id
-  cidr_block              = "172.16.2.0/24"
+  cidr_block              = "172.16.192.0/20"
   map_public_ip_on_launch = false
 
   tags = {
