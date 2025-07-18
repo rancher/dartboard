@@ -23,6 +23,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -36,6 +37,135 @@ const (
 	K6KubeSecretName = "kube"
 	mimirURL         = "http://mimir.tester:9009/mimir"
 )
+
+type FileEntry struct {
+	RelPath string
+	Key     string
+}
+
+func collectFileEntries(root string, exts map[string]bool) ([]FileEntry, error) {
+	var entries []FileEntry
+	visited := make(map[string]bool) // Track visited paths to prevent infinite loops
+
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Handle symbolic links
+		if info.Mode()&os.ModeSymlink != 0 {
+			resolvedPath, err := filepath.EvalSymlinks(path)
+			if err != nil {
+				return nil
+			}
+
+			// Check if we've already visited this resolved path to prevent infinite loops
+			if visited[resolvedPath] {
+				return nil
+			}
+			visited[resolvedPath] = true
+
+			// Get info about the resolved path
+			resolvedInfo, err := os.Stat(resolvedPath)
+			if err != nil {
+				return nil
+			}
+
+			// If the symlink points to a directory, walk it recursively
+			if resolvedInfo.IsDir() {
+				return filepath.Walk(resolvedPath, func(subPath string, subInfo os.FileInfo, subErr error) error {
+					if subErr != nil || subInfo.IsDir() {
+						return subErr
+					}
+
+					// Handle nested symlinks by resolving them
+					actualPath := subPath
+					if subInfo.Mode()&os.ModeSymlink != 0 {
+						if resolved, resolveErr := filepath.EvalSymlinks(subPath); resolveErr == nil {
+							if !visited[resolved] {
+								visited[resolved] = true
+								actualPath = resolved
+								if fileInfo, statErr := os.Stat(resolved); statErr == nil && !fileInfo.IsDir() {
+									subInfo = fileInfo
+								} else {
+									return subErr
+								}
+							} else {
+								return nil // Skip already visited
+							}
+						} else {
+							return nil // Skip broken symlinks
+						}
+					}
+
+					ext := filepath.Ext(actualPath)
+					if !exts[ext] {
+						return nil
+					}
+
+					// Calculate relative path from original root
+					// First get the relative path of the symlink from root
+					symlinkRel, err := filepath.Rel(root, path)
+					if err != nil {
+						return err
+					}
+
+					// Then get the relative path of the file from the resolved symlink target
+					fileRel, err := filepath.Rel(resolvedPath, actualPath)
+					if err != nil {
+						return err
+					}
+
+					// Combine them to get the final relative path
+					var finalRel string
+					if symlinkRel == "." {
+						finalRel = fileRel
+					} else {
+						finalRel = filepath.Join(symlinkRel, fileRel)
+					}
+
+					key := strings.ReplaceAll(finalRel, string(os.PathSeparator), "__")
+					entries = append(entries, FileEntry{RelPath: finalRel, Key: key})
+					return nil
+				})
+			} else {
+				// It's a file symlink, treat it as a regular file
+				ext := filepath.Ext(resolvedPath)
+				if !exts[ext] {
+					return nil
+				}
+
+				rel, err := filepath.Rel(root, path)
+				if err != nil {
+					return err
+				}
+				key := strings.ReplaceAll(rel, string(os.PathSeparator), "__")
+				entries = append(entries, FileEntry{RelPath: rel, Key: key})
+			}
+			return nil
+		}
+
+		// Skip directories (non-symlink)
+		if info.IsDir() {
+			return nil
+		}
+
+		ext := filepath.Ext(path)
+		if !exts[ext] {
+			return nil
+		}
+
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		key := strings.ReplaceAll(rel, string(os.PathSeparator), "__")
+		entries = append(entries, FileEntry{RelPath: rel, Key: key})
+		return nil
+	})
+
+	return entries, err
+}
 
 func Exec(kubepath string, output io.Writer, args ...string) error {
 	fullArgs := append([]string{"--kubeconfig=" + kubepath}, args...)
@@ -153,6 +283,24 @@ func GetStatus(kubepath, kind, name, namespace string) (map[string]any, error) {
 }
 
 func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLogs bool, localBaseURL string, record bool) error {
+	// gather file entries
+	root := "./charts/k6-files/test-files"
+	exts := map[string]bool{".js": true, ".mjs": true, ".sh": true, ".env": true}
+	entries, err := collectFileEntries(root, exts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	relTestPath := testPath
+	// get rel path to test file
+	for _, e := range entries {
+		if strings.Contains(e.RelPath, testPath) {
+			log.Printf("FOUND RELATIVE FILE PATH: %s\n", e.RelPath)
+			relTestPath = e.RelPath
+			break
+		}
+		log.Printf("SEARCHING FOR FILE: %s\n", testPath)
+	}
+
 	// print what we are about to do
 	quotedArgs := []string{"run"}
 	for k, v := range envVars {
@@ -161,7 +309,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 		}
 		quotedArgs = append(quotedArgs, "-e", shellescape.Quote(fmt.Sprintf("%s=%s", k, v)))
 	}
-	quotedArgs = append(quotedArgs, shellescape.Quote(testPath))
+	quotedArgs = append(quotedArgs, shellescape.Quote(relTestPath))
 	log.Printf("Running equivalent of:\n./bin/k6 %s\n", strings.Join(quotedArgs, " "))
 
 	// if a kubeconfig is specified, upload it as secret to later mount it
@@ -189,7 +337,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	for k, v := range tags {
 		args = append(args, "--tag", fmt.Sprintf("%s=%s", k, v))
 	}
-	args = append(args, testPath)
+	args = append(args, relTestPath)
 	if record {
 		args = append(args, "-o", "experimental-prometheus-rw")
 	}
@@ -197,11 +345,15 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	// prepare volumes and volume mounts
 	volumes := []any{
 		map[string]any{"name": "k6-test-files", "configMap": map[string]string{"name": "k6-test-files"}},
-		map[string]any{"name": "k6-lib-files", "configMap": map[string]string{"name": "k6-lib-files"}},
 	}
-	volumeMounts := []any{
-		map[string]string{"mountPath": "/k6", "name": "k6-test-files"},
-		map[string]string{"mountPath": "/k6/lib", "name": "k6-lib-files"},
+
+	volumeMounts := []any{}
+	for _, e := range entries {
+		volumeMounts = append(volumeMounts, map[string]any{
+			"name":      "k6-test-files",
+			"mountPath": e.RelPath,
+			"subPath":   e.Key,
+		})
 	}
 	if _, ok := envVars["KUBECONFIG"]; ok {
 		volumes = append(volumes, map[string]any{"name": K6KubeSecretName, "secret": map[string]string{"secretName": "kube"}})
