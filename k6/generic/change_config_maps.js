@@ -9,6 +9,7 @@ import { Gauge, Trend, Counter } from 'k6/metrics';
 import * as userUtil from "../rancher/rancher_users_utils.js"
 import * as namespacesUtil from "../namespaces/namespace_utils.js"
 import * as projectsUtil from "../projects/project_utils.js"
+import { list as benchmarkList } from "../tests/api_benchmark.js"
 
 // Parameters
 const namespace = "dartboard-test"
@@ -17,15 +18,13 @@ const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
 const token = __ENV.TOKEN
-const cluster = __ENV.CLUSTER || "local"
 const resource = __ENV.RESOURCE || "configmaps"
-const api = __ENV.API || "steve"
 // Pagination options
-const paginationStyle = __ENV.PAGINATION_STYLE || "k8s"
-const pageSize = parseInt(__ENV.PAGE_SIZE || 100)
 const firstPageOnly = __ENV.FIRST_PAGE_ONLY === "true"
-const urlSuffix = __ENV.URL_SUFFIX || ""
 const pauseSeconds = parseFloat(__ENV.PAUSE_SECONDS || 5.0)
+
+// Requires the same parameters as `api_benchmark.js`, but since we now import
+// from that script, those env vars get loaded as well.
 
 // Option setting
 const vus = Number(__ENV.VUS || 5)
@@ -42,8 +41,18 @@ const diagnosticsBeforeGauge = new Gauge('diagnostics_before_churn');
 const diagnosticsDuringTrend = new Trend('diagnostics_during_churn');
 const diagnosticsAfterGauge = new Gauge('diagnostics_after_churn');
 const churnOpsCounter = new Counter('churn_operations_total');
-const churnOpsRate = new Trend('churn_operations_rate');
 let changeEvents = 0
+
+let listIterations = 0
+if (firstPageOnly) {
+  // round up to the nearest thousand to be safe
+  listIterations = Math.ceil(extrapolateIterations() / 1000) * 1000
+} else {
+  // Based on local testing, with ~5000 added configmaps we can reach:
+  // 3 iterations in ~18m50s; 20 iters in 2 hours
+  // round up to the nearest 5 to be safe
+  listIterations = Math.ceil(extrapolateIterations(3, 18 * 60 + 50) / 5) * 5
+}
 
 export const options = {
   insecureSkipTLSVerify: true,
@@ -55,6 +64,7 @@ export const options = {
   ],
 
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)', 'count'],
+  setupTimeout: "3m",
 
   scenarios: {
     preChurnDiagnostics: {
@@ -63,7 +73,7 @@ export const options = {
       vus: 1,
       iterations: 1,
       startTime: '0s',
-      maxDuration: '5m',
+      maxDuration: '2m',
     },
     change: {
       executor: 'constant-arrival-rate',
@@ -72,32 +82,31 @@ export const options = {
       duration: duration,
       rate: changeIPS,
       maxVUs: 20,
-      startTime: '5m'
+      startTime: '2m'
     },
     list: {
-      executor: 'constant-arrival-rate',
+      executor: 'per-vu-iterations',
       exec: 'list',
-      preAllocatedVUs: vus,
-      duration: duration,
-      rate: listIPS,
-      maxVUs: 20,
-      startTime: '5m'
+      vus: 1,
+      iterations: listIterations,
+      maxDuration: duration,
+      startTime: '2m'
     },
     duringChurnDiagnostics: {
       executor: 'constant-arrival-rate',
       exec: 'duringChurnDiagnostics',
       preAllocatedVUs: 1,
-      rate: 1, // Every N seconds
+      rate: 1,
       timeUnit: diagnosticsInterval,
       duration: duration,
-      startTime: '5m',
+      startTime: '2m',
     },
     postChurnDiagnostics: {
       executor: 'shared-iterations',
       exec: 'postChurnDiagnostics',
       vus: 1,
       iterations: 1,
-      startTime: `${parseInt(duration) + 5}m`,
+      startTime: `${parseDurationToMinutes(duration) + 5}m`,
       maxDuration: '5m',
     },
   },
@@ -106,16 +115,44 @@ export const options = {
     http_req_duration: ['p(95)<=2000'], // 95% of requests should be below 2s
     checks: ['rate>0.95'], // 95% success rate
     churn_operations_total: [`count>=${changeIPS * parseInt(duration) * 0.9}`], // At least 90% of target ops
-    churn_operations_rate: ['med>=100']
   }
 };
 
-// Simulate a pause after a click - on average pauseSeconds, +/- a random quantity up to 50%
-function pause() {
-  sleep(pauseSeconds + (Math.random() - 0.5) * 2 * pauseSeconds / 2)
+// Based on brief tests, when firstPageOnly == true list() can complete:
+//  ~100iters/150sec, and duration = 2h = 7200sec so set defaults accordingly
+// Calculates the # of iters needed to last targetDurationS time
+function extrapolateIterations(baselineIters = 100, elapsedSec = 150, targetDurationS = 7200) {
+  return Math.floor((baselineIters / elapsedSec) * targetDurationS);
 }
 
-// const pauseTime = pause()
+function parseDurationToMinutes(str) {
+  // Define conversion factors to minutes
+  const unitToMinutes = {
+    s: 1 / 60,    // seconds
+    m: 1,         // minutes
+    h: 60,        // hours
+    d: 1440       // days
+  };
+  let total = 0;
+
+  // Regex matches number + unit, with 'ms' first to avoid mis-splitting "ms" as "m" + "s"
+  const re = /(\d+)(ms|[smhd])/gi;
+  let match;
+
+  while ((match = re.exec(str)) !== null) {
+    const value = parseInt(match[1], 10);
+    const unit = match[2].toLowerCase();
+
+    if (!(unit in unitToMinutes)) {
+      throw new Error(`Unknown duration unit “${unit}” in "${str}"`);
+    }
+
+    total += value * unitToMinutes[unit];
+  }
+
+  // Return the integer number of minutes (floor)
+  return Math.floor(total);
+}
 
 function cleanup(cookies, namePrefix) {
   let deleteAllFailed = false
@@ -259,138 +296,8 @@ export function change() {
 }
 
 export function list(cookies) {
-  if (api === "steve") {
-    const url = cluster === "local" ?
-      `${baseUrl}/v1/${resource}` :
-      `${baseUrl}/k8s/clusters/${cluster}/v1/${resource}`
-
-    if (paginationStyle === "k8s") {
-      listWithK8sStylePagination(url, cookies)
-    }
-    else if (paginationStyle === "steve") {
-      listWithSteveStylePagination(url, cookies)
-    }
-    else {
-      fail("Invalid PAGINATION_STYLE value: " + paginationStyle)
-    }
-  }
-  else if (api === "norman") {
-    const url = `${baseUrl}/v3/${resource}`
-    listWithNormanStylePagination(url, cookies)
-  }
-  else {
-    fail("Invalid API value: " + api)
-  }
+  benchmarkList(cookies)
 }
-
-function listWithK8sStylePagination(url, cookies) {
-  let revision = null
-  let continueToken = null
-  while (true) {
-    const fullUrl = url + "?limit=" + pageSize +
-      (revision != null ? "&revision=" + revision : "") +
-      (continueToken != null ? "&continue=" + continueToken : "") +
-      urlSuffix
-
-    const res = http.get(fullUrl, { cookies: cookies })
-
-    const criteria = {}
-    criteria[`listing ${resource} from cluster ${cluster} (steve with k8s style pagination) succeeds`] = (r) => r.status === 200
-    criteria[`no slow pagination errors (410 Gone) detected`] = (r) => r.status !== 410
-    check(res, criteria)
-
-    try {
-      const body = JSON.parse(res.body)
-      if (body === undefined || body.continue === undefined || firstPageOnly) {
-        break
-      }
-      if (revision == null) {
-        revision = body.revision
-      }
-      continueToken = body.continue
-    } catch (e) {
-      if (e instanceof SyntaxError) {
-        fail("Response body does not parse as JSON: " + res.body)
-      }
-      throw e
-    }
-
-    pause()
-  }
-}
-
-function listWithSteveStylePagination(url, cookies) {
-  let i = 1
-  let revision = null
-  while (true) {
-    const fullUrl = url + "?pagesize=" + pageSize + "&page=" + i +
-      (revision != null ? "&revision=" + revision : "") +
-      urlSuffix
-
-    const res = http.get(fullUrl, { cookies: cookies })
-
-    const criteria = {}
-    criteria[`listing ${resource} from cluster ${cluster} (steve style pagination) succeeds`] = (r) => r.status === 200
-    criteria[`no slow pagination errors (410 Gone) detected`] = (r) => r.status !== 410
-    check(res, criteria)
-
-    try {
-      const body = JSON.parse(res.body)
-      if (body === undefined || body.data === undefined || body.length === 0 || firstPageOnly) {
-        break
-      }
-      if (revision == null) {
-        revision = body.revision
-      }
-      i = i + 1
-    }
-    catch (e) {
-      if (e instanceof SyntaxError) {
-        fail("Response body does not parse as JSON: " + res.body)
-      }
-      throw e
-    }
-
-    pause()
-  }
-}
-
-function listWithNormanStylePagination(url, cookies) {
-  let nextUrl = url + "?limit=" + pageSize
-  while (true) {
-    const res = http.get(nextUrl, { cookies: cookies })
-
-    const criteria = {}
-    criteria[`listing ${resource} from cluster ${cluster} (norman style pagination) succeeds`] = (r) => r.status === 200
-    criteria[`no slow pagination errors (410 Gone) detected`] = (r) => r.status !== 410
-    check(res, criteria)
-
-    try {
-      const body = JSON.parse(res.body)
-      if (body === undefined || body.pagination === undefined || body.pagination.partial === undefined || body.pagination.next === undefined) {
-        break
-      }
-      nextUrl = body.pagination.next
-    } catch (e) {
-      if (e instanceof SyntaxError) {
-        fail("Response body does not parse as JSON: " + res.body)
-      }
-      throw e
-    }
-
-    pause()
-  }
-}
-
-// export function eventsPerSecond() {
-//   // Change Events per second
-//   console.log("# EVENTS")
-//   console.log(changeEvents)
-//   const currentRate = changeEvents / ((Date.now() - exec.test.startTime) / 1000);
-//   console.log("EVENTS/SECOND")
-//   console.log(Math.round(currentRate))
-//   churnOpsRate.add(Math.round(currentRate));
-// }
 
 export function duringChurnDiagnostics(cookies) {
   console.log('=== Collecting DURING-CHURN diagnostics ===');
@@ -403,7 +310,7 @@ export function duringChurnDiagnostics(cookies) {
   // Record timing for diagnostic collection overhead
   diagnosticsDuringTrend.add(duration);
 
-  console.log(`During-churn diagnostics collected in ${duration}ms, current rate: ${currentRate.toFixed(2)} ops/s`);
+  console.log(`During-churn diagnostics collected in ${duration}ms`);
 }
 
 export function postChurnDiagnostics(cookies) {
