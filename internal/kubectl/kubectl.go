@@ -128,20 +128,20 @@ func collectFileEntries(root string, exts map[string]bool) ([]FileEntry, error) 
 					entries = append(entries, FileEntry{RelPath: finalRel, Key: key})
 					return nil
 				})
-			} else {
-				// It's a file symlink, treat it as a regular file
-				ext := filepath.Ext(resolvedPath)
-				if !exts[ext] {
-					return nil
-				}
-
-				rel, err := filepath.Rel(root, path)
-				if err != nil {
-					return err
-				}
-				key := strings.ReplaceAll(rel, string(os.PathSeparator), "__")
-				entries = append(entries, FileEntry{RelPath: rel, Key: key})
 			}
+			// Else, it's a file symlink, treat it as a regular file
+			ext := filepath.Ext(resolvedPath)
+			if !exts[ext] {
+				return nil
+			}
+
+			rel, err := filepath.Rel(root, path)
+			if err != nil {
+				return err
+			}
+			key := strings.ReplaceAll(rel, string(os.PathSeparator), "__")
+			entries = append(entries, FileEntry{RelPath: rel, Key: key})
+
 			return nil
 		}
 

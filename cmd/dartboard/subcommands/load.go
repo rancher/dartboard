@@ -28,7 +28,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// TODO: Make this command idempotent. Get count (# of resources) matching some unique identifer.
+// TODO: Make this command idempotent. Get count (# of resources) matching some unique identifier.
 // Then rerun the appropriate script, passing in the index to leave off on.
 // * Scripts need to support this type of idempotency, they currently do not
 func Load(cli *cli.Context) error {
