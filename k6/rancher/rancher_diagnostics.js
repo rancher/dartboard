@@ -476,10 +476,6 @@ export function processResourceCounts(resourceCountObj) {
   if (resourceCountObj && typeof resourceCountObj === 'object') {
     Object.keys(resourceCountObj).forEach(resourceType => {
       let resourceData = resourceCountObj[resourceType]
-
-      // Extract clean resource name from type (remove API version prefixes)
-      // let resourceName = resourceType.split('.').pop() || resourceType
-
       let resourceInfo = {}
 
       // Get total count from summary
