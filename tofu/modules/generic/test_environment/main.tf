@@ -5,6 +5,17 @@ locals {
   ] if template.cluster_count > 0])
 }
 
+module "upstream_postgres" {
+  count = var.upstream_cluster.postgres_node_variables != {} ? 1 : 0
+  source = "../postgres"
+
+  name                  = "upstream-postgres"
+  network_config        = var.network_config
+  node_module           = var.node_module
+  node_module_variables = var.upstream_cluster.postgres_node_variables
+  ssh_private_key_path  = var.ssh_private_key_path
+}
+
 module "upstream_cluster" {
   source                      = "../../${var.upstream_cluster_distro_module}"
   project_name                = var.project_name
@@ -24,6 +35,7 @@ module "upstream_cluster" {
   node_module               = var.node_module
   network_config            = var.network_config
   node_module_variables     = var.upstream_cluster.node_module_variables
+  datastore_endpoint        = var.upstream_cluster.postgres_node_variables != null ? module.upstream_postgres[0].datastore_endpoint : null
 }
 
 module "tester_cluster" {
