@@ -1,0 +1,14 @@
+*.json
+*.txt
+*.csv
+*.md
+*.log
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.mp4
+*.wav
+README*
+.DS_Store
