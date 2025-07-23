@@ -118,7 +118,7 @@ func Deploy(cli *cli.Context) error {
 	return GetAccess(cli)
 }
 
-func chartInstall(kubeConf string, chart chart, vals map[string]any) error {
+func chartInstall(kubeConf string, chart chart, vals map[string]any, extraArgs ...string) error {
 	var err error
 
 	name := chart.name
@@ -130,7 +130,7 @@ func chartInstall(kubeConf string, chart chart, vals map[string]any) error {
 
 	log.Printf("Installing chart %q (%s)\n", namespace+"/"+name, path)
 
-	if err = helm.Install(kubeConf, path, name, namespace, vals); err != nil {
+	if err = helm.Install(kubeConf, path, name, namespace, vals, extraArgs...); err != nil {
 		return fmt.Errorf("chart %s: %w", name, err)
 	}
 	return nil
@@ -218,13 +218,35 @@ func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Clu
 
 	chartVals := getRancherValsJSON(r.ChartVariables.RancherImageOverride, rancherImageTag, r.ChartVariables.AdminPassword, rancherClusterName, extraEnv, r.ChartVariables.RancherReplicas)
 
+	var extraArgs []string
+	if r.ChartVariables.RancherValues != "" {
+		p, err := writeValuesFile(r.ChartVariables.RancherValues)
+		if err != nil {
+			return fmt.Errorf("writing extra values file: %w", err)
+		}
+		defer os.Remove(p)
+
+		extraArgs = append(extraArgs, "-f", p)
+	}
+
 	fmt.Printf("\n\nRANCHER CHART VALS:\n")
 
 	for key, value := range chartVals {
 		fmt.Printf("\t%s = %v\n", key, value)
 	}
 
-	return chartInstall(cluster.Kubeconfig, chartRancher, chartVals)
+	return chartInstall(cluster.Kubeconfig, chartRancher, chartVals, extraArgs...)
+}
+
+func writeValuesFile(content string) (string, error) {
+	p, err := os.CreateTemp("", "values-*.yaml")
+	if err != nil {
+		return "", err
+	}
+	if _, err := io.WriteString(p, content); err != nil {
+		return "", err
+	}
+	return p.Name(), nil
 }
 
 func chartInstallRancherIngress(cluster *tofu.Cluster) error {
@@ -257,11 +279,18 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 
 func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
 	rancherMinorVersion := strings.Join(strings.Split(r.ChartVariables.RancherVersion, ".")[0:2], ".")
+	const chartPrefix = "https://github.com/rancher/charts/raw/release-v"
+	chartPath := fmt.Sprintf("%s%s", chartPrefix, rancherMinorVersion)
 
+	if len(r.ChartVariables.RancherAppsRepoOverride) > 0 {
+		chartPath = r.ChartVariables.RancherAppsRepoOverride
+	}
+
+	chartRancherMonitoringCRDRoute := "assets/rancher-monitoring-crd/rancher-monitoring-crd"
 	chartRancherMonitoringCRD := chart{
 		name:      "rancher-monitoring-crd",
 		namespace: "cattle-monitoring-system",
-		path:      fmt.Sprintf("https://github.com/rancher/charts/raw/release-v%s/assets/rancher-monitoring-crd/rancher-monitoring-crd-%s.tgz", rancherMinorVersion, r.ChartVariables.RancherMonitoringVersion),
+		path:      fmt.Sprintf("%s/%s-%s.tgz", chartPath, chartRancherMonitoringCRDRoute, r.ChartVariables.RancherMonitoringVersion),
 	}
 
 	chartVals := map[string]any{
@@ -279,10 +308,11 @@ func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
 		return err
 	}
 
+	chartRancherMonitoringRoute := "assets/rancher-monitoring/rancher-monitoring"
 	chartRancherMonitoring := chart{
 		name:      "rancher-monitoring",
 		namespace: "cattle-monitoring-system",
-		path:      fmt.Sprintf("https://github.com/rancher/charts/raw/release-v%s/assets/rancher-monitoring/rancher-monitoring-%s.tgz", rancherMinorVersion, r.ChartVariables.RancherMonitoringVersion),
+		path:      fmt.Sprintf("%s/%s-%s.tgz", chartPath, chartRancherMonitoringRoute, r.ChartVariables.RancherMonitoringVersion),
 	}
 
 	clusterAdd, err := getAppAddressFor(*cluster)
