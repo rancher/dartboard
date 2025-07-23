@@ -136,7 +136,7 @@ chart_variables:
   rancher_replicas: 1
   downstream_rancher_monitoring: true
   admin_password: adminadminadmin
-  # rancher_apps_repo_override: # must be the "raw" link not the "blob" link ex: https://github.com/rancher/charts/raw /dev-v2.11 vs https://github.com/rancher/charts/blob/dev-v2.12
+  # rancher_apps_repo_override: # must be the "raw" link not the "blob" link ex: https://github.com/rancher/charts/raw/dev-v2.11 vs https://github.com/rancher/charts/blob/dev-v2.12
   rancher_monitoring_version: 104.1.0+up57.0.3 # see https://github.com/rancher/charts/tree/release-v2.9/assets/rancher-monitoring-crd
   cert_manager_version: 1.8.0
   tester_grafana_version: 6.56.5

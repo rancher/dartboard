@@ -279,17 +279,18 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 
 func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
 	rancherMinorVersion := strings.Join(strings.Split(r.ChartVariables.RancherVersion, ".")[0:2], ".")
-
-	chartPath := fmt.Sprintf("https://github.com/rancher/charts/raw/release-v%s", rancherMinorVersion)
+	const chartPrefix = "https://github.com/rancher/charts/raw/release-v"
+	chartPath := fmt.Sprintf("%s%s", chartPrefix, rancherMinorVersion)
 
 	if len(r.ChartVariables.RancherAppsRepoOverride) > 0 {
 		chartPath = r.ChartVariables.RancherAppsRepoOverride
 	}
 
+	chartRancherMonitoringCRDRoute := "assets/rancher-monitoring-crd/rancher-monitoring-crd"
 	chartRancherMonitoringCRD := chart{
 		name:      "rancher-monitoring-crd",
 		namespace: "cattle-monitoring-system",
-		path:      fmt.Sprintf("%s/assets/rancher-monitoring-crd/rancher-monitoring-crd-%s.tgz", chartPath, r.ChartVariables.RancherMonitoringVersion),
+		path:      fmt.Sprintf("%s/%s-%s.tgz", chartPath, chartRancherMonitoringCRDRoute, r.ChartVariables.RancherMonitoringVersion),
 	}
 
 	chartVals := map[string]any{
@@ -307,10 +308,11 @@ func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
 		return err
 	}
 
+	chartRancherMonitoringRoute := "assets/rancher-monitoring/rancher-monitoring"
 	chartRancherMonitoring := chart{
 		name:      "rancher-monitoring",
 		namespace: "cattle-monitoring-system",
-		path:      fmt.Sprintf("%s/assets/rancher-monitoring/rancher-monitoring-%s.tgz", chartPath, r.ChartVariables.RancherMonitoringVersion),
+		path:      fmt.Sprintf("%s/%s-%s.tgz", chartPath, chartRancherMonitoringRoute, r.ChartVariables.RancherMonitoringVersion),
 	}
 
 	clusterAdd, err := getAppAddressFor(*cluster)
