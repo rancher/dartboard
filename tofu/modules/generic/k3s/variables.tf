@@ -65,6 +65,12 @@ variable "sans" {
   default     = []
 }
 
+variable "create_tunnels" {
+  description = "Flag determining if we should create any SSH tunnels at all."
+  type = bool
+  default = false
+}
+
 variable "max_pods" {
   description = "Maximum number of pods per node"
   type        = number
@@ -86,6 +92,11 @@ variable "datastore_endpoint" {
   description = "Override datastore with a custom endpoint string"
   type        = string
   default     = null
+}
+
+variable "public" {
+  description = "Whether the node is publicly accessible"
+  default     = false
 }
 
 variable "node_module" {
