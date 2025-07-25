@@ -148,23 +148,20 @@ export async function watchScenario(data) {
 
         ws.addEventListener('message', (e) => {
             const event = JSON.parse(e.data);
-            console.log(`Received event: ${event.name}`);
             if (event.name === 'resource.change') {
                 const now = new Date().getTime();
                 const delay = now - parseInt(event.data.data.data);
                 const resourceName = event.data.metadata.name;
-                console.log(`Processing change for ${resourceName}`);
                 if (!changeEvents[resourceName]) {
                     // this is the first server processing the event for this resource
                     changeEvents[resourceName] = [];
 
-                    console.log(`First server caught up on ${resourceName}. Delay: ${delay}ms`);
                     delayFirstObserver.add(delay)
                 }
                 changeEvents[resourceName].push(now);
+                console.log(`Server ${changeEvents[resourceName].length}/${steveServers.length} caught up on ${resourceName}. Delay: ${delay}ms`);
 
                 if (changeEvents[resourceName].length === steveServers.length) {
-                    console.log(`Last server caught up on ${resourceName}. Delay: ${delay}ms`);
                     delayLastObserver.add(delay);
 
                     const events = changeEvents[resourceName];
