@@ -130,6 +130,12 @@ export async function watchScenario(data) {
 
         ws.addEventListener('open', () => {
             console.log(`Connected to ${url}`);
+
+            setTimeout(() => {
+                console.log(`Closing socket to ${url}`);
+                ws.close();
+            }, watchDuration * 1000);
+
             ws.send(JSON.stringify({
                 resourceType: resource,
                 namespace: namespace,
@@ -170,15 +176,10 @@ export async function watchScenario(data) {
 
         ws.addEventListener('close', () => console.log(`disconnected from ${url}`));
         ws.addEventListener('error', (e) => {
-            if (e.error() != 'websocket: close sent') {
-                console.log('An unexpected error occured: ', e.error());
+            if (e.error != 'websocket: close sent') {
+                console.log('An unexpected error occured: ', e.error);
             }
         });
-
-        ws.setTimeout(() => {
-            console.log(`Closing socket to ${url}`);
-            ws.close();
-        }, watchDuration * 1000);
     }
 
     console.log("Done watching");
