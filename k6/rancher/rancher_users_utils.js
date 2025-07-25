@@ -3,10 +3,10 @@ import http from 'k6/http'
 
 export function getCurrentUserId(baseUrl, cookies) {
   let response = http.get(`${baseUrl}/v3/users?me=true`, {
-      headers: {
-          accept: 'application/json',
-      },
-      cookies: cookies,
+    headers: {
+      accept: 'application/json',
+    },
+    cookies: cookies,
   })
   check(response, {
     'reading user details was successful': (r) => r.status === 200,
@@ -20,10 +20,10 @@ export function getCurrentUserId(baseUrl, cookies) {
 
 export function getUserPreferences(baseUrl, cookies) {
   let response = http.get(`${baseUrl}/v1/userpreferences`, {
-      headers: {
-          accept: 'application/json',
-      },
-      cookies: cookies,
+    headers: {
+      accept: 'application/json',
+    },
+    cookies: cookies,
   })
   check(response, {
     'preferences can be queried': (r) => r.status === 200,
@@ -33,15 +33,15 @@ export function getUserPreferences(baseUrl, cookies) {
 
 export function setUserPreferences(baseUrl, cookies, userId, userPreferences) {
   let response = http.put(
-      `${baseUrl}/v1/userpreferences/${userId}`,
-      JSON.stringify(userPreferences),
-      {
-          headers: {
-              accept: 'application/json',
-              'content-type': 'application/json',
-          },
-          cookies: cookies,
-      }
+    `${baseUrl}/v1/userpreferences/${userId}`,
+    JSON.stringify(userPreferences),
+    {
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      cookies: cookies,
+    }
   )
   check(response, {
     'preferences can be set': (r) => r.status === 200,
@@ -58,7 +58,8 @@ export function getPrincipalIds(baseUrl, cookies) {
     fail('could not list users')
   }
   const users = JSON.parse(response.body).data
-  return users.filter(u => u["username"] != null).map(u => u["principalIds"][0])
+  let ids = users.filter(u => u["username"] != null && u["username"] !== undefined).map(u => u["principalIds"][0])
+  return users.filter(u => u["username"] != null && u["username"] !== undefined).map(u => u["principalIds"][0])
 }
 
 export function getPrincipalById(baseUrl, cookies, id) {
@@ -135,6 +136,22 @@ export function createUser(baseUrl, params = null, suffix) {
     '/v3/users returns status 201': (r) => r.status === 201,
   })
   return JSON.parse(res.body)
+}
+
+export function getUsers(baseUrl, cookies) {
+  const res = http.get(`${baseUrl}/v3/users`, { cookies: cookies })
+  check(res, {
+    '/v3/users returns status 200': (r) => r.status === 200 || r.status === 204,
+  })
+  return res
+}
+
+export function getUser(baseUrl, cookies, userId) {
+  const res = http.get(`${baseUrl}/v1/management.cattle.io.users/${userId}`, { cookies: cookies })
+  check(res, {
+    '/v1/management.cattle.io.users/ returns status 200': (r) => r.status === 200 || r.status === 204,
+  })
+  return res
 }
 
 export function deleteUser(baseUrl, cookies, userId) {
