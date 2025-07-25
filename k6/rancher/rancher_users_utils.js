@@ -58,7 +58,6 @@ export function getPrincipalIds(baseUrl, cookies) {
     fail('could not list users')
   }
   const users = JSON.parse(response.body).data
-  let ids = users.filter(u => u["username"] != null && u["username"] !== undefined).map(u => u["principalIds"][0])
   return users.filter(u => u["username"] != null && u["username"] !== undefined).map(u => u["principalIds"][0])
 }
 
