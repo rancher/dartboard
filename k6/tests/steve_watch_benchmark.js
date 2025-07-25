@@ -13,7 +13,7 @@ const changeRate = __ENV.CHANGE_RATE || 1;
 const watchMode = __ENV.WATCH_MODE || ''; // "" for full resource, "resource.changes" for notifications
 const numConfigMaps = __ENV.CONFIG_MAP_COUNT || 100;
 const vus = __ENV.K6_VUS || 1;
-const iterations = __ENV.PER_VU_ITERATIONS || 10;
+const watchDuration = __ENV.WATCH_DURATION || 30;
 
 const username = __ENV.USERNAME;
 const password = __ENV.PASSWORD;
@@ -32,16 +32,16 @@ export const options = {
             executor: 'per-vu-iterations',
             exec: 'watchScenario',
             vus: vus,
-            iterations: iterations,
-            maxDuration: '24h',
+            iterations: 1,
+            maxDuration: watchDuration * 2 + 's',
         },
         change: {
             executor: 'constant-arrival-rate',
             exec: 'changeScenario',
             rate: changeRate,
             timeUnit: '1s',
-            duration: '24h',
-            preAllocatedVUs: 1,
+            duration: watchDuration + 's',
+            preAllocatedVUs: 10,
         },
     },
     thresholds: {
@@ -161,7 +161,8 @@ export function watchScenario(data) {
         sockets.push(res);
     });
 
-    sleep(60); // Watch for 60 seconds
+    console.log(`Watching for ${watchDuration} seconds`);
+    sleep(watchDuration);
 }
 
 export function changeScenario(data) {
