@@ -1,4 +1,3 @@
-
 import { check, fail, sleep } from 'k6';
 import http from 'k6/http';
 import { Trend } from 'k6/metrics';
@@ -52,11 +51,14 @@ export const options = {
 };
 
 export function setup() {
+    console.log('Setting up test');
     var cookies = {}
     if (token) {
+        console.log('Using token for authentication');
         cookies = {R_SESS: token}
     }
     else if (username && password) {
+        console.log(`Logging in as ${username}`)
         const res = http.post(`${steveServers[0]}/v3-public/localProviders/local?action=login`, JSON.stringify({
             "description": "UI session",
             "responseType": "cookie",
@@ -75,6 +77,7 @@ export function setup() {
     }
 
     // Create namespace
+    console.log(`Creating namespace ${namespace}`)
     const nsBody = {
         "type": "namespace",
         "metadata": {
@@ -87,6 +90,7 @@ export function setup() {
     })
 
     // Create configmaps
+    console.log(`Creating ${numConfigMaps} configmaps`)
     for (let i = 0; i < numConfigMaps; i++) {
         const name = `test-config-map-${i}`
         const cmBody = {
@@ -102,25 +106,30 @@ export function setup() {
             'create configmap returns 201': (r) => r.status === 201,
         })
     }
-
+    console.log('Setup complete');
     return { cookies: cookies };
 }
 
 export function teardown(data) {
+    console.log('Tearing down test');
     http.del(`${steveServers[0]}/v1/namespaces/${namespace}`, null, { cookies: data.cookies })
+    console.log('Teardown complete');
 }
 
-let lastChangeTime = null;
 let changeEvents = {};
 
 export function watchScenario(data) {
+    console.log('Starting watch scenario');
     const sockets = [];
     steveServers.forEach(server => {
         const url = server.replace('http', 'ws') + '/v1/subscribe';
+        console.log(`Connecting to ${url}`)
         const jar = http.cookieJar();
         jar.set(server, "R_SESS", data.cookies["R_SESS"]);
         const res = ws.connect(url, {jar: jar}, function(socket) {
             socket.on('open', () => {
+                console.log(`Connected to ${url}`)
+
                 socket.send(JSON.stringify({
                     resourceType: resource,
                     namespace: namespace,
@@ -130,10 +139,12 @@ export function watchScenario(data) {
 
             socket.on('message', (message) => {
                 const event = JSON.parse(message);
+                console.log(`Received event: ${event.name}`);
                 if (event.name === 'resource.change') {
                     const now = new Date().getTime();
                     const delay = now - parseInt(event.data.data.data);
                     const resourceName = event.data.metadata.name;
+                    console.log(`Processing change for ${resourceName}`);
                     if (!changeEvents[resourceName]) {
                         // this is the first server processing the event for this resource
                         changeEvents[resourceName] = [];
@@ -197,9 +208,11 @@ export function changeScenario(data) {
     check(putRes, {
         'update configmap returns 200': (r) => r.status === 200,
     });
+    console.log(`Changed configmap ${name}`);
 }
 
 export function handleSummary(data) {
+    console.log('Generating summary');
     return {
         'stdout': textSummary(data, { indent: ' ', enableColors: true }),
     };
