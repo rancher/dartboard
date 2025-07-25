@@ -106,7 +106,10 @@ export function setup() {
             'create configmap returns 201': (r) => r.status === 201,
         })
     }
-    console.log('Setup complete');
+
+    const sleepTime = numConfigMaps / 100;
+    console.log(`Setup complete. Waiting ${sleepTime}s for informers to catch up`);
+    sleep(sleepTime);
     return { cookies: cookies };
 }
 
