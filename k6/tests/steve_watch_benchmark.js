@@ -117,7 +117,9 @@ export function watchScenario(data) {
     const sockets = [];
     steveServers.forEach(server => {
         const url = server.replace('http', 'ws') + '/v1/subscribe';
-        const res = ws.connect(url, {cookies: data.cookies}, function(socket) {
+        const jar = http.cookieJar();
+        jar.set(server, "R_SESS", data.cookies["R_SESS"]);
+        const res = ws.connect(url, {jar: jar}, function(socket) {
             socket.on('open', () => {
                 socket.send(JSON.stringify({
                     resourceType: resource,
