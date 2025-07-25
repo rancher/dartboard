@@ -33,7 +33,7 @@ export const options = {
             exec: 'watchScenario',
             vus: vus,
             iterations: 1,
-            maxDuration: watchDuration * 2 + 's',
+            maxDuration: watchDuration + 's',
         },
         change: {
             executor: 'constant-arrival-rate',
@@ -158,13 +158,17 @@ export function watchScenario(data) {
                     console.log('An unexpected error occured: ', e.error());
                 }
             });
+
+            socket.setTimeout(function () {
+                console.log(`Closing socket to ${url}`)
+                socket.close();
+            }, watchDuration * 1000);
         });
         check(res, { 'status is 101': (r) => r && r.status === 101 });
         sockets.push(res);
     });
 
-    console.log(`Watching for ${watchDuration} seconds`);
-    sleep(watchDuration);
+    console.log("Done watching");
 }
 
 export function changeScenario(data) {
