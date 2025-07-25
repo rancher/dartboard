@@ -132,21 +132,26 @@ export function watchScenario(data) {
                 const event = JSON.parse(message);
                 if (event.name === 'resource.change') {
                     const now = new Date().getTime();
+                    const delay = now - parseInt(event.data.data.data);
                     const resourceName = event.data.metadata.name;
                     if (!changeEvents[resourceName]) {
+                        // this is the first server processing the event for this resource
                         changeEvents[resourceName] = [];
+
+                        console.log(`First server caught up on ${resourceName}. Delay: ${delay}ms`);
+                        delayFirstObserver.add(delay)
                     }
                     changeEvents[resourceName].push(now);
 
                     if (changeEvents[resourceName].length === steveServers.length) {
+                        console.log(`Last server caught up on ${resourceName}. Delay: ${delay}ms`);
+                        delayLastObserver.add(delay);
+
                         const events = changeEvents[resourceName];
                         const first = Math.min(...events);
                         const last = Math.max(...events);
                         deltaFastestSlowest.add(last - first);
-                        if(lastChangeTime) {
-                            delayFirstObserver.add(first - lastChangeTime);
-                            delayLastObserver.add(last - lastChangeTime);
-                        }
+                        console.log(`Delta between fastest and slowest: ${last - first}ms`);
                         delete changeEvents[resourceName];
                     }
                 }
@@ -183,9 +188,8 @@ export function changeScenario(data) {
     }
     const configmap = JSON.parse(getRes.body);
 
-    configmap.data.data = `updated-${new Date().getTime()}`;
+    configmap.data.data = `${new Date().getTime()}`;
 
-    lastChangeTime = new Date().getTime();
     const putRes = http.put(`${server}/v1/configmaps/${namespace}/${name}`, JSON.stringify(configmap), {
         headers: { 'Content-Type': 'application/json' },
         cookies: data.cookies
