@@ -1,7 +1,7 @@
 import { check, fail, sleep } from 'k6';
 import http from 'k6/http';
 import { Trend } from 'k6/metrics';
-import ws from 'k6/ws';
+import { WebSocket } from 'k6/experimental/websockets';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 
 // Parameters
@@ -118,71 +118,68 @@ export function teardown(data) {
 
 let changeEvents = {};
 
-export function watchScenario(data) {
+export async function watchScenario(data) {
     console.log('Starting watch scenario');
-    const sockets = [];
-    steveServers.forEach(server => {
+
+    for (const server of steveServers) {
         const url = server.replace('http', 'ws') + '/v1/subscribe';
-        console.log(`Connecting to ${url}`)
+        console.log(`Connecting to ${url}`);
         const jar = http.cookieJar();
         jar.set(server, "R_SESS", data.cookies["R_SESS"]);
-        const res = ws.connect(url, {jar: jar}, function(socket) {
-            socket.on('open', () => {
-                console.log(`Connected to ${url}`)
+        const ws = new WebSocket(url, { jar: jar });
 
-                socket.send(JSON.stringify({
-                    resourceType: resource,
-                    namespace: namespace,
-                    mode: watchMode,
-                }));
-            });
-
-            socket.on('message', (message) => {
-                const event = JSON.parse(message);
-                console.log(`Received event: ${event.name}`);
-                if (event.name === 'resource.change') {
-                    const now = new Date().getTime();
-                    const delay = now - parseInt(event.data.data.data);
-                    const resourceName = event.data.metadata.name;
-                    console.log(`Processing change for ${resourceName}`);
-                    if (!changeEvents[resourceName]) {
-                        // this is the first server processing the event for this resource
-                        changeEvents[resourceName] = [];
-
-                        console.log(`First server caught up on ${resourceName}. Delay: ${delay}ms`);
-                        delayFirstObserver.add(delay)
-                    }
-                    changeEvents[resourceName].push(now);
-
-                    if (changeEvents[resourceName].length === steveServers.length) {
-                        console.log(`Last server caught up on ${resourceName}. Delay: ${delay}ms`);
-                        delayLastObserver.add(delay);
-
-                        const events = changeEvents[resourceName];
-                        const first = Math.min(...events);
-                        const last = Math.max(...events);
-                        deltaFastestSlowest.add(last - first);
-                        console.log(`Delta between fastest and slowest: ${last - first}ms`);
-                        delete changeEvents[resourceName];
-                    }
-                }
-            });
-
-            socket.on('close', () => console.log(`disconnected from ${url}`));
-            socket.on('error', function (e) {
-                if (e.error() != 'websocket: close sent') {
-                    console.log('An unexpected error occured: ', e.error());
-                }
-            });
-
-            socket.setTimeout(function () {
-                console.log(`Closing socket to ${url}`)
-                socket.close();
-            }, watchDuration * 1000);
+        ws.addEventListener('open', () => {
+            console.log(`Connected to ${url}`);
+            ws.send(JSON.stringify({
+                resourceType: resource,
+                namespace: namespace,
+                mode: watchMode,
+            }));
         });
-        check(res, { 'status is 101': (r) => r && r.status === 101 });
-        sockets.push(res);
-    });
+
+        ws.addEventListener('message', (e) => {
+            const event = JSON.parse(e.data);
+            console.log(`Received event: ${event.name}`);
+            if (event.name === 'resource.change') {
+                const now = new Date().getTime();
+                const delay = now - parseInt(event.data.data.data);
+                const resourceName = event.data.metadata.name;
+                console.log(`Processing change for ${resourceName}`);
+                if (!changeEvents[resourceName]) {
+                    // this is the first server processing the event for this resource
+                    changeEvents[resourceName] = [];
+
+                    console.log(`First server caught up on ${resourceName}. Delay: ${delay}ms`);
+                    delayFirstObserver.add(delay)
+                }
+                changeEvents[resourceName].push(now);
+
+                if (changeEvents[resourceName].length === steveServers.length) {
+                    console.log(`Last server caught up on ${resourceName}. Delay: ${delay}ms`);
+                    delayLastObserver.add(delay);
+
+                    const events = changeEvents[resourceName];
+                    const first = Math.min(...events);
+                    const last = Math.max(...events);
+                    deltaFastestSlowest.add(last - first);
+                    console.log(`Delta between fastest and slowest: ${last - first}ms`);
+                    delete changeEvents[resourceName];
+                }
+            }
+        });
+
+        ws.addEventListener('close', () => console.log(`disconnected from ${url}`));
+        ws.addEventListener('error', (e) => {
+            if (e.error() != 'websocket: close sent') {
+                console.log('An unexpected error occured: ', e.error());
+            }
+        });
+
+        ws.setTimeout(() => {
+            console.log(`Closing socket to ${url}`);
+            ws.close();
+        }, watchDuration * 1000);
+    }
 
     console.log("Done watching");
 }
