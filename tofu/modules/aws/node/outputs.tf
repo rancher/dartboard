@@ -4,11 +4,11 @@ output "name" {
 
 output "private_name" {
   depends_on = [null_resource.host_configuration]
-  value = var.public ? aws_instance.instance.public_dns : aws_instance.instance.private_dns
+  value = aws_instance.instance.private_dns
 }
 
 output "private_ip" {
-  value = var.public ? aws_instance.instance.public_ip : aws_instance.instance.private_ip
+  value = aws_instance.instance.private_ip
 }
 
 output "public_ip" {
@@ -17,7 +17,7 @@ output "public_ip" {
 
 output "public_name" {
   depends_on = [null_resource.host_configuration]
-  value      = var.public ? aws_instance.instance.public_ip : aws_instance.instance.private_dns
+  value      = aws_instance.instance.public_dns
 }
 
 output "ssh_user" {
