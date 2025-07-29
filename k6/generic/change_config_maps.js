@@ -54,6 +54,25 @@ if (firstPageOnly) {
   listIterations = Math.ceil(extrapolateIterations(3, 18 * 60 + 50) / 5) * 5
 }
 
+let defaultFilters = [
+  "sort=metadata.name&",
+  "filter=metadata.namespace!=p-4vgxn&",
+  "filter=metadata.namespace!=p-5xk4x&",
+  "filter=metadata.namespace!=cattle-fleet-clusters-system&",
+  "filter=metadata.namespace!=cattle-fleet-local-system&",
+  "filter=metadata.namespace!=cattle-fleet-system&",
+  "filter=metadata.namespace!=cattle-global-data&",
+  "filter=metadata.namespace!=cattle-impersonation-system&",
+  "filter=metadata.namespace!=cattle-provisioning-capi-system&",
+  "filter=metadata.namespace!=cattle-system&",
+  "filter=metadata.namespace!=cattle-ui-plugin-system&",
+  "filter=metadata.namespace!=fleet-default&",
+  "filter=metadata.namespace!=fleet-local&",
+  "filter=metadata.namespace!=kube-node-lease&",
+  "filter=metadata.namespace!=kube-public&",
+  "filter=metadata.namespace!=kube-system&"
+]
+
 export const options = {
   insecureSkipTLSVerify: true,
   tlsAuth: [
@@ -191,20 +210,22 @@ function getProjectWithRetry(baseUrl, cookies, projectId, maxRetries = 5) {
 }
 
 export function setup() {
+  var cookies = {}
   // log in
   // if session cookie was specified, save it
   if (token) {
-    return { R_SESS: token }
+    cookies = { R_SESS: token }
+  } else if (username != "" && password != "") {
+
+    let adminLoginRes = login(baseUrl, {}, username, password)
+
+    if (adminLoginRes.status !== 200) {
+      fail(`could not login to cluster as admin`)
+    }
+    cookies = getCookies(baseUrl)
+  } else {
+    fail("Must provide token or login credentials")
   }
-
-  var cookies = {}
-
-  let adminLoginRes = login(baseUrl, {}, username, password)
-
-  if (adminLoginRes.status !== 200) {
-    fail(`could not login to cluster as admin`)
-  }
-  cookies = getCookies(baseUrl)
 
   // delete leftovers, if any
   cleanup(cookies, namespace)
@@ -257,14 +278,58 @@ export function setup() {
     fail("Dartboard test namespace not created")
   }
 
-  return cookies
+  // // Get all projects from the API to retrieve their actual IDs
+  // console.log("Retrieving all projects from API...")
+  // let { res: allProjectsRes, projectArray: allProjects } = projectsUtil.getNormanProjects(baseUrl, cookies)
+  // if (allProjectsRes.status !== 200 || !allProjects) {
+  //   console.warn("Failed to retrieve projects list")
+  //   allProjects = []
+  // }
+  // console.log(`Retrieved ${allProjects.length} total projects`)
+
+  // // Get all namespaces from the API to retrieve their actual IDs
+  // console.log("Retrieving all namespaces from API...")
+  // let { res: allNamespacesRes, namespaceArray: allNamespaces } = namespacesUtil.getNamespaces(baseUrl, cookies)
+  // if (allNamespacesRes.status !== 200 || !allNamespaces) {
+  //   console.warn("Failed to retrieve namespaces list")
+  //   allNamespaces = []
+  // }
+  // console.log(`Retrieved ${allNamespaces.length} total namespaces`)
+
+  // Build full filter list (defaultFilters + all Project IDs, namespace IDs, etc.)
+  let filters = [...defaultFilters] // Copy default filters
+
+  // // Add filters for all projects (using their actual IDs)
+  // allProjects.forEach(project => {
+  //   if (project.id) {
+  //     filters.push(`metadata.namespace!=${project.id}`)
+  //   }
+  //   if (project.name) {
+  //     filters.push(`metadata.namespace!=${project.name}`)
+  //   }
+  // })
+
+  // // Add filters for all namespaces (using their actual metadata names and IDs)
+  // allNamespaces.forEach(ns => {
+  //   if (ns.metadata && ns.metadata.name) {
+  //     filters.push(`metadata.namespace!=${ns.metadata.name}`)
+  //   }
+  //   if (ns.id) {
+  //     filters.push(`metadata.namespace!=${ns.id}`)
+  //   }
+  // })
+
+  // console.log(`Setup complete. Found ${allProjects.length} total projects and ${allNamespaces.length} total namespaces.`)
+  console.log(`Total filters available: ${filters.length}. Filters: ${filters}`)
+
+  return { cookies: cookies, filters: filters }
 }
 
-export function preChurnDiagnostics(cookies) {
+export function preChurnDiagnostics(data) {
   console.log('=== Collecting PRE-CHURN diagnostics ===');
 
-  const resourceCounts = collectResourceCounts(cookies, null);
-  const apiTimings = collectAPITimings(cookies, null);
+  const resourceCounts = collectResourceCounts(data.cookies, null);
+  const apiTimings = collectAPITimings(data.cookies, null);
 
   // Record baseline metrics
   diagnosticsUtil.metrics.forEach(({ key, gauge }) => {
@@ -295,16 +360,16 @@ export function change() {
   changeEvents += 1
 }
 
-export function list(cookies) {
-  benchmarkList(cookies)
+export function list(data) {
+  benchmarkList(data.cookies, data.filters)
 }
 
-export function duringChurnDiagnostics(cookies) {
+export function duringChurnDiagnostics(data) {
   console.log('=== Collecting DURING-CHURN diagnostics ===');
 
   const start = Date.now();
-  const resourceCounts = collectResourceCounts(cookies, null);
-  const apiTimings = collectAPITimings(cookies, null);
+  const resourceCounts = collectResourceCounts(data.cookies, null);
+  const apiTimings = collectAPITimings(data.cookies, null);
   const duration = Date.now() - start;
 
   // Record timing for diagnostic collection overhead
@@ -313,14 +378,14 @@ export function duringChurnDiagnostics(cookies) {
   console.log(`During-churn diagnostics collected in ${duration}ms`);
 }
 
-export function postChurnDiagnostics(cookies) {
+export function postChurnDiagnostics(data) {
   console.log('=== Collecting POST-CHURN diagnostics ===');
 
   // Wait a bit for operations to settle
   sleep(5);
 
-  const resourceCounts = collectResourceCounts(cookies, null);
-  const apiTimings = collectAPITimings(cookies, null);
+  const resourceCounts = collectResourceCounts(data.cookies, null);
+  const apiTimings = collectAPITimings(data.cookies, null);
 
   // Record final metrics
   diagnosticsUtil.metrics.forEach(({ key, gauge }) => {
