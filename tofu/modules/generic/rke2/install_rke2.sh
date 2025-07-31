@@ -2,10 +2,6 @@
 
 set -xe
 
-# HACK: work around https://github.com/k3s-io/k3s/issues/2306
-sleep ${sleep_time}
-
-sudo -s <<SUDO
 # use data disk if available (see mount_ephemeral.sh)
 if [ -d /data ]; then
   mkdir -p /data/rancher
@@ -90,4 +86,3 @@ export INSTALL_RKE2_TYPE=${type}
 curl -sfL https://get.rke2.io | sh -
 systemctl enable rke2-${type}.service
 systemctl restart rke2-${type}.service
-SUDO
