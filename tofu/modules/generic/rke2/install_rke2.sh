@@ -5,6 +5,16 @@ set -xe
 # HACK: work around https://github.com/k3s-io/k3s/issues/2306
 sleep ${sleep_time}
 
+mkdir -p /tmp/rke2-artifacts
+pushd /tmp/rke2-artifacts
+  version=$(echo "${distro_version}" | sed 's/+/%2B/g')
+  wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-core.linux-amd64.tar.gz
+  wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-canal.linux-amd64.tar.gz
+  wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-calico.linux-amd64.tar.gz
+  wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2.linux-amd64.tar.gz
+  wget -c https://prime.ribs.rancher.io/rke2/"$version"/sha256sum-amd64.txt
+popd
+
 sudo -s <<SUDO
 # use data disk if available (see mount_ephemeral.sh)
 if [ -d /data ]; then
@@ -65,6 +75,7 @@ tls-san:
 kubelet-arg:
 - "--config=/etc/rancher/rke2/kubelet-custom.config"
 kube-controller-manager-arg: "node-cidr-mask-size=${node_cidr_mask_size}"
+system-default-registry: registry.rancher.com
 EOF
 
 cat > /etc/rancher/rke2/kubelet-custom.config <<EOF
@@ -87,7 +98,9 @@ EOF
 export INSTALL_RKE2_VERSION=${distro_version}
 export INSTALL_RKE2_TYPE=${type}
 
-curl -sfL https://get.rke2.io | sh -
+curl -sfL https://get.rke2.io --output install.sh
+INSTALL_RKE2_ARTIFACT_PATH=/tmp/rke2-artifacts sh install.sh
+
 systemctl enable rke2-${type}.service
 systemctl restart rke2-${type}.service
 SUDO
