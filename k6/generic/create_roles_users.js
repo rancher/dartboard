@@ -136,10 +136,9 @@ export function createRoles(cookies) {
 }
 
 const bindings = [
-    "user", "restricted-admin", "user-base", "authn-manage", "kontainerdrivers-manage",
-    "clustertemplaterevisions-create", "catalogs-use", "features-manage", "clusters-create", "catalogs-manage",
-    "settings-manage", "view-rancher-metrics", "nodedrivers-manage", "clustertemplates-create",
-    "podsecuritypolicytemplates-manage", "users-manage"
+    "user", "admin", "user-base", "authn-manage", "kontainerdrivers-manage", "settings-manage",
+    "clusters-create", "features-manage", "nodedrivers-manage", "roles-manage",
+    "view-rancher-metrics"
 ]
 
 export function createUsers(cookies) {
