@@ -99,7 +99,7 @@ function listWithK8sStylePagination(url, cookies, filters) {
   let continueToken = null
   while (true) {
     const fullUrl = url + "?limit=" + pageSize +
-      (filters != "" && filters != null ? "&" + filters : "") +
+      (filters != "" && filters != "" ? "&" + filters : "") +
       (revision != null ? "&revision=" + revision : "") +
       (continueToken != null ? "&continue=" + continueToken : "") +
       urlSuffix
@@ -136,7 +136,7 @@ function listWithSteveStylePagination(url, cookies, filters) {
   let revision = null
   while (true) {
     const fullUrl = url + "?pagesize=" + pageSize + "&page=" + i +
-      (filters != "" && filters != null ? "&" + filters : "") +
+      (filters != "" && filters != "" ? "&" + filters : "") +
       (revision != null ? "&revision=" + revision : "") +
       urlSuffix
 

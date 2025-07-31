@@ -4,7 +4,6 @@ import exec from 'k6/execution';
 import * as k8s from './k8s.js'
 import * as diagnosticsUtil from "../rancher/rancher_diagnostics.js";
 import { getCookies, login, retryUntilOneOf } from "../rancher/rancher_utils.js";
-import http from 'k6/http';
 import { Gauge, Trend, Counter } from 'k6/metrics';
 import * as userUtil from "../rancher/rancher_users_utils.js"
 import * as namespacesUtil from "../namespaces/namespace_utils.js"
@@ -27,13 +26,11 @@ const pauseSeconds = parseFloat(__ENV.PAUSE_SECONDS || 5.0)
 // from that script, those env vars get loaded as well.
 
 // Option setting
-const vus = Number(__ENV.VUS || 5)
-const duration = '2h'
+const vus = Number(__ENV.VUS || 5) // not using `K6_VUs` here because we want to modify # of VUs per-scenario
+const duration = (__ENV.DURATION || '2h') // not using `K6_DURATION` here because we want to modify duration per-scenario
 const diagnosticsInterval = (__ENV.DIAGNOSTICS_INTERVAL || "20m"); // # time unit
 // 2 requests per iteration (for change() func), so iteration rate is 1/2 of request rate
 const changeIPS = (__ENV.TARGET_RPS || 10) / 2
-// 1 request per iteration (for list() func)
-const listIPS = 1
 const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
 
 // Metrics
@@ -41,19 +38,8 @@ const diagnosticsBeforeGauge = new Gauge('diagnostics_before_churn');
 const diagnosticsDuringTrend = new Trend('diagnostics_during_churn');
 const diagnosticsAfterGauge = new Gauge('diagnostics_after_churn');
 const churnOpsCounter = new Counter('churn_operations_total');
-let changeEvents = 0
 
-let listIterations = 0
-if (firstPageOnly) {
-  // round up to the nearest thousand to be safe
-  listIterations = Math.ceil(extrapolateIterations() / 1000) * 1000
-} else {
-  // Based on local testing, with ~5000 added configmaps we can reach:
-  // 3 iterations in ~18m50s; 20 iters in 2 hours
-  // round up to the nearest 5 to be safe
-  listIterations = Math.ceil(extrapolateIterations(3, 18 * 60 + 50) / 5) * 5
-}
-
+const useFilters = (__ENV.MY_ENV_VAR !== undefined && __ENV.MY_ENV_VAR !== null) ? __ENV.MY_ENV_VAR === "true" ? true : false : true
 let defaultFilters = [
   "sort=metadata.name&",
   "filter=metadata.namespace!=p-4vgxn&",
@@ -100,14 +86,13 @@ export const options = {
       preAllocatedVUs: vus,
       duration: duration,
       rate: changeIPS,
-      maxVUs: 20,
       startTime: '2m'
     },
     list: {
       executor: 'per-vu-iterations',
       exec: 'list',
       vus: 1,
-      iterations: listIterations,
+      iterations: 9999, // setting this to a # we should never reach in order to ensure `list` runs until `change` scenario completes
       maxDuration: duration,
       startTime: '2m'
     },
@@ -136,13 +121,6 @@ export const options = {
     churn_operations_total: [`count>=${changeIPS * parseInt(duration) * 0.9}`], // At least 90% of target ops
   }
 };
-
-// Based on brief tests, when firstPageOnly == true list() can complete:
-//  ~100iters/150sec, and duration = 2h = 7200sec so set defaults accordingly
-// Calculates the # of iters needed to last targetDurationS time
-function extrapolateIterations(baselineIters = 100, elapsedSec = 150, targetDurationS = 7200) {
-  return Math.floor((baselineIters / elapsedSec) * targetDurationS);
-}
 
 function parseDurationToMinutes(str) {
   // Define conversion factors to minutes
@@ -278,48 +256,9 @@ export function setup() {
     fail("Dartboard test namespace not created")
   }
 
-  // // Get all projects from the API to retrieve their actual IDs
-  // console.log("Retrieving all projects from API...")
-  // let { res: allProjectsRes, projectArray: allProjects } = projectsUtil.getNormanProjects(baseUrl, cookies)
-  // if (allProjectsRes.status !== 200 || !allProjects) {
-  //   console.warn("Failed to retrieve projects list")
-  //   allProjects = []
-  // }
-  // console.log(`Retrieved ${allProjects.length} total projects`)
-
-  // // Get all namespaces from the API to retrieve their actual IDs
-  // console.log("Retrieving all namespaces from API...")
-  // let { res: allNamespacesRes, namespaceArray: allNamespaces } = namespacesUtil.getNamespaces(baseUrl, cookies)
-  // if (allNamespacesRes.status !== 200 || !allNamespaces) {
-  //   console.warn("Failed to retrieve namespaces list")
-  //   allNamespaces = []
-  // }
-  // console.log(`Retrieved ${allNamespaces.length} total namespaces`)
-
   // Build full filter list (defaultFilters + all Project IDs, namespace IDs, etc.)
   let filters = [...defaultFilters] // Copy default filters
 
-  // // Add filters for all projects (using their actual IDs)
-  // allProjects.forEach(project => {
-  //   if (project.id) {
-  //     filters.push(`metadata.namespace!=${project.id}`)
-  //   }
-  //   if (project.name) {
-  //     filters.push(`metadata.namespace!=${project.name}`)
-  //   }
-  // })
-
-  // // Add filters for all namespaces (using their actual metadata names and IDs)
-  // allNamespaces.forEach(ns => {
-  //   if (ns.metadata && ns.metadata.name) {
-  //     filters.push(`metadata.namespace!=${ns.metadata.name}`)
-  //   }
-  //   if (ns.id) {
-  //     filters.push(`metadata.namespace!=${ns.id}`)
-  //   }
-  // })
-
-  // console.log(`Setup complete. Found ${allProjects.length} total projects and ${allNamespaces.length} total namespaces.`)
   console.log(`Total filters available: ${filters.length}. Filters: ${filters}`)
 
   return { cookies: cookies, filters: filters }
@@ -329,7 +268,7 @@ export function preChurnDiagnostics(data) {
   console.log('=== Collecting PRE-CHURN diagnostics ===');
 
   const resourceCounts = collectResourceCounts(data.cookies, null);
-  const apiTimings = collectAPITimings(data.cookies, null);
+  collectAPITimings(data.cookies, null);
 
   // Record baseline metrics
   diagnosticsUtil.metrics.forEach(({ key, gauge }) => {
@@ -354,22 +293,23 @@ export function change() {
 
   k8s.create(`${kubeconfig.url}/api/v1/namespaces/${namespace}/configmaps`, body, false)
   churnOpsCounter.add(1, { resource: resource });
-  changeEvents += 1
   k8s.del(`${kubeconfig.url}/api/v1/namespaces/${namespace}/configmaps/${name}`)
   churnOpsCounter.add(1, { resource: resource });
-  changeEvents += 1
 }
 
 export function list(data) {
-  benchmarkList(data.cookies, data.filters)
+  // need to remove the final filter's '&' suffix so that the list url is formed correctly
+  data.filters[data.filters.length-1] = data.filters[data.filters.length-1].replace("&", "")
+  let allFilters = useFilters ? data.filters.join("") : ""
+  benchmarkList(data.cookies, allFilters)
 }
 
 export function duringChurnDiagnostics(data) {
   console.log('=== Collecting DURING-CHURN diagnostics ===');
 
   const start = Date.now();
-  const resourceCounts = collectResourceCounts(data.cookies, null);
-  const apiTimings = collectAPITimings(data.cookies, null);
+  collectResourceCounts(data.cookies, null);
+  collectAPITimings(data.cookies, null);
   const duration = Date.now() - start;
 
   // Record timing for diagnostic collection overhead
@@ -385,7 +325,7 @@ export function postChurnDiagnostics(data) {
   sleep(5);
 
   const resourceCounts = collectResourceCounts(data.cookies, null);
-  const apiTimings = collectAPITimings(data.cookies, null);
+  collectAPITimings(data.cookies, null);
 
   // Record final metrics
   diagnosticsUtil.metrics.forEach(({ key, gauge }) => {
