@@ -27,6 +27,7 @@ const pauseSeconds = parseFloat(__ENV.PAUSE_SECONDS || 5.0)
 
 // Option setting
 const vus = Number(__ENV.VUS || 5) // not using `K6_VUs` here because we want to modify # of VUs per-scenario
+const preAllocatedVUs = Number(__ENV.PRE_ALLOCATED_VUS || 5)
 const duration = (__ENV.DURATION || '2h') // not using `K6_DURATION` here because we want to modify duration per-scenario
 const diagnosticsInterval = (__ENV.DIAGNOSTICS_INTERVAL || "20m"); // # time unit
 // 2 requests per iteration (for change() func), so iteration rate is 1/2 of request rate
@@ -83,7 +84,7 @@ export const options = {
     change: {
       executor: 'constant-arrival-rate',
       exec: 'change',
-      preAllocatedVUs: vus,
+      preAllocatedVUs: preAllocatedVUs,
       duration: duration,
       rate: changeIPS,
       startTime: '2m'
@@ -91,7 +92,7 @@ export const options = {
     list: {
       executor: 'per-vu-iterations',
       exec: 'list',
-      vus: 1,
+      vus: vus,
       iterations: 9999, // setting this to a # we should never reach in order to ensure `list` runs until `change` scenario completes
       maxDuration: duration,
       startTime: '2m'
