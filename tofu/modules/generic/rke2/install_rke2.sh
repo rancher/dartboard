@@ -84,6 +84,22 @@ kind: KubeletConfiguration
 maxPods: ${max_pods}
 EOF
 
+cat > /etc/sysctl.d/99-neigh.conf <<EOF
+net.ipv4.neigh.default.gc_thresh3 = 4096
+net.ipv4.neigh.default.gc_thresh2 = 2048
+net.ipv4.neigh.default.gc_thresh1 = 1024
+EOF
+sysctl -p /etc/sysctl.d/99-neigh.conf
+
+cat > /etc/sysctl.d/99-inotify.conf <<EOF
+fs.inotify.max_user_instances = 8192
+fs.inotify.max_user_watches = 524288
+EOF
+sysctl -p /etc/sysctl.d/99-inotify.conf
+
+# can be used for longhorn or rancher/local-path-provisioner
+mkdir -p /data/storage
+
 cat >>/root/.bash_profile <<EOF
 export PATH=\$PATH:/var/lib/rancher/rke2/bin/
 export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
