@@ -18,6 +18,9 @@ const username = __ENV.USERNAME;
 const password = __ENV.PASSWORD;
 const token = __ENV.TOKEN;
 
+const setupTimeout = numConfigMaps / 10;
+const setupSettleTime = numConfigMaps * 0.01;
+const watchOpenSettleTime = 3;
 
 // Metrics
 const deltaFastestSlowest = new Trend('delta_fastest_slowest', true);
@@ -26,23 +29,28 @@ const delayLastObserver = new Trend('delay_last_observer', true);
 
 export const options = {
     insecureSkipTLSVerify: true,
+    setupTimeout: setupTimeout + "s",
+
     scenarios: {
         watch: {
             executor: 'per-vu-iterations',
             exec: 'watchScenario',
             vus: vus,
             iterations: 1,
-            maxDuration: watchDuration + 's',
+            startTime: setupSettleTime + 's',
+            maxDuration: (watchOpenSettleTime + watchDuration) * 1.2 + 's',
         },
         change: {
             executor: 'constant-arrival-rate',
             exec: 'changeScenario',
             rate: changeRate,
             timeUnit: '1s',
+            startTime: (setupSettleTime + watchOpenSettleTime) + 's',
             duration: watchDuration + 's',
             preAllocatedVUs: 10,
         },
     },
+
     thresholds: {
         checks: ['rate>0.99'],
         http_req_failed: ['rate<0.01'],
@@ -107,9 +115,6 @@ export function setup() {
         })
     }
 
-    const sleepTime = numConfigMaps / 100;
-    console.log(`Setup complete. Waiting ${sleepTime}s for informers to catch up`);
-    sleep(sleepTime);
     return { cookies: cookies };
 }
 
@@ -137,7 +142,7 @@ export async function watchScenario(data) {
             setTimeout(() => {
                 console.log(`Closing socket to ${url}`);
                 ws.close();
-            }, watchDuration * 1000);
+            }, (watchDuration + setupSettleTime * 2) * 1000);
 
             ws.send(JSON.stringify({
                 resourceType: resource,
