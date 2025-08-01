@@ -45,9 +45,10 @@ export const options = {
             exec: 'changeScenario',
             rate: changeRate,
             timeUnit: '1s',
+            preAllocatedVUs: vus,
+            maxVUs: vus,
             startTime: (setupSettleTime + watchOpenSettleTime) + 's',
             duration: watchDuration + 's',
-            preAllocatedVUs: 10,
         },
     },
 
