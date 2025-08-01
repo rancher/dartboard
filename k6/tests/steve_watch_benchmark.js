@@ -134,8 +134,6 @@ export function teardown(data) {
 let changeEvents = {};
 
 export async function watchScenario(data) {
-    console.log('Starting watch scenario');
-
     for (const server of steveServers) {
         const url = server.replace('http', 'ws') + '/v1/subscribe';
         console.log(`Connecting to ${url}`);
@@ -171,7 +169,7 @@ export async function watchScenario(data) {
                     delayFirstObserver.add(delay)
                 }
                 changeEvents[resourceName].push(now);
-                console.log(`Server ${changeEvents[resourceName].length}/${steveServers.length} caught up on ${resourceName}. Delay: ${delay}ms`);
+                console.debug(`Server ${changeEvents[resourceName].length}/${steveServers.length} caught up on ${resourceName}. Delay: ${delay}ms`);
 
                 if (changeEvents[resourceName].length === steveServers.length) {
                     delayLastObserver.add(delay);
@@ -180,7 +178,7 @@ export async function watchScenario(data) {
                     const first = Math.min(...events);
                     const last = Math.max(...events);
                     deltaFastestSlowest.add(last - first);
-                    console.log(`Delta between fastest and slowest: ${last - first}ms`);
+                    console.debug(`Delta between fastest and slowest: ${last - first}ms`);
                     delete changeEvents[resourceName];
                 }
             }
@@ -188,13 +186,11 @@ export async function watchScenario(data) {
 
         ws.addEventListener('close', () => console.log(`disconnected from ${url}`));
         ws.addEventListener('error', (e) => {
-            if (e.error != 'websocket: close sent') {
+            if (e.error !== 'websocket: close sent') {
                 console.log('An unexpected error occured: ', e.error);
             }
         });
     }
-
-    console.log("Done watching");
 }
 
 export function changeScenario(data) {
@@ -218,7 +214,7 @@ export function changeScenario(data) {
     check(putRes, {
         'update configmap returns 200': (r) => r.status === 200,
     });
-    console.log(`Changed configmap ${name}`);
+    console.debug(`Changed configmap ${name}`);
 }
 
 export function handleSummary(data) {
