@@ -56,6 +56,9 @@ export const options = {
         checks: ['rate>0.99'],
         http_req_failed: ['rate<0.01'],
         http_req_duration: ['p(95)<500'],
+        delay_first_observer: ['p(95)<500'],
+        delay_last_observer: ['p(95)<500'],
+        delta_fastest_slowest: ['p(95)<500'],
     },
 };
 
