@@ -8,11 +8,11 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 const steveServers = (__ENV.STEVE_SERVERS || 'http://localhost:8080').split(',');
 const namespace = __ENV.NAMESPACE || 'scalability-tests';
 const resource = __ENV.RESOURCE || 'configmaps';
-const changeRate = __ENV.CHANGE_RATE || 1;
+const changeRate = parseInt(__ENV.CHANGE_RATE || 1);
 const watchMode = __ENV.WATCH_MODE || ''; // "" for full resource, "resource.changes" for notifications
-const numConfigMaps = __ENV.CONFIG_MAP_COUNT || 100;
-const vus = __ENV.K6_VUS || 1;
-const watchDuration = __ENV.WATCH_DURATION || 30;
+const numConfigMaps = parseInt(__ENV.CONFIG_MAP_COUNT || 100);
+const vus = parseInt(__ENV.VUS || 1);
+const watchDuration = parseInt(__ENV.WATCH_DURATION || 30);
 
 const username = __ENV.USERNAME;
 const password = __ENV.PASSWORD;
