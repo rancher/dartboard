@@ -35,7 +35,7 @@ export const options = {
         watch: {
             executor: 'per-vu-iterations',
             exec: 'watchScenario',
-            vus: vus,
+            vus: 1,
             iterations: 1,
             startTime: setupSettleTime + 's',
             maxDuration: (watchOpenSettleTime + watchDuration) * 1.2 + 's',
