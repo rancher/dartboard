@@ -88,6 +88,9 @@ export function setup() {
         fail("Please specify either USERNAME and PASSWORD or TOKEN")
     }
 
+    // Clean up any leftovers from past runs
+    teardown({ cookies: cookies })
+
     // Create namespace
     console.log(`Creating namespace ${namespace}`)
     const nsBody = {
