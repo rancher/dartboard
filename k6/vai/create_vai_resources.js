@@ -57,7 +57,9 @@ export const options = {
         },
     },
     thresholds: {
-        checks: ['rate>0.99']
+http_req_failed: ['rate<=0.01'], // http errors should be less than 1%
+http_req_duration: ['p(99)<=500'], // 99% of requests should be below 500ms
+checks: ['rate>0.99'], // the rate of successful checks should be higher than 99%
     }
 };
 
