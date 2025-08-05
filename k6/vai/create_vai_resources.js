@@ -1,9 +1,9 @@
 import encoding from 'k6/encoding';
 import exec from 'k6/execution';
 import { createConfigMaps, createSecrets, createDeployments } from '../generic/generic_utils.js';
-import {check, fail, sleep} from 'k6';
+import { login, getCookies } from '../rancher/rancher_utils.js';
+import {fail} from 'k6';
 import * as k8s from '../generic/k8s.js'
-import http from 'k6/http';
 
 
 // Parameters
@@ -62,19 +62,12 @@ export const options = {
 };
 
 export function setup() {
+    
     // log in
-    const res = http.post(`${baseUrl}/v3-public/localProviders/local?action=login`, JSON.stringify({
-        "description": "UI session",
-        "responseType": "cookie",
-        "username": username,
-        "password": password
-    }))
-
-    check(res, {
-        '/v3-public/localProviders/local?action=login returns status 200': (r) => r.status === 200,
-    })
-
-    const cookies = http.cookieJar().cookiesForURL(res.url)
+    if (!login(baseUrl, {}, username, password)) {
+        fail(`could not login into cluster`)
+    }
+    const cookies = getCookies(baseUrl)
 
     const del_url = cluster === "local"?
         `${baseUrl}/v1/namespaces/${namespace}` :
