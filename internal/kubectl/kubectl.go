@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"al.essio.dev/pkg/shellescape"
@@ -32,7 +33,7 @@ import (
 )
 
 const (
-	k6Image          = "grafana/k6:0.54.0"
+	k6Image          = "grafana/k6:1.0.0"
 	K6Namespace      = "tester"
 	K6KubeSecretName = "kube"
 	mimirURL         = "http://mimir.tester:9009/mimir"
@@ -42,6 +43,12 @@ type FileEntry struct {
 	RelPath string
 	Key     string
 }
+
+var (
+	cacheOnce     sync.Once
+	cachedEntries []FileEntry
+	cacheErr      error
+)
 
 func collectFileEntries(root string, exts map[string]bool) ([]FileEntry, error) {
 	var entries []FileEntry
@@ -167,6 +174,13 @@ func collectFileEntries(root string, exts map[string]bool) ([]FileEntry, error) 
 	return entries, err
 }
 
+func getCachedEntries(root string, exts map[string]bool) ([]FileEntry, error) {
+	cacheOnce.Do(func() {
+		cachedEntries, cacheErr = collectFileEntries(root, exts)
+	})
+	return cachedEntries, cacheErr
+}
+
 func Exec(kubepath string, output io.Writer, args ...string) error {
 	fullArgs := append([]string{"--kubeconfig=" + kubepath}, args...)
 	cmd := vendored.Command("kubectl", fullArgs...)
@@ -286,7 +300,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	// gather file entries
 	root := "./charts/k6-files/test-files"
 	exts := map[string]bool{".js": true, ".mjs": true, ".sh": true, ".env": true}
-	entries, err := collectFileEntries(root, exts)
+	entries, err := getCachedEntries(root, exts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -327,6 +341,8 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 
 	// prepare k6 commandline
 	args := []string{"run"}
+	// ensure we get the complete summary
+	args = append(args, "--summary-mode=full")
 	for k, v := range envVars {
 		// substitute kubeconfig file path with path to secret
 		if k == "KUBECONFIG" {
