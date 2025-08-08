@@ -308,11 +308,9 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	// get rel path to test file
 	for _, e := range entries {
 		if strings.Contains(e.RelPath, testPath) {
-			log.Printf("FOUND RELATIVE FILE PATH: %s\n", e.RelPath)
 			relTestPath = e.RelPath
 			break
 		}
-		log.Printf("SEARCHING FOR FILE: %s\n", testPath)
 	}
 
 	// print what we are about to do
