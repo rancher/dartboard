@@ -50,130 +50,158 @@ var (
 	cacheErr      error
 )
 
+// collectFileEntries walks the directory tree at `root`, follows symlinks,
+// and returns FileEntry objects for files whose extensions are present in `exts`.
+//
+// Behavior:
+//   - Uses a single DFS traversal algorithm that follows symlinks safely
+//   - Tracks visited *resolved absolute paths* to avoid infinite cycles
+//   - Produces virtual RelPath values that reflect the path under `root`,
+//     even when the actual file content lives outside the tree via a symlink
+//   - Logs (with log.Printf) broken symlinks instead of silently swallowing them
+//
+// Parameters:
+//   - root: path to the directory to walk (may be relative). Must exist.
+//   - exts: map of allowed extensions (include the leading dot: ".js")
+//
+// Returns:
+//   - []FileEntry: slice of discovered file entries
+//   - error: non-nil on fatal errors (e.g., missing root); non-fatal issues are logged
+//
+// NOTE:
+//   - Does NOT handle collisions. If a file at "/dir1/file.js" exists and a file
+//     named "dir1__file.js" exists, then the file that gets parsed last will overwrite
+//     any entries matching the flattened key (dir1__file.js in this case)
 func collectFileEntries(root string, exts map[string]bool) ([]FileEntry, error) {
-	var entries []FileEntry
-	visited := make(map[string]bool) // Track visited paths to prevent infinite loops
+	// Get valid path to root and ensure it exists
+	root = filepath.Clean(root)
+	info, err := os.Stat(root)
+	if err != nil {
+		return nil, fmt.Errorf("stat root %q: %w", root, err)
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("root %q is not a directory", root)
+	}
 
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	// Resolve root's real path
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		log.Printf("warning: cannot eval symlinks for root %q: %v (continuing with root as-is)", root, err)
+		resolvedRoot = root
+	}
+
+	type stackEntry struct {
+		virtualRel string // path relative to root in virtual namespace ("" for root)
+		realPath   string // the actual filesystem path to read (resolved)
+	}
+
+	visited := map[string]bool{} // tracks visited resolved real paths to avoid cycles
+	var out []FileEntry
+	stack := []stackEntry{{virtualRel: "", realPath: resolvedRoot}}
+
+	for len(stack) > 0 {
+		// pop from stack
+		n := len(stack) - 1
+		cur := stack[n]
+		stack = stack[:n]
+
+		absReal, err := filepath.Abs(cur.realPath)
 		if err != nil {
-			return err
+			log.Printf("warning: cannot abs resolved path %q: %v", cur.realPath, err)
+			continue
+		}
+		// get absolute path via EvalSymlinks if possible
+		absRealResolved := absReal
+		if rp, err := filepath.EvalSymlinks(absReal); err == nil {
+			absRealResolved = rp
+		}
+		if visited[absRealResolved] {
+			continue
+		}
+		visited[absRealResolved] = true
+
+		entries, err := os.ReadDir(cur.realPath)
+		if err != nil {
+			log.Printf("warning: failed to read dir %q: %v", cur.realPath, err)
+			continue
 		}
 
-		// Handle symbolic links
-		if info.Mode()&os.ModeSymlink != 0 {
-			resolvedPath, err := filepath.EvalSymlinks(path)
-			if err != nil {
-				return nil
+		for _, de := range entries {
+			name := de.Name()
+			virtualRel := filepath.Join(cur.virtualRel, name)
+			entryRealPath := filepath.Join(cur.realPath, name)
+
+			isSymlink := (de.Type() & os.ModeSymlink) != 0
+
+			if isSymlink {
+				target, err := filepath.EvalSymlinks(entryRealPath)
+				if err != nil {
+					log.Printf("warning: broken symlink or cannot resolve %q: %v", entryRealPath, err)
+					continue
+				}
+				stat, err := os.Stat(target)
+				if err != nil {
+					log.Printf("warning: cannot stat symlink target %q: %v", target, err)
+					continue
+				}
+				if stat.IsDir() {
+					// push directory to stack to preserve virtualRel
+					stack = append(stack, stackEntry{virtualRel: virtualRel, realPath: target})
+					continue
+				}
+				// else its a file symlink, treat as file using resolved target path
+				entryRealPath = target
+			} else {
+				if de.IsDir() {
+					stack = append(stack, stackEntry{virtualRel: virtualRel, realPath: entryRealPath})
+					continue
+				}
 			}
 
-			// Check if we've already visited this resolved path to prevent infinite loops
-			if visited[resolvedPath] {
-				return nil
-			}
-			visited[resolvedPath] = true
-
-			// Get info about the resolved path
-			resolvedInfo, err := os.Stat(resolvedPath)
-			if err != nil {
-				return nil
-			}
-
-			// If the symlink points to a directory, walk it recursively
-			if resolvedInfo.IsDir() {
-				return filepath.Walk(resolvedPath, func(subPath string, subInfo os.FileInfo, subErr error) error {
-					if subErr != nil || subInfo.IsDir() {
-						return subErr
-					}
-
-					// Handle nested symlinks by resolving them
-					actualPath := subPath
-					if subInfo.Mode()&os.ModeSymlink != 0 {
-						if resolved, resolveErr := filepath.EvalSymlinks(subPath); resolveErr == nil {
-							if !visited[resolved] {
-								visited[resolved] = true
-								actualPath = resolved
-								if fileInfo, statErr := os.Stat(resolved); statErr == nil && !fileInfo.IsDir() {
-									subInfo = fileInfo
-								} else {
-									return subErr
-								}
-							} else {
-								return nil // Skip already visited
-							}
-						} else {
-							return nil // Skip broken symlinks
-						}
-					}
-
-					ext := filepath.Ext(actualPath)
-					if !exts[ext] {
-						return nil
-					}
-
-					// Calculate relative path from original root
-					// First get the relative path of the symlink from root
-					symlinkRel, err := filepath.Rel(root, path)
-					if err != nil {
-						return err
-					}
-
-					// Then get the relative path of the file from the resolved symlink target
-					fileRel, err := filepath.Rel(resolvedPath, actualPath)
-					if err != nil {
-						return err
-					}
-
-					// Combine them to get the final relative path
-					var finalRel string
-					if symlinkRel == "." {
-						finalRel = fileRel
-					} else {
-						finalRel = filepath.Join(symlinkRel, fileRel)
-					}
-
-					key := strings.ReplaceAll(finalRel, string(os.PathSeparator), "__")
-					entries = append(entries, FileEntry{RelPath: finalRel, Key: key})
-					return nil
-				})
-			}
-			// Else, it's a file symlink, treat it as a regular file
-			ext := filepath.Ext(resolvedPath)
+			// Now handle a file (resolved if it was a symlink)
+			ext := filepath.Ext(name)
 			if !exts[ext] {
-				return nil
+				continue
 			}
 
-			rel, err := filepath.Rel(root, path)
-			if err != nil {
-				return err
+			rel := filepath.Clean(virtualRel)
+			// On Unix, filepath.Clean might return ".",
+			// and if rel is empty, file is at current-level
+			if rel == "." || rel == "" {
+				rel = name
 			}
-			key := strings.ReplaceAll(rel, string(os.PathSeparator), "__")
-			entries = append(entries, FileEntry{RelPath: rel, Key: key})
 
-			return nil
+			// Make the flattened key for the ConfigMap
+			flat := strings.ReplaceAll(rel, string(os.PathSeparator), "__")
+
+			out = append(out, FileEntry{
+				RelPath: rel,
+				Key:     flat,
+			})
 		}
+	}
 
-		// Skip directories (non-symlink)
-		if info.IsDir() {
-			return nil
-		}
-
-		ext := filepath.Ext(path)
-		if !exts[ext] {
-			return nil
-		}
-
-		rel, err := filepath.Rel(root, path)
-		if err != nil {
-			return err
-		}
-		key := strings.ReplaceAll(rel, string(os.PathSeparator), "__")
-		entries = append(entries, FileEntry{RelPath: rel, Key: key})
-		return nil
-	})
-
-	return entries, err
+	return out, nil
 }
 
+// getCachedEntries returns a cached list of FileEntry objects for all files
+// under the given root directory that match the provided file extensions in `exts`.
+//
+// The directory walk is performed only once per process invocation, even if
+// getCachedEntries is called multiple times, using sync.Once to guard the scan.
+// Ex: Running `dartboard load` results in a single caching process, consecutive
+//
+//	`dartboard load` commands will also results in a single caching process.
+//
+// The cache is in-memory only! Once the process exits, the cache is discarded.
+//
+// Parameters:
+//   - root: absolute or relative path to the root directory to scan
+//   - exts: a map of allowed file extensions (include the leading dot: ".js")
+//
+// Returns:
+//   - []FileEntry: a slice of matching file entries
+//   - error: any I/O or filesystem errors encountered during the scan
 func getCachedEntries(root string, exts map[string]bool) ([]FileEntry, error) {
 	cacheOnce.Do(func() {
 		cachedEntries, cacheErr = collectFileEntries(root, exts)
