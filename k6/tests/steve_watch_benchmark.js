@@ -160,26 +160,26 @@ export async function watchScenario(data) {
             const event = JSON.parse(e.data);
             if (event.name === 'resource.change') {
                 const now = new Date().getTime();
-                const delay = now - parseInt(event.data.data.data);
-                const resourceName = event.data.metadata.name;
-                if (!changeEvents[resourceName]) {
+                const delay = now - parseInt(event.data.data.timestamp);
+                const id = event.data.id;
+                if (!changeEvents[id]) {
                     // this is the first server processing the event for this resource
-                    changeEvents[resourceName] = [];
+                    changeEvents[id] = [];
 
                     delayFirstObserver.add(delay)
                 }
-                changeEvents[resourceName].push(now);
-                console.debug(`Server ${changeEvents[resourceName].length}/${steveServers.length} caught up on ${resourceName}. Delay: ${delay}ms`);
+                changeEvents[id].push(delay);
+                console.debug(`Server ${changeEvents[id].length}/${steveServers.length} caught up on ${id}. Delay: ${delay}ms`);
 
-                if (changeEvents[resourceName].length === steveServers.length) {
+                const events = changeEvents[id];
+                if (events.length === steveServers.length) {
                     delayLastObserver.add(delay);
 
-                    const events = changeEvents[resourceName];
-                    const first = Math.min(...events);
-                    const last = Math.max(...events);
+                    const first = events[0];
+                    const last = events[events.length - 1];
                     deltaFastestSlowest.add(last - first);
                     console.debug(`Delta between fastest and slowest: ${last - first}ms`);
-                    delete changeEvents[resourceName];
+                    delete changeEvents[id];
                 }
             }
         });
@@ -205,7 +205,8 @@ export function changeScenario(data) {
     }
     const configmap = JSON.parse(getRes.body);
 
-    configmap.data.data = `${new Date().getTime()}`;
+    configmap.data.id = `${__VU}-${__ITER}`;
+    configmap.data.timestamp = `${new Date().getTime()}`;
 
     const putRes = http.put(`${server}/v1/configmaps/${namespace}/${name}`, JSON.stringify(configmap), {
         headers: { 'Content-Type': 'application/json' },
