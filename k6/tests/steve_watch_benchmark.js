@@ -7,7 +7,6 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 // Parameters
 const steveServers = (__ENV.STEVE_SERVERS || 'http://localhost:8080').split(',');
 const namespace = __ENV.NAMESPACE || 'scalability-tests';
-const resource = __ENV.RESOURCE || 'configmaps';
 const changeRate = parseInt(__ENV.CHANGE_RATE || 1);
 const watchMode = __ENV.WATCH_MODE || ''; // "" for full resource, "resource.changes" for notifications
 const numConfigMaps = parseInt(__ENV.CONFIG_MAP_COUNT || 100);
@@ -150,7 +149,7 @@ export async function watchScenario(data) {
             }, (watchDuration + setupSettleTime * 2) * 1000);
 
             ws.send(JSON.stringify({
-                resourceType: resource,
+                resourceType: 'configmaps',
                 namespace: namespace,
                 mode: watchMode,
             }));
