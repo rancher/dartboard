@@ -168,9 +168,9 @@ export async function watchScenario(data) {
         });
 
         ws.addEventListener('message', (e) => {
+            const now = new Date().getTime();
             const event = JSON.parse(e.data);
             if (event.name === 'resource.change') {
-                const now = new Date().getTime();
                 const delay = now - parseInt(event.data.data.timestamp);
                 const id = event.data.id;
                 if (!changeEvents[id]) {
@@ -193,6 +193,7 @@ export async function watchScenario(data) {
                     delete changeEvents[id];
                 }
             }
+            listenerProcessingTime.add(new Date().getTime() - now);
         });
 
         ws.addEventListener('close', () => console.log(`disconnected from ${url}`));
