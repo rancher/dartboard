@@ -3,9 +3,13 @@ import http from 'k6/http';
 import { Trend } from 'k6/metrics';
 import { WebSocket } from 'k6/experimental/websockets';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
+import * as k8s from "../generic/k8s.js";
 
 // Parameters
 const steveServers = (__ENV.STEVE_SERVERS || 'http://localhost:8080').split(',');
+const kubeApiServers = (__ENV.KUBE_SERVERS || 'http://localhost:8080').split(',');
+const changeApi = (__ENV.CHANGE_API || 'steve');
+const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
 const namespace = __ENV.NAMESPACE || 'scalability-tests';
 const changeRate = parseInt(__ENV.CHANGE_RATE || 1);
 const watchMode = __ENV.WATCH_MODE || ''; // "" for full resource, "resource.changes" for notifications
@@ -25,9 +29,17 @@ const watchOpenSettleTime = 3;
 const deltaFastestSlowest = new Trend('delta_fastest_slowest', true);
 const delayFirstObserver = new Trend('delay_first_observer', true);
 const delayLastObserver = new Trend('delay_last_observer', true);
+const listenerProcessingTime = new Trend('listener_processing_time', true);
 
 export const options = {
     insecureSkipTLSVerify: true,
+    tlsAuth: [
+        {
+            cert: kubeconfig["cert"],
+            key: kubeconfig["key"],
+        },
+    ],
+
     setupTimeout: setupTimeout + "s",
 
     scenarios: {
@@ -194,11 +206,16 @@ export async function watchScenario(data) {
 
 export function changeScenario(data) {
     const configMapId = Math.floor(Math.random() * numConfigMaps);
-    const serverId = Math.floor(Math.random() * steveServers.length);
-    const server = steveServers[serverId];
     const name = `test-config-map-${configMapId}`;
 
-    const getRes = http.get(`${server}/v1/configmaps/${namespace}/${name}`, {cookies: data.cookies});
+    const servers = changeApi === 'steve' ? steveServers : kubeApiServers;
+    const server = servers[Math.floor(Math.random() * servers.length)];
+    const url = changeApi === 'steve' ?
+        `${server}/v1/configmaps/${namespace}/${name}` :
+        `${server}/api/v1/namespaces/${namespace}/configmaps/${name}`;
+    const cookies = changeApi === 'steve' ? data.cookies : [];
+
+    const getRes = http.get(url, {cookies: cookies});
     if (getRes.status !== 200) {
         fail(`Failed to get configmap ${name}: ${getRes.status} ${getRes.body}`);
     }
@@ -207,9 +224,9 @@ export function changeScenario(data) {
     configmap.data.id = `${__VU}-${__ITER}`;
     configmap.data.timestamp = `${new Date().getTime()}`;
 
-    const putRes = http.put(`${server}/v1/configmaps/${namespace}/${name}`, JSON.stringify(configmap), {
+    const putRes = http.put(url, JSON.stringify(configmap), {
         headers: { 'Content-Type': 'application/json' },
-        cookies: data.cookies
+        cookies: cookies
     });
     check(putRes, {
         'update configmap returns 200': (r) => r.status === 200,
