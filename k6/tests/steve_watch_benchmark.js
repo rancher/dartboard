@@ -9,6 +9,7 @@ import * as k8s from "../generic/k8s.js";
 const steveServers = (__ENV.STEVE_SERVERS || 'http://localhost:8080').split(',');
 const kubeApiServers = (__ENV.KUBE_SERVERS || 'http://localhost:8080').split(',');
 const changeApi = (__ENV.CHANGE_API || 'steve');
+const watchApi = (__ENV.WATCH_API || 'steve');
 const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
 const namespace = __ENV.NAMESPACE || 'scalability-tests';
 const changeRate = parseInt(__ENV.CHANGE_RATE || 1);
@@ -75,6 +76,15 @@ export const options = {
 
 export function setup() {
     console.log('Setting up test');
+
+    if (changeApi !== 'steve' && changeApi !== 'kube') {
+        fail("Please specify either 'steve' or 'kube' for CHANGE_API")
+    }
+
+    if (watchApi !== 'steve' && watchApi !== 'kube') {
+        fail("Please specify either 'steve' or 'kube' for WATCH_API")
+    }
+
     var cookies = {}
     if (token) {
         console.log('Using token for authentication');
@@ -145,12 +155,29 @@ export function teardown(data) {
 let changeEvents = {};
 
 export async function watchScenario(data) {
-    for (const server of steveServers) {
-        const url = server.replace('http', 'ws') + '/v1/subscribe';
+
+    const servers = watchApi === 'steve' ? steveServers : kubeApiServers;
+
+    for (const server of servers) {
+
+        const url = watchApi === 'steve' ?
+            `${server.replace('http', 'ws')}/v1/subscribe` :
+            `${server.replace('http', 'ws')}/api/v1/namespaces/${namespace}/configmaps?watch=true`;
+
         console.log(`Connecting to ${url}`);
-        const jar = http.cookieJar();
-        jar.set(server, "R_SESS", data.cookies["R_SESS"]);
-        const ws = new WebSocket(url, { jar: jar });
+
+        let params = {}
+        if (watchApi === 'steve') {
+            const jar = http.cookieJar();
+            jar.set(server, "R_SESS", data.cookies["R_SESS"]);
+            params = { jar: jar }
+        }
+        else {
+            // golang.org/x/net/websocket, the implementation used in api
+            // https://cs.opensource.google/go/x/net/+/refs/tags/v0.43.0:websocket/server.go;drc=19fe7f4f42382191e644fa98c76c915cd1815487;l=92
+            params = { headers: { 'Origin': 'https://www.moioli.net' },}
+        }
+        const ws = new WebSocket(url, null, params);
 
         ws.addEventListener('open', () => {
             console.log(`Connected to ${url}`);
@@ -160,19 +187,23 @@ export async function watchScenario(data) {
                 ws.close();
             }, (watchDuration + setupSettleTime * 2) * 1000);
 
-            ws.send(JSON.stringify({
-                resourceType: 'configmaps',
-                namespace: namespace,
-                mode: watchMode,
-            }));
+            if (watchApi === 'steve') {
+                ws.send(JSON.stringify({
+                    resourceType: 'configmaps',
+                    namespace: namespace,
+                    mode: watchMode,
+                }));
+            }
         });
 
         ws.addEventListener('message', (e) => {
             const now = new Date().getTime();
             const event = JSON.parse(e.data);
-            if (event.name === 'resource.change') {
-                const delay = now - parseInt(event.data.data.timestamp);
-                const id = event.data.id;
+            if ((watchApi === 'steve' && event.name === 'resource.change') || (watchApi === 'kube' && event.type === 'MODIFIED')) {
+                const data = watchApi === 'steve' ? event.data.data : event.object.data;
+
+                const id = data.id;
+                const delay = now - parseInt(data.timestamp);
                 if (!changeEvents[id]) {
                     // this is the first server processing the event for this resource
                     changeEvents[id] = [];
