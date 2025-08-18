@@ -33,3 +33,9 @@ variable "network_config" {
   description = "Network module outputs, to be passed to node_module"
   type        = any
 }
+
+variable "kine_password" {
+  description = "Password for the Kine Postgres user"
+  type        = string
+  default     = "kinepassword"
+}

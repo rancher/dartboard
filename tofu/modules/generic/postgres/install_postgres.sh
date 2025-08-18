@@ -68,7 +68,7 @@ systemctl start postgresql-15
 
 # Create kine user
 su - postgres -c psql <<EOF
-  CREATE USER kineuser WITH PASSWORD 'kinepassword';
+  CREATE USER kineuser WITH PASSWORD '${kine_password}';
   CREATE DATABASE kine LOCALE 'C' TEMPLATE 'template0';
   GRANT ALL ON DATABASE kine TO kineuser;
   ALTER DATABASE kine OWNER TO kineuser;

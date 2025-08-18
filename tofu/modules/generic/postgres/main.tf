@@ -28,6 +28,7 @@ resource "ssh_resource" "install_postgres" {
 
   file {
     content = templatefile("${path.module}/install_postgres.sh", {
+      kine_password = var.kine_password
     })
     destination = "/root/install_postgres.sh"
     permissions = "0700"
