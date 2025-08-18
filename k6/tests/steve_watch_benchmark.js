@@ -23,7 +23,7 @@ const password = __ENV.PASSWORD;
 const token = __ENV.TOKEN;
 
 const setupTimeout = numConfigMaps / 10;
-const setupSettleTime = numConfigMaps * 0.01;
+const setupSettleTime = Math.min(numConfigMaps / 100, 60);
 const watchOpenSettleTime = 3;
 
 // Metrics
