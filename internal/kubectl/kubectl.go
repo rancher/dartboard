@@ -149,8 +149,6 @@ func collectFileEntries(root string, exts map[string]bool) ([]FileEntry, error) 
 					stack = append(stack, stackEntry{virtualRel: virtualRel, realPath: target})
 					continue
 				}
-				// else its a file symlink, treat as file using resolved target path
-				entryRealPath = target
 			} else {
 				if de.IsDir() {
 					stack = append(stack, stackEntry{virtualRel: virtualRel, realPath: entryRealPath})
