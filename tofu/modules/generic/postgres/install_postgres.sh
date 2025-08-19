@@ -18,14 +18,18 @@ yum install -y postgresql15 postgresql15-server
 # use data disk if available (see mount_ephemeral.sh)
 if [ -d /data ]; then
   mkdir -p /data/pgsql
+  mv /var/lib/pgsql /data/pgsql
   ln -sf /data/pgsql /var/lib/pgsql
-endif
+fi
 
 # Initialize the database and enable automatic start
 ls /var/lib/pgsql/15/initdb.log || /usr/pgsql-15/bin/postgresql-15-setup initdb
 
 # Set basic tuning parameters
 cat >>/var/lib/pgsql/15/data/postgresql.conf <<EOF
+# Listen to any incoming connections
+listen_addresses = '*'
+
 # Tuning parameters from https://pgtune.leopard.in.ua/ based on instance type m6id.4xlarge
 # DB Version: 15
 # OS Type: linux
@@ -53,41 +57,19 @@ max_parallel_workers = 16
 max_parallel_maintenance_workers = 4
 EOF
 
+cat >>/var/lib/pgsql/15/data/pg_hba.conf <<EOF
+# Password-authenticate any incoming connections
+host    all             all             0.0.0.0/0            scram-sha-256
+EOF
+
 # Start DB
 systemctl enable postgresql-15
 systemctl start postgresql-15
 
 # Create kine user
 su - postgres -c psql <<EOF
-  CREATE USER kineuser WITH PASSWORD 'kinepassword';
+  CREATE USER kineuser WITH PASSWORD '${kine_password}';
   CREATE DATABASE kine LOCALE 'C' TEMPLATE 'template0';
   GRANT ALL ON DATABASE kine TO kineuser;
   ALTER DATABASE kine OWNER TO kineuser;
 EOF
-
-# Install kine
-if [ -s /tmp/kine ]; then
-  mv -f /tmp/kine /usr/bin/kine
-else
-  curl -L -o /usr/bin/kine https://github.com/k3s-io/kine/releases/download/${kine_version}/kine-`uname -m | sed 's/x86_64/amd64/'`
-  chmod +x /usr/bin/kine
-fi
-
-cat >/etc/systemd/system/kine.service <<EOF
-[Unit]
-Description=kine
-
-[Service]
-ExecStart=/usr/bin/kine --endpoint postgres://kineuser:kinepassword@localhost:5432/kine?sslmode=disable
-%{ if gogc != null ~}
-Environment="GOGC=${gogc}"
-%{ endif ~}
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl daemon-reload
-
-# Start kine
-systemctl enable kine
-systemctl start kine
