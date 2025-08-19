@@ -23,7 +23,9 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"al.essio.dev/pkg/shellescape"
@@ -31,11 +33,179 @@ import (
 )
 
 const (
-	k6Image          = "grafana/k6:0.54.0"
+	k6Image          = "grafana/k6:1.0.0"
 	K6Namespace      = "tester"
 	K6KubeSecretName = "kube"
 	mimirURL         = "http://mimir.tester:9009/mimir"
 )
+
+type FileEntry struct {
+	RelPath string
+	Key     string
+}
+
+var (
+	cacheOnce     sync.Once
+	cachedEntries []FileEntry
+	cacheErr      error
+)
+
+// collectFileEntries walks the directory tree at `root`, follows symlinks,
+// and returns FileEntry objects for files whose extensions are present in `exts`.
+//
+// Behavior:
+//   - Uses a single DFS traversal algorithm that follows symlinks safely
+//   - Tracks visited *resolved absolute paths* to avoid infinite cycles
+//   - Produces virtual RelPath values that reflect the path under `root`,
+//     even when the actual file content lives outside the tree via a symlink
+//   - Logs (with log.Printf) broken symlinks instead of silently swallowing them
+//
+// Parameters:
+//   - root: path to the directory to walk (may be relative). Must exist.
+//   - exts: map of allowed extensions (include the leading dot: ".js")
+//
+// Returns:
+//   - []FileEntry: slice of discovered file entries
+//   - error: non-nil on fatal errors (e.g., missing root); non-fatal issues are logged
+//
+// NOTE:
+//   - Does NOT handle collisions. If a file at "/dir1/file.js" exists and a file
+//     named "dir1__file.js" exists, then the file that gets parsed last will overwrite
+//     any entries matching the flattened key (dir1__file.js in this case)
+func collectFileEntries(root string, exts map[string]bool) ([]FileEntry, error) {
+	// Get valid path to root and ensure it exists
+	root = filepath.Clean(root)
+	info, err := os.Stat(root)
+	if err != nil {
+		return nil, fmt.Errorf("stat root %q: %w", root, err)
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("root %q is not a directory", root)
+	}
+
+	// Resolve root's real path
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		log.Printf("warning: cannot eval symlinks for root %q: %v (continuing with root as-is)", root, err)
+		resolvedRoot = root
+	}
+
+	type stackEntry struct {
+		virtualRel string // path relative to root in virtual namespace ("" for root)
+		realPath   string // the actual filesystem path to read (resolved)
+	}
+
+	visited := map[string]bool{} // tracks visited resolved real paths to avoid cycles
+	var out []FileEntry
+	stack := []stackEntry{{virtualRel: "", realPath: resolvedRoot}}
+
+	for len(stack) > 0 {
+		// pop from stack
+		n := len(stack) - 1
+		cur := stack[n]
+		stack = stack[:n]
+
+		absReal, err := filepath.Abs(cur.realPath)
+		if err != nil {
+			log.Printf("warning: cannot abs resolved path %q: %v", cur.realPath, err)
+			continue
+		}
+		// get absolute path via EvalSymlinks if possible
+		absRealResolved := absReal
+		if rp, err := filepath.EvalSymlinks(absReal); err == nil {
+			absRealResolved = rp
+		}
+		if visited[absRealResolved] {
+			continue
+		}
+		visited[absRealResolved] = true
+
+		entries, err := os.ReadDir(cur.realPath)
+		if err != nil {
+			log.Printf("warning: failed to read dir %q: %v", cur.realPath, err)
+			continue
+		}
+
+		for _, de := range entries {
+			name := de.Name()
+			virtualRel := filepath.Join(cur.virtualRel, name)
+			entryRealPath := filepath.Join(cur.realPath, name)
+
+			isSymlink := (de.Type() & os.ModeSymlink) != 0
+
+			if isSymlink {
+				target, err := filepath.EvalSymlinks(entryRealPath)
+				if err != nil {
+					log.Printf("warning: broken symlink or cannot resolve %q: %v", entryRealPath, err)
+					continue
+				}
+				stat, err := os.Stat(target)
+				if err != nil {
+					log.Printf("warning: cannot stat symlink target %q: %v", target, err)
+					continue
+				}
+				if stat.IsDir() {
+					// push directory to stack to preserve virtualRel
+					stack = append(stack, stackEntry{virtualRel: virtualRel, realPath: target})
+					continue
+				}
+			} else {
+				if de.IsDir() {
+					stack = append(stack, stackEntry{virtualRel: virtualRel, realPath: entryRealPath})
+					continue
+				}
+			}
+
+			// Now handle a file (resolved if it was a symlink)
+			ext := filepath.Ext(name)
+			if !exts[ext] {
+				continue
+			}
+
+			rel := filepath.Clean(virtualRel)
+			// On Unix, filepath.Clean might return ".",
+			// and if rel is empty, file is at current-level
+			if rel == "." || rel == "" {
+				rel = name
+			}
+
+			// Make the flattened key for the ConfigMap
+			flat := strings.ReplaceAll(rel, string(os.PathSeparator), "__")
+
+			out = append(out, FileEntry{
+				RelPath: rel,
+				Key:     flat,
+			})
+		}
+	}
+
+	return out, nil
+}
+
+// getCachedEntries returns a cached list of FileEntry objects for all files
+// under the given root directory that match the provided file extensions in `exts`.
+//
+// The directory walk is performed only once per process invocation, even if
+// getCachedEntries is called multiple times, using sync.Once to guard the scan.
+// Ex: Running `dartboard load` results in a single caching process, consecutive
+//
+//	`dartboard load` commands will also results in a single caching process.
+//
+// The cache is in-memory only! Once the process exits, the cache is discarded.
+//
+// Parameters:
+//   - root: absolute or relative path to the root directory to scan
+//   - exts: a map of allowed file extensions (include the leading dot: ".js")
+//
+// Returns:
+//   - []FileEntry: a slice of matching file entries
+//   - error: any I/O or filesystem errors encountered during the scan
+func getCachedEntries(root string, exts map[string]bool) ([]FileEntry, error) {
+	cacheOnce.Do(func() {
+		cachedEntries, cacheErr = collectFileEntries(root, exts)
+	})
+	return cachedEntries, cacheErr
+}
 
 func Exec(kubepath string, output io.Writer, args ...string) error {
 	fullArgs := append([]string{"--kubeconfig=" + kubepath}, args...)
@@ -153,6 +323,22 @@ func GetStatus(kubepath, kind, name, namespace string) (map[string]any, error) {
 }
 
 func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLogs bool, localBaseURL string, record bool) error {
+	// gather file entries
+	root := "./charts/k6-files/test-files"
+	exts := map[string]bool{".js": true, ".mjs": true, ".sh": true, ".env": true}
+	entries, err := getCachedEntries(root, exts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	relTestPath := testPath
+	// get rel path to test file
+	for _, e := range entries {
+		if strings.Contains(e.RelPath, testPath) {
+			relTestPath = e.RelPath
+			break
+		}
+	}
+
 	// print what we are about to do
 	quotedArgs := []string{"run"}
 	for k, v := range envVars {
@@ -161,7 +347,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 		}
 		quotedArgs = append(quotedArgs, "-e", shellescape.Quote(fmt.Sprintf("%s=%s", k, v)))
 	}
-	quotedArgs = append(quotedArgs, shellescape.Quote(testPath))
+	quotedArgs = append(quotedArgs, shellescape.Quote(relTestPath))
 	log.Printf("Running equivalent of:\n./bin/k6 %s\n", strings.Join(quotedArgs, " "))
 
 	// if a kubeconfig is specified, upload it as secret to later mount it
@@ -179,6 +365,8 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 
 	// prepare k6 commandline
 	args := []string{"run"}
+	// ensure we get the complete summary
+	args = append(args, "--summary-mode=full")
 	for k, v := range envVars {
 		// substitute kubeconfig file path with path to secret
 		if k == "KUBECONFIG" {
@@ -189,7 +377,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	for k, v := range tags {
 		args = append(args, "--tag", fmt.Sprintf("%s=%s", k, v))
 	}
-	args = append(args, testPath)
+	args = append(args, relTestPath)
 	if record {
 		args = append(args, "-o", "experimental-prometheus-rw")
 	}
@@ -197,11 +385,15 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	// prepare volumes and volume mounts
 	volumes := []any{
 		map[string]any{"name": "k6-test-files", "configMap": map[string]string{"name": "k6-test-files"}},
-		map[string]any{"name": "k6-lib-files", "configMap": map[string]string{"name": "k6-lib-files"}},
 	}
-	volumeMounts := []any{
-		map[string]string{"mountPath": "/k6", "name": "k6-test-files"},
-		map[string]string{"mountPath": "/k6/lib", "name": "k6-lib-files"},
+
+	volumeMounts := []any{}
+	for _, e := range entries {
+		volumeMounts = append(volumeMounts, map[string]any{
+			"name":      "k6-test-files",
+			"mountPath": e.RelPath,
+			"subPath":   e.Key,
+		})
 	}
 	if _, ok := envVars["KUBECONFIG"]; ok {
 		volumes = append(volumes, map[string]any{"name": K6KubeSecretName, "secret": map[string]string{"secretName": "kube"}})
