@@ -19,23 +19,6 @@ variable "ssh_private_key_path" {
   type        = string
 }
 
-variable "gogc" {
-  description = "Tunable parameter for Go's garbage collection, see: https://tip.golang.org/doc/gc-guide"
-  type        = number
-  default     = null
-}
-
-variable "kine_version" {
-  description = "Kine version"
-  default     = "v0.9.8"
-}
-
-variable "kine_executable" {
-  description = "Overrides kine_version by copying an executable from this path"
-  type        = string
-  default     = null
-}
-
 variable "node_module" {
   description = "Non-generic module to create nodes"
   type        = string
@@ -49,4 +32,10 @@ variable "node_module_variables" {
 variable "network_config" {
   description = "Network module outputs, to be passed to node_module"
   type        = any
+}
+
+variable "kine_password" {
+  description = "Password for the Kine Postgres user"
+  type        = string
+  default     = "kinepassword"
 }
