@@ -173,9 +173,11 @@ export async function watchScenario(data) {
             params = { jar: jar }
         }
         else {
-            // golang.org/x/net/websocket, the implementation used in api
+            // !!! DO NOT REMOVE THIS !!!
+            // golang.org/x/net/websocket, the implementation of websocket used in apiserver, checks Origin by default
+            // and requires it to be a valid URL (else it returns a 403). Any valid URL will do!
             // https://cs.opensource.google/go/x/net/+/refs/tags/v0.43.0:websocket/server.go;drc=19fe7f4f42382191e644fa98c76c915cd1815487;l=92
-            params = { headers: { 'Origin': 'https://www.moioli.net' },}
+            params = { headers: { 'Origin': 'https://just-do.it' },}
         }
         const ws = new WebSocket(url, null, params);
 
