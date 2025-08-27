@@ -6,7 +6,7 @@ set -xe
 # can be removed as of v1.27.2+k3s1 and later
 sleep ${sleep_time}
 
-sudo -s <<SUDO
+# sudo -s <<SUDO
 # use data disk if available (see mount_ephemeral.sh)
 if [ -d /data ]; then
   mkdir -p /data/rancher
@@ -70,5 +70,29 @@ EOF
 export INSTALL_K3S_VERSION=${distro_version}
 export INSTALL_K3S_EXEC=${exec}
 
-curl -sfL https://get.k3s.io | sh -
-SUDO
+MAX_RETRIES=5
+RETRY_DELAY=5 # seconds
+# Default to a failure status
+status=1
+for (( i=1; i<=MAX_RETRIES; i++ )); do
+  if [ -f "${get_k3s_path}" ]; then
+      sh /tmp/get_k3s.sh
+      status=$?
+  else
+      curl -sfL https://get.k3s.io | sh -
+      status=$?
+  fi
+
+  if [ $status -eq 0 ]; then
+        break # Exit the loop if the script run was successful
+  else
+      echo "Installation failed. Retrying in $RETRY_DELAY seconds..."
+      sleep "$RETRY_DELAY"
+  fi
+done
+
+if [ $i -gt $MAX_RETRIES ]; then
+    echo "Command failed after $MAX_RETRIES attempts."
+    exit 1
+fi
+# SUDO

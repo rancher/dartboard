@@ -33,6 +33,7 @@ variable "upstream_cluster" {
     public_ip                   = bool // Whether the upstream cluster should have a public IP assigned
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the upstream cluster to reserve it for monitoring
     enable_audit_log            = bool // Enable audit log for the cluster
+    create_tunnels              = bool // Whether ssh tunnels to the downstream cluster's first server node should be created. Default false
     postgres_node_variables     = any  // Node module-specific variables for the Postgres-backed Kine
 
     node_module_variables = any // Node module-specific variables
@@ -55,9 +56,14 @@ variable "downstream_cluster_templates" {
     public_ip                   = bool // Whether the downstream cluster should have a public IP assigned
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring
     enable_audit_log            = bool // Enable audit log for the cluster
+    create_tunnels              = bool // Whether ssh tunnels to the downstream cluster's first server node should be created. Default false
 
     node_module_variables = any // Node module-specific variables
   }))
+  validation {
+    condition     = alltrue([for i, template in var.downstream_cluster_templates : template.cluster_count > 0 ? template.server_count > 0 ? true : false : true ])
+    error_message = "Must have at least one server per cluster template when cluster_count > 0."
+  }
 }
 
 # Note: this is kept constant for all templates because OpenTofu v1.8.2 does not allow to use
@@ -80,6 +86,7 @@ variable "tester_cluster" {
     public_ip                   = bool // Whether the tester cluster should have a public IP assigned
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the tester cluster to reserve it for monitoring
     enable_audit_log            = bool // Enable audit log for the cluster
+    create_tunnels              = bool // Whether ssh tunnels to the downstream cluster's first server node should be created. Default false
 
     node_module_variables = any // Node module-specific variables
   })                            # If null, no tester cluster will be created

@@ -67,6 +67,7 @@ variable "network_config" {
     secondary_private_subnet_id : string,
     public_security_group_id : string,
     private_security_group_id : string,
+    other_security_group_ids: optional(list(string), [""])
     ssh_key_name : string,
     ssh_bastion_host : string,
     ssh_bastion_user : string,

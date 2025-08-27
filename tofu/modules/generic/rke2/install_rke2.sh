@@ -15,7 +15,7 @@ pushd /tmp/rke2-artifacts
   wget -c https://prime.ribs.rancher.io/rke2/"$version"/sha256sum-amd64.txt
 popd
 
-sudo -s <<SUDO
+# sudo -s <<SUDO
 # use data disk if available (see mount_ephemeral.sh)
 if [ -d /data ]; then
   mkdir -p /data/rancher
@@ -114,9 +114,35 @@ EOF
 export INSTALL_RKE2_VERSION=${distro_version}
 export INSTALL_RKE2_TYPE=${type}
 
-curl -sfL https://get.rke2.io --output install.sh
-INSTALL_RKE2_ARTIFACT_PATH=/tmp/rke2-artifacts sh install.sh
+MAX_RETRIES=5
+RETRY_DELAY=5 # seconds
+# Default to a failure status
+status=1
+for (( i=1; i<=MAX_RETRIES; i++ )); do
+  if [ -f "${get_rke2_path}" ]; then
+      cat ${get_rke2_path} > install.sh
+      status=$?
+  else
+      curl -sfL https://get.rke2.io --output install.sh
+      status=$?
+  fi
+
+  INSTALL_RKE2_ARTIFACT_PATH=/tmp/rke2-artifacts sh install.sh
+  status=$?
+
+  if [ $status -eq 0 ]; then
+        break # Exit the loop if the script run was successful
+  else
+      echo "Installation failed. Retrying in $RETRY_DELAY seconds..."
+      sleep "$RETRY_DELAY"
+  fi
+done
+
+if [ $i -gt $MAX_RETRIES ]; then
+    echo "Command failed after $MAX_RETRIES attempts."
+    exit 1
+fi
 
 systemctl enable rke2-${type}.service
 systemctl restart rke2-${type}.service
-SUDO
+# SUDO
