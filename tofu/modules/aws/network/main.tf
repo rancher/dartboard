@@ -171,6 +171,7 @@ resource "aws_vpc_dhcp_options_association" "vpc_dhcp_options" {
 }
 
 data "aws_ec2_managed_prefix_list" "this" {
+  count = var.ssh_prefix_list != null ? 1 : 0
   name = var.ssh_prefix_list
 }
 
@@ -190,9 +191,10 @@ resource "aws_security_group" "ssh_ipv4" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "prefix_ipv4" {
+  count             = var.ssh_prefix_list != null ? 1 : 0
   description       = "SSH access for Approved Prefix List Public IPv4s"
   ip_protocol       = "-1"
-  prefix_list_id    = data.aws_ec2_managed_prefix_list.this.id
+  prefix_list_id    = data.aws_ec2_managed_prefix_list.this[0].id
   security_group_id = aws_security_group.ssh_ipv4.id
 }
 
