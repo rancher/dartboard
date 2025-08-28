@@ -76,10 +76,10 @@ RETRY_DELAY=5 # seconds
 status=1
 for (( i=1; i<=MAX_RETRIES; i++ )); do
   if [ -f "${get_k3s_path}" ]; then
-      sh /tmp/get_k3s.sh
+      sudo -s INSTALL_K3S_VERSION=${distro_version} sh -x /tmp/get_k3s.sh
       status=$?
   else
-      curl -sfL https://get.k3s.io | sh -
+      sudo -s curl -sfL https://get.k3s.io | sh -
       status=$?
   fi
 

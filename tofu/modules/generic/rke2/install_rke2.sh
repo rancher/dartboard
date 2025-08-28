@@ -127,7 +127,7 @@ for (( i=1; i<=MAX_RETRIES; i++ )); do
       status=$?
   fi
 
-  INSTALL_RKE2_ARTIFACT_PATH=/tmp/rke2-artifacts sh install.sh
+  sudo -s INSTALL_RKE2_ARTIFACT_PATH=/tmp/rke2-artifacts sh install.sh
   status=$?
 
   if [ $status -eq 0 ]; then
