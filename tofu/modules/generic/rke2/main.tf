@@ -85,7 +85,6 @@ resource "ssh_sensitive_resource" "first_server_installation" {
       server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
       request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
       request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
-      sleep_time             = 0
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
@@ -140,7 +139,6 @@ resource "ssh_resource" "additional_server_installation" {
       server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
       request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
       request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
-      sleep_time             = count.index * 60
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
@@ -191,7 +189,6 @@ resource "ssh_resource" "agent_installation" {
       server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
       request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
       request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
-      sleep_time             = 0
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })

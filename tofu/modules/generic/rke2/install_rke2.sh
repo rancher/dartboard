@@ -2,9 +2,6 @@
 
 set -xe
 
-# HACK: work around https://github.com/k3s-io/k3s/issues/2306
-sleep ${sleep_time}
-
 mkdir -p /tmp/rke2-artifacts
 pushd /tmp/rke2-artifacts
   version=$(echo "${distro_version}" | sed 's/+/%2B/g')
@@ -15,7 +12,6 @@ pushd /tmp/rke2-artifacts
   wget -c https://prime.ribs.rancher.io/rke2/"$version"/sha256sum-amd64.txt
 popd
 
-sudo -s <<SUDO
 # use data disk if available (see mount_ephemeral.sh)
 if [ -d /data ]; then
   mkdir -p /data/rancher
@@ -60,8 +56,12 @@ EOF
 
 mkdir -p /etc/rancher/rke2/
 cat >/etc/rancher/rke2/config.yaml <<EOF
+%{ if server_url != null }
 server: ${jsonencode(server_url)}
+%{ endif ~}
+%{ if token != null }
 token: ${jsonencode(token)}
+%{ endif ~}
 %{ for label in labels ~}
 node-label: ${label.key}=${label.value}
 %{ endfor ~}
@@ -145,4 +145,4 @@ fi
 
 systemctl enable rke2-${type}.service
 systemctl restart rke2-${type}.service
-SUDO
+
