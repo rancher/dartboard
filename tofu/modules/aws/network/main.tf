@@ -210,7 +210,6 @@ resource "aws_vpc_security_group_ingress_rule" "vpc_ssh" {
 resource "aws_vpc_security_group_ingress_rule" "vpc_ssh_cidrs" {
   for_each = toset([
     "3.0.0.0/8", "52.0.0.0/8", "13.0.0.0/8", "18.0.0.0/8",
-    "54.202.233.179/32", "18.236.88.177/32", "34.217.178.224/32"
   ])
   description       = "SSH from Approved CIDR range (${each.value})"
   from_port         = 22
