@@ -5,7 +5,7 @@ resource "aws_instance" "instance" {
   key_name               = var.network_config.ssh_key_name
   subnet_id              = var.public ? var.network_config.public_subnet_id : var.network_config.private_subnet_id
   vpc_security_group_ids = distinct(concat([
-    var.public ? var.network_config.public_security_group_id : var.network_config.private_security_group_id], [var.network_config.private_security_group_id], var.network_config.other_security_group_ids))
+    var.public ? var.network_config.public_security_group_id : var.network_config.private_security_group_id], var.network_config.other_security_group_ids))
 
   root_block_device {
     volume_size = var.node_module_variables.root_volume_size_gb
