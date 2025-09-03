@@ -13,6 +13,7 @@ module "network" {
   ssh_bastion_user     = var.ssh_bastion_user
   ssh_public_key_path  = var.ssh_public_key_path
   ssh_private_key_path = var.ssh_private_key_path
+  ssh_prefix_list      = var.ssh_prefix_list
 }
 
 module "test_environment" {

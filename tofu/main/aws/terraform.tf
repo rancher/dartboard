@@ -3,15 +3,15 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "5.74.0"
+      version = "6.9.0"
     }
     tls = {
       source  = "hashicorp/tls"
-      version = "4.0.3"
+      version = "4.1.0"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "2.7.1"
+      version = "3.0.2"
     }
     ssh = {
       source  = "loafoe/ssh"

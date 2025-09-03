@@ -25,6 +25,8 @@ module "upstream_cluster" {
   distro_version              = var.upstream_cluster.distro_version
   reserve_node_for_monitoring = var.upstream_cluster.reserve_node_for_monitoring
   enable_audit_log            = var.upstream_cluster.enable_audit_log
+  create_tunnels              = var.upstream_cluster.create_tunnels
+  public                      = var.upstream_cluster.public_ip
 
   sans                      = ["upstream.local.gd"]
   local_kubernetes_api_port = var.first_kubernetes_api_port
@@ -35,7 +37,7 @@ module "upstream_cluster" {
   node_module               = var.node_module
   network_config            = var.network_config
   node_module_variables     = var.upstream_cluster.node_module_variables
-  datastore_endpoint        = var.upstream_cluster.postgres_node_variables != null ? module.upstream_postgres[0].datastore_endpoint : null
+  datastore_endpoint        = var.upstream_cluster.postgres_node_variables != {} ? module.upstream_postgres[0].datastore_endpoint : null
 }
 
 module "tester_cluster" {
@@ -48,6 +50,8 @@ module "tester_cluster" {
   distro_version              = var.tester_cluster.distro_version
   reserve_node_for_monitoring = var.tester_cluster.reserve_node_for_monitoring
   enable_audit_log            = var.tester_cluster.enable_audit_log
+  create_tunnels              = var.tester_cluster.create_tunnels
+  public                      = var.tester_cluster.public_ip
 
   sans                      = ["tester.local.gd"]
   local_kubernetes_api_port = var.first_kubernetes_api_port + 1
@@ -71,6 +75,8 @@ module "downstream_clusters" {
   distro_version              = local.downstream_clusters[count.index].distro_version
   reserve_node_for_monitoring = local.downstream_clusters[count.index].reserve_node_for_monitoring
   enable_audit_log            = local.downstream_clusters[count.index].enable_audit_log
+  create_tunnels              = local.downstream_clusters[count.index].create_tunnels
+  public                      = local.downstream_clusters[count.index].public_ip
 
   sans                      = ["${local.downstream_clusters[count.index].name}.local.gd"]
   local_kubernetes_api_port = var.first_kubernetes_api_port + 2 + count.index

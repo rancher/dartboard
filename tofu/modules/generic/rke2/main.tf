@@ -6,6 +6,22 @@ terraform {
   }
 }
 
+data "http" "get_rke2" {
+  url = "https://get.rke2.io"
+
+  retry {
+    attempts = 5
+    min_delay_ms = 500
+    max_delay_ms = 3000
+  }
+
+  lifecycle {
+    postcondition {
+      condition     = contains([200], self.status_code)
+      error_message = "Status code invalid"
+    }
+  }
+}
 
 module "server_nodes" {
   count                = var.server_count
@@ -14,7 +30,7 @@ module "server_nodes" {
   name                 = "${var.name}-server-${count.index}"
   ssh_private_key_path = var.ssh_private_key_path
   ssh_user             = var.ssh_user
-  ssh_tunnels = count.index == 0 ? [
+  ssh_tunnels = count.index == 0 && var.create_tunnels ? [
     [var.local_kubernetes_api_port, 6443],
     [var.tunnel_app_http_port, 80],
     [var.tunnel_app_https_port, 443],
@@ -22,6 +38,7 @@ module "server_nodes" {
   node_module           = var.node_module
   node_module_variables = var.node_module_variables
   network_config        = var.network_config
+  public                = var.public
 }
 
 module "agent_nodes" {
@@ -46,7 +63,14 @@ resource "ssh_sensitive_resource" "first_server_installation" {
   timeout      = "600s"
 
   file {
+    content = data.http.get_rke2.response_body
+    destination = "${local.get_rke2_path}"
+    permissions = "0700"
+  }
+
+  file {
     content = templatefile("${path.module}/install_rke2.sh", {
+      get_rke2_path  = local.get_rke2_path
       distro_version = var.distro_version,
       sans           = concat([module.server_nodes[0].private_name], var.sans)
       type           = "server"
@@ -61,7 +85,6 @@ resource "ssh_sensitive_resource" "first_server_installation" {
       server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
       request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
       request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
-      sleep_time             = 0
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
@@ -94,7 +117,14 @@ resource "ssh_resource" "additional_server_installation" {
   timeout      = "600s"
 
   file {
+    content = data.http.get_rke2.response_body
+    destination = "${local.get_rke2_path}"
+    permissions = "0700"
+  }
+
+  file {
     content = templatefile("${path.module}/install_rke2.sh", {
+      get_rke2_path  = local.get_rke2_path
       distro_version = var.distro_version,
       sans           = [module.server_nodes[count.index + 1].private_name]
       type           = "server"
@@ -109,7 +139,6 @@ resource "ssh_resource" "additional_server_installation" {
       server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
       request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
       request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
-      sleep_time             = count.index * 60
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
@@ -134,7 +163,14 @@ resource "ssh_resource" "agent_installation" {
   timeout      = "600s"
 
   file {
+    content = data.http.get_rke2.response_body
+    destination = "${local.get_rke2_path}"
+    permissions = "0700"
+  }
+
+  file {
     content = templatefile("${path.module}/install_rke2.sh", {
+      get_rke2_path  = local.get_rke2_path
       distro_version = var.distro_version,
       sans           = [module.agent_nodes[count.index].private_name]
       type           = "agent"
@@ -153,7 +189,6 @@ resource "ssh_resource" "agent_installation" {
       server_ca_cert         = tls_self_signed_cert.server_ca_cert.cert_pem
       request_header_ca_key  = tls_private_key.request_header_ca_key.private_key_pem
       request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
-      sleep_time             = 0
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
     })
@@ -167,7 +202,8 @@ resource "ssh_resource" "agent_installation" {
 }
 
 locals {
-  local_kubernetes_api_url = "https://${var.sans[0]}:${var.local_kubernetes_api_port}"
+  get_rke2_path   = "/tmp/get_rke2.sh"
+  local_kubernetes_api_url = var.create_tunnels ? "https://${var.sans[0]}:${var.local_kubernetes_api_port}" : "https://${module.server_nodes[0].public_name}:6443"
 }
 
 resource "local_file" "kubeconfig" {

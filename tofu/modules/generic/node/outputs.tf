@@ -10,10 +10,22 @@ output "public_name" {
   value = module.host.public_name
 }
 
+output "public_ip" {
+  value = module.host.public_ip
+}
+
 output "name" {
   value = var.name
 }
 
 output "ssh_script_filename" {
   value = local_file.ssh_script.filename
+}
+
+output "ssh_user" {
+  value = module.host.ssh_user
+}
+
+output "ssh_key_path" {
+  value = module.host.ssh_key_path
 }
