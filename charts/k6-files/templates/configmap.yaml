@@ -1,13 +1,13 @@
+{{- $files := .Files }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: k6-test-files
 data:
-{{ (.Files.Glob "test-files/**.{js,mjs}").AsConfig | indent 2 }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: k6-lib-files
-data:
-{{ (.Files.Glob "test-files/lib/*.{js,mjs}").AsConfig | indent 2 }}
+{{- range $path, $_ := .Files.Glob "test-files/**.{js,mjs,ts}" }}
+  {{- if $path }}
+  {{- $key := (trimPrefix "test-files/" $path) | replace "/" "__" }}
+  {{ $key }}: |-
+{{ $files.Get $path | indent 4 }}
+  {{- end }}
+{{- end }}
