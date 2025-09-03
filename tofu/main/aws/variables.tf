@@ -18,6 +18,12 @@ variable "ssh_bastion_user" {
   default     = "root"
 }
 
+variable "ssh_prefix_list" {
+  description = "The name of an existing prefix list of IP addresses approved for SSH access"
+  type = string
+  default = null
+}
+
 variable "upstream_cluster" {
   description = "Upstream cluster configuration. See tofu/modules/generic/test_environment/variables.tf for details"
   type        = any

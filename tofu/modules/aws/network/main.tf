@@ -170,38 +170,110 @@ resource "aws_vpc_dhcp_options_association" "vpc_dhcp_options" {
   dhcp_options_id = aws_vpc_dhcp_options.dhcp_options[0].id
 }
 
+data "aws_ec2_managed_prefix_list" "this" {
+  count = var.ssh_prefix_list != null ? 1 : 0
+  name = var.ssh_prefix_list
+}
+
+resource "aws_security_group" "ssh_ipv4" {
+  name        = "ssh_ipv4"
+  description = "Enables SSH access for approved CIDR ranges and specific IPs"
+  vpc_id      = local.vpc_id
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Project = var.project_name
+    Name    = "${var.project_name}-public-security-group"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "prefix_ipv4" {
+  count             = var.ssh_prefix_list != null ? 1 : 0
+  description       = "SSH access for Approved Prefix List Public IPv4s"
+  ip_protocol       = "-1"
+  prefix_list_id    = data.aws_ec2_managed_prefix_list.this[0].id
+  security_group_id = aws_security_group.ssh_ipv4.id
+}
+
+resource "aws_vpc_security_group_ingress_rule" "vpc_ssh" {
+  description       = "Default VPC IPv4"
+  from_port         = 22
+  to_port           = 22
+  ip_protocol       = "tcp"
+  cidr_ipv4         = local.vpc_cidr_block
+  security_group_id = aws_security_group.ssh_ipv4.id
+}
+
+resource "aws_vpc_security_group_ingress_rule" "vpc_ssh_cidrs" {
+  for_each = toset([
+    "3.0.0.0/8", "52.0.0.0/8", "13.0.0.0/8", "18.0.0.0/8",
+  ])
+  description       = "SSH from Approved CIDR range (${each.value})"
+  from_port         = 22
+  to_port           = 22
+  ip_protocol       = "tcp"
+  cidr_ipv4         = each.value
+  security_group_id = aws_security_group.ssh_ipv4.id
+}
+
+resource "aws_vpc_security_group_ingress_rule" "public_https" {
+  description       = "Allow HTTPS from all sources"
+  security_group_id = aws_security_group.public.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "public_vpc_cidr" {
+  description       = "Allow all traffic from VPC CIDR"
+  security_group_id = aws_security_group.public.id
+  cidr_ipv4         = local.vpc_cidr_block
+  ip_protocol       = "-1" # semantically equivalent to all ports
+}
+
+resource "aws_vpc_security_group_ingress_rule" "public_internal_traffic" {
+  description = "Allow all internal traffic within this SG"
+  security_group_id = aws_security_group.public.id
+  referenced_security_group_id = aws_security_group.public.id
+  ip_protocol       = "-1" # semantically equivalent to all ports
+}
+
+resource "aws_vpc_security_group_egress_rule" "public_traffic_ipv4" {
+  description = "Allow all egress traffic"
+  security_group_id = aws_security_group.public.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1" # semantically equivalent to all ports
+}
+
+resource "aws_vpc_security_group_ingress_rule" "private_vpc_cidr" {
+  description       = "Allow all traffic from VPC CIDR"
+  security_group_id = aws_security_group.private.id
+  cidr_ipv4         = local.vpc_cidr_block
+  ip_protocol       = "-1"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "private_internal_traffic" {
+  description = "Allow all internal traffic within this SG"
+  security_group_id = aws_security_group.private.id
+  referenced_security_group_id = aws_security_group.private.id
+  ip_protocol       = "-1" # semantically equivalent to all ports
+}
+
+resource "aws_vpc_security_group_egress_rule" "private_traffic_ipv4" {
+  description = "Allow all egress traffic"
+  security_group_id = aws_security_group.private.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1" # semantically equivalent to all ports
+}
+
 resource "aws_security_group" "public" {
   name        = "${var.project_name}-public-security-group"
   description = "Allow inbound connections from the VPC; allow connections on ports 22 (SSH) and 443 (HTTPS); allow all outbound connections"
   vpc_id      = local.vpc_id
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = [local.vpc_cidr_block]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   lifecycle {
     create_before_destroy = true
@@ -217,20 +289,6 @@ resource "aws_security_group" "private" {
   name        = "${var.project_name}-private-security-group"
   description = "Allow all inbound and outbound connections within the VPC"
   vpc_id      = local.vpc_id
-
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = [local.vpc_cidr_block]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   lifecycle {
     create_before_destroy = true
@@ -263,6 +321,7 @@ module "bastion" {
     secondary_private_subnet_id : local.secondary_private_subnet_id
     public_security_group_id : aws_security_group.public.id
     private_security_group_id : aws_security_group.private.id
+    other_security_group_ids : [aws_security_group.ssh_ipv4.id]
     ssh_key_name : aws_key_pair.key_pair.key_name
     ssh_bastion_host : null
     ssh_bastion_user : null

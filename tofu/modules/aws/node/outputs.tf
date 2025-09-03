@@ -12,7 +12,7 @@ output "private_ip" {
 }
 
 output "public_ip" {
-  value = var.public ? aws_instance.instance.public_ip : aws_instance.instance.private_ip
+  value = aws_instance.instance.public_ip
 }
 
 output "public_name" {
