@@ -1,7 +1,7 @@
 import { sleep, check, fail } from 'k6';
 import encoding from 'k6/encoding';
 import exec from 'k6/execution';
-import * as k8s from './k8s.js'
+import * as k8s from '../generic/k8s.js'
 import * as diagnosticsUtil from "../rancher/rancher_diagnostics.js";
 import { getCookies, login, retryUntilOneOf } from "../rancher/rancher_utils.js";
 import { Gauge, Trend, Counter } from 'k6/metrics';
