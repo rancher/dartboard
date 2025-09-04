@@ -18,17 +18,21 @@ const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
 const token = __ENV.TOKEN
 const resource = __ENV.RESOURCE || "configmaps"
-// Pagination options
-const firstPageOnly = __ENV.FIRST_PAGE_ONLY === "true"
-const pauseSeconds = parseFloat(__ENV.PAUSE_SECONDS || 5.0)
+
+/*
+ Due to the import from `api_benchmark.js` various env vars contained in that script
+ are also relevant here. Be sure to set those accordingly in your shell session before
+ running this script.
+*/
 
 // Requires the same parameters as `api_benchmark.js`, but since we now import
 // from that script, those env vars get loaded as well.
 
 // Option setting
-const vus = Number(__ENV.VUS || 5) // not using `K6_VUs` here because we want to modify # of VUs per-scenario
-const preAllocatedVUs = Number(__ENV.PRE_ALLOCATED_VUS || 5)
-const duration = (__ENV.DURATION || '2h') // not using `K6_DURATION` here because we want to modify duration per-scenario
+const listVUs = Number(__ENV.VUS || 5)
+// https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/arrival-rate-vu-allocation/#pre-allocation-in-arrival-rate-executors
+const changeVUs = Number(__ENV.PRE_ALLOCATED_VUS || 5)
+const duration = (__ENV.DURATION || '2h')
 const diagnosticsInterval = (__ENV.DIAGNOSTICS_INTERVAL || "20m"); // # time unit
 // 2 requests per iteration (for change() func), so iteration rate is 1/2 of request rate
 const changeIPS = (__ENV.TARGET_RPS || 10) / 2
@@ -40,7 +44,7 @@ const diagnosticsDuringTrend = new Trend('diagnostics_during_churn');
 const diagnosticsAfterGauge = new Gauge('diagnostics_after_churn');
 const churnOpsCounter = new Counter('churn_operations_total');
 
-const useFilters = (__ENV.MY_ENV_VAR !== undefined && __ENV.MY_ENV_VAR !== null) ? __ENV.MY_ENV_VAR === "true" ? true : false : true
+const useFilters = (__ENV.USE_FILTERS !== undefined && __ENV.USE_FILTERS !== null) ? __ENV.USE_FILTERS === "true" ? true : false : true
 let defaultFilters = [
   "sort=metadata.name&",
   "filter=metadata.namespace!=p-4vgxn&",
@@ -80,22 +84,35 @@ export const options = {
       iterations: 1,
       startTime: '0s',
       maxDuration: '2m',
+      tags: { phase: 'pre-churn' }
     },
     change: {
       executor: 'constant-arrival-rate',
       exec: 'change',
-      preAllocatedVUs: preAllocatedVUs,
+      preAllocatedVUs: changeVUs,
       duration: duration,
       rate: changeIPS,
-      startTime: '2m'
+      startTime: '2m',
+      tags: { phase: 'churn' },
+      thresholds: {
+        http_req_failed: ['rate<=0.05'], // Allow 5% error rate during churn
+        http_req_duration: ['p(95)<=2000', 'avg<=1000'], // 95% of requests should be below 2s
+        checks: ['rate>0.95'], // 95% success rate
+      }
     },
     list: {
       executor: 'per-vu-iterations',
       exec: 'list',
-      vus: vus,
+      vus: listVUs,
       iterations: 9999, // setting this to a # we should never reach in order to ensure `list` runs until `change` scenario completes
       maxDuration: duration,
-      startTime: '2m'
+      startTime: '2m',
+      tags: { phase: 'list' },
+      thresholds: {
+        http_req_failed: ['rate<=0.05'], // Allow 5% error rate during churn
+        http_req_duration: ['p(95)<=1500'], // 95% of requests should be below 2s
+        checks: ['rate>0.95'], // 95% success rate
+      }
     },
     duringChurnDiagnostics: {
       executor: 'constant-arrival-rate',
@@ -105,6 +122,10 @@ export const options = {
       timeUnit: diagnosticsInterval,
       duration: duration,
       startTime: '2m',
+      tags: { phase: 'during-churn' },
+      thresholds: {
+        'diagnostics_during_churn': ['p(95)<=5000'], // 95% of diagnostic runs finish within 5s
+      },
     },
     postChurnDiagnostics: {
       executor: 'shared-iterations',
@@ -113,12 +134,12 @@ export const options = {
       iterations: 1,
       startTime: `${parseDurationToMinutes(duration) + 5}m`,
       maxDuration: '5m',
+      tags: { phase: 'post-churn' }
     },
   },
   thresholds: {
-    http_req_failed: ['rate<=0.05'], // Allow 5% error rate during churn
-    http_req_duration: ['p(95)<=2000'], // 95% of requests should be below 2s
-    checks: ['rate>0.95'], // 95% success rate
+    http_req_failed: ['rate<=0.02'], // Across all scenarios, <2% failures
+    checks: ['rate>0.98'], // Overall correctness across test
     churn_operations_total: [`count>=${changeIPS * parseInt(duration) * 0.9}`], // At least 90% of target ops
   }
 };
@@ -300,7 +321,7 @@ export function change() {
 
 export function list(data) {
   // need to remove the final filter's '&' suffix so that the list url is formed correctly
-  data.filters[data.filters.length-1] = data.filters[data.filters.length-1].replace("&", "")
+  data.filters[data.filters.length - 1] = data.filters[data.filters.length - 1].replace("&", "")
   let allFilters = useFilters ? data.filters.join("") : ""
   benchmarkList(data.cookies, allFilters)
 }
