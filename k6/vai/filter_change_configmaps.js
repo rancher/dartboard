@@ -94,11 +94,6 @@ export const options = {
       rate: changeIPS,
       startTime: '2m',
       tags: { phase: 'churn' },
-      thresholds: {
-        http_req_failed: ['rate<=0.05'], // Allow 5% error rate during churn
-        http_req_duration: ['p(95)<=2000', 'avg<=1000'], // 95% of requests should be below 2s
-        checks: ['rate>0.95'], // 95% success rate
-      }
     },
     list: {
       executor: 'per-vu-iterations',
@@ -108,11 +103,6 @@ export const options = {
       maxDuration: duration,
       startTime: '2m',
       tags: { phase: 'list' },
-      thresholds: {
-        http_req_failed: ['rate<=0.05'], // Allow 5% error rate during churn
-        http_req_duration: ['p(95)<=1500'], // 95% of requests should be below 2s
-        checks: ['rate>0.95'], // 95% success rate
-      }
     },
     duringChurnDiagnostics: {
       executor: 'constant-arrival-rate',
@@ -139,7 +129,13 @@ export const options = {
   },
   thresholds: {
     http_req_failed: ['rate<=0.02'], // Across all scenarios, <2% failures
+    'http_req_failed{scenario:change}': ['rate<=0.05'], // Allow 5% error rate during churn
+    'http_req_failed{scenario:list}': ['rate<=0.05'], // Allow 5% error rate during churn
+    'http_req_duration{scenario:change}': ['p(95)<=2000', 'avg<=1000'], // 95% of requests should be below 2s
+    'http_req_duration{scenario:list}': ['p(95)<=1500'], // 95% of requests should be below 2s
     checks: ['rate>0.98'], // Overall correctness across test
+    'checks{scenario:change}': ['rate>0.95'], // 95% success rate
+    'checks{scenario:list}': ['rate>0.95'], // 95% success rate
     churn_operations_total: [`count>=${changeIPS * parseInt(duration) * 0.9}`], // At least 90% of target ops
   }
 };
