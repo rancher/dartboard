@@ -113,9 +113,6 @@ export const options = {
       duration: duration,
       startTime: '2m',
       tags: { phase: 'during-churn' },
-      thresholds: {
-        'diagnostics_during_churn': ['p(95)<=5000'], // 95% of diagnostic runs finish within 5s
-      },
     },
     postChurnDiagnostics: {
       executor: 'shared-iterations',
@@ -136,6 +133,7 @@ export const options = {
     checks: ['rate>0.98'], // Overall correctness across test
     'checks{scenario:change}': ['rate>0.95'], // 95% success rate
     'checks{scenario:list}': ['rate>0.95'], // 95% success rate
+    'diagnostics_during_churn{scenario:duringChurnDiagnostics}': ['p(95)<=5000'], // 95% of diagnostic runs finish within 5s
     churn_operations_total: [`count>=${changeIPS * parseInt(duration) * 0.9}`], // At least 90% of target ops
   }
 };
