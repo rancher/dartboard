@@ -29,11 +29,3 @@ output "ssh_key_path" {
 output "ssh_script_filename" {
   value = local_file.ssh_script.filename
 }
-
-output "ssh_user" {
-  value = module.host.ssh_user
-}
-
-output "ssh_key_path" {
-  value = module.host.ssh_key_path
-}
