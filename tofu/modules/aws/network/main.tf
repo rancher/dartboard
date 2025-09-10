@@ -24,6 +24,17 @@ locals {
   create_vpc = var.existing_vpc_name == null
 }
 
+data "http" "myip" {
+  url = "https://ipv4.icanhazip.com"
+
+  lifecycle {
+    postcondition {
+      condition     = contains([200], self.status_code)
+      error_message = "Status code invalid"
+    }
+  }
+}
+
 resource "aws_internet_gateway" "main" {
   count  = local.create_vpc ? 1 : 0
   vpc_id = local.vpc_id
@@ -209,7 +220,7 @@ resource "aws_vpc_security_group_ingress_rule" "vpc_ssh" {
 
 resource "aws_vpc_security_group_ingress_rule" "vpc_ssh_cidrs" {
   for_each = toset([
-    "3.0.0.0/8", "52.0.0.0/8", "13.0.0.0/8", "18.0.0.0/8",
+    "3.0.0.0/8", "52.0.0.0/8", "13.0.0.0/8", "18.0.0.0/8", "54.0.0.0/8", "${chomp(data.http.myip.response_body)}/32"
   ])
   description       = "SSH from Approved CIDR range (${each.value})"
   from_port         = 22
@@ -326,4 +337,10 @@ module "bastion" {
     ssh_bastion_host : null
     ssh_bastion_user : null
   }
+
+  depends_on = [
+    aws_nat_gateway.nat,
+    aws_route_table_association.public,
+    aws_route_table_association.private
+  ]
 }
