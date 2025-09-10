@@ -19,7 +19,9 @@ package subcommands
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
