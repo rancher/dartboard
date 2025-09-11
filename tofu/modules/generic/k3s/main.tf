@@ -89,7 +89,7 @@ resource "ssh_sensitive_resource" "first_server_installation" {
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
       datastore_endpoint     = var.datastore_endpoint
-      registry_mirror        = var.network_config.ssh_bastion_host
+      registry_mirror        = local.registry_mirror_endpoint
     })
     destination = "/tmp/install_k3s.sh"
     permissions = "0700"
@@ -146,7 +146,7 @@ resource "ssh_resource" "additional_server_installation" {
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
       datastore_endpoint     = var.datastore_endpoint
-      registry_mirror        = var.network_config.ssh_bastion_host
+      registry_mirror        = local.registry_mirror_endpoint
     })
     destination = "/tmp/install_k3s.sh"
     permissions = "0700"
@@ -199,7 +199,7 @@ resource "ssh_resource" "agent_installation" {
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
       datastore_endpoint     = var.datastore_endpoint
-      registry_mirror        = var.network_config.ssh_bastion_host
+      registry_mirror        = local.registry_mirror_endpoint
     })
     destination = "/tmp/install_k3s.sh"
     permissions = "0700"
@@ -214,6 +214,11 @@ resource "ssh_resource" "agent_installation" {
 locals {
   get_k3s_path = "/tmp/get_k3s.sh"
   local_kubernetes_api_url = var.create_tunnels ? "https://${var.sans[0]}:${var.local_kubernetes_api_port}" : "https://${module.server_nodes[0].public_name}:6443"
+  registry_mirror_endpoint = {
+    "none"    = null
+    "bastion" = "http://${var.network_config.ssh_bastion_host}:5000"
+    "custom"  = var.custom_registry_mirror
+  }[var.registry_mirror_mode]
 }
 
 resource "local_file" "kubeconfig" {
