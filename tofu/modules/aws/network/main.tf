@@ -239,6 +239,79 @@ resource "aws_vpc_security_group_ingress_rule" "public_https" {
   ip_protocol       = "tcp"
 }
 
+resource "aws_vpc_security_group_ingress_rule" "public_rancher_webhook" {
+  description       = "Allow all traffic to Rancher webhook"
+  security_group_id = aws_security_group.public.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 8443
+  to_port           = 8443
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "public_tcp_weave" {
+  description       = "Allow all traffic to Weave port"
+  security_group_id = aws_security_group.public.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 6783
+  to_port           = 6783
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "public_udp_weave" {
+  description       = "Allow all UDP traffic for Weave"
+  security_group_id = aws_security_group.public.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 6783
+  to_port           = 6784
+  ip_protocol       = "udp"
+}
+
+
+resource "aws_vpc_security_group_ingress_rule" "public_k8s" {
+  description       = "Allow all traffic to k8s API port"
+  security_group_id = aws_security_group.public.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 6443
+  to_port           = 6443
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "public_rke2" {
+  description       = "Allow all traffic for RKE2 node registration"
+  security_group_id = aws_security_group.public.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 9345
+  to_port           = 9345
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "public_probes" {
+  description       = "Allow all traffic for liveness/readiness probes, monitoring, kubelet, scheduler, controller-manager, proxy"
+  security_group_id = aws_security_group.public.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 9099
+  to_port           = 10260
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "public_tcp_nodeports" {
+  description       = "Allow all TCP traffic for Kubernetes NodePorts"
+  security_group_id = aws_security_group.public.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 30000
+  to_port           = 32767
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "public_udp_nodeports" {
+  description       = "Allow all UDP traffic for Kubernetes NodePorts"
+  security_group_id = aws_security_group.public.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 30000
+  to_port           = 32767
+  ip_protocol       = "udp"
+}
+
 resource "aws_vpc_security_group_ingress_rule" "public_vpc_cidr" {
   description       = "Allow all traffic from VPC CIDR"
   security_group_id = aws_security_group.public.id
