@@ -96,12 +96,8 @@ export function createDeployments(baseUrl, cookies, cluster, namespace, iter) {
                 "spec": {
                   "containers": [
                     {
-                      "command": [
-                        "bash",
-                        "-c",
-                        `echo test; sleep ${randomIntBetween(10,60)}; exit 1;`
-                      ],
-                      "image": "ubuntu",
+                      "command": ["sleep", "3600"],
+                      "image": "busybox:latest",
                       "name": name
                     }
                   ],
