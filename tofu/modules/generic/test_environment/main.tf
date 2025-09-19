@@ -79,6 +79,8 @@ module "downstream_clusters" {
   public                      = local.downstream_clusters[count.index].public_ip
 
   sans                      = ["${local.downstream_clusters[count.index].name}.local.gd"]
+  max_pods                  = local.downstream_clusters[count.index].max_pods
+  node_cidr_mask_size       = local.downstream_clusters[count.index].node_cidr_mask_size
   local_kubernetes_api_port = var.first_kubernetes_api_port + 2 + count.index
   tunnel_app_http_port      = var.first_app_http_port + 2 + count.index
   tunnel_app_https_port     = var.first_app_https_port + 2 + count.index
