@@ -72,7 +72,7 @@ resource "ssh_sensitive_resource" "first_server_installation" {
     content = templatefile("${path.module}/install_rke2.sh", {
       get_rke2_path  = local.get_rke2_path
       distro_version = var.distro_version,
-      sans           = concat([module.server_nodes[0].private_name], var.sans)
+      sans           = local.sans
       type           = "server"
       token          = null
       server_url     = null
@@ -126,7 +126,7 @@ resource "ssh_resource" "additional_server_installation" {
     content = templatefile("${path.module}/install_rke2.sh", {
       get_rke2_path  = local.get_rke2_path
       distro_version = var.distro_version,
-      sans           = [module.server_nodes[count.index + 1].private_name]
+      sans           = local.sans
       type           = "server"
       token          = ssh_sensitive_resource.first_server_installation[0].result
       server_url     = "https://${module.server_nodes[0].private_name}:9345"
@@ -172,7 +172,7 @@ resource "ssh_resource" "agent_installation" {
     content = templatefile("${path.module}/install_rke2.sh", {
       get_rke2_path  = local.get_rke2_path
       distro_version = var.distro_version,
-      sans           = [module.agent_nodes[count.index].private_name]
+      sans           = concat([module.agent_nodes[count.index].private_name], local.sans)
       type           = "agent"
       token          = ssh_sensitive_resource.first_server_installation[0].result
       server_url     = "https://${module.server_nodes[0].private_name}:9345"
@@ -204,6 +204,8 @@ resource "ssh_resource" "agent_installation" {
 locals {
   get_rke2_path   = "/tmp/get_rke2.sh"
   local_kubernetes_api_url = var.create_tunnels ? "https://${var.sans[0]}:${var.local_kubernetes_api_port}" : "https://${module.server_nodes[0].public_name}:6443"
+  public_sans = concat(module.server_nodes[*].public_name, module.server_nodes[*].public_ip)
+  sans = distinct(concat(var.sans, var.public ? local.public_sans : [], module.server_nodes[*].private_ip, module.server_nodes[*].private_name))
 }
 
 resource "local_file" "kubeconfig" {
