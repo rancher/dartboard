@@ -113,3 +113,20 @@ variable "network_config" {
   description = "Network module outputs, to be passed to node_module"
   type        = any
 }
+
+variable "registry_mirror_mode" {
+  description = "Controls the k3s container registry mirror. Set to 'none', 'bastion', or 'custom'."
+  type        = string
+  default     = "bastion"
+
+  validation {
+    condition     = contains(["none", "bastion", "custom"], var.registry_mirror_mode)
+    error_message = "Allowed values are 'none', 'bastion', or 'custom'."
+  }
+}
+
+variable "custom_registry_mirror" {
+  description = "The URL for the custom container registry mirror. Only used if mode is 'custom'."
+  type        = string
+  default     = ""
+}

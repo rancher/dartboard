@@ -1,0 +1,22 @@
+[Unit]
+Description=docker-proxy
+After=docker.service
+Requires=docker.service
+PartOf=docker.service
+
+[Service]
+TimeoutStartSec=0
+
+ExecStop=-sh -c "/usr/bin/docker stop proxy | xargs -r /usr/bin/docker rm"
+ExecStartPre=-/usr/bin/docker rm proxy
+ExecStart=/usr/bin/docker run \
+    --restart unless-stopped \
+    --name proxy \
+    -p 5000:5000 \
+    -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
+    registry:2
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
