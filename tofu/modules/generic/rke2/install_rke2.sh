@@ -2,14 +2,15 @@
 
 set -xe
 
+arch=`uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/'`
 mkdir -p /tmp/rke2-artifacts
 pushd /tmp/rke2-artifacts
   version=$(echo "${distro_version}" | sed 's/+/%2B/g')
-  wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-core.linux-amd64.tar.gz
-  wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-canal.linux-amd64.tar.gz
-  wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-calico.linux-amd64.tar.gz
-  wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2.linux-amd64.tar.gz
-  wget -c https://prime.ribs.rancher.io/rke2/"$version"/sha256sum-amd64.txt
+  wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-core.linux-"$arch".tar.gz
+  wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-canal.linux-"$arch".tar.gz
+  wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-calico.linux-"$arch".tar.gz
+  wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2.linux-"$arch".tar.gz
+  wget -c https://prime.ribs.rancher.io/rke2/"$version"/sha256sum-"$arch".txt
 popd
 
 # use data disk if available (see mount_ephemeral.sh)

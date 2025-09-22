@@ -108,3 +108,10 @@ variable "network_config" {
   description = "Network module outputs, to be passed to node_module"
   type        = any
 }
+
+variable "datastore_endpoint" {
+  description = "Override datastore with a custom endpoint string (ignored)"
+  type        = string
+  default     = null
+}
+
