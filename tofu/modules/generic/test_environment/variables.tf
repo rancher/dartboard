@@ -57,6 +57,8 @@ variable "downstream_cluster_templates" {
     reserve_node_for_monitoring = bool // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring
     enable_audit_log            = bool // Enable audit log for the cluster
     create_tunnels              = bool // Whether ssh tunnels to the downstream cluster's first server node should be created. Default false
+    max_pods                    = number // Max pods per node
+    node_cidr_mask_size         = string // Number of IP addresses for pods per node
 
     node_module_variables = any // Node module-specific variables
   }))
