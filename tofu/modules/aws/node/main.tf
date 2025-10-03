@@ -23,14 +23,14 @@ resource "null_resource" "host_configuration" {
   depends_on = [aws_instance.instance]
 
   connection {
-    host        = var.network_config.ssh_bastion_host == null ? aws_instance.instance.public_dns : aws_instance.instance.private_dns
+    host        = var.public ? aws_instance.instance.public_dns : aws_instance.instance.private_dns
     private_key = file(var.ssh_private_key_path)
     user        = var.ssh_user
 
     bastion_host        = var.network_config.ssh_bastion_host
     bastion_user        = var.network_config.ssh_bastion_user
     bastion_private_key = file(var.ssh_private_key_path)
-    timeout             = "240s"
+    timeout             = "60s"
   }
 
   provisioner "file" {
