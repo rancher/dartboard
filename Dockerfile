@@ -1,4 +1,4 @@
-ARG K6_VERSION="0.58.0"
+ARG K6_VERSION="1.3.0"
 FROM golang:1.24-alpine3.20 AS builder
 # match whichever tagged version is used by the K6_VERSION docker image
 # see build layer at https://github.com/grafana/k6/blob/v${K6_VERSION}/Dockerfile
@@ -29,12 +29,8 @@ RUN apk update && \
     apk add --no-cache \
     openssh-client \
     netcat-openbsd \
-    bash
-
-# Prepare the k6 user's .ssh directory with correct ownership & perms
-RUN mkdir -p /home/k6/.ssh \
- && chmod 700 /home/k6/.ssh \
- && chown k6:k6 /home/k6/.ssh
+    bash \
+    gettext
 
 # switch back to the non-root user
 USER k6
