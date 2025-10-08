@@ -15,7 +15,7 @@ pipeline {
     qaseToken = credentials('QASE_AUTOMATION_TOKEN')
     qaseEnvFile = '.qase.env'
     k6EnvFile = 'k6.env'
-    k6TestsDir = "k6/"
+    k6TestsDir = "k6"
     k6OutputJson = 'k6-output.json'
     k6SummaryLog = 'k6-summary.log'
     harvesterKubeconfig = 'harvester.kubeconfig'
@@ -74,6 +74,34 @@ pipeline {
       }
     }
 
+    stage('Setup SSH Keys') {
+      steps {
+        script {
+          def sshScript = """
+            echo "${env.SSH_PEM_KEY}" | base64 -di > ${env.SSH_KEY_NAME}.pem
+            chmod 600 ${env.SSH_KEY_NAME}.pem
+            chown k6:k6 ${env.SSH_KEY_NAME}.pem
+            echo "${env.SSH_PUB_KEY}" > ${env.SSH_KEY_NAME}.pub
+            chmod 644 ${env.SSH_KEY_NAME}.pub
+            chown k6:k6 ${env.SSH_KEY_NAME}.pub
+            echo "VERIFICATION FOR PUB KEY:"
+            cat ${env.SSH_KEY_NAME}.pub
+            pwd
+            ls -al
+          """
+          generatedNames = generate.names()
+          sh """
+            docker run --rm --name ${generatedNames.container} \\
+              -v ${pwd()}:/home/ \\
+              --workdir /home/dartboard \\
+              --env-file dartboard/${env.envFile} \\
+              --entrypoint='' --user root \\
+              ${env.imageName}:latest /bin/sh -c '${sshScript}'
+          """
+        }
+      }
+    }
+
     stage('Prepare Parameter Files') {
       steps {
         dir('dartboard'){
@@ -84,10 +112,9 @@ pipeline {
 
             // Render the Dart file using Groovy string replacement instead of envsubst
             def dartTemplate = params.DART_FILE
-            def renderedDart = dartTemplate.replace('$HARVESTER_KUBECONFIG', env.harvesterKubeconfig)
-                                            .replace('$SSH_KEY_NAME', params.SSH_KEY_NAME)
-                                            .replace('$PROJECT_NAME', env.DEFAULT_PROJECT_NAME)
-
+            def renderedDart = dartTemplate.replaceAll('\\$\\{HARVESTER_KUBECONFIG\\}', "/home/dartboard/${env.harvesterKubeconfig}")
+                                            .replaceAll('\\$\\{SSH_KEY_NAME\\}', "/home/dartboard/${params.SSH_KEY_NAME}")
+                                            .replaceAll('\\$\\{PROJECT_NAME\\}', env.DEFAULT_PROJECT_NAME)
             writeFile file: env.renderedDartFile, text: renderedDart
 
             echo "DUMPING INPUT FILES FOR MANUAL VERIFICATION"
@@ -95,6 +122,8 @@ pipeline {
             sh "cat ${env.k6EnvFile}"
             echo "---- harvester.kubeconfig ----"
             sh "cat ${env.harvesterKubeconfig}"
+            echo "---- renderdDart ----"
+            println renderedDart
             echo "---- rendered-dart.yaml ----"
             sh "cat ${env.renderedDartFile}"
           }
@@ -105,7 +134,6 @@ pipeline {
     stage('Setup Infrastructure') {
         steps {
           script {
-            generatedNames = generate.names()
             sh """
               docker run --rm --name ${generatedNames.container} \\
                 -v ${pwd()}:/home/ \\
