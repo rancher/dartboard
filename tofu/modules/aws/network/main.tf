@@ -47,6 +47,7 @@ resource "aws_internet_gateway" "main" {
 }
 
 resource "aws_eip" "nat_eip" {
+  count = local.create_vpc ? 1 : 0
 
   tags = {
     Project = var.project_name
@@ -55,7 +56,8 @@ resource "aws_eip" "nat_eip" {
 }
 
 resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat_eip.id
+  count         = local.create_vpc ? 1 : 0
+  allocation_id = one(aws_eip.nat_eip[*].id)
   subnet_id     = local.public_subnet_id
 
   depends_on = [data.aws_internet_gateway.existing, aws_internet_gateway.main]
@@ -118,10 +120,11 @@ resource "aws_key_pair" "key_pair" {
 resource "aws_main_route_table_association" "vpc_internet" {
   count          = local.create_vpc ? 1 : 0
   vpc_id         = local.vpc_id
-  route_table_id = aws_route_table.public.id
+  route_table_id = one(aws_route_table.public[*].id)
 }
 
 resource "aws_route_table" "public" {
+  count  = local.create_vpc ? 1 : 0
   vpc_id = local.vpc_id
 
   route {
@@ -136,11 +139,12 @@ resource "aws_route_table" "public" {
 }
 
 resource "aws_route_table" "private" {
+  count  = local.create_vpc ? 1 : 0
   vpc_id = local.vpc_id
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
+    nat_gateway_id = one(aws_nat_gateway.nat[*].id)
   }
 
   tags = {
@@ -150,19 +154,21 @@ resource "aws_route_table" "private" {
 }
 
 resource "aws_route_table_association" "public" {
+  count          = local.create_vpc ? 1 : 0
   subnet_id      = local.public_subnet_id
-  route_table_id = aws_route_table.public.id
+  route_table_id = one(aws_route_table.public[*].id)
 }
 
 resource "aws_route_table_association" "private" {
+  count          = local.create_vpc ? 1 : 0
   subnet_id      = local.private_subnet_id
-  route_table_id = aws_route_table.private.id
+  route_table_id = one(aws_route_table.private[*].id)
 }
 
 resource "aws_route_table_association" "secondary_private" {
   count          = local.create_vpc && var.secondary_availability_zone != null ? 1 : 0
   subnet_id      = local.secondary_private_subnet_id
-  route_table_id = aws_route_table.private.id
+  route_table_id = one(aws_route_table.private[*].id)
 }
 
 resource "aws_vpc_dhcp_options" "dhcp_options" {
