@@ -3,6 +3,7 @@
 @Library('qa-jenkins-library') _
 
 def scmWorkspace
+def generatedNames
 
 pipeline {
   // agent { label 'vsphere-vpn-1' }
@@ -57,19 +58,20 @@ pipeline {
     }
 
     stage('Configure and Build') {
-        steps {
-          dir('dartboard') {
-            script {
+      steps {
+        dir('dartboard') {
+          script {
+            property.useWithProperties(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
               echo "OUTPUTTING FILE STRUCTURE FOR MANUAL VERIFICATION:"
               sh "ls -al"
               echo "OUTPUTTING ENV FOR MANUAL VERIFICATION:"
               echo "Storing env in file"
               sh "printenv | egrep '^(ARM_|CATTLE_|ADMIN|USER|DO|RANCHER_|AWS_|DEBUG|LOGLEVEL|DEFAULT_|OS_|DOCKER_|CLOUD_|KUBE|BUILD_NUMBER|AZURE|TEST_|QASE_|SLACK_|harvester|K6_TEST|TF_).*=.+' | sort > ${env.envFile}"
-              sh "echo 'TF_LOG=DEBUG' >> ${env.envFile}"
               sh "docker build -t ${env.imageName}:latest ."
             }
           }
         }
+      }
     }
 
     stage('Prepare Parameter Files') {
@@ -83,8 +85,8 @@ pipeline {
             // Render the Dart file using Groovy string replacement instead of envsubst
             def dartTemplate = params.DART_FILE
             def renderedDart = dartTemplate.replace('$HARVESTER_KUBECONFIG', env.harvesterKubeconfig)
-                                           .replace('$SSH_KEY_NAME', params.SSH_KEY_NAME)
-                                           .replace('$PROJECT_NAME', env.DEFAULT_PROJECT_NAME)
+                                            .replace('$SSH_KEY_NAME', params.SSH_KEY_NAME)
+                                            .replace('$PROJECT_NAME', env.DEFAULT_PROJECT_NAME)
 
             writeFile file: env.renderedDartFile, text: renderedDart
 
@@ -103,9 +105,9 @@ pipeline {
     stage('Setup Infrastructure') {
         steps {
           script {
-            def names = generate.names()
+            generatedNames = generate.names()
             sh """
-              docker run --rm --name ${names.container} \\
+              docker run --rm --name ${generatedNames.container} \\
                 -v ${pwd()}:/home/ \\
                 --workdir /home/dartboard/ \\
                 --env-file dartboard/${env.envFile} \\
@@ -123,9 +125,8 @@ pipeline {
               def k6BaseCommand = "k6 run --out json=${env.k6OutputJson} ${env.k6TestsDir}/${params.K6_TEST} | tee ${env.k6SummaryLog}"
               def k6TestCommand = fileExists("${env.k6EnvFile}") ? "set -o allexport; source ${env.k6EnvFile}; set +o allexport; ${k6BaseCommand}" : k6BaseCommand
 
-              def names = generate.names()
               sh """
-                docker run --rm --name ${names.container} \\
+                docker run --rm --name ${generatedNames.container} \\
                   -v ${pwd()}:/home/ \\
                   --workdir /home/dartboard/ \\
                   --env-file dartboard/${env.envFile} \\
@@ -144,8 +145,10 @@ pipeline {
           archiveArtifacts artifacts: 'dartboard/**/*.tfstate*, dartboard/**/*.json, dartboard/**/*.pem, dartboard/**/*.pub, dartboard/**/*.yaml, dartboard/**/*.sh, dartboard/**/*.env', fingerprint: true
 
           // Cleanup Docker image
+          // Note: jobContainer is not defined in this scope, so this may fail.
+          // If cleanup is needed, ensure the container name/image is available.
           try {
-            container.remove([ [name: jobContainer.name, image: jobContainer.image] ])
+            container.remove([ [name: generatedNames.container, image: "${env.imageName}:latest"] ])
           } catch (e) {
             echo "Could not remove docker image ${env.imageName}:latest. It may have already been removed. ${e.message}"
           }
