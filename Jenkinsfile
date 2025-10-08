@@ -4,6 +4,7 @@
 
 def scmWorkspace
 def generatedNames
+def configDirName
 def parseToHTML(text) { text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;') }
 
 pipeline {
@@ -171,15 +172,23 @@ pipeline {
     stage('Run Validation Tests') {
         steps {
             script {
+              // Find the generated config directory to set KUBECONFIG path
+              configDirName = sh(script: "find dartboard -type d -name '*_config' | head -n 1", returnStdout: true).trim()
+              if (!configDirName) {
+                error("Could not find the '*_config' directory created by dartboard deploy.")
+              }
+
               def k6BaseCommand = "k6 run --out json=${env.k6OutputJson} ${env.k6TestsDir}/${params.K6_TEST} | tee ${env.k6SummaryLog}"
-              def k6TestCommand = fileExists("${env.k6EnvFile}") ? "set -o allexport; source ${env.k6EnvFile}; set +o allexport; ${k6BaseCommand}" : k6BaseCommand
+              // Prepend environment variables for k6. The paths are relative to the container's workdir.
+              def k6TestCommand = "export KUBECONFIG='${configDirName}/upstream.yaml' && export CONTEXT='upstream' && " +
+                                  (fileExists("dartboard/${env.k6EnvFile}") ? "set -o allexport; source ${env.k6EnvFile}; set +o allexport; " : "") +
+                                  k6BaseCommand
 
               sh """
                 docker run --rm --name ${generatedNames.container} \\
                   -v ${pwd()}:/home/ \\
                   --workdir /home/dartboard/ \\
                   --env-file dartboard/${env.envFile} \\
-                  --entrypoint='' --user root \\
                   ${env.imageName}:latest /bin/sh -c '${k6TestCommand}'
               """
             }
@@ -191,7 +200,6 @@ pipeline {
         dir('dartboard') {
           script {
             // Create a tarball of the config directory for easy download
-            def configDirName = sh(script: "find . -type d -name '*_config' | head -n 1", returnStdout: true).trim()
             if (configDirName) {
               sh "tar -czvf ${configDirName}.tar.gz ${configDirName}"
             }
