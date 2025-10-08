@@ -4,6 +4,7 @@
 
 def scmWorkspace
 def generatedNames
+def parseToHTML(text) { text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;') }
 
 pipeline {
   // agent { label 'vsphere-vpn-1' }
@@ -23,6 +24,8 @@ pipeline {
     renderedDartFile = 'rendered-dart.yaml'
     envFile = ".env" // Used by container.run
     DEFAULT_PROJECT_NAME = "${JOB_NAME.split('/').last()}-${BUILD_NUMBER}"
+    accessDetailsLog = 'access-details.log'
+    summaryHtmlFile = 'summary.html'
   }
 
   // No parameters block here—JJB YAML defines them
@@ -147,6 +150,24 @@ pipeline {
         }
     }
 
+    stage('Get Access Details') {
+      steps {
+        script {
+          sh """
+            docker run --rm --name ${generatedNames.container} \\
+              -v ${pwd()}:/home/ \\
+              --workdir /home/dartboard/ \\
+              --env-file dartboard/${env.envFile} \\
+              --entrypoint='' --user root \\
+              ${env.imageName}:latest /bin/sh -c 'dartboard \\
+              --dart ${env.renderedDartFile} get-access > ${env.accessDetailsLog}'
+          """
+          echo "---- Access Details ----"
+          sh "cat dartboard/${env.accessDetailsLog}"
+        }
+      }
+    }
+
     stage('Run Validation Tests') {
         steps {
             script {
@@ -164,22 +185,81 @@ pipeline {
             }
         }
     }
+
+    stage('Generate Build Summary') {
+      steps {
+        dir('dartboard') {
+          script {
+            // Create a tarball of the config directory for easy download
+            def configDirName = sh(script: "find . -type d -name '*_config' | head -n 1", returnStdout: true).trim()
+            if (configDirName) {
+              sh "tar -czvf ${configDirName}.tar.gz ${configDirName}"
+            }
+
+            // Generate the HTML content
+            def htmlContent = """
+              <html>
+                <head>
+                  <title>Build Summary for ${env.JOB_NAME} #${env.BUILD_NUMBER}</title>
+                  <style>
+                    body { font-family: sans-serif; background-color: #1e1e1e; color: #d4d4d4; }
+                    h1, h2 { color: #d4d4d4; }
+                    h2 { border-bottom: 1px solid #3c3c3c; padding-bottom: 5px; }
+                    pre { background-color: #252526; border: 1px solid #3c3c3c; padding: 10px; white-space: pre-wrap; word-wrap: break-word; color: #ce9178; }
+                    ul { list-style-type: none; padding-left: 0; }
+                    li { margin-bottom: 10px; }
+                    a { color: #3794ff; text-decoration: none; }
+                    a:hover { text-decoration: underline; }
+                    i { color: #808080; }
+                  </style>
+                </head>
+                <body>
+                  <h1>Build Summary: ${env.JOB_NAME} #${env.BUILD_NUMBER}</h1>
+
+                  <h2>k6 Test Summary</h2>
+                  <pre>${parseToHTML(readFile(env.k6SummaryLog))}</pre>
+
+                  <h2>Cluster Access Details</h2>
+                  <pre>${parseToHTML(readFile(env.accessDetailsLog))}</pre>
+
+                  <h2>Downloads</h2>
+                  <ul>
+                    ${configDirName ? "<li><a href='${configDirName}.tar.gz'>Download Cluster Configs (${configDirName}.tar.gz)</a></li>" : ""}
+                    <li><a href='${env.k6OutputJson}'>Download k6 JSON Output (${env.k6OutputJson})</a></li>
+                    <li><a href='${env.renderedDartFile}'>Download Rendered DART File (${env.renderedDartFile})</a></li>
+                  </ul>
+                  <p><i>See 'Archived Artifacts' for all generated files, including tofu state.</i></p>
+                </body>
+              </html>
+            """
+            writeFile file: env.summaryHtmlFile, text: htmlContent
+          }
+        }
+      }
+    }
   }
   post {
     always {
       script {
           echo "Archiving Terraform state and K6 test results..."
           // The workspace is shared, so artifacts are on the agent
-          archiveArtifacts artifacts: 'dartboard/**/*.tfstate*, dartboard/**/*.json, dartboard/**/*.pem, dartboard/**/*.pub, dartboard/**/*.yaml, dartboard/**/*.sh, dartboard/**/*.env', fingerprint: true
+          archiveArtifacts artifacts: 'dartboard/**/*.tfstate*, dartboard/**/*.json, dartboard/**/*.pem, dartboard/**/*.pub, dartboard/**/*.yaml, dartboard/**/*.sh, dartboard/**/*.env, dartboard/**/*.log, dartboard/**/*.html, dartboard/**/*.tar.gz', fingerprint: true
 
           // Cleanup Docker image
-          // Note: jobContainer is not defined in this scope, so this may fail.
-          // If cleanup is needed, ensure the container name/image is available.
           try {
-            container.remove([ [name: generatedNames.container, image: "${env.imageName}:latest"] ])
+            sh "docker rmi -f ${env.imageName}:latest"
           } catch (e) {
             echo "Could not remove docker image ${env.imageName}:latest. It may have already been removed. ${e.message}"
           }
+
+          publishHTML(target: [
+            allowMissing: false,
+            alwaysLinkToLastBuild: true,
+            keepAll: true,
+            reportDir: 'dartboard',
+            reportFiles: env.summaryHtmlFile,
+            reportName: "Build Summary"
+          ])
       }
     }
   }
