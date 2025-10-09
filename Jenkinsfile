@@ -138,9 +138,10 @@ pipeline {
     stage('Setup Infrastructure') {
         steps {
           script {
-            try {
-              retry(3) {
-                echo "Attempting to deploy infrastructure... (Attempt " +${currentAttempt} + " of 3)"
+            def maxRetries = 3
+            for (int attempt = 1; attempt <= maxRetries; attempt++) {
+              try {
+                echo "Attempting to deploy infrastructure... (Attempt ${attempt} of ${maxRetries})"
                 sh """
                   docker run --rm --name ${generatedNames.container} \\
                     -v ${pwd()}:/home/ \\
@@ -150,8 +151,22 @@ pipeline {
                     ${env.imageName}:latest dartboard \\
                     --dart ${env.renderedDartFile} deploy
                 """
+                echo "Infrastructure deployed successfully."
+                return // Exit the stage on success
+              } catch (e) {
+                echo "Attempt ${attempt} failed. Error: ${e.message}"
+                if (attempt == maxRetries) {
+                  echo "All deployment attempts have failed."
+                  // Re-throw the exception to trigger the destroy logic and fail the pipeline
+                  throw e
+                }
+                sleep(15) // Wait for 15 seconds before retrying
               }
-            } catch (e) {
+            }
+
+            // This block will only be reached if all retry attempts fail.
+            // We'll run the destroy command here.
+            try {
               echo "Setup Infrastructure failed after retries. Running dartboard destroy..."
               sh """
                 docker run --rm --name ${generatedNames.container}-destroy \\
@@ -162,9 +177,10 @@ pipeline {
                   ${env.imageName}:latest dartboard \\
                   --dart ${env.renderedDartFile} destroy
               """
-              // Re-throw the exception to ensure the pipeline is marked as failed
-              throw e
+            } catch (destroyError) {
+              echo "Dartboard destroy command also failed: ${destroyError.message}"
             }
+            error("Infrastructure deployment failed after ${maxRetries} attempts.")
           }
         }
     }
