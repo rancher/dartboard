@@ -138,15 +138,33 @@ pipeline {
     stage('Setup Infrastructure') {
         steps {
           script {
-            sh """
-              docker run --rm --name ${generatedNames.container} \\
-                -v ${pwd()}:/home/ \\
-                --workdir /home/dartboard/ \\
-                --env-file dartboard/${env.envFile} \\
-                --entrypoint='' --user root \\
-                ${env.imageName}:latest dartboard \\
-                --dart ${env.renderedDartFile} deploy
-            """
+            try {
+              retry(3) {
+                echo "Attempting to deploy infrastructure... (Attempt " +${currentAttempt} + " of 3)"
+                sh """
+                  docker run --rm --name ${generatedNames.container} \\
+                    -v ${pwd()}:/home/ \\
+                    --workdir /home/dartboard/ \\
+                    --env-file dartboard/${env.envFile} \\
+                    --entrypoint='' --user root \\
+                    ${env.imageName}:latest dartboard \\
+                    --dart ${env.renderedDartFile} deploy
+                """
+              }
+            } catch (e) {
+              echo "Setup Infrastructure failed after retries. Running dartboard destroy..."
+              sh """
+                docker run --rm --name ${generatedNames.container}-destroy \\
+                  -v ${pwd()}:/home/ \\
+                  --workdir /home/dartboard/ \\
+                  --env-file dartboard/${env.envFile} \\
+                  --entrypoint='' --user root \\
+                  ${env.imageName}:latest dartboard \\
+                  --dart ${env.renderedDartFile} destroy
+              """
+              // Re-throw the exception to ensure the pipeline is marked as failed
+              throw e
+            }
           }
         }
     }
