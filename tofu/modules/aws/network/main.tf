@@ -194,7 +194,7 @@ data "aws_ec2_managed_prefix_list" "this" {
 }
 
 resource "aws_security_group" "ssh_ipv4" {
-  name        = "ssh_ipv4"
+  name        = "${var.project_name}-ssh_ipv4"
   description = "Enables SSH access for approved CIDR ranges and specific IPs"
   vpc_id      = local.vpc_id
 
