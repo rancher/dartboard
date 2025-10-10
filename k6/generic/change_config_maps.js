@@ -9,7 +9,7 @@ const data = encoding.b64encode("a".repeat(1))
 const duration = '2h'
 const vus = __ENV.VUS || 5
 // 2 requests per iteration, so iteration rate is half of request rate
-const rate =  (__ENV.RATE || 1) / 2
+const rate =  (__ENV.RATE || 2) / 2
 
 // Option setting
 const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
