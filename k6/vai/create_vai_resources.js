@@ -13,7 +13,7 @@ const configMapData = encoding.b64encode("a".repeat(10*1024))
 const secretCount = Number(__ENV.SECRET_COUNT)
 const configMapCount = Number(__ENV.CONFIGMAP_COUNT)
 const deploymentCount =Number(__ENV.DEPLOYMENT_COUNT)
-const cluster = __ENV.CLUSTER || "local"
+const clusterId = __ENV.CLUSTER || "local"
 const vus = 5
 
 // Option setting
@@ -71,9 +71,9 @@ export function setup() {
     }
     const cookies = getCookies(baseUrl)
 
-    const del_url = cluster === "local"?
+    const del_url = clusterId === "local"?
         `${baseUrl}/v1/namespaces/${namespace}` :
-        `${baseUrl}/k8s/clusters/${cluster}/v1/namespaces/${namespace}`
+        `${baseUrl}/k8s/clusters/${clusterId}/v1/namespaces/${namespace}`
 
     // delete leftovers, if any
     k8s.del(`${del_url}`)
@@ -86,9 +86,9 @@ export function setup() {
         },
     }
 
-    const create_url = cluster === "local"?
+    const create_url = clusterId === "local"?
         `${baseUrl}/v1/namespaces` :
-        `${baseUrl}/k8s/clusters/${cluster}/v1/namespaces`
+        `${baseUrl}/k8s/clusters/${clusterId}/v1/namespaces`
 
     k8s.create(`${create_url}`, body)
 
@@ -98,17 +98,17 @@ export function setup() {
 // create secrets
 export function createVaiResourcesSecrets(cookies) {
     const iter = exec.scenario.iterationInTest
-    createSecrets(baseUrl, cookies, cluster, namespace, secretData, iter)
+    createSecrets(baseUrl, cookies, secretData, clusterId, namespace, iter)
 }
 
 // create config maps
 export function createVaiResourcesConfigMaps(cookies) {
     const iter = exec.scenario.iterationInTest
-    createConfigMaps(baseUrl, cookies, cluster, namespace, configMapData, iter)
+    createConfigMaps(baseUrl, cookies, configMapData, clusterId, namespace, iter)
 }
 
 // create deployments
 export function createVaiResourcesDeployments(cookies) {
     const iter = exec.scenario.iterationInTest
-    createDeployments(baseUrl, cookies, cluster, namespace, iter)
+    createDeployments(baseUrl, cookies, clusterId, namespace, iter)
 }
