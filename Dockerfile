@@ -31,7 +31,8 @@ RUN apk update && \
     netcat-openbsd \
     bash \
     gettext \
-    zip unzip
+    zip unzip \
+    yq
 
 # switch back to the non-root user
 USER k6
