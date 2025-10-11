@@ -36,11 +36,6 @@ RUN apk update && \
     zip unzip \
     yq
 
-# Prepare the k6 user's .ssh directory with correct ownership & perms
-RUN mkdir -p /home/k6/.ssh \
- && chmod 700 /home/k6/.ssh \
- && chown k6:k6 /home/k6/.ssh
-
 # switch back to the non-root user
 USER k6
 
