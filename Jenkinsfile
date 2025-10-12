@@ -4,8 +4,18 @@
 
 def scmWorkspace
 def generatedNames
-def configDirName
+def configDirPath
+def tfstateDir
 def parseToHTML(text) { text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;') }
+
+@NonCPS
+def extractRancherUrl(logText) {
+    def matcher = (logText =~ /Rancher UI: (https?:\/\/[^\s]+)/)
+    if (matcher.find()) {
+        return matcher.group(1)
+    }
+    return null
+}
 
 pipeline {
   // agent { label 'vsphere-vpn-1' }
@@ -41,6 +51,9 @@ pipeline {
     }
 
     // TODO: Set up a QASE client to utilize these for logging test run results + artifacts
+    // - https://pkg.go.dev/go.k6.io/k6/errext/exitcodes - 99 = threshold failed
+    // exit code 0 = success
+    // any other code = Error
     stage('Create QASE Environment Variables') {
         steps {
             script {
@@ -136,53 +149,94 @@ pipeline {
     }
 
     stage('Setup Infrastructure') {
-        steps {
-          script {
-            def maxRetries = 3
-            for (int attempt = 1; attempt <= maxRetries; attempt++) {
-              try {
-                echo "Attempting to deploy infrastructure... (Attempt ${attempt} of ${maxRetries})"
-                sh """
-                  docker run --rm --name ${generatedNames.container} \\
-                    -v ${pwd()}:/home/ \\
-                    --workdir /home/dartboard/ \\
-                    --env-file dartboard/${env.envFile} \\
-                    --entrypoint='' --user root \\
-                    ${env.imageName}:latest dartboard \\
-                    --dart ${env.renderedDartFile} deploy
-                """
-                echo "Infrastructure deployed successfully."
-                return // Exit the stage on success
-              } catch (e) {
-                echo "Attempt ${attempt} failed. Error: ${e.message}"
-                if (attempt == maxRetries) {
-                  echo "All deployment attempts have failed."
-                  // Re-throw the exception to trigger the destroy logic and fail the pipeline
-                  throw e
-                }
-                sleep(15) // Wait for 15 seconds before retrying
-              }
-            }
-
-            // This block will only be reached if all retry attempts fail.
-            // We'll run the destroy command here.
+      steps {
+        script {
+          def maxRetries = 3
+          for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-              echo "Setup Infrastructure failed after retries. Running dartboard destroy..."
+              echo "Attempting to deploy infrastructure... (Attempt ${attempt} of ${maxRetries})"
               sh """
-                docker run --rm --name ${generatedNames.container}-destroy \\
+                docker run --rm --name ${generatedNames.container} \\
                   -v ${pwd()}:/home/ \\
                   --workdir /home/dartboard/ \\
                   --env-file dartboard/${env.envFile} \\
                   --entrypoint='' --user root \\
                   ${env.imageName}:latest dartboard \\
-                  --dart ${env.renderedDartFile} destroy
+                  --dart ${env.renderedDartFile} redeploy
               """
-            } catch (destroyError) {
-              echo "Dartboard destroy command also failed: ${destroyError.message}"
+              echo "Infrastructure deployed successfully."
+              return // Exit the stage on success
+            } catch (e) {
+              echo "Attempt ${attempt} failed. Error: ${e.message}"
+              if (attempt == maxRetries) {
+                echo "All deployment attempts have failed. Running dartboard destroy..."
+                try {
+                  sh """
+                    docker run --rm --name ${generatedNames.container}-destroy \\
+                      -v ${pwd()}:/home/ \\
+                      --workdir /home/dartboard/ \\
+                      --env-file dartboard/${env.envFile} \\
+                      --entrypoint='' --user root \\
+                      ${env.imageName}:latest dartboard \\
+                      --dart ${env.renderedDartFile} destroy
+                  """
+                } catch (destroyError) {
+                  echo "Dartboard destroy command also failed: ${destroyError.message}"
+                }
+                // Fail the pipeline after cleanup
+                error("Infrastructure deployment failed after ${maxRetries} attempts.")
+              }
+              sleep(15) // Wait for 15 seconds before retrying
             }
-            error("Infrastructure deployment failed after ${maxRetries} attempts.")
           }
         }
+      }
+      post {
+        success {
+          script {
+            // Dynamically determine the OpenTofu state directory path
+            def tofuMainDir = sh(
+                script: """docker run --rm \\
+                -v ${pwd()}/dartboard:/app \\
+                --entrypoint='' --user root \\
+                  ${env.imageName}:latest yq '.tofu_main_directory' /app/${env.renderedDartFile}""",
+                returnStdout: true
+            ).trim().replace('./', '') // Clean up the path
+
+            // Find the generated config directory to create the archive
+            configDirPath = sh(script: "find dartboard -type d -name '*_config' | head -n 1", returnStdout: true).trim()
+
+            tfstateDir = "dartboard/${tofuMainDir}/terraform.tfstate.d/"
+
+            if (fileExists(tfstateDir)) {
+              echo "Creating OpenTofu state archive from '${tfstateDir}'..."
+              def archiveName = "tfstate-${env.DEFAULT_PROJECT_NAME}.zip"
+              sh """
+                docker run --rm --name ${generatedNames.container}-zip \\
+                  -v ${pwd()}/dartboard:/app \\
+                  --workdir /app \\
+                  --entrypoint='' --user root \\
+                  ${env.imageName}:latest sh -c 'cd ${tofuMainDir}/terraform.tfstate.d/ && zip -r ../../../../${archiveName} .'
+              """
+            } else {
+              echo "Could not find OpenTofu state directory at '${tfstateDir}', skipping archive creation."
+            }
+
+            if (configDirPath) {
+              echo "Creating config archive using Docker..."
+              def archiveName = "${configDirPath.split('/').last()}.zip"
+              // Create the zip inside the dartboard directory
+              sh """
+                docker run --rm --name ${generatedNames.container}-zip \\
+                  -v ${pwd()}:/home/ \\
+                  --workdir /home/ \\
+                  --entrypoint='' --user root \\
+                  ${env.imageName}:latest zip -r dartboard/${archiveName} ${configDirPath}
+              """
+            }
+          }
+        }
+      }
     }
 
     stage('Get Access Details') {
@@ -204,40 +258,44 @@ pipeline {
     }
 
     stage('Run Validation Tests') {
-        steps {
-            script {
-              // Find the generated config directory to set KUBECONFIG path
-              configDirName = sh(script: "find dartboard -type d -name '*_config' | head -n 1", returnStdout: true).trim()
-              if (!configDirName) {
-                error("Could not find the '*_config' directory created by dartboard deploy.")
-              }
-
-              def k6BaseCommand = "k6 run --out json=${env.k6OutputJson} ${env.k6TestsDir}/${params.K6_TEST} | tee ${env.k6SummaryLog}"
-              // Prepend environment variables for k6. The paths are relative to the container's workdir.
-              def k6TestCommand = "export KUBECONFIG='${configDirName}/upstream.yaml' && export CONTEXT='upstream' && " +
-                                  (fileExists("dartboard/${env.k6EnvFile}") ? "set -o allexport; source ${env.k6EnvFile}; set +o allexport; " : "") +
-                                  k6BaseCommand
-
-              sh """
-                docker run --rm --name ${generatedNames.container} \\
-                  -v ${pwd()}:/home/ \\
-                  --workdir /home/dartboard/ \\
-                  --env-file dartboard/${env.envFile} \\
-                  ${env.imageName}:latest /bin/sh -c '${k6TestCommand}'
-              """
-            }
-        }
-    }
-
-    stage('Generate Build Summary') {
       steps {
-        dir('dartboard') {
           script {
-            // Create a tarball of the config directory for easy download
-            if (configDirName) {
-              sh "tar -czvf ${configDirName}.tar.gz ${configDirName}"
+            if (!configDirPath) {
+              error("No `configDirPath` was found.")
             }
 
+            echo "Parsing Rancher URL from access details..."
+            def rancherBaseUrl = extractRancherUrl(readFile("dartboard/${env.accessDetailsLog}"))
+            if (!rancherBaseUrl) {
+                error("Could not find Rancher UI URL in access details log.")
+            }
+            echo "Found Rancher BASE_URL: ${rancherBaseUrl}"
+
+            def k6BaseCommand = "k6 run --out json=${env.k6OutputJson} ${env.k6TestsDir}/${params.K6_TEST} | tee ${env.k6SummaryLog}"
+            // Prepend environment variables for k6. The paths are relative to the container's workdir.
+            def k6TestCommand = "export BASE_URL='${rancherBaseUrl}' && export KUBECONFIG='/home/${configDirPath}/upstream.yaml' && export CONTEXT='upstream' && " +
+                                (fileExists("${env.k6EnvFile}") ? "set -o allexport; source ${env.k6EnvFile}; set +o allexport; " : "") + k6BaseCommand
+
+            sh """
+              docker run --rm --name ${generatedNames.container} \\
+                -v ${pwd()}:/home/ \\
+                --workdir /home/dartboard/ \\
+                --env-file dartboard/${env.envFile} \\
+                --entrypoint='' --user root \\
+                ${env.imageName}:latest /bin/sh -c '${k6TestCommand}'
+            """
+          }
+      }
+    }
+  }
+
+  post {
+    always {
+      script {
+          echo "Generating build summary..."
+          dir('dartboard') {
+            def k6Summary = fileExists(env.k6SummaryLog) ? parseToHTML(readFile(env.k6SummaryLog)) : "k6 summary log not found."
+            def accessDetails = fileExists(env.accessDetailsLog) ? parseToHTML(readFile(env.accessDetailsLog)) : "Access details log not found."
             // Generate the HTML content
             def htmlContent = """
               <html>
@@ -259,16 +317,17 @@ pipeline {
                   <h1>Build Summary: ${env.JOB_NAME} #${env.BUILD_NUMBER}</h1>
 
                   <h2>k6 Test Summary</h2>
-                  <pre>${parseToHTML(readFile(env.k6SummaryLog))}</pre>
+                  <pre>${k6Summary}</pre>
 
                   <h2>Cluster Access Details</h2>
-                  <pre>${parseToHTML(readFile(env.accessDetailsLog))}</pre>
+                  <pre>${accessDetails}</pre>
 
                   <h2>Downloads</h2>
                   <ul>
-                    ${configDirName ? "<li><a href='${configDirName}.tar.gz'>Download Cluster Configs (${configDirName}.tar.gz)</a></li>" : ""}
-                    <li><a href='${env.k6OutputJson}'>Download k6 JSON Output (${env.k6OutputJson})</a></li>
-                    <li><a href='${env.renderedDartFile}'>Download Rendered DART File (${env.renderedDartFile})</a></li>
+                    ${fileExists(env.renderedDartFile) ? "<li><a href='${env.BUILD_URL}artifact/dartboard/${env.renderedDartFile}' download target='_blank'>Download Rendered DART File (${env.renderedDartFile})</a></li>" : ""}
+                    ${configDirPath ? "<li><a href='${env.BUILD_URL}artifact/dartboard/${configDirPath.split('/').last()}.zip' download target='_blank'>Download Cluster Configs (${configDirPath.split('/').last()}.zip)</a></li>" : ""}
+                    ${fileExists("tfstate-${env.DEFAULT_PROJECT_NAME}.zip") ? "<li><a href='${env.BUILD_URL}artifact/dartboard/tfstate-${env.DEFAULT_PROJECT_NAME}.zip' download target='_blank'>Download OpenTofu State (tfstate-${env.DEFAULT_PROJECT_NAME}.zip)</a></li>" : ""}
+                    ${fileExists(env.k6OutputJson) ? "<li><a href='${env.BUILD_URL}artifact/dartboard/${env.k6OutputJson}' download target='_blank'>Download k6 JSON Output (${env.k6OutputJson})</a></li>" : ""}
                   </ul>
                   <p><i>See 'Archived Artifacts' for all generated files, including tofu state.</i></p>
                 </body>
@@ -276,16 +335,21 @@ pipeline {
             """
             writeFile file: env.summaryHtmlFile, text: htmlContent
           }
-        }
-      }
-    }
-  }
-  post {
-    always {
-      script {
+
           echo "Archiving Terraform state and K6 test results..."
           // The workspace is shared, so artifacts are on the agent
-          archiveArtifacts artifacts: 'dartboard/**/*.tfstate*, dartboard/**/*.json, dartboard/**/*.pem, dartboard/**/*.pub, dartboard/**/*.yaml, dartboard/**/*.sh, dartboard/**/*.env, dartboard/**/*.log, dartboard/**/*.html, dartboard/**/*.tar.gz', fingerprint: true
+          archiveArtifacts artifacts: """
+              dartboard/*.html,
+              dartboard/*.json,
+              dartboard/*.yaml,
+              dartboard/*.log,
+              dartboard/*.pem,
+              dartboard/*.pub,
+              dartboard/**/.terraform.tfstate.d/**/*.tfstate,
+              dartboard/**/*.tfstate,
+              dartboard/**/*.tfstate.backup,
+              dartboard/*.zip,
+            """.trim(), fingerprint: true
 
           // Cleanup Docker image
           try {
