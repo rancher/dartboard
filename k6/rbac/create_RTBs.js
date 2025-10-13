@@ -5,7 +5,7 @@ import { Trend } from 'k6/metrics';
 import {
   getCookies, login, logout, deleteProjectsByPrefix, createProject,
   listProjects, getProjectById, getRandomElements
-} from "./rancher_utils.js";
+} from "../rancher/rancher_utils.js";
 import {
   createUser, listUsers, listRoles, listRoleTemplates,
   listRoleBindings, listClusterRoles, listClusterRoleBindings,
