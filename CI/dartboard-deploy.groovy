@@ -2,6 +2,11 @@
 // Declarative Pipeline Syntax
 @Library('qa-jenkins-library') _
 
+def agentLabel = 'jenkins-qa-jenkins-agent'
+if (params.HARVESTER_KUBECONFIG) {
+    agentLabel = 'vsphere-vpn-1'
+}
+
 def scmWorkspace
 def generatedNames
 def configDirPath
@@ -19,8 +24,7 @@ def extractRancherUrl(logText) {
 }
 
 pipeline {
-  // agent { label 'vsphere-vpn-1' }
-  agent any
+  agent { label agentLabel }
 
   environment {
     // Define environment variables here.  These are available throughout the pipeline.
@@ -30,7 +34,7 @@ pipeline {
     harvesterKubeconfig = 'harvester.kubeconfig'
     templateDartFile = 'template-dart.yaml'
     renderedDartFile = 'rendered-dart.yaml'
-    envFile = ".env" // Used by container.run
+    envFile = ".env"
     DEFAULT_PROJECT_NAME = "${JOB_NAME.split('/').last()}-${BUILD_NUMBER}"
     accessDetailsLog = 'access-details.log'
     summaryHtmlFile = 'summary.html'
@@ -83,6 +87,9 @@ pipeline {
               echo "OUTPUTTING ENV FOR MANUAL VERIFICATION:"
               echo "Storing env in file"
               sh "printenv | egrep '^(ARM_|CATTLE_|ADMIN|USER|DO|RANCHER_|AWS_|DEBUG|LOGLEVEL|DEFAULT_|OS_|DOCKER_|CLOUD_|KUBE|BUILD_NUMBER|AZURE|TEST_|QASE_|SLACK_|harvester|TF_).*=.+' | sort > ${env.envFile}"
+              if (params.EXTRA_ENV_VARS) {
+                sh "echo \"${params.EXTRA_ENV_VARS}\" >> ${env.envFile}"
+              }
               sh "docker build -t ${env.imageName}:latest ."
             }
           }
@@ -129,32 +136,35 @@ pipeline {
     stage('Prepare Parameter Files') {
       steps {
         script {
-          // Render the Dart file using Groovy string replacement
-          def dartTemplate = params.DART_FILE
-          def renderedDart = dartTemplate.replaceAll('\\$\\{HARVESTER_KUBECONFIG\\}', "/dartboard/${env.harvesterKubeconfig}")
-                                          .replaceAll('\\$\\{SSH_KEY_NAME\\}', "/dartboard/${params.SSH_KEY_NAME}")
-                                          .replaceAll('\\$\\{PROJECT_NAME\\}', env.DEFAULT_PROJECT_NAME)
+          property.useWithCredentials(['ADMIN_PASSWORD']) {
+            // Render the Dart file using Groovy string replacement
+            def dartTemplate = params.DART_FILE
+            def renderedDart = dartTemplate.replaceAll('\\$\\{HARVESTER_KUBECONFIG\\}', "/dartboard/${env.harvesterKubeconfig}")
+                                            .replaceAll('\\$\\{SSH_KEY_NAME\\}', "/dartboard/${params.SSH_KEY_NAME}")
+                                            .replaceAll('\\$\\{PROJECT_NAME\\}', env.DEFAULT_PROJECT_NAME)
+                                            .replaceAll('\\$\\{ADMIN_PASSWORD\\}', ADMIN_PASSWORD)
 
-          // Use docker exec to write all parameter files to the container
-          sh """
-            docker exec --user root --workdir /dartboard ${runningContainerName} sh -c '''
-              echo "Writing parameter files to container using here-documents to preserve special characters..."
+            // Use docker exec to write all parameter files to the container
+            sh """
+              docker exec --user root --workdir /dartboard ${runningContainerName} sh -c '''
+                echo "Writing parameter files to container using here-documents to preserve special characters..."
 
-              # Write HARVESTER_KUBECONFIG to harvester.kubeconfig
-              cat <<'EOF' > ${env.harvesterKubeconfig}
+                # Write HARVESTER_KUBECONFIG to harvester.kubeconfig
+                cat <<'EOF' > ${env.harvesterKubeconfig}
 ${params.HARVESTER_KUBECONFIG}
 EOF
-              # Write the rendered DART file
-              cat <<'EOF' > ${env.renderedDartFile}
+                # Write the rendered DART file
+                cat <<'EOF' > ${env.renderedDartFile}
 ${renderedDart}
 EOF
-              echo "DUMPING INPUT FILES FOR MANUAL VERIFICATION"
-              echo "---- harvester.kubeconfig ----"
-              cat ${env.harvesterKubeconfig}
-              echo "---- rendered-dart.yaml ----"
-              cat ${env.renderedDartFile}
-            '''
-          """
+                echo "DUMPING INPUT FILES FOR MANUAL VERIFICATION"
+                echo "---- harvester.kubeconfig ----"
+                cat ${env.harvesterKubeconfig}
+                echo "---- rendered-dart.yaml ----"
+                cat ${env.renderedDartFile}
+              '''
+            """
+          }
         }
       }
     }
