@@ -306,6 +306,17 @@ EOF
           }
         }
 
+        echo "Archiving build artifacts..."
+        archiveArtifacts artifacts: """
+            dartboard/*.html,
+            dartboard/*.json,
+            dartboard/*.yaml,
+            dartboard/*.log,
+            dartboard/*.pem,
+            dartboard/*.pub,
+            dartboard/*.zip
+        """.trim(), fingerprint: true
+
         // Cleanup Docker container and image
         try {
           if (runningContainerName) {
