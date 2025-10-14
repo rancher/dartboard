@@ -14,15 +14,6 @@ def parseToHTML(text) { text.replace('&', '&amp;').replace('<', '&lt;').replace(
 
 def runningContainerName
 
-@NonCPS
-def extractRancherUrl(logText) {
-    def matcher = (logText =~ /Rancher UI: (https?:\/\/[^\s]+)/)
-    if (matcher.find()) {
-        return matcher.group(1)
-    }
-    return null
-}
-
 pipeline {
   agent { label agentLabel }
 
