@@ -10,14 +10,29 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rancher/tests/actions/qase"
+	qase_config "github.com/qase-tms/qase-go/pkg/qase-go/config"
+	v2 "github.com/qase-tms/qase-go/qase-api-v2-client"
+	"github.com/rancher/dartboard/internal/qase"
 	"github.com/sirupsen/logrus"
-	upstream "go.qase.io/client"
 )
 
 const (
-	k6OutputFileEnvVar  = "K6_OUTPUT_FILE"
-	k6SummaryFileEnvVar = "K6_SUMMARY_FILE"
+	k6MetricsOutputFileEnvVar = "K6_OUTPUT_FILE"
+	k6TestFileEnvVar          = "K6_TEST"
+)
+
+var (
+	projectID           = os.Getenv(qase_config.QaseTestOpsProjectEnvVar)
+	runIDStr            = os.Getenv(qase_config.QaseTestOpsRunIDEnvVar)
+	runName             = os.Getenv(qase.TestRunNameEnvVar)
+	testCaseName        = os.Getenv(qase.TestCaseNameEnvVar)
+	k6MetricsOutputFile = os.Getenv(k6MetricsOutputFileEnvVar)
+)
+
+var qaseService *qase.Service
+var (
+	runID      int64
+	testCaseID int64
 )
 
 // see https://grafana.com/docs/k6/latest/results-output/real-time/json/#json-format for specifics on the JSON formatting to match
@@ -32,13 +47,13 @@ type K6Data[T K6MetricData | K6PointData] struct {
 	Value T
 }
 
-// K6Metric represents a 'Metric' line from the k6 JSON output.
+// K6Metric represents a 'Metric' line from the k6 metrics JSON.
 type K6Metric struct {
 	K6Line
 	Data K6Data[K6MetricData] `json:"data"` // Data associated with the Metric, contains lots of stuff
 }
 
-// K6Point represents a 'Point' line from the k6 JSON output.
+// K6Point represents a 'Point' line from the k6 metrics JSON.
 type K6Point struct {
 	K6Line
 	Data K6Data[K6PointData] `json:"data"` // Data associated with the Point, contains lots of stuff
@@ -81,144 +96,116 @@ type K6Check struct {
 func main() {
 	logrus.Info("Running k6 QASE reporter")
 
-	projectID := os.Getenv(qase.ProjectIDEnvVar)
-	runIDStr := os.Getenv(qase.TestRunEnvVar)
-	k6OutputFile := os.Getenv(k6OutputFileEnvVar)
-	k6SummaryFile := os.Getenv(k6SummaryFileEnvVar)
-
 	granularParsing := flag.Bool("granular", false, "Enable granular parsing of all Metric and Point lines from k6 JSON output.")
 	flag.Parse()
+	// The -caseID flag allows overriding the test case ID.
+	caseIDStr := flag.String("caseID", "", "Qase test case ID to report results against.")
+	flag.Parse()
 
-	if projectID == "" || runIDStr == "" || k6OutputFile == "" {
-		logrus.Fatalf("Missing required environment variables: %s, %s, %s, %s",
-			qase.ProjectIDEnvVar, qase.TestRunEnvVar, k6OutputFileEnvVar)
+	logrus.Info("Granular parsing enabled.")
+	// Granular parsing requires the metrics output file.
+	if projectID == "" || k6MetricsOutputFile == "" {
+		logrus.Fatalf("Missing required environment variables for granular parsing: %s, %s",
+			qase_config.QaseTestOpsProjectEnvVar, k6MetricsOutputFileEnvVar)
 	}
 
-	runID, err := strconv.ParseInt(runIDStr, 10, 64)
+	if runIDStr == "" && runName == "" {
+		logrus.Fatalf("Missing required environment variables for granular parsing: %s, %s",
+			qase_config.QaseTestOpsRunIDEnvVar, qase.TestRunNameEnvVar)
+	}
+
+	// Use the provided case ID flag, otherwise default to the run ID.
+	if *caseIDStr != "" {
+		runIDStr = *caseIDStr
+	}
+
+	qaseService = qase.SetupQaseClient()
+	parsedRunID, err := strconv.ParseInt(runIDStr, 10, 64)
+
 	if err != nil {
-		logrus.Fatalf("Invalid QASE_RUN_ID: %v", err)
-	}
-
-	testCaseID, err := strconv.ParseInt(runIDStr, 10, 64)
-	if err != nil {
-		logrus.Fatalf("Invalid QASE_TEST_CASE_ID: %v", err)
-	}
-
-	// Read and parse the k6 JSON output
-	k6JsonData, err := os.ReadFile(k6OutputFile)
-	if err != nil {
-		logrus.Fatalf("Failed to read k6 output file %s: %v", k6OutputFile, err)
-	}
-
-	var thresholds []K6Threshold
-	var checks []K6Check
-	var overallPass bool
-	var summary string
-
-	if *granularParsing {
-		logrus.Info("Performing granular parsing of k6 JSON output.")
-		checks, thresholds, overallPass = granularParseK6JsonOutput(k6JsonData)
+		if runName != "" {
+			logrus.Infof("QASE_RUN_ID not found or invalid, creating new test run with name: %s", runName)
+			newRunID, err := qaseService.CreateTestRun(runName, projectID)
+			if err != nil {
+				logrus.Fatalf("Failed to create Qase test run: %v", err)
+			}
+			runID = newRunID
+			logrus.Infof("Successfully created new Qase test run with ID: %d", runID)
+		} else {
+			logrus.Fatalf("Invalid QASE_RUN_ID: %v", err)
+		}
 	} else {
-		// Default behavior: Use the summary for overall status and parse Point data for details.
-		logrus.Info("Parsing k6 summary and Point data.")
-		var parseErr error
-		checks, thresholds, parseErr = parseK6JsonOutput(k6JsonData)
-		if parseErr != nil {
-			logrus.Warnf("Error parsing k6 JSON Point data: %v", parseErr)
+		runID = parsedRunID
+		resp, _, err := qaseService.Client.V1Client.GetAPIClient().RunsAPI.GetRun(context.Background(), projectID, int32(runID)).Execute()
+		if err != nil {
+			logrus.Fatalf("Failed to get Qase test run while fetching run title: %v", err)
 		}
-
-		// Read the human-readable summary to determine overall status
-		summaryBytes, readErr := os.ReadFile(k6SummaryFile)
-		if readErr != nil {
-			logrus.Fatalf("Could not read k6 summary file %s: %v. Cannot determine test status.", k6SummaryFile, readErr)
-		}
-		// A failed threshold will have an '✗' in the summary.
-		overallPass = !strings.Contains(string(summaryBytes), "✗")
-		summary = string(summaryBytes)
+		runName = *resp.GetResult().Title
 	}
+
+	if testCaseName != "" {
+		logrus.Infof("Fetching Qase test case by title: %s", testCaseName)
+		testCase, err := qaseService.Client.GetTestCaseByTitle(context.Background(), projectID, testCaseName)
+		if err != nil {
+			logrus.Fatalf("Failed to get Qase test case by title: %v", err)
+		}
+		testCaseID = *testCase.Id
+	} else {
+		// Fallback or error if no test case name is provided
+		logrus.Fatal("QASE_TEST_CASE_NAME environment variable not set.")
+	}
+
+	if !*granularParsing {
+		reportSummary()
+		return
+	}
+}
+
+func reportMetrics() {
+	// Read and parse the k6 metrics JSON
+	k6MetricsJsonData, err := os.ReadFile(k6MetricsOutputFile)
+	if err != nil {
+		logrus.Fatalf("Failed to read k6 metrics file %s: %v", k6MetricsOutputFile, err)
+	}
+
+	logrus.Info("Performing granular parsing of k6 metrics JSON.")
+	checks, thresholds, overallPass := granularParseK6MetricsJson(k6MetricsJsonData)
 
 	// Build the comment for Qase
+	// NOTE: The granular parser does not have access to the text summary.
+	summary := "Full text summary not available in granular parsing mode."
 	comment := buildQaseComment(thresholds, checks, summary)
 
 	// Report to Qase
-	status := "passed"
+	status := qase.StatusPassed
 	if !overallPass {
-		status = "failed"
+		status = qase.StatusFailed
 	}
 
 	logrus.Infof("Reporting to Qase: Project=%s, Run=%d, Case=%d, Status=%s", projectID, runID, testCaseID, status)
-	qaseService := qase.SetupQaseClient()
-	resultBody := upstream.ResultCreate{
-		CaseId:  testCaseID,
-		Status:  status,
-		Comment: comment,
-	}
+	resultExec := v2.NewResultExecution(status)
+	resultBody := v2.NewResultCreate(runName, *resultExec)
+	resultBody.SetId(runIDStr)
+	resultBody.SetMessage(comment)
 
-	_, _, err = qaseService.Client.ResultsApi.CreateResult(context.TODO(), resultBody, projectID, runID)
-	if err != nil {
+	v2ResultsAPI := qaseService.Client.V2Client.GetAPIClient().ResultsAPI
+
+	resp, err := v2ResultsAPI.CreateResultV2(context.Background(), projectID, runID).ResultCreate(*resultBody).Execute()
+	if err != nil || !strings.Contains(strings.ToLower(resp.Status), "ok") {
 		logrus.Fatalf("Failed to create Qase result: %v", err)
 	}
 
 	logrus.Info("Successfully reported k6 results to Qase.")
 }
 
-// parseK6JsonOutput processes the raw JSON output from k6 to extract structured
-// information about checks and thresholds.
-func parseK6JsonOutput(jsonData []byte) ([]K6Check, []K6Threshold, error) {
-	var checks []K6Check
-	var thresholds []K6Threshold
-
-	lines := strings.SplitSeq(string(jsonData), "\n")
-	for line := range lines {
-		if strings.TrimSpace(line) == "" {
-			continue
-		}
-
-		var k6Line K6Line
-		if err := json.Unmarshal([]byte(line), &k6Line); err != nil {
-			logrus.Warnf("Failed to unmarshal k6 line: %v", err)
-			continue
-		}
-
-		// We only care about 'Point' types which contain the actual data samples.
-		if k6Line.Type != "Point" {
-			continue
-		}
-
-		var point K6Point
-		if err := json.Unmarshal([]byte(line), &point); err != nil {
-			logrus.Warnf("Failed to unmarshal k6 Point data: %v", err)
-			continue
-		}
-
-		switch k6Line.Metric {
-		case "checks":
-			check := K6Check{
-				Name:   point.Data.Value.Tags["check"],
-				Passes: point.Data.Value.Passes,
-				Fails:  point.Data.Value.Fails,
-			}
-			checks = append(checks, check)
-		case "thresholds":
-			threshold := K6Threshold{
-				Name:   point.Data.Value.Tags["threshold"],
-				Metric: point.Data.Value.Tags["metric"],
-				Pass:   point.Data.Value.Value == 1.0, //TODO: Replace this dummy with actual check vs the threshold
-			}
-			thresholds = append(thresholds, threshold)
-		}
-	}
-	return checks, thresholds, nil
-}
-
-// granularParseK6JsonOutput processes the raw JSON output from k6 by inspecting every
+// granularParseK6MetricsJson processes the raw metrics JSON from k6 by inspecting every
 // Metric and Point line to determine which Thresholds and Checks passed or failed.
-func granularParseK6JsonOutput(jsonData []byte) ([]K6Check, []K6Threshold, bool) {
+func granularParseK6MetricsJson(jsonData []byte) ([]K6Check, []K6Threshold, bool) {
 	var checks []K6Check
 	var thresholds []K6Threshold
 	overallPass := true
 
-	// The k6 JSON output is a stream of JSON objects, one per line.
+	// The k6 metrics JSON is a stream of JSON objects, one per line.
 	lines := strings.SplitSeq(string(jsonData), "\n")
 	for line := range lines {
 		if strings.TrimSpace(line) == "" {
