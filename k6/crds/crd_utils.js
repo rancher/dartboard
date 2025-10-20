@@ -123,10 +123,6 @@ export function getCRDsMatchingNameVersions(baseUrl, cookies, namePrefix, numVer
   return crdArray
 }
 
-export function teardown(data) {
-  cleanup(data.cookies)
-}
-
 export function updateCRD(baseUrl, cookies, crd) {
   let body = YAML.dump(crd)
   let res = http.put(

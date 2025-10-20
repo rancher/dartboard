@@ -1,6 +1,6 @@
 /* @license
 Papa Parse
-v5.3.2
+v5.4.0
 https://github.com/mholt/PapaParse
 License: MIT
 */
@@ -49,11 +49,12 @@ License: MIT
 	function getWorkerBlob() {
 		var URL = global.URL || global.webkitURL || null;
 		var code = moduleFactory.toString();
-		return Papa.BLOB_URL || (Papa.BLOB_URL = URL.createObjectURL(new Blob(['(', code, ')();'], {type: 'text/javascript'})));
+		return Papa.BLOB_URL || (Papa.BLOB_URL = URL.createObjectURL(new Blob(["var global = (function() { if (typeof self !== 'undefined') { return self; } if (typeof window !== 'undefined') { return window; } if (typeof global !== 'undefined') { return global; } return {}; })(); global.IS_PAPA_WORKER=true; ", '(', code, ')();'], {type: 'text/javascript'})));
 	}
 
 	var IS_WORKER = !global.document && !!global.postMessage,
-		IS_PAPA_WORKER = IS_WORKER && /blob:/i.test((global.location || {}).protocol);
+		IS_PAPA_WORKER = global.IS_PAPA_WORKER || false;
+
 	var workers = {}, workerIdCounter = 0;
 
 	var Papa = {};
@@ -234,6 +235,7 @@ License: MIT
 		}
 		else if (typeof _input === 'string')
 		{
+			_input = stripBom(_input);
 			if (_config.download)
 				streamer = new NetworkStreamer(_config);
 			else
@@ -247,6 +249,14 @@ License: MIT
 			streamer = new FileStreamer(_config);
 
 		return streamer.stream(_input);
+
+		// Strip character from UTF-8 BOM encoded files that cause issue parsing the file
+		function stripBom(string) {
+			if (string.charCodeAt(0) === 0xfeff) {
+				return string.slice(1);
+			}
+			return string;
+		}
 	}
 
 
@@ -1012,7 +1022,7 @@ License: MIT
 		var MAX_FLOAT = Math.pow(2, 53);
 		var MIN_FLOAT = -MAX_FLOAT;
 		var FLOAT = /^\s*-?(\d+\.?|\.\d+|\d+\.\d+)([eE][-+]?\d+)?\s*$/;
-		var ISO_DATE = /^(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))$/;
+		var ISO_DATE = /^((\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z)))$/;
 		var self = this;
 		var _stepCounter = 0;	// Number of times step was called (number of rows parsed)
 		var _rowCounter = 0;	// Number of rows that have been parsed so far
@@ -1456,6 +1466,37 @@ License: MIT
 			if (!input)
 				return returnable();
 
+			// Rename headers if there are duplicates
+			if (config.header)
+			{
+				var firstLine = input.split(newline)[0];
+				var headers = firstLine.split(delim);
+				var separator = '_';
+				var headerMap = [];
+				var headerCount = {};
+				var duplicateHeaders = false;
+
+				for (var j in headers) {
+					var header = headers[j];
+					if (isFunction(config.transformHeader))
+						header = config.transformHeader(header, j);
+					var headerName = header;
+
+					var count = headerCount[header] || 0;
+					if (count > 0) {
+						duplicateHeaders = true;
+						headerName = header + separator + count;
+					}
+					headerCount[header] = count + 1;
+
+					headerMap.push(headerName);
+				}
+				if (duplicateHeaders) {
+					var editedInput = input.split(newline);
+					editedInput[0] = headerMap.join(delim);
+					input = editedInput.join(newline);
+				}
+			}
 			if (fastMode || (fastMode !== false && input.indexOf(quoteChar) === -1))
 			{
 				var rows = input.split(newline);
