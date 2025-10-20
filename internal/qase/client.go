@@ -142,7 +142,7 @@ func (c *CustomUnifiedClient) CreateTestResultV1(ctx context.Context, projectCod
 	authCtx := context.WithValue(ctx, api_v1_client.ContextAPIKeys, map[string]api_v1_client.APIKey{
 		"TokenAuth": {Key: c.Config.TestOps.API.Token},
 	})
-	_, r, err := c.V1Client.GetAPIClient().ResultsAPI.CreateResult(authCtx, projectCode, int32(runID)).Execute()
+	_, r, err := c.V1Client.GetAPIClient().ResultsAPI.CreateResult(authCtx, projectCode, int32(runID)).ResultCreate(result).Execute()
 	if err != nil || !strings.Contains(strings.ToLower(r.Status), "ok") {
 		return fmt.Errorf("failed to create v1 test result or did not receive 'OK; response: %w", err)
 	}

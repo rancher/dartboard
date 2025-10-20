@@ -5,8 +5,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46t
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/git-ival/qase-go/pkg/qase-go v0.0.0-20251017020041-734cab39c3e6 h1:vO6wRAKFJhv1tgWPwmNRTqFCc1R3CCJe64AdlGWmMvg=
-github.com/git-ival/qase-go/pkg/qase-go v0.0.0-20251017020041-734cab39c3e6/go.mod h1:eZi3JSnhgm8vnlWzgi770ylRpb1GD/yaVuO3OJBVrx4=
+github.com/git-ival/qase-go/pkg/qase-go v0.0.0-20251020154902-7e7d90a25818 h1:rru5sEz/Wv4S3ZkMe5NrKbvv1aYLrhwJG/CSdoUuXq8=
+github.com/git-ival/qase-go/pkg/qase-go v0.0.0-20251020154902-7e7d90a25818/go.mod h1:eZi3JSnhgm8vnlWzgi770ylRpb1GD/yaVuO3OJBVrx4=
 github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 h1:El6M4kTTCOh6aBiKaUGG7oYTSPP8MxqL4YI3kZKwcP4=
 github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510/go.mod h1:pupxD2MaaD3pAXIBCelhxNneeOaAeabZDe5s4K6zSpQ=
 github.com/kr/pretty v0.2.1 h1:Fmg33tUaq4/8ym9TJN1x7sLJnHVwhP33CNkpYV/7rwI=

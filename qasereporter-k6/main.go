@@ -11,7 +11,7 @@ import (
 	"time"
 
 	qase_config "github.com/qase-tms/qase-go/pkg/qase-go/config"
-	v2 "github.com/qase-tms/qase-go/qase-api-v2-client"
+	v1 "github.com/qase-tms/qase-go/qase-api-client"
 	"github.com/rancher/dartboard/internal/qase"
 	"github.com/sirupsen/logrus"
 )
@@ -105,12 +105,12 @@ func main() {
 	logrus.Info("Granular parsing enabled.")
 	// Granular parsing requires the metrics output file.
 	if projectID == "" || k6MetricsOutputFile == "" {
-		logrus.Fatalf("Missing required environment variables for granular parsing: %s, %s",
+		logrus.Fatalf("Missing required environment variables for granular parsing: one of %s, or %s",
 			qase_config.QaseTestOpsProjectEnvVar, k6MetricsOutputFileEnvVar)
 	}
 
 	if runIDStr == "" && runName == "" {
-		logrus.Fatalf("Missing required environment variables for granular parsing: %s, %s",
+		logrus.Fatalf("Missing required environment variables for granular parsing: both %s, and %s",
 			qase_config.QaseTestOpsRunIDEnvVar, qase.TestRunNameEnvVar)
 	}
 
@@ -152,11 +152,14 @@ func main() {
 		testCaseID = *testCase.Id
 	} else {
 		// Fallback or error if no test case name is provided
-		logrus.Fatal("QASE_TEST_CASE_NAME environment variable not set.")
+		logrus.Fatalf("%s environment variable not set.", qase.TestCaseNameEnvVar)
 	}
 
 	if !*granularParsing {
 		reportSummary()
+		return
+	} else {
+		reportMetrics()
 		return
 	}
 }
@@ -183,15 +186,12 @@ func reportMetrics() {
 	}
 
 	logrus.Infof("Reporting to Qase: Project=%s, Run=%d, Case=%d, Status=%s", projectID, runID, testCaseID, status)
-	resultExec := v2.NewResultExecution(status)
-	resultBody := v2.NewResultCreate(runName, *resultExec)
-	resultBody.SetId(runIDStr)
-	resultBody.SetMessage(comment)
+	resultBody := v1.NewResultCreate(status)
+	resultBody.SetCaseId(testCaseID)
+	resultBody.SetComment(comment)
 
-	v2ResultsAPI := qaseService.Client.V2Client.GetAPIClient().ResultsAPI
-
-	resp, err := v2ResultsAPI.CreateResultV2(context.Background(), projectID, runID).ResultCreate(*resultBody).Execute()
-	if err != nil || !strings.Contains(strings.ToLower(resp.Status), "ok") {
+	err = qaseService.Client.CreateTestResultV1(context.Background(), projectID, runID, *resultBody)
+	if err != nil {
 		logrus.Fatalf("Failed to create Qase result: %v", err)
 	}
 
@@ -266,7 +266,7 @@ func buildQaseComment(thresholds []K6Threshold, checks []K6Check, summary string
 	var builder strings.Builder
 
 	builder.WriteString("### k6 Test Results\n\n")
-	builder.WriteString("#### Thresholds\n")
+	builder.WriteString("###### Thresholds\n")
 	builder.WriteString("| Status | Threshold | Metric |\n")
 	builder.WriteString("|---|---|---|\n")
 
@@ -281,7 +281,7 @@ func buildQaseComment(thresholds []K6Threshold, checks []K6Check, summary string
 		builder.WriteString("| N/A | No thresholds defined | N/A |\n")
 	}
 
-	builder.WriteString("\n#### Checks\n")
+	builder.WriteString("\n###### Checks\n")
 	builder.WriteString("| Status | Check | Passes | Fails |\n")
 	builder.WriteString("|---|---|---|---|\n")
 	for _, c := range checks {

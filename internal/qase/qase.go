@@ -16,7 +16,7 @@ const (
 
 type Service struct {
 	Client      *CustomUnifiedClient
-	RunID       int64
+	RunID       *int64
 	ProjectCode string
 }
 
@@ -25,15 +25,25 @@ func SetupQaseClient() *Service {
 	token := os.Getenv(qase_config.QaseTestOpsAPITokenEnvVar)
 	projectCode := os.Getenv(qase_config.QaseTestOpsProjectEnvVar)
 	if token == "" {
-		logrus.Fatal("QASE_AUTOMATION_TOKEN environment variable not set")
+		logrus.Fatalf("%s environment variable not set", qase_config.QaseTestOpsAPITokenEnvVar)
 	}
 	if projectCode == "" {
-		logrus.Fatal("QASE_PROJECT_ID environment variable not set")
+		logrus.Fatalf("%s environment variable not set", qase_config.QaseTestOpsProjectEnvVar)
 	}
+
+	var err error
+	var cfg *qase_config.Config
+
 	cfgBuilder := qase_config.NewConfigBuilder().LoadFromEnvironment()
-	cfg, err := cfgBuilder.Build()
+	cfg, err = cfgBuilder.Build()
 	if err != nil {
 		logrus.Fatalf("Failed to build Qase config from environment variables: %v", err)
+	}
+	if cfg.Mode == "" {
+		cfg.Mode = qase_config.MODE_TESTOPS
+	}
+	if cfg.Fallback == "" {
+		cfg.Fallback = qase_config.MODE_REPORT
 	}
 
 	qaseClient, err := NewCustomUnifiedClient(cfg)
@@ -41,35 +51,33 @@ func SetupQaseClient() *Service {
 		logrus.Fatalf("Failed to create Qase client: %v", err)
 	}
 
+	logrus.Infof("QASE Config: %v", cfg)
+
 	return &Service{
 		Client:      qaseClient,
-		RunID:       *cfg.TestOps.Run.ID,
+		RunID:       cfg.TestOps.Run.ID,
 		ProjectCode: projectCode,
 	}
 }
 
 // CreateTestRun creates a new Qase test run.
 func (q *Service) CreateTestRun(testRunName string, projectID string) (int64, error) {
-	if q.RunID != 0 {
-		return q.RunID, nil
-	}
-
 	runID, err := q.Client.CreateTestRun(context.Background(), testRunName, projectID)
 	if err != nil {
+		logrus.Errorf("Failed to create test run: %v", err)
 		return 0, err
 	}
-	q.RunID = runID
-	return q.RunID, nil
+	q.RunID = &runID
+	return *q.RunID, nil
 }
 
 // CompleteTestRun completes the test run if it was started.
 func (q *Service) CompleteTestRun() error {
-	if q.RunID != 0 {
+	if q.RunID != nil {
 		logrus.Debugf("Completing test run ID: %d", q.RunID)
-		if err := q.Client.CompleteTestRun(context.Background(), q.ProjectCode, q.RunID); err != nil {
+		if err := q.Client.CompleteTestRun(context.Background(), q.ProjectCode, *q.RunID); err != nil {
 			return err
 		}
-		q.RunID = 0
 	}
 	return nil
 }
