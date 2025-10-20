@@ -4,11 +4,9 @@ go 1.24.0
 
 toolchain go1.24.2
 
-replace github.com/qase-tms/qase-go/pkg/qase-go => github.com/git-ival/qase-go/pkg/qase-go v0.0.0-20251020154902-7e7d90a25818
-
 require (
 	al.essio.dev/pkg/shellescape v1.5.0
-	github.com/qase-tms/qase-go/pkg/qase-go v1.0.3
+	github.com/qase-tms/qase-go/pkg/qase-go v1.0.4
 	github.com/qase-tms/qase-go/qase-api-client v1.2.0
 	github.com/qase-tms/qase-go/qase-api-v2-client v1.1.3
 	github.com/sirupsen/logrus v1.9.3
