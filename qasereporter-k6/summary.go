@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"strconv"
 
 	v1 "github.com/qase-tms/qase-go/qase-api-client"
 	"github.com/rancher/dartboard/internal/qase"
@@ -50,25 +49,6 @@ func reportSummary() {
 		logrus.Fatalf("Missing required environment variable: %s", k6SummaryJsonFileEnvVar)
 	}
 
-	qaseService := qase.SetupQaseClient()
-	parsedRunID, err := strconv.ParseInt(runIDStr, 10, 64)
-
-	if err != nil {
-		if runName != "" {
-			logrus.Infof("QASE_RUN_ID not found or invalid, creating new test run with name: %s", runName)
-			newRunID, createErr := qaseService.CreateTestRun(runName, projectID)
-			if createErr != nil {
-				logrus.Fatalf("Failed to create Qase test run: %v", createErr)
-			}
-			runID = newRunID
-			logrus.Infof("Successfully created new Qase test run with ID: %d", runID)
-		} else {
-			logrus.Fatalf("Invalid QASE_RUN_ID: %v", err)
-		}
-	} else {
-		runID = parsedRunID
-	}
-
 	// Read and parse the k6 summary JSON
 	k6SummaryJsonData, err := os.ReadFile(k6SummaryJsonFile)
 	if err != nil {
@@ -111,7 +91,7 @@ func reportSummary() {
 			}
 			defer file.Close()
 			files = append(files, file)
-			hashes, err := qaseService.UploadAttachments(files)
+			hashes, err := qaseClient.UploadAttachments(context.Background(), files)
 			if err != nil {
 				logrus.Fatalf("Failed to upload attachments to Qase: %v", err)
 			}
@@ -124,7 +104,7 @@ func reportSummary() {
 	resultBody.SetComment(comment)
 	resultBody.SetAttachments(attachmentHashes)
 
-	err = qaseService.Client.CreateTestResultV1(context.Background(), projectID, runID, *resultBody)
+	err = qaseClient.CreateTestResultV1(context.Background(), projectID, runID, *resultBody)
 	if err != nil {
 		logrus.Fatalf("Failed to create Qase result: %v", err)
 	}

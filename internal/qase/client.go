@@ -13,6 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	TestRunNameEnvVar  = "QASE_TEST_RUN_NAME"
+	TestCaseNameEnvVar = "QASE_TEST_CASE_NAME"
+)
+
 // CustomUnifiedClient combines V1 and V2 clients for our specific needs.
 type CustomUnifiedClient struct {
 	V1Client *clients.V1Client
@@ -45,6 +50,42 @@ func NewCustomUnifiedClient(cfg *config.Config) (*CustomUnifiedClient, error) {
 	}, nil
 }
 
+// SetupQaseClient creates a new Qase client using the qase-go package.
+func SetupQaseClient() *CustomUnifiedClient {
+	token := os.Getenv(config.QaseTestOpsAPITokenEnvVar)
+	projectCode := os.Getenv(config.QaseTestOpsProjectEnvVar)
+	if token == "" {
+		logrus.Fatalf("%s environment variable not set", config.QaseTestOpsAPITokenEnvVar)
+	}
+	if projectCode == "" {
+		logrus.Fatalf("%s environment variable not set", config.QaseTestOpsProjectEnvVar)
+	}
+
+	var err error
+	var cfg *config.Config
+
+	cfgBuilder := config.NewConfigBuilder().LoadFromEnvironment()
+	cfg, err = cfgBuilder.Build()
+	if err != nil {
+		logrus.Fatalf("Failed to build Qase config from environment variables: %v", err)
+	}
+	if cfg.Mode == "" {
+		cfg.Mode = config.MODE_TESTOPS
+	}
+	if cfg.Fallback == "" {
+		cfg.Fallback = config.MODE_REPORT
+	}
+
+	qaseClient, err := NewCustomUnifiedClient(cfg)
+	if err != nil {
+		logrus.Fatalf("Failed to create Qase client: %v", err)
+	}
+
+	logrus.Infof("QASE Config: %v", cfg)
+
+	return qaseClient
+}
+
 // CreateTestRun creates a new Qase test run using the V1 client.
 func (c *CustomUnifiedClient) CreateTestRun(ctx context.Context, testRunName, projectCode string) (int64, error) {
 	logrus.Debugf("Creating test run with name \"%s\" in project %s", testRunName, projectCode)
@@ -58,7 +99,9 @@ func (c *CustomUnifiedClient) CreateTestRun(ctx context.Context, testRunName, pr
 	if err != nil {
 		return 0, fmt.Errorf("failed to create test run: %w", err)
 	}
-	return *resp.Result.Id, nil
+	runID := *resp.Result.Id
+	c.Config.TestOps.Run.ID = &runID
+	return runID, nil
 }
 
 // CompleteTestRun completes a Qase test run using the V1 client.
@@ -69,15 +112,25 @@ func (c *CustomUnifiedClient) CompleteTestRun(ctx context.Context, projectCode s
 		"TokenAuth": {Key: c.Config.TestOps.API.Token},
 	})
 
-	_, _, err := c.V1Client.GetAPIClient().RunsAPI.CompleteRun(authCtx, projectCode, int32(runID)).Execute()
-	if err != nil {
-		return fmt.Errorf("failed to complete test run: %w", err)
+	if c.Config.TestOps.Run.ID != nil {
+		runID := *c.Config.TestOps.Run.ID
+		logrus.Debugf("Completing test run ID: %d", runID)
+		_, _, err := c.V1Client.GetAPIClient().RunsAPI.CompleteRun(authCtx, c.Config.TestOps.Project, int32(runID)).Execute()
+		if err != nil {
+			return fmt.Errorf("failed to complete test run: %w", err)
+		}
 	}
 	return nil
 }
 
 // UploadAttachments uploads files to Qase using the V1 client.
-func (c *CustomUnifiedClient) UploadAttachments(ctx context.Context, projectCode string, files []*os.File) ([]string, error) {
+func (c *CustomUnifiedClient) UploadAttachments(ctx context.Context, files []*os.File) ([]string, error) {
+	if len(files) == 0 {
+		return nil, nil
+	}
+
+	projectCode := c.Config.TestOps.Project
+
 	var hashes []string
 	for _, file := range files {
 		logrus.Debugf("Uploading attachment: %s", file.Name())
@@ -90,6 +143,12 @@ func (c *CustomUnifiedClient) UploadAttachments(ctx context.Context, projectCode
 			hashes = append(hashes, hash)
 		}
 	}
+
+	if len(hashes) == 0 && len(files) > 0 {
+		return nil, fmt.Errorf("failed to upload any attachments")
+	}
+
+	logrus.Infof("Successfully uploaded %d out of %d attachments.", len(hashes), len(files))
 	return hashes, nil
 }
 

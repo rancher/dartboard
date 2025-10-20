@@ -29,7 +29,7 @@ var (
 	k6MetricsOutputFile = os.Getenv(k6MetricsOutputFileEnvVar)
 )
 
-var qaseService *qase.Service
+var qaseClient *qase.CustomUnifiedClient
 var (
 	runID      int64
 	testCaseID int64
@@ -119,24 +119,24 @@ func main() {
 		runIDStr = *caseIDStr
 	}
 
-	qaseService = qase.SetupQaseClient()
+	qaseClient = qase.SetupQaseClient()
 	parsedRunID, err := strconv.ParseInt(runIDStr, 10, 64)
 
 	if err != nil {
 		if runName != "" {
 			logrus.Infof("QASE_RUN_ID not found or invalid, creating new test run with name: %s", runName)
-			newRunID, err := qaseService.CreateTestRun(runName, projectID)
+			createdRunID, err := qaseClient.CreateTestRun(context.Background(), runName, projectID)
 			if err != nil {
 				logrus.Fatalf("Failed to create Qase test run: %v", err)
 			}
-			runID = newRunID
+			runID = createdRunID
 			logrus.Infof("Successfully created new Qase test run with ID: %d", runID)
 		} else {
 			logrus.Fatalf("Invalid QASE_RUN_ID: %v", err)
 		}
 	} else {
 		runID = parsedRunID
-		resp, _, err := qaseService.Client.V1Client.GetAPIClient().RunsAPI.GetRun(context.Background(), projectID, int32(runID)).Execute()
+		resp, _, err := qaseClient.V1Client.GetAPIClient().RunsAPI.GetRun(context.Background(), projectID, int32(runID)).Execute()
 		if err != nil {
 			logrus.Fatalf("Failed to get Qase test run while fetching run title: %v", err)
 		}
@@ -145,7 +145,7 @@ func main() {
 
 	if testCaseName != "" {
 		logrus.Infof("Fetching Qase test case by title: %s", testCaseName)
-		testCase, err := qaseService.Client.GetTestCaseByTitle(context.Background(), projectID, testCaseName)
+		testCase, err := qaseClient.GetTestCaseByTitle(context.Background(), projectID, testCaseName)
 		if err != nil {
 			logrus.Fatalf("Failed to get Qase test case by title: %v", err)
 		}
@@ -157,10 +157,8 @@ func main() {
 
 	if !*granularParsing {
 		reportSummary()
-		return
 	} else {
 		reportMetrics()
-		return
 	}
 }
 
@@ -190,7 +188,7 @@ func reportMetrics() {
 	resultBody.SetCaseId(testCaseID)
 	resultBody.SetComment(comment)
 
-	err = qaseService.Client.CreateTestResultV1(context.Background(), projectID, runID, *resultBody)
+	err = qaseClient.CreateTestResultV1(context.Background(), projectID, runID, *resultBody)
 	if err != nil {
 		logrus.Fatalf("Failed to create Qase result: %v", err)
 	}
