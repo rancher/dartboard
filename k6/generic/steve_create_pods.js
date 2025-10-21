@@ -2,7 +2,7 @@ import { check, fail } from 'k6';
 import { sleep } from 'k6';
 import exec from 'k6/execution';
 import http from 'k6/http';
-import { customHandleSummary } from './generic_utils.js';
+import { customHandleSummary } from './k6_utils.js';
 
 // Creates dummy pods via Steve
 

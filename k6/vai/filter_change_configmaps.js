@@ -9,6 +9,7 @@ import * as userUtil from "../rancher/rancher_users_utils.js"
 import * as namespacesUtil from "../namespaces/namespace_utils.js"
 import * as projectsUtil from "../projects/project_utils.js"
 import { list as benchmarkList } from "../tests/api_benchmark.js"
+import { customHandleSummary } from '../generic/k6_utils.js';
 
 // Parameters
 const namespace = "dartboard-test"
@@ -63,6 +64,8 @@ let defaultFilters = [
   "filter=metadata.namespace!=kube-public&",
   "filter=metadata.namespace!=kube-system&"
 ]
+
+export const handleSummary = customHandleSummary;
 
 export const options = {
   insecureSkipTLSVerify: true,

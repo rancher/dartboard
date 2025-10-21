@@ -4,6 +4,7 @@ import { Trend } from 'k6/metrics';
 import { WebSocket } from 'k6/experimental/websockets';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 import * as k8s from "../generic/k8s.js";
+import { customHandleSummary } from '../generic/k6_utils.js';
 
 // Parameters
 const steveServers = (__ENV.STEVE_SERVERS || 'http://localhost:8080').split(',');
@@ -31,6 +32,8 @@ const deltaFastestSlowest = new Trend('delta_fastest_slowest', true);
 const delayFirstObserver = new Trend('delay_first_observer', true);
 const delayLastObserver = new Trend('delay_last_observer', true);
 const listenerProcessingTime = new Trend('listener_processing_time', true);
+
+export const handleSummary = customHandleSummary;
 
 export const options = {
     insecureSkipTLSVerify: true,
