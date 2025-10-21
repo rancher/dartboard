@@ -18,7 +18,6 @@ import (
 
 const (
 	k6MetricsOutputFileEnvVar = "K6_OUTPUT_FILE"
-	k6TestFileEnvVar          = "K6_TEST"
 )
 
 var (
@@ -98,8 +97,8 @@ func main() {
 
 	granularParsing := flag.Bool("granular", false, "Enable granular parsing of all Metric and Point lines from k6 JSON output.")
 	flag.Parse()
-	// The -caseID flag allows overriding the test case ID.
-	caseIDStr := flag.String("caseID", "", "Qase test case ID to report results against.")
+	// The -runID flag allows overriding the test case ID.
+	runIDOverride := flag.String("runID", "", "Qase test run ID to report results against.")
 	flag.Parse()
 
 	logrus.Info("Granular parsing enabled.")
@@ -115,8 +114,8 @@ func main() {
 	}
 
 	// Use the provided case ID flag, otherwise default to the run ID.
-	if *caseIDStr != "" {
-		runIDStr = *caseIDStr
+	if *runIDOverride != "" {
+		runIDStr = *runIDOverride
 	}
 
 	qaseClient = qase.SetupQaseClient()
