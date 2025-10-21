@@ -1,6 +1,7 @@
 import { check, fail, sleep } from 'k6';
 import exec from 'k6/execution';
 import http from 'k6/http';
+import { randomUUID } from 'k6/crypto';
 import { Trend } from 'k6/metrics';
 import {
   getCookies, login, logout, deleteProjectsByPrefix, createProject,
@@ -18,8 +19,8 @@ import {
 const vus = __ENV.VUS || 5
 const projectCount = Number(__ENV.PROJECT_COUNT) || 10
 const userCount = Number(__ENV.USER_COUNT) || 10
-// const customPRTBsPerUser = Number(__ENV.USER_COUNT) || 5
-// const customCRTBsPerUser = Number(__ENV.USER_COUNT) || 5
+const testUserPassword = __ENV.TEST_USER_PASSWORD
+const userPrefix = __ENV.USER_PREFIX || 'test-user'
 
 // Option setting
 const baseUrl = __ENV.BASE_URL
@@ -90,7 +91,8 @@ export function setup() {
   }
 
   for (let numUsers = 0; numUsers < userCount; numUsers++) {
-    let res = createUser(baseUrl, cookies, `Test User ${numUsers + 1}`, `${numUsers + 1}`, "useruseruser")
+    const userName = `${userPrefix}-${randomUUID()}`;
+    let res = createUser(baseUrl, cookies, `Test User ${numUsers + 1}`, userName, testUserPassword)
     if (res.status !== 201) {
       console.log("create user status: ", res.status)
       fail("Failed to create all expected Users")
@@ -334,7 +336,7 @@ export function createPRTBs(data) {
   }
 
   // log in as user
-  if (!login(baseUrl, {}, user.username, "useruseruser")) {
+  if (!login(baseUrl, {}, user.username, testUserPassword)) {
     fail(`could not login to cluster as ${user.username}`)
   }
   sleep(2)
@@ -402,7 +404,7 @@ export function createCRTBs(data) {
   }
 
   // log in as user
-  if (!login(baseUrl, {}, user.username, "useruseruser")) {
+  if (!login(baseUrl, {}, user.username, testUserPassword)) {
     fail(`could not login to cluster as ${user.username}`)
   }
   sleep(2)
