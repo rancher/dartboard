@@ -16,8 +16,7 @@ while [ $ATTEMPT -le $MAX_RETRIES ]; do
 
 # Timeout block for tunnel creation and checks
 timeout 120 sh <<'EOF'
-set -e
-set -x
+set -ex
 
 # Create tunnels
 nohup ssh -o IgnoreUnknown=TofuCreatedThisTunnel \
