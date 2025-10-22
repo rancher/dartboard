@@ -49,12 +49,14 @@ type K6Data[T K6MetricData | K6PointData] struct {
 // K6Metric represents a 'Metric' line from the k6 metrics JSON.
 type K6Metric struct {
 	K6Line
+
 	Data K6Data[K6MetricData] `json:"data"` // Data associated with the Metric, contains lots of stuff
 }
 
 // K6Point represents a 'Point' line from the k6 metrics JSON.
 type K6Point struct {
 	K6Line
+
 	Data K6Data[K6PointData] `json:"data"` // Data associated with the Point, contains lots of stuff
 }
 
@@ -70,11 +72,11 @@ type K6MetricData struct {
 
 // K6PointData represents the 'data' field for a 'Point' type metric.
 type K6PointData struct {
-	Time   time.Time         `json:"time"`   // Timestamp when the sample was collected
-	Value  float64           `json:"value"`  // The actual data sample; time values are in milliseconds
-	Tags   map[string]string `json:"tags"`   // Map with tagname-tagvalue pairs that can be used when filtering results data
-	Passes int64             `json:"passes"` // Specific to 'checks' metric
-	Fails  int64             `json:"fails"`  // Specific to 'checks' metric
+	Time   time.Time         `json:"time"`
+	Tags   map[string]string `json:"tags"`
+	Value  float64           `json:"value"`
+	Passes int64             `json:"passes"`
+	Fails  int64             `json:"fails"`
 }
 
 // K6Threshold represents a threshold metric with its pass/fail status
@@ -119,15 +121,17 @@ func main() {
 	}
 
 	qaseClient = qase.SetupQaseClient()
-	parsedRunID, err := strconv.ParseInt(runIDStr, 10, 64)
 
+	parsedRunID, err := strconv.ParseInt(runIDStr, 10, 64)
 	if err != nil {
 		if runName != "" {
 			logrus.Infof("QASE_RUN_ID not found or invalid, creating new test run with name: %s", runName)
+
 			createdRunID, err := qaseClient.CreateTestRun(context.Background(), runName, projectID)
 			if err != nil {
 				logrus.Fatalf("Failed to create Qase test run: %v", err)
 			}
+
 			runID = createdRunID
 			logrus.Infof("Successfully created new Qase test run with ID: %d", runID)
 		} else {
@@ -135,19 +139,23 @@ func main() {
 		}
 	} else {
 		runID = parsedRunID
+
 		resp, _, err := qaseClient.V1Client.GetAPIClient().RunsAPI.GetRun(context.Background(), projectID, int32(runID)).Execute()
 		if err != nil {
 			logrus.Fatalf("Failed to get Qase test run while fetching run title: %v", err)
 		}
+
 		runName = *resp.GetResult().Title
 	}
 
 	if testCaseName != "" {
 		logrus.Infof("Fetching Qase test case by title: %s", testCaseName)
+
 		testCase, err := qaseClient.GetTestCaseByTitle(context.Background(), projectID, testCaseName)
 		if err != nil {
 			logrus.Fatalf("Failed to get Qase test case by title: %v", err)
 		}
+
 		testCaseID = *testCase.Id
 	} else {
 		// Fallback or error if no test case name is provided
@@ -169,6 +177,7 @@ func reportMetrics() {
 	}
 
 	logrus.Info("Performing granular parsing of k6 metrics JSON.")
+
 	checks, thresholds, overallPass := granularParseK6MetricsJson(k6MetricsJsonData)
 
 	// Build the comment for Qase
@@ -198,8 +207,11 @@ func reportMetrics() {
 // granularParseK6MetricsJson processes the raw metrics JSON from k6 by inspecting every
 // Metric and Point line to determine which Thresholds and Checks passed or failed.
 func granularParseK6MetricsJson(jsonData []byte) ([]K6Check, []K6Threshold, bool) {
-	var checks []K6Check
-	var thresholds []K6Threshold
+	var (
+		checks     []K6Check
+		thresholds []K6Threshold
+	)
+
 	overallPass := true
 
 	// The k6 metrics JSON is a stream of JSON objects, one per line.
@@ -213,6 +225,7 @@ func granularParseK6MetricsJson(jsonData []byte) ([]K6Check, []K6Threshold, bool
 		var genericLine map[string]json.RawMessage
 		if err := json.Unmarshal([]byte(line), &genericLine); err != nil {
 			logrus.Warnf("Failed to unmarshal k6 metric line: %v", err)
+
 			continue
 		}
 
@@ -226,6 +239,7 @@ func granularParseK6MetricsJson(jsonData []byte) ([]K6Check, []K6Threshold, bool
 			var metric K6Metric
 			if err := json.Unmarshal([]byte(line), &metric); err != nil {
 				logrus.Warnf("Failed to unmarshal k6 Metric line: %v", err)
+
 				continue
 			}
 			// If a metric has thresholds and is tainted, it means a threshold failed.
@@ -244,11 +258,13 @@ func granularParseK6MetricsJson(jsonData []byte) ([]K6Check, []K6Threshold, bool
 			var point K6Point
 			if err := json.Unmarshal([]byte(line), &point); err != nil {
 				logrus.Warnf("Failed to unmarshal k6 Point line: %v", err)
+
 				continue
 			}
 
 			if point.Metric == "checks" {
 				check := K6Check{Name: point.Data.Value.Tags["check"], Passes: point.Data.Value.Passes, Fails: point.Data.Value.Fails}
+
 				checks = append(checks, check)
 				if check.Fails > 0 {
 					overallPass = false
@@ -256,6 +272,7 @@ func granularParseK6MetricsJson(jsonData []byte) ([]K6Check, []K6Threshold, bool
 			}
 		}
 	}
+
 	return checks, thresholds, overallPass
 }
 
@@ -272,8 +289,10 @@ func buildQaseComment(thresholds []K6Threshold, checks []K6Check, summary string
 		if t.Pass {
 			statusIcon = "✅"
 		}
+
 		builder.WriteString(fmt.Sprintf("| %s | `%s` | `%s` |\n", statusIcon, t.Name, t.Metric))
 	}
+
 	if len(thresholds) == 0 {
 		builder.WriteString("| N/A | No thresholds defined | N/A |\n")
 	}
@@ -281,13 +300,16 @@ func buildQaseComment(thresholds []K6Threshold, checks []K6Check, summary string
 	builder.WriteString("\n###### Checks\n")
 	builder.WriteString("| Status | Check | Passes | Fails |\n")
 	builder.WriteString("|---|---|---|---|\n")
+
 	for _, c := range checks {
 		statusIcon := "❌"
 		if c.Fails == 0 {
 			statusIcon = "✅"
 		}
+
 		builder.WriteString(fmt.Sprintf("| %s | `%s` | %d | %d |\n", statusIcon, c.Name, c.Passes, c.Fails))
 	}
+
 	if len(checks) == 0 {
 		builder.WriteString("| N/A | No checks defined | N/A | N/A |\n")
 	}

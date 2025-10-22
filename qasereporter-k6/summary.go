@@ -22,8 +22,8 @@ var (
 
 // K6Summary represents the structure of the k6 summary JSON output.
 type K6Summary struct {
-	RootGroup K6Group                    `json:"root_group"`
 	Metrics   map[string]K6SummaryMetric `json:"metrics"`
+	RootGroup K6Group                    `json:"root_group"`
 }
 
 // K6Group represents a group of checks in the k6 summary.
@@ -56,6 +56,7 @@ func reportSummary() {
 	}
 
 	logrus.Info("Parsing k6 summary JSON for results.")
+
 	checks, thresholds, overallPass := parseK6SummaryJson(k6SummaryJsonData)
 
 	// Build the comment for Qase
@@ -69,6 +70,7 @@ func reportSummary() {
 
 	// Prepare attachments if the HTML report exists
 	var attachments []string
+
 	if k6SummaryHtmlFile != "" {
 		if _, err := os.Stat(k6SummaryHtmlFile); err == nil {
 			logrus.Infof("Found HTML report at %s, preparing for upload.", k6SummaryHtmlFile)
@@ -82,6 +84,7 @@ func reportSummary() {
 
 	// Upload attachments and get their hashes
 	var attachmentHashes []string
+
 	if len(attachments) > 0 {
 		var files []*os.File
 		for _, filePath := range attachments {
@@ -94,11 +97,14 @@ func reportSummary() {
 					logrus.Warnf("Failed to close attachment file %s: %v", path, err)
 				}
 			}(file, filePath)
+
 			files = append(files, file)
+
 			hashes, err := qaseClient.UploadAttachments(context.Background(), files)
 			if err != nil {
 				logrus.Fatalf("Failed to upload attachments to Qase: %v", err)
 			}
+
 			attachmentHashes = append(attachmentHashes, hashes...)
 		}
 	}
@@ -123,12 +129,16 @@ func parseK6SummaryJson(jsonData []byte) ([]K6Check, []K6Threshold, bool) {
 		logrus.Fatalf("Failed to unmarshal k6 summary JSON: %v", err)
 	}
 
-	var checks []K6Check
-	var thresholds []K6Threshold
+	var (
+		checks     []K6Check
+		thresholds []K6Threshold
+	)
+
 	overallPass := true
 
 	// Recursively extract all checks from the root group and its subgroups.
 	var collectChecks func(g K6Group)
+
 	collectChecks = func(g K6Group) {
 		for _, ch := range g.Checks {
 			checks = append(checks, ch)
@@ -136,6 +146,7 @@ func parseK6SummaryJson(jsonData []byte) ([]K6Check, []K6Threshold, bool) {
 				overallPass = false
 			}
 		}
+
 		for _, subGroup := range g.Groups {
 			collectChecks(subGroup)
 		}
