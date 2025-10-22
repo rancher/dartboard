@@ -89,7 +89,11 @@ func reportSummary() {
 			if err != nil {
 				logrus.Fatalf("Failed to open attachment file %s: %v", filePath, err)
 			}
-			defer file.Close()
+			defer func(f *os.File, path string) {
+				if err := f.Close(); err != nil {
+					logrus.Warnf("Failed to close attachment file %s: %v", path, err)
+				}
+			}(file, filePath)
 			files = append(files, file)
 			hashes, err := qaseClient.UploadAttachments(context.Background(), files)
 			if err != nil {
