@@ -29,6 +29,8 @@ pipeline {
     DEFAULT_PROJECT_NAME = "${JOB_NAME.split('/').last()}-${BUILD_NUMBER}"
     accessDetailsLog = 'access-details.log'
     summaryHtmlFile = 'summary.html'
+    finalSSHKeyName = params.SSH_KEY_NAME ?: credentials('AWS_SSH_PEM_KEY_NAME').tokenize('.')[0]
+    finalSSHPemKey = params.SSH_PEM_KEY ?: credentials('AWS_SSH_PEM_KEY')
   }
 
   // No parameters block here—JJB YAML defines them
@@ -105,12 +107,12 @@ pipeline {
         script {
           def sshScript = """
             echo "Writing SSH keys to container..."
-            echo "${params.SSH_PEM_KEY}" | base64 -d > /dartboard/${params.SSH_KEY_NAME}.pem
-            chmod 600 /dartboard/${params.SSH_KEY_NAME}.pem
-            echo "${params.SSH_PUB_KEY}" > /dartboard/${params.SSH_KEY_NAME}.pub
-            chmod 644 /dartboard/${params.SSH_KEY_NAME}.pub
+            echo "${env.finalSSHPemKey}" | base64 -d > /dartboard/${env.finalSSHKeyName}.pem
+            chmod 600 /dartboard/${env.finalSSHKeyName}.pem
+            echo "${params.SSH_PUB_KEY}" > /dartboard/${env.finalSSHKeyName}.pub
+            chmod 644 /dartboard/${env.finalSSHKeyName}.pub
             echo "VERIFICATION FOR PUB KEY:"
-            cat /dartboard/${env.SSH_KEY_NAME}.pub
+            cat /dartboard/${env.finalSSHKeyName}.pub
           """
           sh "docker exec --user root ${runningContainerName} sh -c '${sshScript}'"
         }
@@ -124,7 +126,7 @@ pipeline {
             // Render the Dart file using Groovy string replacement
             def dartTemplate = params.DART_FILE
             def renderedDart = dartTemplate.replaceAll('\\$\\{HARVESTER_KUBECONFIG\\}', "/dartboard/${env.harvesterKubeconfig}")
-                                            .replaceAll('\\$\\{SSH_KEY_NAME\\}', "/dartboard/${params.SSH_KEY_NAME}")
+                                            .replaceAll('\\$\\{SSH_KEY_NAME\\}', "/dartboard/${env.finalSSHKeyName}")
                                             .replaceAll('\\$\\{PROJECT_NAME\\}', env.DEFAULT_PROJECT_NAME)
                                             .replaceAll('\\$\\{ADMIN_PASSWORD\\}', ADMIN_PASSWORD)
 
