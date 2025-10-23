@@ -13,6 +13,8 @@ def configDirPath
 def parseToHTML(text) { text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;') }
 
 def runningContainerName
+def finalSSHKeyName
+def finalSSHPemKey
 
 pipeline {
   agent { label agentLabel }
@@ -29,14 +31,21 @@ pipeline {
     DEFAULT_PROJECT_NAME = "${JOB_NAME.split('/').last()}-${BUILD_NUMBER}"
     accessDetailsLog = 'access-details.log'
     summaryHtmlFile = 'summary.html'
-    finalSSHKeyName = params.SSH_KEY_NAME ?: credentials('AWS_SSH_PEM_KEY_NAME').tokenize('.')[0]
-    finalSSHPemKey = params.SSH_PEM_KEY ?: credentials('AWS_SSH_PEM_KEY')
   }
 
   // No parameters block here—JJB YAML defines them
 
   stages {
     stage('Checkout') {
+      steps {
+        script {
+          // Initialize variables with fallback logic in a script block
+          finalSSHKeyName = params.SSH_KEY_NAME ? params.SSH_KEY_NAME : credentials('AWS_SSH_PEM_KEY_NAME').tokenize('.')[0]
+          finalSSHPemKey = params.SSH_PEM_KEY ? params.SSH_PEM_KEY : credentials('AWS_SSH_PEM_KEY')
+        }
+      }
+    }
+    stage('Checkout Code') {
       steps {
         script {
           scmWorkspace = project.checkout(repository: params.REPO, branch: params.BRANCH, target: 'dartboard')
@@ -107,22 +116,16 @@ pipeline {
         script {
           def sshScript = """
             echo "Writing SSH keys to container..."
-            echo "${env.finalSSHPemKey}" | base64 -d > /dartboard/${env.finalSSHKeyName}.pem
-            chmod 600 /dartboard/${env.finalSSHKeyName}.pem
+            echo "${finalSSHPemKey}" | base64 -d > /dartboard/${finalSSHKeyName}.pem
+            chmod 600 /dartboard/${finalSSHKeyName}.pem
 
-            # Generate public key if not provided, otherwise use the provided one
-            if [ -z "${params.SSH_PUB_KEY}" ]; then
-              echo "SSH_PUB_KEY not provided, generating from PEM key..."
-              # Assuming it's an SSH private key, use ssh-keygen
-              ssh-keygen -y -f /dartboard/${env.finalSSHKeyName}.pem > /dartboard/${env.finalSSHKeyName}.pub
-            else
-              echo "Using provided SSH_PUB_KEY..."
-              echo "${params.SSH_PUB_KEY}" > /dartboard/${env.finalSSHKeyName}.pub
-            fi
-            chmod 644 /dartboard/${env.finalSSHKeyName}.pub
+            echo "Generating PUB key from PEM key..."
+            # Assuming it's an SSH private key, use ssh-keygen
+            ssh-keygen -y -f /dartboard/${finalSSHKeyName}.pem > /dartboard/${finalSSHKeyName}.pub
+            chmod 644 /dartboard/${finalSSHKeyName}.pub
 
             echo "VERIFICATION FOR PUB KEY:"
-            cat /dartboard/${env.finalSSHKeyName}.pub
+            cat /dartboard/${finalSSHKeyName}.pub
           """
           sh "docker exec --user root ${runningContainerName} sh -c '${sshScript}'"
         }
@@ -136,7 +139,7 @@ pipeline {
             // Render the Dart file using Groovy string replacement
             def dartTemplate = params.DART_FILE
             def renderedDart = dartTemplate.replaceAll('\\$\\{HARVESTER_KUBECONFIG\\}', "/dartboard/${env.harvesterKubeconfig}")
-                                            .replaceAll('\\$\\{SSH_KEY_NAME\\}', "/dartboard/${env.finalSSHKeyName}")
+                                            .replaceAll('\\$\\{SSH_KEY_NAME\\}', "/dartboard/${finalSSHKeyName}")
                                             .replaceAll('\\$\\{PROJECT_NAME\\}', env.DEFAULT_PROJECT_NAME)
                                             .replaceAll('\\$\\{ADMIN_PASSWORD\\}', ADMIN_PASSWORD)
 
@@ -314,26 +317,12 @@ EOF
         archiveArtifacts artifacts: """
             dartboard/*.html,
             dartboard/*.json,
-            dartboard/*.yaml,
+            dartboard/**/rendered-dart.yaml,
             dartboard/*.log,
             dartboard/*.pem,
             dartboard/*.pub,
             dartboard/*.zip
         """.trim(), fingerprint: true
-
-        // Cleanup Docker container and image
-        try {
-          if (runningContainerName) {
-            sh "docker stop ${runningContainerName}"
-          }
-        } catch (e) {
-          echo "Could not stop docker container ${runningContainerName}. It may have already been stopped. ${e.message}"
-        }
-        try {
-          sh "docker rmi -f ${env.imageName}:latest"
-        } catch (e) {
-          echo "Could not remove docker image ${env.imageName}:latest. It may have already been removed. ${e.message}"
-        }
 
         publishHTML(target: [
           allowMissing: false,
@@ -343,6 +332,28 @@ EOF
           reportFiles: env.summaryHtmlFile,
           reportName: "Build Summary"
         ])
+
+        // Cleanup Docker container and image
+        try {
+          if (runningContainerName) {
+            sh "docker stop ${runningContainerName}"
+          }
+        } catch (e) {
+          echo "Could not stop docker container ${runningContainerName}. It may have already been stopped. ${e.message}"
+          try {
+            if (runningContainerName) {
+              sh "docker rm ${runningContainerName} || true"
+            }
+          } catch (e2) {
+            echo "Could not remove docker container ${runningContainerName}. It may have already been removed. ${e.message}"
+          }
+        }
+
+        try {
+          sh "docker rmi -f ${env.imageName}:latest"
+        } catch (e) {
+          echo "Could not remove docker image ${env.imageName}:latest. It may have already been removed. ${e.message}"
+        }
       }
     }
   }
