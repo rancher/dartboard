@@ -30,6 +30,8 @@ pipeline {
     DEFAULT_PROJECT_NAME = "${JOB_NAME.split('/').last()}-${BUILD_NUMBER}"
     accessDetailsLog = 'access-details.log'
     summaryHtmlFile = 'summary.html'
+    finalSSHKeyName = params.SSH_KEY_NAME ?: credentials('AWS_SSH_PEM_KEY_NAME').tokenize('.')[0]
+    finalSSHPemKey = params.SSH_PEM_KEY ?: credentials('AWS_SSH_PEM_KEY')
   }
 
   // No parameters block here—JJB YAML defines them
