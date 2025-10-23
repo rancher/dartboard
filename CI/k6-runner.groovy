@@ -8,20 +8,11 @@ pipeline {
   environment {
     IMAGE_NAME = 'dartboard'
     K6_ENV_FILE = 'k6.env'
-    K6_TESTS_DIR = "k6"
-    K6_OUTPUT_JSON = 'k6-output.json'
     K6_SUMMARY_LOG = 'k6-summary.log'
     S3_ARTIFACT_PREFIX = "${JOB_NAME.split('/').last()}-${BUILD_NUMBER}"
   }
 
-  parameters {
-    string(name: 'REPO', defaultValue: "https://github.com/rancher/dartboard.git", description: "The repository containing the k6 test scripts.")
-    string(name: 'BRANCH', defaultValue: "main", description: "The branch to check out from the repository.")
-    string(name: 'K6_TEST', defaultValue: "test.js", description: "The name of the k6 test script to run from the 'k6' directory.")
-    text(name: 'K6_ENV', defaultValue: "", description: "Environment variables for k6 tests, in KEY=VALUE format, one per line. You can set things like BASE_URL, PASSWORD, KUBECONFIG, and any K6_* or test-specific environment variables.")
-    string(name: 'S3_BUCKET_NAME', defaultValue: 'jenkins-bullseye-storage', description: 'S3 bucket name for artifact storage.')
-    string(name: 'S3_BUCKET_REGION', defaultValue: 'us-west-1', description: 'AWS region for the S3 bucket.')
-  }
+  // No parameters block here—JJB YAML defines them
 
   stages {
     stage('Checkout') {
@@ -57,7 +48,7 @@ pipeline {
                   set -o allexport && source "${env.K6_ENV_FILE}" && set +o allexport
 
                   echo "Running k6 test..."
-                  k6 run --out json=${env.K6_OUTPUT_JSON} ${env.K6_TESTS_DIR}/${params.K6_TEST} | tee ${env.K6_SUMMARY_LOG}
+                  k6 run ${params.K6_TEST_FILE} | tee ${env.K6_SUMMARY_LOG}
                 '''
             """
           }

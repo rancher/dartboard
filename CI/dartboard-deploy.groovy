@@ -20,7 +20,7 @@ pipeline {
   environment {
     // Define environment variables here.  These are available throughout the pipeline.
     imageName = 'dartboard'
-    qaseToken = credentials('QASE_AUTOMATION_TOKEN')
+    qaseToken = credentials('QASE_TESTOPS_API_TOKEN')
     qaseEnvFile = '.qase.env'
     harvesterKubeconfig = 'harvester.kubeconfig'
     templateDartFile = 'template-dart.yaml'
@@ -29,8 +29,6 @@ pipeline {
     DEFAULT_PROJECT_NAME = "${JOB_NAME.split('/').last()}-${BUILD_NUMBER}"
     accessDetailsLog = 'access-details.log'
     summaryHtmlFile = 'summary.html'
-    s3BucketName='jenkins-bullseye-storage'
-    s3BucketRegion='us-east-2'
   }
 
   // No parameters block here—JJB YAML defines them
@@ -52,10 +50,10 @@ pipeline {
       steps {
         script {
           def qase = 'REPORT_TO_QASE=' + params.REPORT_TO_QASE + '\n' +
-                      'QASE_PROJECT_ID=' + params.QASE_PROJECT_ID + '\n' +
-                      'QASE_TEST_RUN_ID=' + params.QASE_TEST_RUN_ID + '\n' +
-                      'QASE_TEST_RUN_NAME=' + params.QASE_TEST_CASE_ID + '\n' +
-                      'QASE_AUTOMATION_TOKEN=' + qaseToken + '\n' // Use credentials plugin
+                      'QASE_TESTOPS_PROJECT=' + params.QASE_TESTOPS_PROJECT + '\n' +
+                      'QASE_TESTOPS_RUN_ID=' + params.QASE_TESTOPS_RUN_ID + '\n' +
+                      'QASE_TEST_RUN_NAME=' + params.QASE_TEST_RUN_NAME + '\n' +
+                      'QASE_TESTOPS_API_TOKEN=' + qaseToken + '\n' // Use credentials plugin
           writeFile file: qaseEnvFile, text: qase
           sh """
           set -o allexport
@@ -110,10 +108,10 @@ pipeline {
         script {
           def sshScript = """
             echo "Writing SSH keys to container..."
-            echo "${env.SSH_PEM_KEY}" | base64 -d > /dartboard/${env.SSH_KEY_NAME}.pem
-            chmod 600 /dartboard/${env.SSH_KEY_NAME}.pem
-            echo "${env.SSH_PUB_KEY}" > /dartboard/${env.SSH_KEY_NAME}.pub
-            chmod 644 /dartboard/${env.SSH_KEY_NAME}.pub
+            echo "${params.SSH_PEM_KEY}" | base64 -d > /dartboard/${params.SSH_KEY_NAME}.pem
+            chmod 600 /dartboard/${params.SSH_KEY_NAME}.pem
+            echo "${params.SSH_PUB_KEY}" > /dartboard/${params.SSH_KEY_NAME}.pub
+            chmod 644 /dartboard/${params.SSH_KEY_NAME}.pub
             echo "VERIFICATION FOR PUB KEY:"
             cat /dartboard/${env.SSH_KEY_NAME}.pub
             pwd
@@ -298,8 +296,8 @@ EOF
                 -v "${pwd()}/${s3ArtifactsDir}:/artifacts" \\
                 -e AWS_ACCESS_KEY_ID \\
                 -e AWS_SECRET_ACCESS_KEY \\
-                -e AWS_S3_REGION="${env.s3BucketRegion}" \\
-                amazon/aws-cli s3 cp /artifacts "s3://${env.s3BucketName}/${env.DEFAULT_PROJECT_NAME}/" --recursive
+                -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
+                amazon/aws-cli s3 cp /artifacts "s3://${params.S3_BUCKET_NAME}/${env.DEFAULT_PROJECT_NAME}/" --recursive
             """, returnStatus: true
 
             // Clean up the temporary directory
