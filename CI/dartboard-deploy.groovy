@@ -71,9 +71,6 @@ pipeline {
         dir('dartboard') {
           script {
             property.useWithProperties(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
-              echo "OUTPUTTING FILE STRUCTURE FOR MANUAL VERIFICATION:"
-              sh "ls -al"
-              echo "OUTPUTTING ENV FOR MANUAL VERIFICATION:"
               echo "Storing env in file"
               sh "printenv | egrep '^(ARM_|CATTLE_|ADMIN|USER|DO|RANCHER_|AWS_|DEBUG|LOGLEVEL|DEFAULT_|OS_|DOCKER_|CLOUD_|KUBE|BUILD_NUMBER|AZURE|TEST_|QASE_|SLACK_|harvester|TF_).*=.+' | sort > ${env.envFile}"
               if (params.EXTRA_ENV_VARS) {
@@ -114,8 +111,6 @@ pipeline {
             chmod 644 /dartboard/${params.SSH_KEY_NAME}.pub
             echo "VERIFICATION FOR PUB KEY:"
             cat /dartboard/${env.SSH_KEY_NAME}.pub
-            pwd
-            ls -al
           """
           sh "docker exec --user root ${runningContainerName} sh -c '${sshScript}'"
         }
@@ -177,8 +172,6 @@ EOF
             sh """
               docker exec --user root --workdir /dartboard ${runningContainerName} sh -c '''
                   echo "Creating archives..."
-                  pwd
-                  ls -al
                   tofuMainDir=\$(yq ".tofu_main_directory" ${env.renderedDartFile})
                   tfstateDir="\${tofuMainDir}/terraform.tfstate.d/"
                   configDirPath=\$(find . -type d -name "*_config" | head -n 1)
