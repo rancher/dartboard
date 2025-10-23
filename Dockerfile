@@ -37,4 +37,4 @@ RUN apk update && \
 # switch back to the non-root user
 USER k6
 
-CMD [ "dartboard" ]
+ENTRYPOINT [ "dartboard" ]
