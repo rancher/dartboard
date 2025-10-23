@@ -109,8 +109,18 @@ pipeline {
             echo "Writing SSH keys to container..."
             echo "${env.finalSSHPemKey}" | base64 -d > /dartboard/${env.finalSSHKeyName}.pem
             chmod 600 /dartboard/${env.finalSSHKeyName}.pem
-            echo "${params.SSH_PUB_KEY}" > /dartboard/${env.finalSSHKeyName}.pub
+
+            # Generate public key if not provided, otherwise use the provided one
+            if [ -z "${params.SSH_PUB_KEY}" ]; then
+              echo "SSH_PUB_KEY not provided, generating from PEM key..."
+              # Assuming it's an SSH private key, use ssh-keygen
+              ssh-keygen -y -f /dartboard/${env.finalSSHKeyName}.pem > /dartboard/${env.finalSSHKeyName}.pub
+            else
+              echo "Using provided SSH_PUB_KEY..."
+              echo "${params.SSH_PUB_KEY}" > /dartboard/${env.finalSSHKeyName}.pub
+            fi
             chmod 644 /dartboard/${env.finalSSHKeyName}.pub
+
             echo "VERIFICATION FOR PUB KEY:"
             cat /dartboard/${env.finalSSHKeyName}.pub
           """
