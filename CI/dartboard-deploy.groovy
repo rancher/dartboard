@@ -57,10 +57,6 @@ pipeline {
       }
     }
 
-    // TODO: Set up a QASE client to utilize these for logging test run results + artifacts
-    // - https://pkg.go.dev/go.k6.io/k6/errext/exitcodes - 99 = threshold failed
-    // exit code 0 = success
-    // any other code = Error
     stage('Create QASE Environment Variables') {
       steps {
         script {
