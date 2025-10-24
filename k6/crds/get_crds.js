@@ -16,6 +16,8 @@ const password = __ENV.PASSWORD
 export const epDataRecv = new Trend('endpoint_data_recv');
 export const headerDataRecv = new Trend('header_data_recv');
 
+export const handleSummary = k6Util.customHandleSummary;
+
 // Option setting
 export const options = {
   setupTimeout: '8h',

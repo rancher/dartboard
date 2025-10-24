@@ -5,6 +5,7 @@ import { Gauge } from 'k6/metrics';
 import * as projectUtil from "../projects/project_utils.js";
 import { getCookies, login } from "../rancher/rancher_utils.js";
 import { getPrincipalIds, getCurrentUserPrincipalId, getClusterIds } from "../rancher/rancher_users_utils.js"
+import { customHandleSummary } from './k6_utils.js';
 
 // Parameters
 const projectCount = Number(__ENV.PROJECT_COUNT)
@@ -15,6 +16,8 @@ const customRoleTemplateBindingsPerProject = 5
 const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
+
+export const handleSummary = customHandleSummary;
 
 // Option setting
 export const options = {

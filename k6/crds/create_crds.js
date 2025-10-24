@@ -19,6 +19,8 @@ export const epDataRecv = new Trend('endpoint_data_recv');
 export const headerDataRecv = new Trend('header_data_recv');
 export const timePolled = new Trend('time_polled', true);
 
+export const handleSummary = k6Util.customHandleSummary;
+
 export const options = {
   scenarios: {
     create: {

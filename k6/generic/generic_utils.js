@@ -1,8 +1,7 @@
 import {check, sleep} from 'k6';
 import http from 'k6/http';
 
-// Create Config Maps
-// Required params: baseurl, coookies, data, cluster, namespace, iter
+// Required params: baseurl, cookies, data, clusterId, namespace, iter
 export function createConfigMaps(baseUrl, cookies, data, clusterId, namespace, iter) {
     const name = `test-config-map-${iter}`
 
@@ -30,9 +29,7 @@ export function createConfigMaps(baseUrl, cookies, data, clusterId, namespace, i
     })
 }
 
-
-// Create Secrets
-// Required params: baseurl, coookies, data, cluster, namespace, iter
+// Required params: baseurl, cookies, data, clusterId, namespace, iter
 export function createSecrets(baseUrl, cookies, data, clusterId, namespace, iter)  {
     const name = `test-secrets-${iter}`
 
@@ -62,8 +59,7 @@ export function createSecrets(baseUrl, cookies, data, clusterId, namespace, iter
 }
 
 
-// Create Deployments 
-// Required params: baseurl, coookies, cluster, namespace, iter
+// Required params: baseurl, cookies, clusterId, namespace, iter
 export function createDeployments(baseUrl, cookies, clusterId, namespace, iter) {
     const name = `test-deployment-${iter}`
 
@@ -119,4 +115,25 @@ export function createDeployments(baseUrl, cookies, clusterId, namespace, iter) 
         '/v1/apps.deployments returns status 201': (r) => r.status === 201,
     })
 
+}
+
+
+String.prototype.toPascalCase = function toPascalCase(useSpaces = false) {
+  return this
+    .match(/[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+/g)
+    ?.map(x => x.charAt(0).toUpperCase() + x.slice(1).toLowerCase())
+    .join(useSpaces ? ' ' : '') || '';
+}
+
+export function getPathBasename(filePath) {
+  // Find the last occurrence of a path separator (either / or \)
+  const lastSlashIndex = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+
+  // If no slash is found, the entire string is the basename
+  if (lastSlashIndex === -1) {
+    return filePath;
+  }
+
+  // Extract the substring after the last slash
+  return filePath.substring(lastSlashIndex + 1);
 }

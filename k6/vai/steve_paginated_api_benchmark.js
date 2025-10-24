@@ -1,5 +1,6 @@
 import { check, fail } from 'k6';
 import http from 'k6/http';
+import { customHandleSummary } from '../generic/k6_utils.js';
 
 // Parameters
 const vus = __ENV.VUS || 1
@@ -13,6 +14,8 @@ const resource = __ENV.RESOURCE || "management.cattle.io.setting"
 const paginationStyle = __ENV.PAGINATION_STYLE || "k8s"
 const pageSize = __ENV.PAGE_SIZE || 100
 const urlSuffix = __ENV.URL_SUFFIX || ""
+
+export const handleSummary = customHandleSummary;
 
 // Option setting
 export const options = {

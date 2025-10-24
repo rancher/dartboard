@@ -1,5 +1,6 @@
 import { check, fail, sleep } from 'k6';
 import http from 'k6/http';
+import { customHandleSummary } from '../generic/k6_utils.js';
 
 // Parameters
 const vus = __ENV.VUS || 1
@@ -16,6 +17,8 @@ const pageSize = parseInt(__ENV.PAGE_SIZE || 100)
 const firstPageOnly = __ENV.FIRST_PAGE_ONLY === "true"
 const urlSuffix = __ENV.URL_SUFFIX || ""
 const pauseSeconds = parseFloat(__ENV.PAUSE_SECONDS || 0.0)
+
+export const handleSummary = customHandleSummary;
 
 // Option setting
 export const options = {

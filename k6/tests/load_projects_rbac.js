@@ -35,6 +35,8 @@ const expectedNamespacesPerVU = expectedProjectsPerVU * namespacesPerProject
 let createdProjectIds = []
 let createdNamespaceIds = []
 
+export const handleSummary = k6Util.customHandleSummary;
+
 export const options = {
   scenarios: {
     load: {
@@ -132,7 +134,7 @@ export const options = {
 function cleanup(adminCookies, namePrefix) {
   let deleteAllFailed = false
 
-  // Can't delete rolebindings here because this function is used in setup() and 
+  // Can't delete rolebindings here because this function is used in setup() and
   // we have no way to track which bindings were created in previous test runs at this point
   // console.log(`Cleaning up created users and bindings`)
   // let delRes = bindingUtil.deleteClusterRoleTemplateBinding(baseUrl, data.userCookies, data.userCRTBId)

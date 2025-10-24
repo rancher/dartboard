@@ -1,5 +1,6 @@
 import { check, fail } from 'k6';
 import http from 'k6/http';
+import { customHandleSummary } from '../generic/k6_utils.js';
 
 // Continuously prints count of a resource on the console
 
@@ -14,6 +15,8 @@ const cluster = __ENV.CLUSTER || "local"
 const resource = __ENV.RESOURCE || "pods"
 const rate =  __ENV.RATE || 2
 const duration = '2h'
+
+export const handleSummary = customHandleSummary;
 
 // Option setting
 export const options = {
