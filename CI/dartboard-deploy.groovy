@@ -36,19 +36,23 @@ pipeline {
   // No parameters block here—JJB YAML defines them
 
   stages {
-    stage('Checkout') {
+    stage('Initialize & Checkout') {
       steps {
         script {
-          // Initialize variables with fallback logic in a script block
-          finalSSHKeyName = params.SSH_KEY_NAME ? params.SSH_KEY_NAME : credentials('AWS_SSH_PEM_KEY_NAME').tokenize('.')[0]
-          finalSSHPemKey = params.SSH_PEM_KEY ? params.SSH_PEM_KEY : credentials('AWS_SSH_PEM_KEY')
-        }
-      }
-    }
-    stage('Checkout Code') {
-      steps {
-        script {
-          scmWorkspace = project.checkout(repository: params.REPO, branch: params.BRANCH, target: 'dartboard')
+          // Use useWithCredentials to securely handle the PEM key
+          property.useWithCredentials(['AWS_SSH_PEM_KEY_NAME', 'AWS_SSH_PEM_KEY']) {
+            // Initialize variables with fallback logic
+            finalSSHPemKey = params.SSH_PEM_KEY ? params.SSH_PEM_KEY : env.AWS_SSH_PEM_KEY
+            // Determine the final key name. The key content will be handled by withCredentials.
+            // The most robust way to resolve a credential to a string is to echo it in a shell step.
+            def sshKeyNameFromCreds = env.AWS_SSH_PEM_KEY_NAME.trim().split('\\.')[0]
+            finalSSHKeyName = params.SSH_KEY_NAME ? params.SSH_KEY_NAME : sshKeyNameFromCreds
+            sh """
+            echo '---- SSH KEY NAME ---'
+            echo ${finalSSHKeyName}
+            """
+            scmWorkspace = project.checkout(repository: params.REPO, branch: params.BRANCH, target: 'dartboard')
+          }
         }
       }
     }
@@ -116,18 +120,18 @@ pipeline {
         script {
           def sshScript = """
             echo "Writing SSH keys to container..."
-            echo "${finalSSHPemKey}" | base64 -d > /dartboard/${finalSSHKeyName}.pem
+            # The PEM key is passed via standard input to avoid issues with special characters
+            echo "\${1}" | base64 -d > /dartboard/${finalSSHKeyName}.pem
             chmod 600 /dartboard/${finalSSHKeyName}.pem
 
-            echo "Generating PUB key from PEM key..."
-            # Assuming it's an SSH private key, use ssh-keygen
+            echo "Generating public key from PEM key..."
             ssh-keygen -y -f /dartboard/${finalSSHKeyName}.pem > /dartboard/${finalSSHKeyName}.pub
             chmod 644 /dartboard/${finalSSHKeyName}.pub
 
             echo "VERIFICATION FOR PUB KEY:"
             cat /dartboard/${finalSSHKeyName}.pub
           """
-          sh "docker exec --user root ${runningContainerName} sh -c '${sshScript}'"
+          sh "docker exec --user root ${runningContainerName} sh -c '${sshScript}' -- '${finalSSHPemKey}'"
         }
       }
     }
@@ -229,7 +233,6 @@ EOF
         }
       }
     }
-
   }
 
   post {
