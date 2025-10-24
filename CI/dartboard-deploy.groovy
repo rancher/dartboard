@@ -43,8 +43,6 @@ pipeline {
           property.useWithCredentials(['AWS_SSH_PEM_KEY_NAME', 'AWS_SSH_PEM_KEY']) {
             // Initialize variables with fallback logic
             finalSSHPemKey = params.SSH_PEM_KEY ? params.SSH_PEM_KEY : env.AWS_SSH_PEM_KEY
-            // Determine the final key name. The key content will be handled by withCredentials.
-            // The most robust way to resolve a credential to a string is to echo it in a shell step.
             def sshKeyNameFromCreds = env.AWS_SSH_PEM_KEY_NAME.trim().split('\\.')[0]
             finalSSHKeyName = params.SSH_KEY_NAME ? params.SSH_KEY_NAME : sshKeyNameFromCreds
             sh """
@@ -64,7 +62,7 @@ pipeline {
                       'QASE_TESTOPS_PROJECT=' + params.QASE_TESTOPS_PROJECT + '\n' +
                       'QASE_TESTOPS_RUN_ID=' + params.QASE_TESTOPS_RUN_ID + '\n' +
                       'QASE_TEST_RUN_NAME=' + params.QASE_TEST_RUN_NAME + '\n' +
-                      'QASE_TESTOPS_API_TOKEN=' + qaseToken + '\n' // Use credentials plugin
+                      'QASE_TESTOPS_API_TOKEN=' + qaseToken + '\n'
           writeFile file: qaseEnvFile, text: qase
           sh """
           set -o allexport
