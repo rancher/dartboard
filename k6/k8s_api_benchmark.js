@@ -1,4 +1,5 @@
 import * as k8s from './k8s.js'
+import { customHandleSummary } from './generic/k6_utils.js';
 
 // Parameters
 const vus = __ENV.VUS || 1
@@ -8,6 +9,8 @@ const limit = __ENV.LIMIT || 5000
 const namespace = __ENV.NAMESPACE || "scalability-test"
 const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
 const baseUrl = __ENV.BASE_URL
+
+export const handleSummary = customHandleSummary;
 
 // Option setting
 export const options = {

@@ -1,6 +1,7 @@
 import { check, fail } from 'k6';
 import http from 'k6/http';
 import { Gauge } from 'k6/metrics';
+import { customHandleSummary } from '../generic/k6_utils.js';
 
 // Parameters
 const vus = __ENV.VUS
@@ -9,6 +10,8 @@ const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
 const cluster = __ENV.CLUSTER
+
+export const handleSummary = customHandleSummary;
 
 // Option setting
 export const options = {

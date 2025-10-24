@@ -1,7 +1,8 @@
 import { sleep } from 'k6';
 import encoding from 'k6/encoding';
 import exec from 'k6/execution';
-import * as k8s from './k8s.js'
+import * as k8s from './k8s.js';
+import { customHandleSummary } from './k6_utils.js';
 
 // Parameters
 const namespace = "scalability-test-temp"
@@ -14,6 +15,8 @@ const rate =  (__ENV.RATE || 1) / 2
 // Option setting
 const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
 const baseUrl = __ENV.BASE_URL
+
+export const handleSummary = customHandleSummary;
 
 export const options = {
     insecureSkipTLSVerify: true,

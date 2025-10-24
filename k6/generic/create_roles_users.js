@@ -3,6 +3,7 @@ import exec from 'k6/execution';
 import http from 'k6/http';
 import {Gauge} from 'k6/metrics';
 import {retryOnConflict} from "../rancher/rancher_utils.js";
+import { customHandleSummary } from './k6_utils.js';
 
 // Parameters
 const roleCount = Number(__ENV.ROLE_COUNT)
@@ -15,6 +16,8 @@ const bindingsPerUser = 5
 const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
+
+export const handleSummary = customHandleSummary;
 
 // Option setting
 export const options = {

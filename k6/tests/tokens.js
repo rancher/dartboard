@@ -3,7 +3,7 @@ import exec from 'k6/execution';
 import http from 'k6/http';
 import { getCookies, login, generateAuthorizationHeader, addMinutes } from "../rancher/rancher_utils.js";
 import { getPrincipalIds, getCurrentUserId, getClusterIds, getCurrentUserPrincipal, createUser } from "../rancher/rancher_users_utils.js"
-
+import { customHandleSummary } from '../generic/k6_utils.js';
 
 // Parameters
 const tokenCount = Number(__ENV.TOKEN_COUNT)
@@ -15,6 +15,8 @@ const perVuIterations = __ENV.PER_VU_ITERATIONS
 const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
+
+export const handleSummary = customHandleSummary;
 
 // Option setting
 export const options = {

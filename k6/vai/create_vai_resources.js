@@ -4,7 +4,7 @@ import { createConfigMaps, createSecrets, createDeployments } from '../generic/g
 import { login, getCookies } from '../rancher/rancher_utils.js';
 import {fail} from 'k6';
 import * as k8s from '../generic/k8s.js'
-
+import { customHandleSummary } from '../generic/k6_utils.js';
 
 // Parameters
 const namespace = "scalability-test"
@@ -21,6 +21,8 @@ const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
 const baseUrl = kubeconfig["url"].replace(":6443", "")
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
+
+export const handleSummary = customHandleSummary;
 
 export const options = {
     insecureSkipTLSVerify: true,
@@ -64,7 +66,7 @@ export const options = {
 };
 
 export function setup() {
-    
+
     // log in
     if (!login(baseUrl, {}, username, password)) {
         fail(`could not login into cluster`)
@@ -82,7 +84,7 @@ export function setup() {
     const body = {
         "metadata": {
             "name": namespace,
-            
+
         },
     }
 

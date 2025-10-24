@@ -1,7 +1,8 @@
 import encoding from 'k6/encoding';
 import exec from 'k6/execution';
 import { Gauge } from 'k6/metrics';
-import * as k8s from './k8s.js'
+import * as k8s from './k8s.js';
+import { customHandleSummary } from './k6_utils.js';
 
 // Parameters
 const namespace = __ENV.NAMESPACE || "scalability-test"
@@ -14,6 +15,8 @@ const vus = Number(__ENV.VUS || 11)
 // Option setting
 const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
 const baseUrl = __ENV.BASE_URL
+
+export const handleSummary = customHandleSummary;
 
 export const options = {
     insecureSkipTLSVerify: true,
