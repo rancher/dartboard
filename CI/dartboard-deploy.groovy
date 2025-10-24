@@ -343,14 +343,10 @@ EOF
           }
         } catch (e) {
           echo "Could not stop docker container ${runningContainerName}. It may have already been stopped. ${e.message}"
-          try {
-            if (runningContainerName) {
-              sh "docker rm ${runningContainerName} || true"
-            }
-          } catch (e2) {
-            echo "Could not remove docker container ${runningContainerName}. It may have already been removed. ${e.message}"
-          }
         }
+
+        // Ensure the container is removed, if it doesn't exist we avoid an error
+        sh "docker rm ${runningContainerName} || true"
 
         try {
           sh "docker rmi -f ${env.imageName}:latest"
