@@ -230,15 +230,15 @@ func Apply(kubePath, filePath string) error {
 }
 
 func WaitRancher(kubePath string) error {
-	err := WaitForReadyCondition(kubePath, "deployment", "rancher", "cattle-system", "available", 60)
+	err := WaitForReadyCondition(kubePath, "deployment", "rancher", "cattle-system", "available", 20)
 	if err != nil {
 		return err
 	}
-	err = WaitForReadyCondition(kubePath, "deployment", "rancher-webhook", "cattle-system", "available", 60)
+	err = WaitForReadyCondition(kubePath, "deployment", "rancher-webhook", "cattle-system", "available", 3)
 	if err != nil {
 		return err
 	}
-	err = WaitForReadyCondition(kubePath, "deployment", "fleet-controller", "cattle-fleet-system", "available", 60)
+	err = WaitForReadyCondition(kubePath, "deployment", "fleet-controller", "cattle-fleet-system", "available", 5)
 	return err
 }
 
