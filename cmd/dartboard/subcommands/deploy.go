@@ -566,7 +566,7 @@ func importDownstreamClusterDo(r *dart.Dart, rancherImageTag string, tf *tofu.To
 		return
 	}
 
-	err = kubectl.WaitForReadyCondition(downstream.Kubeconfig, "deployment", "rancher-webhook", "cattle-system", "available", 60)
+	err = kubectl.WaitForReadyCondition(downstream.Kubeconfig, "deployment", "rancher-webhook", "cattle-system", "available", 15)
 	if err != nil {
 		errCh <- fmt.Errorf("%s waiting for rancher-webhook failed: %w", clusterName, err)
 		return

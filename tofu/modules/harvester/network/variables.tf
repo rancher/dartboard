@@ -42,7 +42,6 @@ variable "network_details" {
 variable "ssh_public_key_path" {
   description = "Path of public ssh key for hosts created by this module"
   type        = string
-  default     = ""
 }
 
 variable "vlan_uplink" {
