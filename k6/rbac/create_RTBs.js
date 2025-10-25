@@ -167,25 +167,18 @@ function getClusterIds(cookies) {
 function updateRBACNumbers(cookies) {
   let numRoles = Number(JSON.parse(listRoles(baseUrl, cookies).body).count)
   numRolesTrend.add(numRoles)
-  sleep(2)
   let numRoleTemplates = Number(JSON.parse(listRoleTemplates(baseUrl, cookies).body).count)
   numRoleTemplatesTrend.add(numRoleTemplates)
-  sleep(2)
   let numRoleBindings = Number(JSON.parse(listRoleBindings(baseUrl, cookies).body).count)
   numRoleBindingsTrend.add(numRoleBindings)
-  sleep(2)
   let numClusterRoles = Number(JSON.parse(listClusterRoles(baseUrl, cookies).body).count)
   numClusterRolesTrend.add(numClusterRoles)
-  sleep(2)
   let numClusterRoleBindings = Number(JSON.parse(listClusterRoleBindings(baseUrl, cookies).body).count)
   numClusterRoleBindingsTrend.add(numClusterRoleBindings)
-  sleep(2)
   let numCRTBs = Number(JSON.parse(listCRTBs(baseUrl, cookies).body).count)
   numCRTBsTrend.add(numCRTBs)
-  sleep(2)
   let numPRTBs = Number(JSON.parse(listPRTBs(baseUrl, cookies).body).count)
   numPRTBsTrend.add(numPRTBs)
-  sleep(2)
 
   return {
     numRoles: numRoles,
