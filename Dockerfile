@@ -20,6 +20,19 @@ RUN cd $WORKSPACE && \
     mv ./dartboard /usr/local/bin/dartboard && \
     mv ./qasereporter-k6/qasereporter-k6 /usr/local/bin/qasereporter-k6
 
+# Clean up unnecessary files to reduce image size
+RUN rm -rf \
+    /dartboard/docs \
+    /dartboard/k6 \
+    /dartboard/tofu \
+    /dartboard/charts \
+    /dartboard/scripts \
+    /dartboard/darts \
+    /dartboard/*.md
+
+# Clean up all "hidden" files
+RUN find . -maxdepth 1 -type f -name ".*" -delete
+
 FROM grafana/k6:${K6_VERSION}
 COPY --from=builder /usr/local/bin/dartboard /bin/dartboard
 COPY --from=builder /usr/local/bin/qasereporter-k6 /bin/qasereporter-k6
