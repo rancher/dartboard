@@ -316,8 +316,6 @@ EOF
             dartboard/*.json,
             dartboard/**/rendered-dart.yaml,
             dartboard/*.log,
-            dartboard/*.pem,
-            dartboard/*.pub,
             dartboard/*.zip
         """.trim(), fingerprint: true
 
@@ -347,6 +345,25 @@ EOF
         } catch (e) {
           echo "Could not remove docker image ${env.imageName}:latest. It may have already been removed. ${e.message}"
         }
+      }
+    }
+    cleanup {
+      // Clean up large files from the workspace to save disk space on the agent.
+      // These are not part of the archived artifacts but remain in the workspace.
+      echo "Cleaning up workspace..."
+      dir('dartboard') {
+        // Use find and xargs for more robust and efficient cleanup of non-artifact files and directories.
+        sh """
+          set +x
+          echo "Removing large source and cache directories..."
+          rm -rf charts/ docs/ internal/ k6/ tofu/ cmd/ scripts/ darts/
+
+          echo "Removing other non-artifact files..."
+          find . -maxdepth 1 -type f \\
+            -not -name '*.html' -not -name '*.json' -not -name '*.log' -not -name '*.zip' \\
+            -not -name 'rendered-dart.yaml' -not -name 'Jenkinsfile' -delete
+          set -x
+        """
       }
     }
   }
