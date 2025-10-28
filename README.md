@@ -88,6 +88,18 @@ docker run --rm -it \
 *   `-v "$(pwd)/k6:/home/k6"`: Mounts the current directory (in this case, local `k6` scripts directory)  into the container.
 *   `-e ...`: Passes environment variables required by your k6 script, such as the target URL and authentication tokens.
 
+## Jenkins Jobs
+
+*   `dartboard-deploy`: This is the main job for deploying a full test environment.
+*   `dartboard-k6-runner`: This job is used to execute a k6 performance test script against an existing environment using the `dartboard` container.
+
+### Build Summary
+
+After a `dartboard-deploy` job completes, it archives a `summary.html` file. This summary is the best place to find information about the
+deployed environment and useful artifacts for managing and using the environment.
+
+You can find this summary in the form of a `.html` file on the build's page in Jenkins.
+
 ## Test history
 
 See the [docs](docs) directory for a list of tests that were run with previous versions of this code and their results.

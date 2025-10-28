@@ -319,15 +319,6 @@ EOF
             dartboard/*.zip
         """.trim(), fingerprint: true
 
-        publishHTML(target: [
-          allowMissing: false,
-          alwaysLinkToLastBuild: true,
-          keepAll: true,
-          reportDir: 'dartboard',
-          reportFiles: env.summaryHtmlFile,
-          reportName: "Build Summary"
-        ])
-
         // Cleanup Docker container and image
         try {
           if (runningContainerName) {
@@ -354,7 +345,7 @@ EOF
       dir('dartboard') {
         // Use find and xargs for more robust and efficient cleanup of non-artifact files and directories.
         sh """
-          set +x
+          set -x
           echo "Removing large source and cache directories..."
           rm -rf charts/ docs/ internal/ k6/ tofu/ cmd/ scripts/ darts/
 
@@ -362,7 +353,6 @@ EOF
           find . -maxdepth 1 -type f \\
             -not -name '*.html' -not -name '*.json' -not -name '*.log' -not -name '*.zip' \\
             -not -name 'rendered-dart.yaml' -not -name 'Jenkinsfile' -delete
-          set -x
         """
       }
     }

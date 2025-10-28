@@ -19,19 +19,6 @@ RUN cd $WORKSPACE && \
     make && \
     mv ./dartboard /usr/local/bin/dartboard
 
-# Clean up unnecessary files to reduce image size
-RUN rm -rf \
-    /dartboard/docs \
-    /dartboard/k6 \
-    /dartboard/tofu \
-    /dartboard/charts \
-    /dartboard/scripts \
-    /dartboard/darts \
-    /dartboard/*.md
-
-# Clean up all "hidden" files
-RUN find . -maxdepth 1 -type f -name ".*" -delete
-
 FROM grafana/k6:${K6_VERSION}
 COPY --from=builder /usr/local/bin/dartboard /bin/dartboard
 
