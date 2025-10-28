@@ -38,6 +38,70 @@ Once these resources are manually setup, you can set the `existing_vpc_name` tof
 
 Download and unpack a [release](https://github.com/rancher/dartboard/releases/), it's a self-contained binary.
 
+### Usage with Docker
+
+Alternatively, you can use the provided `Dockerfile` to build a container image that includes `dartboard`, `k6`, and all necessary dependencies. This is a great way to ensure a consistent environment while testing changes.
+
+#### 1. Build the Docker Image
+
+From the root of the repository, run:
+
+```bash
+docker build -t dartboard:latest .
+```
+
+#### 2. Running `dartboard` Commands
+
+The container's entrypoint is set to `dartboard`, so you can run subcommands directly. You'll need to mount your project directory and pass any necessary credentials as environment variables.
+
+**Example: Deploy an environment**
+```bash
+docker run --rm -it \
+  -v "$(pwd):/dartboard" \
+  --workdir /dartboard \
+  -e AWS_ACCESS_KEY_ID \
+  -e AWS_SECRET_ACCESS_KEY \
+  dartboard:latest --dart ./darts/aws.yaml deploy
+```
+
+*   `--rm`: Removes the container after it exits.
+*   `-v "$(pwd):/dartboard"`: Mounts the current directory (in this case, the project root) into `/dartboard` inside the container, making your DART files and configurations accessible.
+*   `--workdir /dartboard`: Sets the working directory inside the container.
+*   `-e AWS_*`: Passes your local AWS credentials into the container.
+*   `--dart ./darts/aws.yaml`: Must go before the subcommand being used, and defines the DART file to be used when running the subcommand.
+*   NOTE: You may need to mount additional files/directories depending on the module in use and which DART file options are being used.
+
+#### 3. Running `k6` Tests
+
+Since the image is based on `grafana/k6`, you can also use it to run `k6` tests by overriding the entrypoint. This is useful for running performance tests against your deployed infrastructure.
+
+**Example: Run a k6 test script**
+```bash
+cd k6
+docker run --rm -it \
+  --entrypoint k6 \
+  -v "$(pwd)/k6:/home/k6" \
+  -e BASE_URL="https://your-rancher-url" \
+  -e TOKEN="your-api-token" \
+  dartboard:latest run /home/k6/tests/api_benchmark.js
+```
+
+*   `--entrypoint k6`: Overrides the default `dartboard` entrypoint to run the `k6` binary instead.
+*   `-v "$(pwd)/k6:/home/k6"`: Mounts the current directory (in this case, local `k6` scripts directory)  into the container.
+*   `-e ...`: Passes environment variables required by your k6 script, such as the target URL and authentication tokens.
+
+## Jenkins Jobs
+
+*   `dartboard-deploy`: This is the main job for deploying a full test environment.
+*   `dartboard-k6-runner`: This job is used to execute a k6 performance test script against an existing environment using the `dartboard` container.
+
+### Build Summary
+
+After a `dartboard-deploy` job completes, it archives a `summary.html` file. This summary is the best place to find information about the
+deployed environment and useful artifacts for managing and using the environment.
+
+You can find this summary in the form of a `.html` file on the build's page in Jenkins.
+
 ## Test history
 
 See the [docs](docs) directory for a list of tests that were run with previous versions of this code and their results.

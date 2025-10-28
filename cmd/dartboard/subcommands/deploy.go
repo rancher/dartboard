@@ -124,6 +124,8 @@ func chartInstall(kubeConf string, chart chart, vals map[string]any, extraArgs .
 	name := chart.name
 	namespace := chart.namespace
 	path := chart.path
+
+	// Pull from local `charts/` dir if not using remote chart
 	if !strings.HasPrefix(path, "http") {
 		path = filepath.Join("charts", path)
 	}

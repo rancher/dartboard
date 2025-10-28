@@ -1,0 +1,28 @@
+# Ignore Git history and configuration
+.git
+.gitignore
+.golangci.yml
+.goreleaser.yaml
+.pre-commit-config.yaml
+
+# Ignore the .dockerignore file itself
+.dockerignore
+
+# Ignore CI/CD and Jenkins-specific files
+CI/
+
+# Ignore documentation and non-code markdown files
+docs/
+*.md
+
+# Ignore large directories that are not needed in the final image
+tofu/
+charts/
+darts/
+k6/
+scripts/
+
+# Ignore local build artifacts and temporary files
+bin/
+*.zip
+*.log
