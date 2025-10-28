@@ -61,13 +61,15 @@ docker run --rm -it \
   --workdir /dartboard \
   -e AWS_ACCESS_KEY_ID \
   -e AWS_SECRET_ACCESS_KEY \
-  dartboard:latest deploy --dart ./darts/aws.yaml
+  dartboard:latest --dart ./darts/aws.yaml deploy
 ```
 
 *   `--rm`: Removes the container after it exits.
 *   `-v "$(pwd):/dartboard"`: Mounts the current directory (in this case, the project root) into `/dartboard` inside the container, making your DART files and configurations accessible.
 *   `--workdir /dartboard`: Sets the working directory inside the container.
 *   `-e AWS_*`: Passes your local AWS credentials into the container.
+*   `--dart ./darts/aws.yaml`: Must go before the subcommand being used, and defines the DART file to be used when running the subcommand.
+*   NOTE: You may need to mount additional files/directories depending on the module in use and which DART file options are being used.
 
 #### 3. Running `k6` Tests
 
