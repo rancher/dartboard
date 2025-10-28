@@ -1,65 +1,74 @@
+version: "2"
 linters:
-  # Disable all linters.
-  # Default: false
-  # disable-all: true
-  # Enable specific linter
-  # https://golangci-lint.run/usage/linters/#enabled-by-default
+  # https://golangci-lint.run/docs/configuration/file/#linters-configuration
+  # Default set of linters.
+  # The value can be:
+  # - `standard`: https://golangci-lint.run/docs/linters/#enabled-by-default
+  # - `all`: enables all linters by default.
+  # - `none`: disables all linters by default.
+  # - `fast`: enables only linters considered as "fast" (`golangci-lint help linters --json | jq '[ .[] | select(.fast==true) ] | map(.name)'`).
+  # Default: standard
+  default: none
   enable:
     - govet
     - revive
-    - goimports
     - misspell
     - ineffassign
-    - gofmt
     - bodyclose
-  # Enable all available linters.
-  # Default: false
-  # enable-all: true
-  # Disable specific linter
-  # https://golangci-lint.run/usage/linters/#disabled-by-default
-  # disable:
-  #   - unused
-  #   - funlen
-  # Enable presets.
-  # https://golangci-lint.run/usage/linters
-  # presets:
-  #   - bugs
-  #   - comment
-  #   - complexity
-  #   - error
-  #   - format
-  #   - import
-  #   - metalinter
-  #   - module
-  #   - performance
-  #   - sql
-  #   - style
-  #   - test
-  #   - unused
-  # Run only fast linters from enabled linters set (first run won't be fast)
-  # Default: false
-  fast: true
-
-linters-settings:
-  govet:
-    check-shadowing: false
-  gofmt:
-    simplify: false
+    - wsl_v5
+    - funlen
+    - depguard
+  disable:
+    - wsl
+    - cyclop
+    - mnd
+  # https://golangci-lint.run/docs/linters/configuration/
+  settings:
+    govet:
+      enable-all: true
+      disable:
+        - shadow
+      # settings:
+      #   shadow:
+      #     strict: true
+    # https://golangci-lint.run/docs/linters/configuration/#depguard
+    funlen:
+      lines: 120
+      statements: 60
+      ignore-comments: true
+    depguard:
+      rules:
+        main:
+          list-mode: lax
+          files:
+            - "!**/*_a _file.go"
+          allow:
+            - $gostd
+            - github.com/rancher
+            - github.com/rancherlabs
+    revive:
+      severity: warning
+      rules:
+        - name: exported
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments:
+            - "check-private-receivers"
+            - "disable-stuttering-check"
+            - "say-repetitive-instead-of-stutters"
+            - "check-public-interface"
+            - "disable-checks-on-constants"
+            - "disable-checks-on-functions"
+            - "disable-checks-on-methods"
+            - "disable-checks-on-types"
+            - "disable-checks-on-variables"
+formatters:
+  enable:
+    - goimports
+    - gofumpt
+#   settings:
+#     gofmt:
+#       simplify: false
 issues:
-  exclude-rules:
-    #     # - linters: [govet]
-    #     #   text: "^(nilness|structtag)"
-    #     - linters: [revive]
-    #       text: "should have comment"
-    #     - linters: [revive]
-    #       text: "should be of the form"
-    - linters: [revive]
-      text: "unused-parameter"
-    #     - linters: [revive]
-    #       text: "redefines-builtin-id"
-    # - linters: [revive]
-    #   text: "superfluous-else"
-#     - linters: [revive]
-#       text: "empty-block"
-#     - linters: [revive]
-#       text: "if-return: redundant if"
+  fix: true

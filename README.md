@@ -42,6 +42,12 @@ Download and unpack a [release](https://github.com/rancher/dartboard/releases/),
 
 See the [docs](docs) directory for a list of tests that were run with previous versions of this code and their results.
 
+## Qase k6 Reporter
+
+The `qasereporter-k6` utility is a command-line tool included as a separate golang module that parses the output of a k6 test run and reports the results to a test case wtihin a Qase test run. It can be used in CI/CD pipelines to automatically update test cases in Qase with the results from k6 performance tests.
+
+For detailed usage instructions, including environment variables and command-line flags, please see the [qasereporter-k6 README](qasereporter-k6/README.md).
+
 ## Common Troubleshooting
 
 ### k3d: cluster not created
