@@ -181,17 +181,23 @@ export function getRandomElements(arr, count) {
 
 
 
-export function createStorageClasses(baseUrl, cookies, namespace, iter){
+export function createStorageClasses(baseUrl, cookies, clusterId, iter){
 
     const name = `test-storage-class-${iter}`
 
-    const create = http.post(`${baseUrl}/v1/storage.k8s.io.storageclasses`, JSON.stringify({
+    const url = clusterId === "local"?
+      `${baseUrl}/v1/storage.k8s.io.storageclasses` :
+      `${baseUrl}/k8s/clusters/${clusterId}/v1/storage.k8s.io.storageclasses`
+
+
+    const res = http.post( `${url}`, JSON.stringify({
         "type": "storage.k8s.io.storageclass",
-        "metadata": {
-            "name": name,
-            "namespace": namespace
-        },
+        "metadata": {"name": name},
+        "parameters": { "numberOfReplicas": "3", "staleReplicaTimeout": "2880" },
         "provisioner": "driver.longhorn.io",
+        "allowVolumeExpansion": true,
+        "reclaimPolicy": "Delete",
+        "volumeBindingMode": "Immediate"
         }),
         {cookies: cookies}
     )
@@ -200,8 +206,7 @@ export function createStorageClasses(baseUrl, cookies, namespace, iter){
     if (res.status != 201) {
         console.log(res)
     }
-    check(create, {
+    check(res, {
         '/v1/storage.k8s.io.storageclasses returns status 201': (r) => r.status === 201,
     })
-
- }
+}
