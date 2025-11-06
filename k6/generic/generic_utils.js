@@ -60,10 +60,10 @@ export function createSecrets(baseUrl, cookies, data, clusterId, namespace, iter
 
 // Create Secrets with Labels
 // Required params: baseurl, coookies, data, cluster, namespace, iter
-export function createSecretsWithLabels(baseUrl, cookies, data, clusterId, namespace, iter)  {
+export function createSecretsWithLabels(baseUrl, cookies, data, clusterId, namespace, iter, key, value)  {
     const name = `test-secret-${iter}`
-    const key_1 = "cow"
-    const value = "geeko"
+    const key_1 = key
+    const value_1 = value
 
     const url = clusterId === "local"?
       `${baseUrl}/v1/secrets` :
@@ -74,7 +74,7 @@ export function createSecretsWithLabels(baseUrl, cookies, data, clusterId, names
             "metadata": {
                 "name": name,
                 "namespace": namespace,
-                "labels": {[key_1]:value}
+                "labels": {[key_1]:value_1}
             },
             "data": {"data": data},
             "type": "opaque"
