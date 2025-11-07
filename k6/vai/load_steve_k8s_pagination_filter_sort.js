@@ -72,14 +72,14 @@ export function listFilterSort(cookies) {
     let revision = null
     let continueToken = null
     while (true) {
-        const fullUrl = url + "?limit=100" + "&sort=metadata.name&filter=metadata.labels." + key + "=" + value
+        const fullUrl = url + "?limit=100" + "&sort=metadata.name&filter=metadata.labels." + key + "=" + value +
             (revision != null ? "&revision=" + revision : "") +
             (continueToken != null ? "&continue=" + continueToken : "")
 
         const res = http.get(fullUrl, {cookies: cookies})
 
         check(res, {
-            '/v1/configmaps returns status 200': (r) => r.status === 200,
+            '/v1/secrets returns status 200': (r) => r.status === 200,
         })
 
         try {
@@ -106,19 +106,19 @@ export function listFilterSort(cookies) {
 
 export function listFilterSortVai(cookies) {
     const url = clusterId === "local"?
-        `${baseUrl}/v1/configmaps` :
+        `${baseUrl}/v1/secrets` :
         `${baseUrl}/k8s/clusters/${clusterId}/v1/secrets`
 
     let i = 1
     let revision = null
     while (true) {
-        const fullUrl = url + "?pagesize=100&page=" + i + "&sort=metadata.name&filter=metadata.labels." + key + "=" + value
+        const fullUrl = url + "?pagesize=100&page=" + i + "&sort=metadata.name&filter=metadata.labels." + key + "=" + value +
             (revision != null ? "&revision=" + revision : "")
 
         const res = http.get(fullUrl, {cookies: cookies})
 
         check(res, {
-            '/v1/configmaps returns status 200': (r) => r.status === 200,
+            '/v1/secrets returns status 200': (r) => r.status === 200,
         })
 
         try {
