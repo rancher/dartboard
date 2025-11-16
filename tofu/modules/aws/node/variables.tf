@@ -40,16 +40,19 @@ variable "node_module_variables" {
     ami: AMI ID (see https://pint.suse.com/ to find others)
     instance_type: EC2 instance type
     root_volume_size_gb: Size of the root volume
+    tags: A map of strings to add as instance tags
   EOT
   type = object({
     ami : string,
     instance_type : string,
     root_volume_size_gb : number,
+    tags: optional(map(string)),
   })
   default = {
     ami : "ami-0e55a8b472a265e3f", // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
     instance_type : "t4g.small",
     root_volume_size_gb : 50,
+    tags : {},
   }
 }
 

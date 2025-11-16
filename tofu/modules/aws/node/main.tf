@@ -13,10 +13,10 @@ resource "aws_instance" "instance" {
 
   user_data = templatefile("${path.module}/user_data.yaml", { ssh_user = var.ssh_user })
 
-  tags = {
+  tags = merge({
     Project = var.project_name
     Name    = "${var.project_name}-${var.name}"
-  }
+  }, var.node_module_variables.tags)
 }
 
 resource "null_resource" "host_configuration" {
