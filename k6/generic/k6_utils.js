@@ -1,4 +1,5 @@
 import { jUnit, textSummary } from '../lib/k6-summary-0.1.0.js';
+
 import { htmlReport } from '../lib/k6-reporter-3.0.1.js';
 import { getPathBasename } from '../generic/generic_utils.js';
 
@@ -158,6 +159,10 @@ export function createReports(prefix, data) {
  * @returns {object} An object mapping filenames to report content, for k6 to write to disk.
  */
 export function customHandleSummary(data) {
-  const prefix = __ENV.K6_TEST ? __ENV.K6_TEST.replace(/\.js$/, '') + "-" : '';
+  const resultsDir = __ENV.K6_RESULTS_DIR || '';
+  let prefix = __ENV.K6_TEST ? __ENV.K6_TEST.replace(/\.js$/, '') + "-" : '';
+  if (resultsDir) {
+    prefix = `${resultsDir}/${prefix}`;
+  }
   return createReports(getPathBasename(prefix), data)
 }
