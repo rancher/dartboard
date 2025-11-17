@@ -80,6 +80,7 @@ func loadConfigMapAndSecrets(r *dart.Dart, kubeconfig string, clusterName string
 		"CONTEXT":          clusterData.Context,
 		"CONFIG_MAP_COUNT": configMapCount,
 		"SECRET_COUNT":     secretCount,
+		"K6_RESULTS_DIR":   kubectl.K6ResultsDir,
 	}
 	tags := map[string]string{
 		"cluster":    clusterName,
@@ -103,11 +104,12 @@ func loadRolesAndUsers(r *dart.Dart, kubeconfig string, clusterName string, clus
 		return fmt.Errorf("failed loading Roles and Users on cluster %q: %w", clusterName, err)
 	}
 	envVars := map[string]string{
-		"BASE_URL":   clusterAdd.Public.HTTPSURL,
-		"USERNAME":   "admin",
-		"PASSWORD":   r.ChartVariables.AdminPassword,
-		"ROLE_COUNT": roleCount,
-		"USER_COUNT": userCount,
+		"BASE_URL":       clusterAdd.Public.HTTPSURL,
+		"USERNAME":       "admin",
+		"PASSWORD":       r.ChartVariables.AdminPassword,
+		"ROLE_COUNT":     roleCount,
+		"USER_COUNT":     userCount,
+		"K6_RESULTS_DIR": kubectl.K6ResultsDir,
 	}
 	tags := map[string]string{
 		"cluster": clusterName,
@@ -131,10 +133,11 @@ func loadProjects(r *dart.Dart, kubeconfig string, clusterName string, clusterDa
 		return fmt.Errorf("failed loading Projects on cluster %q: %w", clusterName, err)
 	}
 	envVars := map[string]string{
-		"BASE_URL":      clusterAdd.Public.HTTPSURL,
-		"USERNAME":      "admin",
-		"PASSWORD":      r.ChartVariables.AdminPassword,
-		"PROJECT_COUNT": projectCount,
+		"BASE_URL":       clusterAdd.Public.HTTPSURL,
+		"USERNAME":       "admin",
+		"PASSWORD":       r.ChartVariables.AdminPassword,
+		"PROJECT_COUNT":  projectCount,
+		"K6_RESULTS_DIR": kubectl.K6ResultsDir,
 	}
 	tags := map[string]string{
 		"cluster":  clusterName,
