@@ -7,6 +7,8 @@ if (params.JENKINS_AGENT_LABEL) {
   agentLabel = params.JENKINS_AGENT_LABEL
 }
 
+def testFileBasename
+
 pipeline {
   agent { label agentLabel }
 
@@ -36,15 +38,7 @@ pipeline {
       }
     }
 
-    stage('Build Dartboard Image') {
-      steps {
-        dir('dartboard') {
-          sh "docker build -t ${env.IMAGE_NAME}:latest ."
-        }
-      }
-    }
-
-    stage('Prepare Environment from S3') {
+        stage('Prepare Environment from S3') {
       when { expression { return params.DEPLOYMENT_ID } }
       steps {
         dir('dartboard') {
@@ -59,43 +53,56 @@ pipeline {
                     -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
                     amazon/aws-cli s3 cp "s3://${params.S3_BUCKET_NAME}/${params.DEPLOYMENT_ID}/" /artifacts/ --recursive
 
-                echo "Downloaded artifacts:"
-                ls -l ${env.ARTIFACTS_DIR}
-
                 # Unzip the config archive
                 config_zip=\$(find ${env.ARTIFACTS_DIR} -name '*_config.zip' | head -n 1)
                 if [ -n "\$config_zip" ]; then
                   unzip -o "\$config_zip" -d "${env.ARTIFACTS_DIR}"
                 else
-                  echo "Warning: No config zip file found."
+                  echo "Warning: No config zip file found in S3 artifacts."
                 fi
+
+                echo "Downloaded artifacts:"
+                ls -l ${env.ARTIFACTS_DIR}
               """
             }
             // Extract FQDN and set environment variables for the next stage
-            sh "mv ${env.ARTIFACTS_DIR}/${env.ACCESS_LOG} ./${env.ACCESS_LOG}"
-            def accessLogPath = "./${env.ACCESS_LOG}"
+            def accessLogPath = "./${env.ARTIFACTS_DIR}/${env.ACCESS_LOG}"
             if (fileExists(accessLogPath)) {
               def accessLogContent = readFile(accessLogPath)
               // See https://docs.groovy-lang.org/next/html/groovy-jdk/java/util/regex/Matcher.html
-              def matcher = accessLogContent =~ /(?m)^Rancher UI:\s*(https?:\/\/[^ :]+)/
+              def matcher = accessLogContent =~ /(?m)^\s*Rancher UI:\s*(https?:\/\/[^ :]+)/
               if (matcher.find()) {
                 def match = matcher.group(1).trim()
-                env.BASE_URL = "https://${match}"
+                env.BASE_URL = "${match}"
                 echo "Found Rancher URL: ${env.BASE_URL}"
-                sh "rm ${accessLogPath}"
               } else {
                 echo "Warning: Could not find 'Rancher UI' in ${env.ACCESS_LOG}"
               }
             }
 
-            sh "mv ${env.ARTIFACTS_DIR}/${env.KUBECONFIG_FILE} ./${env.KUBECONFIG_FILE}"
+            // Find the upstream.yaml file within the downloaded artifacts and move it to the current directory.
+            // This is more robust than assuming its exact location after unzipping.
+            sh """
+              kubeconfig_file=\$(find ./${env.ARTIFACTS_DIR} -name '${env.KUBECONFIG_FILE}' -print -quit)
+              if [ -n "\$kubeconfig_file" ]; then
+                mv "\$kubeconfig_file" "./${env.KUBECONFIG_FILE}"
+              fi
+            """
             def kubeconfigPath = "./${env.KUBECONFIG_FILE}"
             if (fileExists(kubeconfigPath)) {
               // Absolute path relative to the container's filespace
               env.KUBECONFIG_PATH = "/app/${env.KUBECONFIG_FILE}"
-              echo "Found kubeconfig at: ${env.KUBECONFIG_PATH}"
+              echo "Found kubeconfig at: ${kubeconfigPath}"
             }
           }
+        }
+      }
+    }
+
+    stage('Build Dartboard Image') {
+      steps {
+        dir('dartboard') {
+          sh "docker build -t ${env.IMAGE_NAME}:latest ."
         }
       }
     }
@@ -104,6 +111,10 @@ pipeline {
       steps {
         dir('dartboard') {
           script {
+            // Use the 'sh' step with the 'basename' shell command to securely get the filename.
+            testFileBasename = sh(script: "basename ${params.K6_TEST_FILE}", returnStdout: true).trim().replace('.js', '')
+            env.K6_SUMMARY_LOG = "${testFileBasename}-k6-summary.log"
+
             // Create the k6 environment file on the agent first.
             // This avoids permission issues inside the container, as the container
             // only needs to read/source the file, not create it.
@@ -113,7 +124,7 @@ KUBECONFIG=${env.KUBECONFIG_PATH ? env.KUBECONFIG_PATH : ''}
 K6_TEST=${params.K6_TEST_FILE}
 ${params.K6_ENV}
 """
-            writeFile file: env.K6_ENV_FILE, text: k6EnvContent
+            writeFile file: "./${env.K6_ENV_FILE}", text: k6EnvContent
 
             sh """
               echo "--- k6.env contents ---"
@@ -144,20 +155,31 @@ ${params.K6_ENV}
       steps {
         dir('dartboard') {
           script {
+            def s3UploadDir = "k6-results"
+
+            // Determine the S3 path prefix using a ternary operator for conciseness.
+            def s3PathPrefix = params.DEPLOYMENT_ID ? params.DEPLOYMENT_ID : env.S3_ARTIFACT_PREFIX
+
             property.useWithCredentials(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
               sh script: """
-              docker run --rm \\
-                  -v "${pwd()}:/artifacts" \\
-                  -e AWS_ACCESS_KEY_ID \\
-                  -e AWS_SECRET_ACCESS_KEY \\
-                  -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
-                  amazon/aws-cli s3 cp /artifacts/ "s3://${params.S3_BUCKET_NAME}/${params.DEPLOYMENT_ID ?: env.S3_ARTIFACT_PREFIX}/k6/" --recursive \\
-                  --exclude "*" \\
-                  --exclude "charts/*" \\
-                  --include "*.json" \\
-                  --include "*.log" \\
-                  --include "*.xml" \\
-                  --include "*.html"
+                set -x
+                echo "Preparing k6 artifacts for S3 upload..."
+                mkdir -p ${s3UploadDir}
+
+                # Explicitly copy only the generated k6 report files
+                cp -v ./${testFileBasename}-*.json ${s3UploadDir}/ 2>/dev/null || true
+                cp -v ./${testFileBasename}-*.xml ${s3UploadDir}/ 2>/dev/null || true
+                cp -v ./${testFileBasename}-*.html ${s3UploadDir}/ 2>/dev/null || true
+                cp -v ./${env.K6_SUMMARY_LOG} ${s3UploadDir}/ 2>/dev/null || true
+
+                echo "Uploading k6 artifacts from ${s3UploadDir}..."
+                docker run --rm \\
+                    -v "${pwd()}/${s3UploadDir}:/artifacts" \\
+                    -e AWS_ACCESS_KEY_ID \\
+                    -e AWS_SECRET_ACCESS_KEY \\
+                    -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
+                    amazon/aws-cli s3 cp /artifacts/ "s3://${params.S3_BUCKET_NAME}/${s3PathPrefix}/k6/" --recursive
+                rm -rf ${s3UploadDir}
               """, returnStatus: true
             }
           }
@@ -168,15 +190,28 @@ ${params.K6_ENV}
 
   post {
     always {
-        script {
-            echo "Archiving k6 test results..."
-            archiveArtifacts artifacts: """
-              dartboard/*.json,
-              dartboard/*.log,
-              dartboard/*.html,
-              dartboard/*.xml,
-            """.trim(), fingerprint: true
+      script {
+        echo "Archiving k6 test results..."
+        archiveArtifacts artifacts: """
+          dartboard/*.json,
+          dartboard/*.log,
+          dartboard/*.html,
+          dartboard/*.xml,
+        """.trim(), fingerprint: true
+
+        // The k6 container is run with --rm, so it should clean itself up.
+        // But if the job is aborted, the container might be left running.
+        echo "Cleaning up Docker resources..."
+        try {
+          // Stop and remove the container if it exists.
+          sh "docker rm -f dartboard-k6-runner || true"
+
+          // Remove the docker image used for the test.
+          sh "docker rmi -f ${env.IMAGE_NAME}:latest || true"
+        } catch (e) {
+          echo "An error occurred during Docker cleanup: ${e.message}"
         }
+      }
     }
     cleanup {
       // Clean up large files from the workspace to save disk space on the agent.
