@@ -119,43 +119,56 @@ pipeline {
                     -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
                     amazon/aws-cli s3 cp "s3://${params.S3_BUCKET_NAME}/${params.DEPLOYMENT_ID}/" /artifacts/ --recursive
 
-                echo "Downloaded artifacts:"
-                ls -l ${env.ARTIFACTS_DIR}
-
                 # Unzip the config archive
                 config_zip=\$(find ${env.ARTIFACTS_DIR} -name '*_config.zip' | head -n 1)
                 if [ -n "\$config_zip" ]; then
                   unzip -o "\$config_zip" -d "${env.ARTIFACTS_DIR}"
                 else
-                  echo "Warning: No config zip file found."
+                  echo "Warning: No config zip file found in S3 artifacts."
                 fi
+
+                echo "Downloaded artifacts:"
+                ls -l ${env.ARTIFACTS_DIR}
               """
             }
             // Extract FQDN and set environment variables for the next stage
-            sh "mv ${env.ARTIFACTS_DIR}/${env.ACCESS_LOG} ./${env.ACCESS_LOG}"
-            def accessLogPath = "./${env.ACCESS_LOG}"
+            def accessLogPath = "./${env.ARTIFACTS_DIR}/${env.ACCESS_LOG}"
             if (fileExists(accessLogPath)) {
               def accessLogContent = readFile(accessLogPath)
               // See https://docs.groovy-lang.org/next/html/groovy-jdk/java/util/regex/Matcher.html
-              def matcher = accessLogContent =~ /(?m)^Rancher UI:\s*(https?:\/\/[^ :]+)/
+              def matcher = accessLogContent =~ /(?m)^\s*Rancher UI:\s*(https?:\/\/[^ :]+)/
               if (matcher.find()) {
                 def match = matcher.group(1).trim()
-                env.BASE_URL = "https://${match}"
+                env.BASE_URL = "${match}"
                 echo "Found Rancher URL: ${env.BASE_URL}"
-                sh "rm ${accessLogPath}"
               } else {
                 echo "Warning: Could not find 'Rancher UI' in ${env.ACCESS_LOG}"
               }
             }
 
-            sh "mv ${env.ARTIFACTS_DIR}/${env.KUBECONFIG_FILE} ./${env.KUBECONFIG_FILE}"
+            // Find the upstream.yaml file within the downloaded artifacts and move it to the current directory.
+            // This is more robust than assuming its exact location after unzipping.
+            sh """
+              kubeconfig_file=\$(find ./${env.ARTIFACTS_DIR} -name '${env.KUBECONFIG_FILE}' -print -quit)
+              if [ -n "\$kubeconfig_file" ]; then
+                mv "\$kubeconfig_file" "./${env.KUBECONFIG_FILE}"
+              fi
+            """
             def kubeconfigPath = "./${env.KUBECONFIG_FILE}"
             if (fileExists(kubeconfigPath)) {
               // Absolute path relative to the container's filespace
               env.KUBECONFIG_PATH = "/app/${env.KUBECONFIG_FILE}"
-              echo "Found kubeconfig at: ${env.KUBECONFIG_PATH}"
+              echo "Found kubeconfig at: ${kubeconfigPath}"
             }
           }
+        }
+      }
+    }
+
+    stage('Build Dartboard Image') {
+      steps {
+        dir('dartboard') {
+          sh "docker build -t ${env.IMAGE_NAME}:latest ."
         }
       }
     }
