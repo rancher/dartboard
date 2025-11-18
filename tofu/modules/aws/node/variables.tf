@@ -24,11 +24,6 @@ variable "ssh_tunnels" {
   default     = []
 }
 
-variable "host_configuration_commands" {
-  description = "Commands to run when the host is deployed"
-  default     = ["cat /etc/os-release"]
-}
-
 variable "public" {
   description = "Whether the node is publicly accessible"
   default     = false
@@ -41,17 +36,20 @@ variable "node_module_variables" {
     instance_type: EC2 instance type
     root_volume_size_gb: Size of the root volume
     tags: A map of strings to add as instance tags
+    host_configuration_commands: Commands to run when the host is deployed
   EOT
   type = object({
     ami : string,
     instance_type : string,
     root_volume_size_gb : number,
+    host_configuration_commands: optional(list(string), ["cat /etc/os-release"])
     tags: optional(map(string)),
   })
   default = {
     ami : "ami-0e55a8b472a265e3f", // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
     instance_type : "t4g.small",
     root_volume_size_gb : 50,
+    host_configuration_commands = ["cat /etc/os-release"]
     tags : {},
   }
 }
