@@ -110,6 +110,7 @@ pipeline {
             def k6EnvContent = """
 BASE_URL=${env.BASE_URL}
 KUBECONFIG=${env.KUBECONFIG_PATH ? env.KUBECONFIG_PATH : ''}
+K6_TEST=${params.K6_TEST_FILE}
 ${params.K6_ENV}
 """
             writeFile file: env.K6_ENV_FILE, text: k6EnvContent
