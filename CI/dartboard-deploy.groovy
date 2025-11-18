@@ -35,6 +35,7 @@ pipeline {
 
   // No parameters block here—JJB YAML defines them
 
+
   stages {
     stage('Initialize & Checkout') {
       steps {
@@ -292,6 +293,7 @@ EOF
             sh """
               cp ${env.renderedDartFile} ${s3ArtifactsDir}/ 2>/dev/null || true
               cp tfstate-${env.DEFAULT_PROJECT_NAME}.zip ${s3ArtifactsDir}/ 2>/dev/null || true
+              cp ${env.accessDetailsLog} ${s3ArtifactsDir}/ 2>/dev/null || true
               if [ -n "${configZipFile}" ]; then cp ${configZipFile} ${s3ArtifactsDir}/ 2>/dev/null || true; fi
             """
 

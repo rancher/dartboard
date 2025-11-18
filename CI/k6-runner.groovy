@@ -2,14 +2,29 @@
 // Declarative Pipeline Syntax
 @Library('qa-jenkins-library') _
 
+def agentLabel = 'jenkins-qa-jenkins-agent'
+if (params.JENKINS_AGENT_LABEL) {
+  agentLabel = params.JENKINS_AGENT_LABEL
+}
+
+def testFileBasename
+
 pipeline {
-  agent { label params.JENKINS_AGENT_LABEL }
+  agent { label agentLabel }
 
   environment {
-    IMAGE_NAME = 'dartboard'
-    K6_ENV_FILE = 'k6.env'
-    K6_SUMMARY_LOG = 'k6-summary.log'
-    S3_ARTIFACT_PREFIX = "${JOB_NAME.split('/').last()}-${BUILD_NUMBER}"
+    IMAGE_NAME          = 'dartboard'
+    K6_ENV_FILE         = 'k6.env'
+    K6_SUMMARY_LOG      = 'k6-summary.log'
+    S3_ARTIFACT_PREFIX  = "${JOB_NAME.split('/').last()}-${BUILD_NUMBER}"
+    ARTIFACTS_DIR       = 'deployment-artifacts'
+    ACCESS_LOG          = 'access-details.log'
+    KUBECONFIG_FILE     = 'upstream.yaml'
+    // These will be populated in the 'Prepare Environment' stage
+    RANCHER_FQDN        = ''
+    KUBECONFIG_PATH     = ''
+    // Base URL for the k6 test
+    BASE_URL            = ''
   }
 
   // No parameters block here—JJB YAML defines them
@@ -19,6 +34,67 @@ pipeline {
       steps {
         script {
           project.checkout(repository: params.REPO, branch: params.BRANCH, target: 'dartboard')
+        }
+      }
+    }
+
+        stage('Prepare Environment from S3') {
+      when { expression { return params.DEPLOYMENT_ID } }
+      steps {
+        dir('dartboard') {
+          script {
+            property.useWithCredentials(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
+              sh """
+                mkdir -p ${env.ARTIFACTS_DIR}
+                docker run --rm \\
+                    -v "${pwd()}/${env.ARTIFACTS_DIR}:/artifacts" \\
+                    -e AWS_ACCESS_KEY_ID \\
+                    -e AWS_SECRET_ACCESS_KEY \\
+                    -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
+                    amazon/aws-cli s3 cp "s3://${params.S3_BUCKET_NAME}/${params.DEPLOYMENT_ID}/" /artifacts/ --recursive
+
+                # Unzip the config archive
+                config_zip=\$(find ${env.ARTIFACTS_DIR} -name '*_config.zip' | head -n 1)
+                if [ -n "\$config_zip" ]; then
+                  unzip -o "\$config_zip" -d "${env.ARTIFACTS_DIR}"
+                else
+                  echo "Warning: No config zip file found in S3 artifacts."
+                fi
+
+                echo "Downloaded artifacts:"
+                ls -l ${env.ARTIFACTS_DIR}
+              """
+            }
+            // Extract FQDN and set environment variables for the next stage
+            def accessLogPath = "./${env.ARTIFACTS_DIR}/${env.ACCESS_LOG}"
+            if (fileExists(accessLogPath)) {
+              def accessLogContent = readFile(accessLogPath)
+              // See https://docs.groovy-lang.org/next/html/groovy-jdk/java/util/regex/Matcher.html
+              def matcher = accessLogContent =~ /(?m)^\s*Rancher UI:\s*(https?:\/\/[^ :]+)/
+              if (matcher.find()) {
+                def match = matcher.group(1).trim()
+                env.BASE_URL = "${match}"
+                echo "Found Rancher URL: ${env.BASE_URL}"
+              } else {
+                echo "Warning: Could not find 'Rancher UI' in ${env.ACCESS_LOG}"
+              }
+            }
+
+            // Find the upstream.yaml file within the downloaded artifacts and move it to the current directory.
+            // This is more robust than assuming its exact location after unzipping.
+            sh """
+              kubeconfig_file=\$(find ./${env.ARTIFACTS_DIR} -name '${env.KUBECONFIG_FILE}' -print -quit)
+              if [ -n "\$kubeconfig_file" ]; then
+                mv "\$kubeconfig_file" "./${env.KUBECONFIG_FILE}"
+              fi
+            """
+            def kubeconfigPath = "./${env.KUBECONFIG_FILE}"
+            if (fileExists(kubeconfigPath)) {
+              // Absolute path relative to the container's filespace
+              env.KUBECONFIG_PATH = "/app/${env.KUBECONFIG_FILE}"
+              echo "Found kubeconfig at: ${kubeconfigPath}"
+            }
+          }
         }
       }
     }
@@ -35,19 +111,38 @@ pipeline {
       steps {
         dir('dartboard') {
           script {
+            // Use the 'sh' step with the 'basename' shell command to securely get the filename.
+            testFileBasename = sh(script: "basename ${params.K6_TEST_FILE}", returnStdout: true).trim().replace('.js', '')
+            env.K6_SUMMARY_LOG = "${testFileBasename}-k6-summary.log"
+
+            // Create the k6 environment file on the agent first.
+            // This avoids permission issues inside the container, as the container
+            // only needs to read/source the file, not create it.
+            def k6EnvContent = """
+BASE_URL=${env.BASE_URL}
+KUBECONFIG=${env.KUBECONFIG_PATH ? env.KUBECONFIG_PATH : ''}
+K6_TEST=${params.K6_TEST_FILE}
+${params.K6_ENV}
+"""
+            writeFile file: "./${env.K6_ENV_FILE}", text: k6EnvContent
+
             sh """
+              echo "--- k6.env contents ---"
+              cat ${env.K6_ENV_FILE}
+              echo "-----------------------"
+
               docker run --rm --name dartboard-k6-runner \\
                 -v "${pwd()}:/app" \\
                 --workdir /app \\
+                --user "\$(id -u):\$(id -g)" \\
                 --entrypoint='' \\
                 ${env.IMAGE_NAME}:latest sh -c '''
-                  echo "Writing k6 environment variables..."
-                  echo "${params.K6_ENV}" > ${env.K6_ENV_FILE}
-
                   echo "Sourcing environment and running test..."
-                  set -o allexport && source "${env.K6_ENV_FILE}" && set +o allexport
+                  set -o allexport
+                  source "${env.K6_ENV_FILE}"
+                  set +o allexport
 
-                  echo "Running k6 test..."
+                  echo "Running k6 test: ${params.K6_TEST_FILE}..."
                   k6 run ${params.K6_TEST_FILE} | tee ${env.K6_SUMMARY_LOG}
                 '''
             """
@@ -60,15 +155,31 @@ pipeline {
       steps {
         dir('dartboard') {
           script {
+            def s3UploadDir = "k6-results"
+
+            // Determine the S3 path prefix using a ternary operator for conciseness.
+            def s3PathPrefix = params.DEPLOYMENT_ID ? params.DEPLOYMENT_ID : env.S3_ARTIFACT_PREFIX
+
             property.useWithCredentials(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
               sh script: """
-              docker run --rm \\
-                  -v "${pwd()}:/artifacts" \\
-                  -e AWS_ACCESS_KEY_ID \\
-                  -e AWS_SECRET_ACCESS_KEY \\
-                  -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
-                  amazon/aws-cli s3 cp /artifacts/ "s3://${params.S3_BUCKET_NAME}/${env.S3_ARTIFACT_PREFIX}/" \\
-                  --recursive --include "k6-output.json" --include "k6-summary.log"
+                set -x
+                echo "Preparing k6 artifacts for S3 upload..."
+                mkdir -p ${s3UploadDir}
+
+                # Explicitly copy only the generated k6 report files
+                cp -v ./${testFileBasename}-*.json ${s3UploadDir}/ 2>/dev/null || true
+                cp -v ./${testFileBasename}-*.xml ${s3UploadDir}/ 2>/dev/null || true
+                cp -v ./${testFileBasename}-*.html ${s3UploadDir}/ 2>/dev/null || true
+                cp -v ./${env.K6_SUMMARY_LOG} ${s3UploadDir}/ 2>/dev/null || true
+
+                echo "Uploading k6 artifacts from ${s3UploadDir}..."
+                docker run --rm \\
+                    -v "${pwd()}/${s3UploadDir}:/artifacts" \\
+                    -e AWS_ACCESS_KEY_ID \\
+                    -e AWS_SECRET_ACCESS_KEY \\
+                    -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
+                    amazon/aws-cli s3 cp /artifacts/ "s3://${params.S3_BUCKET_NAME}/${s3PathPrefix}/k6/" --recursive
+                rm -rf ${s3UploadDir}
               """, returnStatus: true
             }
           }
@@ -78,11 +189,45 @@ pipeline {
   }
 
   post {
-      always {
-          script {
-              echo "Archiving k6 test results..."
-              archiveArtifacts artifacts: "dartboard/*.json, dartboard/*.log", fingerprint: true
-          }
+    always {
+      script {
+        echo "Archiving k6 test results..."
+        archiveArtifacts artifacts: """
+          dartboard/*.json,
+          dartboard/*.log,
+          dartboard/*.html,
+          dartboard/*.xml,
+        """.trim(), fingerprint: true
+
+        // The k6 container is run with --rm, so it should clean itself up.
+        // But if the job is aborted, the container might be left running.
+        echo "Cleaning up Docker resources..."
+        try {
+          // Stop and remove the container if it exists.
+          sh "docker rm -f dartboard-k6-runner || true"
+
+          // Remove the docker image used for the test.
+          sh "docker rmi -f ${env.IMAGE_NAME}:latest || true"
+        } catch (e) {
+          echo "An error occurred during Docker cleanup: ${e.message}"
+        }
       }
+    }
+    cleanup {
+      // Clean up large files from the workspace to save disk space on the agent.
+      // These are not part of the archived artifacts but remain in the workspace.
+      echo "Cleaning up workspace..."
+      dir('dartboard') {
+        // Use find and xargs for more robust and efficient cleanup of non-artifact files and directories.
+        // This removes all files and directories from the checkout except for the archived k6 results.
+        sh """
+          set -x
+          echo "Removing all non-artifact files and directories..."
+          find . -mindepth 1 -maxdepth 1 \\
+            -not -name '*.html' -not -name '*.json' -not -name '*.log' -not -name '*.xml' \\
+            -exec rm -rf {} +
+        """
+      }
+    }
   }
 }
