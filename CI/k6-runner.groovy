@@ -8,6 +8,8 @@ if (params.JENKINS_AGENT_LABEL) {
 }
 
 def testFileBasename
+def kubeconfigContainerPath
+def baseURL
 
 pipeline {
   agent { label agentLabel }
@@ -20,11 +22,6 @@ pipeline {
     ARTIFACTS_DIR       = 'deployment-artifacts'
     ACCESS_LOG          = 'access-details.log'
     KUBECONFIG_FILE     = 'upstream.yaml'
-    // These will be populated in the 'Prepare Environment' stage
-    RANCHER_FQDN        = ''
-    KUBECONFIG_PATH     = ''
-    // Base URL for the k6 test
-    BASE_URL            = ''
   }
 
   // No parameters block here—JJB YAML defines them
@@ -38,7 +35,7 @@ pipeline {
       }
     }
 
-        stage('Prepare Environment from S3') {
+    stage('Prepare Environment from S3') {
       when { expression { return params.DEPLOYMENT_ID } }
       steps {
         dir('dartboard') {
@@ -73,8 +70,8 @@ pipeline {
               def matcher = accessLogContent =~ /(?m)^\s*Rancher UI:\s*(https?:\/\/[^ :]+)/
               if (matcher.find()) {
                 def match = matcher.group(1).trim()
-                env.BASE_URL = "${match}"
-                echo "Found Rancher URL: ${env.BASE_URL}"
+                baseURL = "${match}"
+                echo "Found Rancher URL: ${baseURL}"
               } else {
                 echo "Warning: Could not find 'Rancher UI' in ${env.ACCESS_LOG}"
               }
@@ -91,7 +88,7 @@ pipeline {
             def kubeconfigPath = "./${env.KUBECONFIG_FILE}"
             if (fileExists(kubeconfigPath)) {
               // Absolute path relative to the container's filespace
-              env.KUBECONFIG_PATH = "/app/${env.KUBECONFIG_FILE}"
+              kubeconfigContainerPath = "/app/${env.KUBECONFIG_FILE}"
               echo "Found kubeconfig at: ${kubeconfigPath}"
             }
           }
@@ -119,8 +116,8 @@ pipeline {
             // This avoids permission issues inside the container, as the container
             // only needs to read/source the file, not create it.
             def k6EnvContent = """
-BASE_URL=${env.BASE_URL}
-KUBECONFIG=${env.KUBECONFIG_PATH ? env.KUBECONFIG_PATH : ''}
+baseURL=${baseURL}
+KUBECONFIG=${kubeconfigContainerPath ? kubeconfigContainerPath : ''}
 K6_TEST=${params.K6_TEST_FILE}
 ${params.K6_ENV}
 """
@@ -193,23 +190,29 @@ ${params.K6_ENV}
       script {
         echo "Archiving k6 test results..."
         archiveArtifacts artifacts: """
-          dartboard/*.json,
-          dartboard/*.log,
-          dartboard/*.html,
-          dartboard/*.xml,
+          dartboard/${testFileBasename}-*.json,
+          dartboard/${testFileBasename}-*.log,
+          dartboard/${testFileBasename}-*.html,
+          dartboard/${testFileBasename}-*.xml,
+          dartboard/${env.K6_SUMMARY_LOG},
         """.trim(), fingerprint: true
 
         // The k6 container is run with --rm, so it should clean itself up.
         // But if the job is aborted, the container might be left running.
         echo "Cleaning up Docker resources..."
         try {
-          // Stop and remove the container if it exists.
-          sh "docker rm -f dartboard-k6-runner || true"
-
-          // Remove the docker image used for the test.
-          sh "docker rmi -f ${env.IMAGE_NAME}:latest || true"
+          echo "Attempting to remove container: dartboard-k6-runner"
+          sh "docker rm -f dartboard-k6-runner"
         } catch (e) {
-          echo "An error occurred during Docker cleanup: ${e.message}"
+          echo "Could not remove container 'dartboard-k6-runner'. It may have already been removed. Details: ${e.message}"
+        }
+        try {
+          echo "Attempting to remove image: ${env.IMAGE_NAME}:latest"
+          sh "docker rmi -f ${env.IMAGE_NAME}:latest"
+          echo "Attempting to remove image: amazon/aws-cli"
+          sh "docker rmi amazon/aws-cli"
+        } catch (e) {
+          echo "Could not remove a Docker image. It may have already been removed or was never present. Details: ${e.message}"
         }
       }
     }
