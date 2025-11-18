@@ -321,22 +321,22 @@ EOF
             dartboard/*.zip
         """.trim(), fingerprint: true
 
-        // Cleanup Docker container and image
+        // Cleanup Docker resources with explicit logging
         try {
           if (runningContainerName) {
-            sh "docker stop ${runningContainerName}"
+            echo "Attempting to remove service container: ${runningContainerName}"
+            sh "docker rm -f ${runningContainerName}"
           }
         } catch (e) {
-          echo "Could not stop docker container ${runningContainerName}. It may have already been stopped. ${e.message}"
+          echo "Could not remove container '${runningContainerName}'. It may have already been removed or never started. Details: ${e.message}"
         }
-
-        // Ensure the container is removed, if it doesn't exist we avoid an error
-        sh "docker rm ${runningContainerName} || true"
-
         try {
+          echo "Attempting to remove image: ${env.imageName}:latest"
           sh "docker rmi -f ${env.imageName}:latest"
+          echo "Attempting to remove image: amazon/aws-cli"
+          sh "docker rmi amazon/aws-cli"
         } catch (e) {
-          echo "Could not remove docker image ${env.imageName}:latest. It may have already been removed. ${e.message}"
+          echo "Could not remove a Docker image. It may have already been removed or was never present. Details: ${e.message}"
         }
       }
     }
