@@ -22,8 +22,6 @@ pipeline {
     ARTIFACTS_DIR       = 'deployment-artifacts'
     ACCESS_LOG          = 'access-details.log'
     KUBECONFIG_FILE     = 'upstream.yaml'
-    // These will be populated in the 'Prepare Environment' stage
-    RANCHER_FQDN        = ''
   }
 
   // No parameters block here—JJB YAML defines them
