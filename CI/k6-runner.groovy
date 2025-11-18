@@ -107,6 +107,62 @@ pipeline {
       }
     }
 
+    stage('Prepare Environment from S3') {
+      when { expression { return params.DEPLOYMENT_ID } }
+      steps {
+        dir('dartboard') {
+          script {
+            property.useWithCredentials(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
+              sh """
+                mkdir -p ${env.ARTIFACTS_DIR}
+                docker run --rm \\
+                    -v "${pwd()}/${env.ARTIFACTS_DIR}:/artifacts" \\
+                    -e AWS_ACCESS_KEY_ID \\
+                    -e AWS_SECRET_ACCESS_KEY \\
+                    -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
+                    amazon/aws-cli s3 cp "s3://${params.S3_BUCKET_NAME}/${params.DEPLOYMENT_ID}/" /artifacts/ --recursive
+
+                echo "Downloaded artifacts:"
+                ls -l ${env.ARTIFACTS_DIR}
+
+                # Unzip the config archive
+                config_zip=\$(find ${env.ARTIFACTS_DIR} -name '*_config.zip' | head -n 1)
+                if [ -n "\$config_zip" ]; then
+                  unzip -o "\$config_zip" -d "${env.ARTIFACTS_DIR}"
+                else
+                  echo "Warning: No config zip file found."
+                fi
+              """
+            }
+            // Extract FQDN and set environment variables for the next stage
+            sh "mv ${env.ARTIFACTS_DIR}/${env.ACCESS_LOG} ./${env.ACCESS_LOG}"
+            def accessLogPath = "./${env.ACCESS_LOG}"
+            if (fileExists(accessLogPath)) {
+              def accessLogContent = readFile(accessLogPath)
+              // See https://docs.groovy-lang.org/next/html/groovy-jdk/java/util/regex/Matcher.html
+              def matcher = accessLogContent =~ /(?m)^Rancher UI:\s*(https?:\/\/[^ :]+)/
+              if (matcher.find()) {
+                def match = matcher.group(1).trim()
+                env.BASE_URL = "https://${match}"
+                echo "Found Rancher URL: ${env.BASE_URL}"
+                sh "rm ${accessLogPath}"
+              } else {
+                echo "Warning: Could not find 'Rancher UI' in ${env.ACCESS_LOG}"
+              }
+            }
+
+            sh "mv ${env.ARTIFACTS_DIR}/${env.KUBECONFIG_FILE} ./${env.KUBECONFIG_FILE}"
+            def kubeconfigPath = "./${env.KUBECONFIG_FILE}"
+            if (fileExists(kubeconfigPath)) {
+              // Absolute path relative to the container's filespace
+              env.KUBECONFIG_PATH = "/app/${env.KUBECONFIG_FILE}"
+              echo "Found kubeconfig at: ${env.KUBECONFIG_PATH}"
+            }
+          }
+        }
+      }
+    }
+
     stage('Run k6 Test') {
       steps {
         dir('dartboard') {
@@ -193,10 +249,11 @@ ${params.K6_ENV}
       script {
         echo "Archiving k6 test results..."
         archiveArtifacts artifacts: """
-          dartboard/*.json,
-          dartboard/*.log,
-          dartboard/*.html,
-          dartboard/*.xml,
+          dartboard/${testFileBasename}-*.json,
+          dartboard/${testFileBasename}-*.log,
+          dartboard/${testFileBasename}-*.html,
+          dartboard/${testFileBasename}-*.xml,
+          dartboard/${env.K6_SUMMARY_LOG},
         """.trim(), fingerprint: true
 
         // The k6 container is run with --rm, so it should clean itself up.
