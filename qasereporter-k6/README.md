@@ -45,23 +45,24 @@ export K6_SUMMARY_HTML_FILE="/path/to/report.html" # Optional
 
 ### Environment Variables
 
-| Variable                       | Description                                                                                             | Required                               |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `QASE_TESTOPS_API_TOKEN`               | Your Qase API token.                                                                                    | **Yes**                                |
-| `QASE_TESTOPS_PROJECT`         | The Qase project code (e.g., "PRJ").                                                                    | **Yes**                                |
-| `QASE_TEST_CASE_NAME`     | The title of the test case in Qase to which the results will be reported.                               | **Yes**                                |
-| `QASE_TESTOPS_RUN_ID`          | The ID of an existing Qase test run.                                                                    | If `QASE_TEST_RUN_NAME` not set   |
-| `QASE_TEST_RUN_NAME`      | If `QASE_TESTOPS_RUN_ID` is not provided, a new test run will be created with this name.                 | If `QASE_TESTOPS_RUN_ID` not set       |
-| `K6_SUMMARY_JSON_FILE`         | Path to the k6 summary JSON file. (Used in **Summary Mode**).                                           | For Summary Mode                       |
-| `K6_SUMMARY_HTML_FILE`         | (Optional) Path to the k6 HTML report file to be attached to the Qase result. (Used in **Summary Mode**). | No                                     |
-| `K6_OUTPUT_FILE`               | Path to the k6 raw JSON output file. (Used in **Granular Mode**).                                       | For Granular Mode                      |
+| Variable                 | Description                                                                                               | Required                         |
+| ------------------------ | --------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `QASE_TESTOPS_API_TOKEN` | Your Qase API token.                                                                                      | **Yes**                          |
+| `QASE_TESTOPS_PROJECT`   | The Qase project code (e.g., "PRJ").                                                                      | **Yes**                          |
+| `QASE_TEST_CASE_NAME`    | The title of the test case in Qase to which the results will be reported.                                 | **Yes**                          |
+| `QASE_TESTOPS_RUN_ID`    | The ID of an existing Qase test run.                                                                      | If `QASE_TEST_RUN_NAME` not set  |
+| `QASE_TEST_RUN_NAME`     | If `QASE_TESTOPS_RUN_ID` is not provided, a new test run will be created with this name.                  | If `QASE_TESTOPS_RUN_ID` not set |
+| `K6_SUMMARY_JSON_FILE`   | Path to the k6 summary JSON file. (Used in **Summary Mode**).                                             | For Summary Mode                 |
+| `K6_SUMMARY_HTML_FILE`   | (Optional) Path to the k6 HTML report file to be attached to the Qase result. (Used in **Summary Mode**). | No                               |
+| `K6_OUTPUT_FILE`         | Path to the k6 raw JSON output file. (Used in **Granular Mode**).                                         | For Granular Mode                |
+| `QASE_DEBUG`             | A string ("true" or "false") that enables or disables debug logs.                                          | No                               |
 
 ### Command-line Flags
 
-| Flag       | Description                                                                                                                              | Default |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `-granular`  | Enables granular reporting of the raw k6 JSON output stream (`K6_OUTPUT_FILE`). If not set, the tool uses Summary Mode (`K6_SUMMARY_JSON_FILE`). | `false` |
-| `-runID`    | Overrides the Qase **Test Run ID** (`QASE_TESTOPS_RUN_ID`).            | `""`    |
+| Flag        | Description                                                                                                                                      | Default |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| `-granular` | Enables granular reporting of the raw k6 JSON output stream (`K6_OUTPUT_FILE`). If not set, the tool uses Summary Mode (`K6_SUMMARY_JSON_FILE`). | `false` |
+| `-runID`    | Overrides the Qase **Test Run ID** (`QASE_TESTOPS_RUN_ID`).                                                                                      | `""`    |
 
 ## How it works
 
