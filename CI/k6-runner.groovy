@@ -155,7 +155,7 @@ ${params.K6_ENV}
             def s3UploadDir = "k6-results"
 
             // Determine the S3 path prefix using a ternary operator for conciseness.
-            def s3PathPrefix = params.DEPLOYMENT_ID ? params.DEPLOYMENT_ID : env.S3_ARTIFACT_PREFIX
+            def s3BucketPath = params.DEPLOYMENT_ID ? "${params.DEPLOYMENT_ID}/${env.S3_ARTIFACT_PREFIX}" : env.S3_ARTIFACT_PREFIX
 
             property.useWithCredentials(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
               sh script: """
@@ -175,7 +175,7 @@ ${params.K6_ENV}
                     -e AWS_ACCESS_KEY_ID \\
                     -e AWS_SECRET_ACCESS_KEY \\
                     -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
-                    amazon/aws-cli s3 cp /artifacts/ "s3://${params.S3_BUCKET_NAME}/${s3PathPrefix}/k6/" --recursive
+                    amazon/aws-cli s3 cp /artifacts/ "s3://${params.S3_BUCKET_NAME}/${s3BucketPath}" --recursive
                 rm -rf ${s3UploadDir}
               """, returnStatus: true
             }
