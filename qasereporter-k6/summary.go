@@ -37,12 +37,12 @@ type K6SummaryMetric struct {
 	Thresholds map[string]K6SummaryThreshold `json:"thresholds,omitempty"`
 }
 
-// K6SummaryThreshold represents a threshold with its pass/fail status.
+// K6SummaryThreshold represents a threshold with its pass/fail status. 
 type K6SummaryThreshold struct {
 	OK bool `json:"ok"`
 }
 
-func reportSummary() {
+func reportSummary(params map[string]string) {
 	logrus.Info("Running k6 QASE reporter")
 
 	if k6SummaryJsonFile == "" {
@@ -113,6 +113,9 @@ func reportSummary() {
 	resultBody.SetCaseId(testCaseID)
 	resultBody.SetComment(comment)
 	resultBody.SetAttachments(attachmentHashes)
+	if len(params) > 0 {
+		resultBody.SetParam(params)
+	}
 
 	err = qaseClient.CreateTestResultV1(context.Background(), projectID, runID, *resultBody)
 	if err != nil {

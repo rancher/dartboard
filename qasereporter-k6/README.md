@@ -60,7 +60,7 @@ export K6_SUMMARY_HTML_FILE="/path/to/report.html" # Optional
 
 | Flag       | Description                                                                                                                              | Default |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `-granular`  | Enables granular parsing of the raw k6 JSON output stream (`K6_OUTPUT_FILE`). If not set, the tool uses Summary Mode (`K6_SUMMARY_JSON_FILE`). | `false` |
+| `-granular`  | Enables granular reporting of the raw k6 JSON output stream (`K6_OUTPUT_FILE`). If not set, the tool uses Summary Mode (`K6_SUMMARY_JSON_FILE`). | `false` |
 | `-runID`    | Overrides the Qase **Test Run ID** (`QASE_TESTOPS_RUN_ID`).            | `""`    |
 
 ## How it works
@@ -70,6 +70,11 @@ export K6_SUMMARY_HTML_FILE="/path/to/report.html" # Optional
     *   It uses the `QASE_TESTOPS_RUN_ID` if provided.
     *   If not, it creates a new test run in the specified `QASE_TESTOPS_PROJECT` with the name from `QASE_TEST_RUN_NAME`.
 3.  **Find Test Case**: It fetches the ID of the test case using the title provided in `QASE_TEST_CASE_NAME`.
+4.  **Validate Test Case Parameters**:
+    *   If the fetched Qase test case has parameters defined, the reporter validates that an environment variable exists for each parameter title.
+    *   It supports both "single" and "group" parameter types in Qase.
+    *   If any parameter's corresponding environment variable is not set, the reporter will exit with a fatal error.
+    *   The collected key-value pairs are sent with the test result to Qase.
 4.  **Parse k6 Results**:
     *   In **Summary Mode**, it reads `K6_SUMMARY_JSON_FILE` to extract the status of all checks and thresholds.
     *   In **Granular Mode**, it reads `K6_OUTPUT_FILE` line by line, parsing `Metric` and `Point` objects to determine the status of checks and thresholds.
@@ -78,4 +83,3 @@ export K6_SUMMARY_HTML_FILE="/path/to/report.html" # Optional
     *   It determines an overall status (`passed` or `failed`) based on the parsed results.
     *   It creates a new test result for the specified test case within the test run.
     *   The result includes the status, the Markdown comment, and (in Summary Mode) attaches the HTML report if available.
-
