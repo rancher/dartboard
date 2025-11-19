@@ -24,6 +24,7 @@ The reporter is configured via environment variables and command-line flags.
 
 ```shell
 # Example for Summary Mode
+export QASE_TESTOPS_API_TOKEN=TOKEN
 export QASE_TESTOPS_PROJECT=PRJ
 export QASE_TESTOPS_RUN_ID=42
 export QASE_TEST_RUN_NAME="My test run"
@@ -34,6 +35,7 @@ export K6_SUMMARY_HTML_FILE="/path/to/report.html" # Optional
 ./qasereporter-k6
 
 # Example for Granular Mode
+export QASE_TESTOPS_API_TOKEN=TOKEN
 export QASE_TESTOPS_PROJECT=PRJ
 export QASE_TEST_RUN_NAME="My New Test Run" # Creates a new run
 export QASE_TEST_CASE_NAME="My k6 Test"
