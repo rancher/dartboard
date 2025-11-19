@@ -116,7 +116,7 @@ pipeline {
             // This avoids permission issues inside the container, as the container
             // only needs to read/source the file, not create it.
             def k6EnvContent = """
-baseURL=${baseURL}
+BASE_URL=${baseURL}
 KUBECONFIG=${kubeconfigContainerPath ? kubeconfigContainerPath : ''}
 K6_TEST=${params.K6_TEST_FILE}
 ${params.K6_ENV}
