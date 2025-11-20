@@ -18,7 +18,6 @@ pipeline {
     IMAGE_NAME          = 'dartboard'
     K6_ENV_FILE         = 'k6.env'
     K6_SUMMARY_LOG      = 'k6-summary.log'
-    QASE_TOKEN          = credentials('QASE_TESTOPS_API_TOKEN')
     S3_ARTIFACT_PREFIX  = "${JOB_NAME.split('/').last()}-${BUILD_NUMBER}"
     ARTIFACTS_DIR       = 'deployment-artifacts'
     ACCESS_LOG          = 'access-details.log'
@@ -136,7 +135,7 @@ ${params.K6_ENV}
               docker run --rm --name dartboard-k6-runner \\
                 -v "${pwd()}:/app" \\
                 --workdir /app \\
-                --user "\$(id -u):\$(id -g)" \\
+                --user "root" \\
                 --entrypoint='' \\
                 ${env.IMAGE_NAME}:latest sh -c '''
                   echo "Sourcing environment and running test..."
@@ -145,7 +144,7 @@ ${params.K6_ENV}
                   set +o allexport
 
                   echo "Running k6 test: ${params.K6_TEST_FILE}..."
-                  k6 run ${params.K6_TEST_FILE} | tee ${env.K6_SUMMARY_LOG}
+                  k6 run --no-color ${params.K6_TEST_FILE} --console-output ${env.K6_SUMMARY_LOG}
                 '''
             """
           }
@@ -190,35 +189,37 @@ ${params.K6_ENV}
     }
 
     stage('Report to QASE') {
-      when { expression { return params.REPORT_TO_QASE == 'true' } }
+      when { expression { return params.REPORT_TO_QASE } }
       steps {
         dir('dartboard') {
             script {
                 def k6SummaryJsonFile = "${testFileBasename}-summary.json"
                 def k6ReportHtmlFile = "${testFileBasename}-report.html"
-
-                sh """
-                docker run --rm --name dartboard-qase-reporter \\
-                    -v "${pwd()}:/app" \\
-                    --workdir /app \\
-                    --user "\$(id -u):\$(id -g)" \\
-                    -e QASE_TESTOPS_API_TOKEN="${env.QASE_TOKEN}" \\
-                    -e QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}" \\
-                    -e QASE_TESTOPS_RUN_ID="${params.QASE_TESTOPS_RUN_ID}" \\
-                    -e QASE_TEST_RUN_NAME="${params.QASE_TEST_RUN_NAME}" \\
-                    -e QASE_TEST_CASE_NAME="${testFileBasename}" \\
-                    -e K6_SUMMARY_JSON_FILE="/app/${k6SummaryJsonFile}" \\
-                    -e K6_SUMMARY_HTML_FILE="/app/${k6ReportHtmlFile}" \\
-                    ${env.IMAGE_NAME}:latest sh -c '''
-                        echo "Reporting k6 results to Qase..."
-                        if [ -f "/app/qasereporter-k6/qasereporter-k6" ]; then
-                            /app/qasereporter-k6/qasereporter-k6
-                        else
-                            echo "qasereporter-k6 not found, skipping report."
-                            exit 1
-                        fi
-                    '''
-                """
+                property.useWithCredentials(['QASE_TESTOPS_API_TOKEN']) {
+                  sh """
+                  docker run --rm --name dartboard-qase-reporter \\
+                      -v "${pwd()}:/app" \\
+                      --workdir /app \\
+                      --user "root" \\
+                      --entrypoint='' \\
+                      -e QASE_TESTOPS_API_TOKEN \\
+                      -e QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}" \\
+                      -e QASE_TESTOPS_RUN_ID="${params.QASE_TESTOPS_RUN_ID}" \\
+                      -e QASE_TEST_RUN_NAME="${params.QASE_TEST_RUN_NAME}" \\
+                      -e QASE_TEST_CASE_NAME="${params.QASE_TEST_CASE_NAME}" \\
+                      -e K6_SUMMARY_JSON_FILE="/app/${k6SummaryJsonFile}" \\
+                      -e K6_SUMMARY_HTML_FILE="/app/${k6ReportHtmlFile}" \\
+                      ${env.IMAGE_NAME}:latest sh -c '''
+                          echo "Reporting k6 results to Qase..."
+                          if [ -f "/app/qasereporter-k6/qasereporter-k6" ]; then
+                              /app/qasereporter-k6/qasereporter-k6
+                          else
+                              echo "qasereporter-k6 not found, skipping report."
+                              exit 1
+                          fi
+                      '''
+                  """
+                }
             }
         }
       }
