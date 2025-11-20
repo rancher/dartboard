@@ -30,10 +30,10 @@ type CustomUnifiedClient struct {
 
 // NewCustomUnifiedClient creates a new client that encapsulates V1 and V2 clients.
 func NewCustomUnifiedClient(cfg *config.Config) (*CustomUnifiedClient, error) {
+	// BaseURL is set by the underling APIClients
 	clientConfig := clients.ClientConfig{
 		APIToken: cfg.TestOps.API.Token,
-		// BaseURL:  "https://api.qase.io/v1",
-		Debug: cfg.Debug,
+		Debug:    cfg.Debug,
 	}
 
 	v1Client, err := clients.NewV1Client(clientConfig)
