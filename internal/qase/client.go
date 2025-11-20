@@ -1,8 +1,11 @@
 package qase
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -27,9 +30,9 @@ type CustomUnifiedClient struct {
 
 // NewCustomUnifiedClient creates a new client that encapsulates V1 and V2 clients.
 func NewCustomUnifiedClient(cfg *config.Config) (*CustomUnifiedClient, error) {
+	// BaseURL is set by the underling APIClients
 	clientConfig := clients.ClientConfig{
 		APIToken: cfg.TestOps.API.Token,
-		BaseURL:  "https://api.qase.io/v1",
 		Debug:    cfg.Debug,
 	}
 
@@ -75,13 +78,16 @@ func SetupQaseClient() *CustomUnifiedClient {
 	if cfg.Fallback == "" {
 		cfg.Fallback = config.MODE_REPORT
 	}
+	if cfg.Debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
 
 	qaseClient, err := NewCustomUnifiedClient(cfg)
 	if err != nil {
 		logrus.Fatalf("Failed to create Qase client: %v", err)
 	}
 
-	logrus.Infof("QASE Config: %v", cfg)
+	logrus.Debugf("QASE Config: %v", cfg)
 
 	return qaseClient
 }
@@ -95,13 +101,41 @@ func (c *CustomUnifiedClient) CreateTestRun(ctx context.Context, testRunName, pr
 		"TokenAuth": {Key: c.Config.TestOps.API.Token},
 	})
 
-	resp, _, err := c.V1Client.GetAPIClient().RunsAPI.CreateRun(authCtx, projectCode).RunCreate(*runCreate).Execute()
+	resp, res, err := c.V1Client.GetAPIClient().RunsAPI.CreateRun(authCtx, projectCode).RunCreate(*runCreate).Execute()
+	logResponseBody(res, "CreateTestRun")
 	if err != nil {
 		return 0, fmt.Errorf("failed to create test run: %w", err)
 	}
 	runID := *resp.Result.Id
 	c.Config.TestOps.Run.ID = &runID
 	return runID, nil
+}
+
+// GetTestRun retrieves a Qase test run by its ID.
+func (c *CustomUnifiedClient) GetTestRun(ctx context.Context, projectCode string, runID int64) (*api_v1_client.Run, error) {
+	logrus.Debugf("Getting test run with ID %d in project %s", runID, projectCode)
+
+	authCtx := context.WithValue(ctx, api_v1_client.ContextAPIKeys, map[string]api_v1_client.APIKey{
+		"TokenAuth": {Key: c.Config.TestOps.API.Token},
+	})
+
+	resp, res, err := c.V1Client.GetAPIClient().RunsAPI.GetRun(authCtx, projectCode, int32(runID)).Execute()
+	logResponseBody(res, "GetTestRun")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get test run: %w", err)
+	}
+
+	return resp.Result, nil
+}
+
+// GetTestCase retrieves a Qase test case by its ID.
+func (c *CustomUnifiedClient) GetTestCase(ctx context.Context, projectCode string, caseID int64) (*api_v1_client.TestCase, error) {
+	authCtx := context.WithValue(ctx, api_v1_client.ContextAPIKeys, map[string]api_v1_client.APIKey{
+		"TokenAuth": {Key: c.Config.TestOps.API.Token},
+	})
+	resp, res, err := c.V1Client.GetAPIClient().CasesAPI.GetCase(authCtx, projectCode, int32(caseID)).Execute()
+	logResponseBody(res, "GetTestCase")
+	return resp.Result, err
 }
 
 // CompleteTestRun completes a Qase test run using the V1 client.
@@ -115,7 +149,8 @@ func (c *CustomUnifiedClient) CompleteTestRun(ctx context.Context, projectCode s
 	if c.Config.TestOps.Run.ID != nil {
 		runID := *c.Config.TestOps.Run.ID
 		logrus.Debugf("Completing test run ID: %d", runID)
-		_, _, err := c.V1Client.GetAPIClient().RunsAPI.CompleteRun(authCtx, c.Config.TestOps.Project, int32(runID)).Execute()
+		_, res, err := c.V1Client.GetAPIClient().RunsAPI.CompleteRun(authCtx, c.Config.TestOps.Project, int32(runID)).Execute()
+		logResponseBody(res, "CompleteTestRun")
 		if err != nil {
 			return fmt.Errorf("failed to complete test run: %w", err)
 		}
@@ -165,11 +200,12 @@ func (c *CustomUnifiedClient) GetTestCaseByTitle(ctx context.Context, projectCod
 	var matchingCase *api_v1_client.TestCase
 
 	for {
-		resp, _, err := c.V1Client.GetAPIClient().CasesAPI.GetCases(authCtx, projectCode).
+		resp, res, err := c.V1Client.GetAPIClient().CasesAPI.GetCases(authCtx, projectCode).
 			Search(title).
 			Limit(limit).
 			Offset(offset).
 			Execute()
+		logResponseBody(res, "GetTestCaseByTitle")
 		if err != nil {
 			return nil, fmt.Errorf("failed to get test cases: %w", err)
 		}
@@ -201,8 +237,9 @@ func (c *CustomUnifiedClient) CreateTestResultV1(ctx context.Context, projectCod
 	authCtx := context.WithValue(ctx, api_v1_client.ContextAPIKeys, map[string]api_v1_client.APIKey{
 		"TokenAuth": {Key: c.Config.TestOps.API.Token},
 	})
-	_, r, err := c.V1Client.GetAPIClient().ResultsAPI.CreateResult(authCtx, projectCode, int32(runID)).ResultCreate(result).Execute()
-	if err != nil || !strings.Contains(strings.ToLower(r.Status), "ok") {
+	_, res, err := c.V1Client.GetAPIClient().ResultsAPI.CreateResult(authCtx, projectCode, int32(runID)).ResultCreate(result).Execute()
+	logResponseBody(res, "CreateTestResultV1")
+	if err != nil || !strings.Contains(strings.ToLower(res.Status), "ok") {
 		return fmt.Errorf("failed to create v1 test result or did not receive 'OK; response: %w", err)
 	}
 	return nil
@@ -210,9 +247,27 @@ func (c *CustomUnifiedClient) CreateTestResultV1(ctx context.Context, projectCod
 
 // CreateTestResultV2 creates a test result using the V2 API.
 func (c *CustomUnifiedClient) CreateTestResultV2(ctx context.Context, projectCode string, runID int64, result api_v2_client.ResultCreate) error {
-	_, err := c.V2Client.GetAPIClient().ResultsAPI.CreateResultV2(ctx, projectCode, runID).ResultCreate(result).Execute()
+	res, err := c.V2Client.GetAPIClient().ResultsAPI.CreateResultV2(ctx, projectCode, runID).ResultCreate(result).Execute()
+	logResponseBody(res, "CreateTestResultV2")
 	if err != nil {
 		return fmt.Errorf("failed to create v2 test result: %w", err)
 	}
 	return nil
+}
+
+// logResponseBody reads, logs, and restores an *http.Response.Body for debugging.
+func logResponseBody(res *http.Response, context string) {
+	if res == nil || res.Body == nil {
+		return
+	}
+	defer res.Body.Close()
+
+	bodyBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		logrus.Warnf("Failed to read response body for %s: %v", context, err)
+		return
+	}
+
+	res.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	logrus.Debugf("%s response body: %s", context, string(bodyBytes))
 }

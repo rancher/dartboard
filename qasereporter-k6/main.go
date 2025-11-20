@@ -97,21 +97,13 @@ type K6Check struct {
 func main() {
 	logrus.Info("Running k6 QASE reporter")
 
-	granularParsing := flag.Bool("granular", false, "Enable granular parsing of all Metric and Point lines from k6 JSON output.")
-	flag.Parse()
+	granularReporting := flag.Bool("granular", false, "Enable granular reporting of all Metric and Point lines from k6 JSON output.")
 	// The -runID flag allows overriding the test case ID.
 	runIDOverride := flag.String("runID", "", "Qase test run ID to report results against.")
 	flag.Parse()
 
-	logrus.Info("Granular parsing enabled.")
-	// Granular parsing requires the metrics output file.
-	if projectID == "" || k6MetricsOutputFile == "" {
-		logrus.Fatalf("Missing required environment variables for granular parsing: one of %s, or %s",
-			qase_config.QaseTestOpsProjectEnvVar, k6MetricsOutputFileEnvVar)
-	}
-
 	if runIDStr == "" && runName == "" {
-		logrus.Fatalf("Missing required environment variables for granular parsing: both %s, and %s",
+		logrus.Fatalf("Missing required environment variables for reporting: both %s, and %s",
 			qase_config.QaseTestOpsRunIDEnvVar, qase.TestRunNameEnvVar)
 	}
 
@@ -125,7 +117,7 @@ func main() {
 	parsedRunID, err := strconv.ParseInt(runIDStr, 10, 64)
 	if err != nil {
 		if runName != "" {
-			logrus.Infof("QASE_RUN_ID not found or invalid, creating new test run with name: %s", runName)
+			logrus.Infof("%s not found or invalid, creating new test run with name: %s", qase_config.QaseTestOpsRunIDEnvVar, runName)
 
 			createdRunID, err := qaseClient.CreateTestRun(context.Background(), runName, projectID)
 			if err != nil {
@@ -140,12 +132,12 @@ func main() {
 	} else {
 		runID = parsedRunID
 
-		resp, _, err := qaseClient.V1Client.GetAPIClient().RunsAPI.GetRun(context.Background(), projectID, int32(runID)).Execute()
+		resp, err := qaseClient.GetTestRun(context.Background(), projectID, runID)
 		if err != nil {
-			logrus.Fatalf("Failed to get Qase test run while fetching run title: %v", err)
+			logrus.Fatalf("Failed to get Qase test run while fetching run title (%v): %v", int32(runID), err)
 		}
 
-		runName = *resp.GetResult().Title
+		runName = *resp.Title
 	}
 
 	if testCaseName != "" {
@@ -162,27 +154,42 @@ func main() {
 		logrus.Fatalf("%s environment variable not set.", qase.TestCaseNameEnvVar)
 	}
 
-	if !*granularParsing {
-		reportSummary()
+	// Get the full test case details to check for parameters
+	testCaseDetails, err := qaseClient.GetTestCase(context.Background(), projectID, testCaseID)
+	if err != nil {
+		logrus.Fatalf("Failed to get full details for Qase test case ID %d: %v", testCaseID, err)
+	}
+
+	params := getAndValidateTestCaseParameters(testCaseDetails.Parameters)
+
+	if !*granularReporting {
+		reportSummary(params)
 	} else {
-		reportMetrics()
+		reportMetrics(params)
 	}
 }
 
-func reportMetrics() {
+func reportMetrics(params map[string]string) {
+	logrus.Info("Granular reporting enabled.")
+	// Granular reporting requires the metrics output file.
+	if projectID == "" || k6MetricsOutputFile == "" {
+		logrus.Fatalf("Missing required environment variables for granular reporting: one of %s, or %s",
+			qase_config.QaseTestOpsProjectEnvVar, k6MetricsOutputFileEnvVar)
+	}
+
 	// Read and parse the k6 metrics JSON
 	k6MetricsJsonData, err := os.ReadFile(k6MetricsOutputFile)
 	if err != nil {
 		logrus.Fatalf("Failed to read k6 metrics file %s: %v", k6MetricsOutputFile, err)
 	}
 
-	logrus.Info("Performing granular parsing of k6 metrics JSON.")
+	logrus.Info("Performing granular reporting of k6 metrics JSON.")
 
 	checks, thresholds, overallPass := granularParseK6MetricsJson(k6MetricsJsonData)
 
 	// Build the comment for Qase
 	// NOTE: The granular parser does not have access to the text summary.
-	summary := "Full text summary not available in granular parsing mode."
+	summary := "Full text summary not available in granular reporting mode."
 	comment := buildQaseComment(thresholds, checks, summary)
 
 	// Report to Qase
@@ -195,6 +202,9 @@ func reportMetrics() {
 	resultBody := v1.NewResultCreate(status)
 	resultBody.SetCaseId(testCaseID)
 	resultBody.SetComment(comment)
+	if len(params) > 0 {
+		resultBody.SetParam(params)
+	}
 
 	err = qaseClient.CreateTestResultV1(context.Background(), projectID, runID, *resultBody)
 	if err != nil {
@@ -202,6 +212,42 @@ func reportMetrics() {
 	}
 
 	logrus.Info("Successfully reported k6 results to Qase.")
+}
+
+// getAndValidateTestCaseParameters checks if a test case has parameters and validates that corresponding environment variables are set.
+func getAndValidateTestCaseParameters(testCaseParameters []v1.TestCaseParameter) map[string]string {
+	if len(testCaseParameters) == 0 {
+		logrus.Info("Test case has no parameters, skipping validation.")
+		return nil
+	}
+
+	logrus.Infof("Test case has %d parameter(s), validating against environment variables...", len(testCaseParameters))
+	parametersMap := make(map[string]string)
+
+	for _, parameter := range testCaseParameters {
+		var items []v1.ParameterSingle
+		if parameter.TestCaseParameterSingle != nil {
+			items = append(items, parameter.TestCaseParameterSingle.Item)
+		} else if parameter.TestCaseParameterGroup != nil {
+			items = append(items, parameter.TestCaseParameterGroup.Items...)
+		} else {
+			logrus.Warnf("Skipping unknown or malformed test case parameter.")
+			continue
+		}
+
+		for _, item := range items {
+			parameterTitle := item.Title
+			parameterValue, isSet := os.LookupEnv(parameterTitle)
+
+			if !isSet {
+				logrus.Fatalf("Validation failed: Test case parameter '%s' is not set as an environment variable.", parameterTitle)
+			}
+
+			logrus.Debugf("Found environment variable for parameter '%s'", parameterTitle)
+			parametersMap[parameterTitle] = parameterValue
+		}
+	}
+	return parametersMap
 }
 
 // granularParseK6MetricsJson processes the raw metrics JSON from k6 by inspecting every

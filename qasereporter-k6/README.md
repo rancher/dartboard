@@ -24,6 +24,7 @@ The reporter is configured via environment variables and command-line flags.
 
 ```shell
 # Example for Summary Mode
+export QASE_TESTOPS_API_TOKEN=TOKEN
 export QASE_TESTOPS_PROJECT=PRJ
 export QASE_TESTOPS_RUN_ID=42
 export QASE_TEST_RUN_NAME="My test run"
@@ -34,6 +35,7 @@ export K6_SUMMARY_HTML_FILE="/path/to/report.html" # Optional
 ./qasereporter-k6
 
 # Example for Granular Mode
+export QASE_TESTOPS_API_TOKEN=TOKEN
 export QASE_TESTOPS_PROJECT=PRJ
 export QASE_TEST_RUN_NAME="My New Test Run" # Creates a new run
 export QASE_TEST_CASE_NAME="My k6 Test"
@@ -45,23 +47,24 @@ export K6_SUMMARY_HTML_FILE="/path/to/report.html" # Optional
 
 ### Environment Variables
 
-| Variable                       | Description                                                                                             | Required                               |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `QASE_TESTOPS_API_TOKEN`               | Your Qase API token.                                                                                    | **Yes**                                |
-| `QASE_TESTOPS_PROJECT`         | The Qase project code (e.g., "PRJ").                                                                    | **Yes**                                |
-| `QASE_TEST_CASE_NAME`     | The title of the test case in Qase to which the results will be reported.                               | **Yes**                                |
-| `QASE_TESTOPS_RUN_ID`          | The ID of an existing Qase test run.                                                                    | If `QASE_TEST_RUN_NAME` not set   |
-| `QASE_TEST_RUN_NAME`      | If `QASE_TESTOPS_RUN_ID` is not provided, a new test run will be created with this name.                 | If `QASE_TESTOPS_RUN_ID` not set       |
-| `K6_SUMMARY_JSON_FILE`         | Path to the k6 summary JSON file. (Used in **Summary Mode**).                                           | For Summary Mode                       |
-| `K6_SUMMARY_HTML_FILE`         | (Optional) Path to the k6 HTML report file to be attached to the Qase result. (Used in **Summary Mode**). | No                                     |
-| `K6_OUTPUT_FILE`               | Path to the k6 raw JSON output file. (Used in **Granular Mode**).                                       | For Granular Mode                      |
+| Variable                 | Description                                                                                               | Required                         |
+| ------------------------ | --------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `QASE_TESTOPS_API_TOKEN` | Your Qase API token.                                                                                      | **Yes**                          |
+| `QASE_TESTOPS_PROJECT`   | The Qase project code (e.g., "PRJ").                                                                      | **Yes**                          |
+| `QASE_TEST_CASE_NAME`    | The title of the test case in Qase to which the results will be reported.                                 | **Yes**                          |
+| `QASE_TESTOPS_RUN_ID`    | The ID of an existing Qase test run.                                                                      | If `QASE_TEST_RUN_NAME` not set  |
+| `QASE_TEST_RUN_NAME`     | If `QASE_TESTOPS_RUN_ID` is not provided, a new test run will be created with this name.                  | If `QASE_TESTOPS_RUN_ID` not set |
+| `K6_SUMMARY_JSON_FILE`   | Path to the k6 summary JSON file. (Used in **Summary Mode**).                                             | For Summary Mode                 |
+| `K6_SUMMARY_HTML_FILE`   | (Optional) Path to the k6 HTML report file to be attached to the Qase result. (Used in **Summary Mode**). | No                               |
+| `K6_OUTPUT_FILE`         | Path to the k6 raw JSON output file. (Used in **Granular Mode**).                                         | For Granular Mode                |
+| `QASE_DEBUG`             | A string ("true" or "false") that enables or disables debug logs.                                          | No                               |
 
 ### Command-line Flags
 
-| Flag       | Description                                                                                                                              | Default |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `-granular`  | Enables granular parsing of the raw k6 JSON output stream (`K6_OUTPUT_FILE`). If not set, the tool uses Summary Mode (`K6_SUMMARY_JSON_FILE`). | `false` |
-| `-runID`    | Overrides the Qase **Test Run ID** (`QASE_TESTOPS_RUN_ID`).            | `""`    |
+| Flag        | Description                                                                                                                                      | Default |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| `-granular` | Enables granular reporting of the raw k6 JSON output stream (`K6_OUTPUT_FILE`). If not set, the tool uses Summary Mode (`K6_SUMMARY_JSON_FILE`). | `false` |
+| `-runID`    | Overrides the Qase **Test Run ID** (`QASE_TESTOPS_RUN_ID`).                                                                                      | `""`    |
 
 ## How it works
 
@@ -70,6 +73,11 @@ export K6_SUMMARY_HTML_FILE="/path/to/report.html" # Optional
     *   It uses the `QASE_TESTOPS_RUN_ID` if provided.
     *   If not, it creates a new test run in the specified `QASE_TESTOPS_PROJECT` with the name from `QASE_TEST_RUN_NAME`.
 3.  **Find Test Case**: It fetches the ID of the test case using the title provided in `QASE_TEST_CASE_NAME`.
+4.  **Validate Test Case Parameters**:
+    *   If the fetched Qase test case has parameters defined, the reporter validates that an environment variable exists for each parameter title.
+    *   It supports both "single" and "group" parameter types in Qase.
+    *   If any parameter's corresponding environment variable is not set, the reporter will exit with a fatal error.
+    *   The collected key-value pairs are sent with the test result to Qase.
 4.  **Parse k6 Results**:
     *   In **Summary Mode**, it reads `K6_SUMMARY_JSON_FILE` to extract the status of all checks and thresholds.
     *   In **Granular Mode**, it reads `K6_OUTPUT_FILE` line by line, parsing `Metric` and `Point` objects to determine the status of checks and thresholds.
@@ -78,4 +86,3 @@ export K6_SUMMARY_HTML_FILE="/path/to/report.html" # Optional
     *   It determines an overall status (`passed` or `failed`) based on the parsed results.
     *   It creates a new test result for the specified test case within the test run.
     *   The result includes the status, the Markdown comment, and (in Summary Mode) attaches the HTML report if available.
-
