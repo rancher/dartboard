@@ -18,6 +18,7 @@ pipeline {
     IMAGE_NAME          = 'dartboard'
     K6_ENV_FILE         = 'k6.env'
     K6_SUMMARY_LOG      = 'k6-summary.log'
+    QASE_TOKEN          = credentials('QASE_TESTOPS_API_TOKEN')
     S3_ARTIFACT_PREFIX  = "${JOB_NAME.split('/').last()}-${BUILD_NUMBER}"
     ARTIFACTS_DIR       = 'deployment-artifacts'
     ACCESS_LOG          = 'access-details.log'
@@ -111,6 +112,9 @@ pipeline {
             // Use the 'sh' step with the 'basename' shell command to securely get the filename.
             testFileBasename = sh(script: "basename ${params.K6_TEST_FILE}", returnStdout: true).trim().replace('.js', '')
             env.K6_SUMMARY_LOG = "${testFileBasename}-k6-summary.log"
+            def k6SummaryJsonFile = "${testFileBasename}-summary.json"
+            def k6ReportHtmlFile = "${testFileBasename}-report.html"
+
 
             // Create the k6 environment file on the agent first.
             // This avoids permission issues inside the container, as the container
@@ -119,6 +123,7 @@ pipeline {
 BASE_URL=${baseURL}
 KUBECONFIG=${kubeconfigContainerPath ? kubeconfigContainerPath : ''}
 K6_TEST=${params.K6_TEST_FILE}
+K6_NO_USAGE_REPORT=true
 ${params.K6_ENV}
 """
             writeFile file: "./${env.K6_ENV_FILE}", text: k6EnvContent
@@ -185,6 +190,41 @@ ${params.K6_ENV}
     }
   }
 
+  stage('Report to QASE') {
+    when { expression { return params.REPORT_TO_QASE == 'true' } }
+    steps {
+      dir('dartboard') {
+          script {
+              def k6SummaryJsonFile = "${testFileBasename}-summary.json"
+              def k6ReportHtmlFile = "${testFileBasename}-report.html"
+
+              sh """
+              docker run --rm --name dartboard-qase-reporter \\
+                  -v "${pwd()}:/app" \\
+                  --workdir /app \\
+                  --user "\$(id -u):\$(id -g)" \\
+                  -e QASE_TESTOPS_API_TOKEN="${env.QASE_TOKEN}" \\
+                  -e QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}" \\
+                  -e QASE_TESTOPS_RUN_ID="${params.QASE_TESTOPS_RUN_ID}" \\
+                  -e QASE_TEST_RUN_NAME="${params.QASE_TEST_RUN_NAME}" \\
+                  -e QASE_TEST_CASE_NAME="${testFileBasename}" \\
+                  -e K6_SUMMARY_JSON_FILE="/app/${k6SummaryJsonFile}" \\
+                  -e K6_SUMMARY_HTML_FILE="/app/${k6ReportHtmlFile}" \\
+                  ${env.IMAGE_NAME}:latest sh -c '''
+                      echo "Reporting k6 results to Qase..."
+                      if [ -f "/app/qasereporter-k6/qasereporter-k6" ]; then
+                          /app/qasereporter-k6/qasereporter-k6
+                      else
+                          echo "qasereporter-k6 not found, skipping report."
+                          exit 1
+                      fi
+                  '''
+              """
+          }
+      }
+    }
+  }
+
   post {
     always {
       script {
@@ -205,6 +245,12 @@ ${params.K6_ENV}
           sh "docker rm -f dartboard-k6-runner"
         } catch (e) {
           echo "Could not remove container 'dartboard-k6-runner'. It may have already been removed. Details: ${e.message}"
+        }
+        try {
+          echo "Attempting to remove container: dartboard-qase-reporter"
+          sh "docker rm -f dartboard-qase-reporter"
+        } catch (e) {
+          echo "Could not remove container 'dartboard-qase-reporter'. It may have already been removed. Details: ${e.message}"
         }
         try {
           echo "Attempting to remove image: ${env.IMAGE_NAME}:latest"
