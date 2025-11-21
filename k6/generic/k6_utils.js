@@ -116,7 +116,7 @@ function generateCustomJUnit(data) {
 export function createReports(prefix, data) {
   console.log('Finished executing test! Generating summary reports...');
 
-  const stdout = textSummary(data, { indent: ' ', enableColors: true });
+  const stdout = textSummary(data, { indent: ' ', enableColors: __ENV.NO_COLOR ? false : true});
   // Set the HTML report's title to a Space-separated Pascal Case with the given prefix
   let SummaryReportOptions = { title: prefix.toPascalCase(true) + " Run Report" };
 

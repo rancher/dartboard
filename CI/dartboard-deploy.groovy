@@ -22,8 +22,6 @@ pipeline {
   environment {
     // Define environment variables here.  These are available throughout the pipeline.
     imageName = 'dartboard'
-    qaseToken = credentials('QASE_TESTOPS_API_TOKEN')
-    qaseEnvFile = '.qase.env'
     harvesterKubeconfig = 'harvester.kubeconfig'
     templateDartFile = 'template-dart.yaml'
     renderedDartFile = 'rendered-dart.yaml'
@@ -56,33 +54,13 @@ pipeline {
       }
     }
 
-    stage('Create QASE Environment Variables') {
-      steps {
-        script {
-          def qase = 'REPORT_TO_QASE=' + params.REPORT_TO_QASE + '\n' +
-                      'QASE_TESTOPS_PROJECT=' + params.QASE_TESTOPS_PROJECT + '\n' +
-                      'QASE_TESTOPS_RUN_ID=' + params.QASE_TESTOPS_RUN_ID + '\n' +
-                      'QASE_TEST_RUN_NAME=' + params.QASE_TEST_RUN_NAME + '\n' +
-                      'QASE_TESTOPS_API_TOKEN=' + qaseToken + '\n'
-          writeFile file: qaseEnvFile, text: qase
-          sh """
-          set -o allexport
-          echo '---- .qase.env ----'
-          source ${qaseEnvFile}
-          printenv
-          set +o allexport
-          """
-        }
-      }
-    }
-
     stage('Configure and Build') {
       steps {
         dir('dartboard') {
           script {
             property.useWithProperties(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
               echo "Storing env in file"
-              sh "printenv | egrep '^(ARM_|CATTLE_|ADMIN|USER|DO|RANCHER_|AWS_|DEBUG|LOGLEVEL|DEFAULT_|OS_|DOCKER_|CLOUD_|KUBE|BUILD_NUMBER|AZURE|TEST_|QASE_|SLACK_|harvester|TF_).*=.+' | sort > ${env.envFile}"
+              sh "printenv | egrep '^(ARM_|CATTLE_|ADMIN|USER|DO|RANCHER_|AWS_|DEBUG|LOGLEVEL|DEFAULT_|OS_|DOCKER_|CLOUD_|KUBE|BUILD_NUMBER|AZURE|TEST_|SLACK_|harvester|TF_).*=.+' | sort > ${env.envFile}"
               if (params.EXTRA_ENV_VARS) {
                 sh "echo \"${params.EXTRA_ENV_VARS}\" >> ${env.envFile}"
               }
