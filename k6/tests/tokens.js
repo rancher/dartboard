@@ -15,6 +15,7 @@ const perVuIterations = __ENV.PER_VU_ITERATIONS
 const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
+const userPassword = __ENV.USER_PASSWORD
 
 export const handleSummary = customHandleSummary;
 
@@ -180,7 +181,7 @@ export function useTokens(data) {
   tokens.forEach(token => {
     let bearerToken = data["fullTokens"].find(f => token.id == f.id).token;
     let _, params = useToken(baseUrl, bearerToken)
-    createUser(baseUrl, params, `${token.id}-${exec.scenario.iterationInTest}`);
+    createUser(baseUrl, params, userPassword, `${token.id}-${exec.scenario.iterationInTest}`);
   });
 
   tokensData = getTokens(data);

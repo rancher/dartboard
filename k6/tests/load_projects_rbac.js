@@ -24,6 +24,7 @@ const namePrefix = "projects-test"
 export const timePolled = new Trend('time_polled', true);
 
 const standardUserName = "user-standard"
+const userPassword = __ENV.USER_PASSWORD
 
 // Counters for tracking progress
 const projectsCreated = new Counter('projects_created')
@@ -195,7 +196,7 @@ export function setup() {
   if (deleteAllFailed) fail("Failed to delete all existing test projects during setup!")
 
   console.log("Creating standard user with view-rancher-metrics permissions")
-  let userData = userUtil.createUser(baseUrl, { cookies: cookies }, "standard")
+  let userData = userUtil.createUser(baseUrl, { cookies: cookies }, userPassword, "standard")
   const userPrincipalId = userData.principalIds[0]
   const userId = userData.id
 

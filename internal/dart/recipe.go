@@ -25,6 +25,7 @@ type ChartVariables struct {
 	RancherReplicas             int              `yaml:"rancher_replicas"`
 	DownstreamRancherMonitoring bool             `yaml:"downstream_rancher_monitoring"`
 	AdminPassword               string           `yaml:"admin_password"`
+	UserPassword                string           `yaml:"user_password"`
 	RancherVersion              string           `yaml:"rancher_version"`
 	ForcePrimeRegistry          bool             `yaml:"force_prime_registry"`
 	RancherAppsRepoOverride     string           `yaml:"rancher_apps_repo_override"`

@@ -103,11 +103,12 @@ func loadRolesAndUsers(r *dart.Dart, kubeconfig string, clusterName string, clus
 		return fmt.Errorf("failed loading Roles and Users on cluster %q: %w", clusterName, err)
 	}
 	envVars := map[string]string{
-		"BASE_URL":   clusterAdd.Public.HTTPSURL,
-		"USERNAME":   "admin",
-		"PASSWORD":   r.ChartVariables.AdminPassword,
-		"ROLE_COUNT": roleCount,
-		"USER_COUNT": userCount,
+		"BASE_URL":      clusterAdd.Public.HTTPSURL,
+		"USERNAME":      "admin",
+		"PASSWORD":      r.ChartVariables.AdminPassword,
+		"USER_PASSWORD": r.ChartVariables.UserPassword,
+		"ROLE_COUNT":    roleCount,
+		"USER_COUNT":    userCount,
 	}
 	tags := map[string]string{
 		"cluster": clusterName,
