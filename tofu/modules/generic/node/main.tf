@@ -5,7 +5,6 @@ module "host" {
   ssh_private_key_path        = var.ssh_private_key_path
   ssh_user                    = var.ssh_user
   ssh_tunnels                 = var.ssh_tunnels
-  host_configuration_commands = var.host_configuration_commands
   node_module_variables       = var.node_module_variables
   network_config              = var.network_config
   public                      = var.public

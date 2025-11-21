@@ -46,6 +46,6 @@ resource "null_resource" "host_configuration" {
   }
 
   provisioner "remote-exec" {
-    inline = var.node_module_variables.host_configuration_commands
+    inline = length(var.node_module_variables.host_configuration_commands) > 0 ? var.node_module_variables.host_configuration_commands : ["cat /etc/os-release"]
   }
 }
