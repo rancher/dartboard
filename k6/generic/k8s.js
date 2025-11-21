@@ -20,27 +20,20 @@ function loadKubeconfig(file, contextName) {
     const cluster = config["clusters"].find(c => c["name"] === clusterName)["cluster"]
     const user = config["users"].find(c => c["name"] === userName)["user"]
 
-    if (user['client-certificate-data']) {
-        console.debug("Found client-certificate-data in kubeconfig.");
-    } else {
-        console.debug("Could not find client-certificate-data in kubeconfig.");
-    }
-    if (user['client-key-data']) {
-        console.debug("Found client-key-data in kubeconfig.");
-    } else {
-        console.debug("Could not find client-key-data in kubeconfig.");
-    }
-
     const result = {
         url: cluster['server']
     };
     console.debug(`Kubernetes API server URL: ${result.url}`);
 
-    if (user['client-certificate-data']) {
+    if (user['client-certificate-data'] !== undefined) {
         result.cert = encoding.b64decode(user['client-certificate-data'], 'std', 's');
+    } else {
+        console.debug("Could not find client-certificate-data in kubeconfig.");
     }
-    if (user['client-key-data']) {
+    if (user['client-key-data'] !== undefined) {
         result.key = encoding.b64decode(user['client-key-data'], 'std', 's');
+    } else {
+        console.debug("Could not find client-key-data in kubeconfig.");
     }
     if (user['token']) {
         result.token = user.token;
