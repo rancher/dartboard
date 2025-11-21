@@ -194,8 +194,8 @@ ${params.K6_ENV}
         dir('dartboard') {
             script {
                 def k6SummaryJsonFile = "${testFileBasename}-summary.json"
-                def k6ReportHtmlFile = "${testFileBasename}-report.html"
-                property.useWithCredentials(['QASE_TESTOPS_API_TOKEN']) {
+                def k6ReportHtmlFile = "${testFileBasename}-summary.html"
+                withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
                   sh """
                   docker run --rm --name dartboard-qase-reporter \\
                       -v "${pwd()}:/app" \\
@@ -207,11 +207,12 @@ ${params.K6_ENV}
                       -e QASE_TESTOPS_RUN_ID="${params.QASE_TESTOPS_RUN_ID}" \\
                       -e QASE_TEST_RUN_NAME="${params.QASE_TEST_RUN_NAME}" \\
                       -e QASE_TEST_CASE_NAME="${params.QASE_TEST_CASE_NAME}" \\
-                      -e K6_SUMMARY_JSON_FILE="/app/${k6SummaryJsonFile}" \\
-                      -e K6_SUMMARY_HTML_FILE="/app/${k6ReportHtmlFile}" \\
+                      -e K6_SUMMARY_JSON_FILE="./${k6SummaryJsonFile}" \\
+                      -e K6_SUMMARY_HTML_FILE="./${k6ReportHtmlFile}" \\
                       ${env.IMAGE_NAME}:latest sh -c '''
                           echo "Reporting k6 results to Qase..."
                           if command -v qasereporter-k6 >/dev/null 2>&1; then
+                              source "${env.K6_ENV_FILE}"
                               qasereporter-k6
                           else
                               echo "qasereporter-k6 not found, skipping report."

@@ -134,7 +134,7 @@ func main() {
 
 		resp, err := qaseClient.GetTestRun(context.Background(), projectID, runID)
 		if err != nil {
-			logrus.Fatalf("Failed to get Qase test run while fetching run title (%v): %v", int32(runID), err)
+			logrus.Fatalf("Failed to get Qase test run while fetching run title (runID: %v): %v", int32(runID), err)
 		}
 
 		runName = *resp.Title
