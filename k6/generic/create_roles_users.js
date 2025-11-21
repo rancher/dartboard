@@ -16,6 +16,7 @@ const bindingsPerUser = 5
 const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
+const userPassword = __ENV.USER_PASSWORD
 
 export const handleSummary = customHandleSummary;
 
@@ -154,7 +155,7 @@ export function createUsers(cookies) {
             "description": `Test User ${i}`,
             "enabled": true,
             "mustChangePassword": false,
-            "password": "useruseruser",
+            "password": userPassword,
             "username": `user-${i}`
         }),
         {cookies: cookies}

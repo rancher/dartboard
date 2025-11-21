@@ -113,7 +113,7 @@ export function getClusterIds(baseUrl, cookies) {
   return clusters.map(c => c["id"])
 }
 
-export function createUser(baseUrl, params = null, suffix) {
+export function createUser(baseUrl, params = null, password, suffix) {
   const res = http.post(`${baseUrl}/v3/users`,
     JSON.stringify({
       "type": "user",
@@ -121,7 +121,7 @@ export function createUser(baseUrl, params = null, suffix) {
       "description": `Dartboard Test User ${suffix}`,
       "enabled": true,
       "mustChangePassword": false,
-      "password": "useruseruser",
+      "password": password,
       "username": `user-${suffix}`
     }),
     params
