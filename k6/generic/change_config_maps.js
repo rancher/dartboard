@@ -13,7 +13,6 @@ const vus = __ENV.VUS || 5
 const rate =  (__ENV.RATE || 2) / 2
 
 // Option setting
-const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
 const baseUrl = __ENV.BASE_URL
 
 export const handleSummary = customHandleSummary;
@@ -22,8 +21,8 @@ export const options = {
     insecureSkipTLSVerify: true,
     tlsAuth: [
         {
-            cert: kubeconfig["cert"],
-            key: kubeconfig["key"],
+            cert: k8s.kubeconfig["cert"],
+            key: k8s.kubeconfig["key"],
         },
     ],
 

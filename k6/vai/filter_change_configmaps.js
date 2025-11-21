@@ -34,10 +34,10 @@ const listVUs = Number(__ENV.VUS || 5)
 // https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/arrival-rate-vu-allocation/#pre-allocation-in-arrival-rate-executors
 const changeVUs = Number(__ENV.PRE_ALLOCATED_VUS || 5)
 const duration = (__ENV.DURATION || '2h')
-const diagnosticsInterval = (__ENV.DIAGNOSTICS_INTERVAL || "20m"); // # time unit
+// Collect diagnostics every duration/4 minutes by default
+const diagnosticsInterval = (__ENV.DIAGNOSTICS_INTERVAL || `${parseDurationToMinutes(duration)/4}m`); // # time unit
 // 2 requests per iteration (for change() func), so iteration rate is 1/2 of request rate
 const changeIPS = (__ENV.TARGET_RPS || 10) / 2
-const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
 
 // Metrics
 const diagnosticsBeforeGauge = new Gauge('diagnostics_before_churn');
@@ -71,8 +71,8 @@ export const options = {
   insecureSkipTLSVerify: true,
   tlsAuth: [
     {
-      cert: kubeconfig["cert"],
-      key: kubeconfig["key"],
+      cert: k8s.kubeconfig["cert"],
+      key: k8s.kubeconfig["key"],
     },
   ],
 
