@@ -144,7 +144,7 @@ ${params.K6_ENV}
                   set +o allexport
 
                   echo "Running k6 test: ${params.K6_TEST_FILE}..."
-                  k6 run --no-color ${params.K6_TEST_FILE} --console-output ${env.K6_SUMMARY_LOG}
+                  k6 run --no-color ${params.K6_TEST_FILE} | tee ${env.K6_SUMMARY_LOG}
                 '''
             """
           }
@@ -211,8 +211,8 @@ ${params.K6_ENV}
                       -e K6_SUMMARY_HTML_FILE="/app/${k6ReportHtmlFile}" \\
                       ${env.IMAGE_NAME}:latest sh -c '''
                           echo "Reporting k6 results to Qase..."
-                          if [ -f "/app/qasereporter-k6/qasereporter-k6" ]; then
-                              /app/qasereporter-k6/qasereporter-k6
+                          if command -v qasereporter-k6 >/dev/null 2>&1; then
+                              qasereporter-k6
                           else
                               echo "qasereporter-k6 not found, skipping report."
                               exit 1
