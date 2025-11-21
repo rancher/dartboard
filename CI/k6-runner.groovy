@@ -111,6 +111,9 @@ pipeline {
             // Use the 'sh' step with the 'basename' shell command to securely get the filename.
             testFileBasename = sh(script: "basename ${params.K6_TEST_FILE}", returnStdout: true).trim().replace('.js', '')
             env.K6_SUMMARY_LOG = "${testFileBasename}-k6-summary.log"
+            def k6SummaryJsonFile = "${testFileBasename}-summary.json"
+            def k6ReportHtmlFile = "${testFileBasename}-report.html"
+
 
             // Create the k6 environment file on the agent first.
             // This avoids permission issues inside the container, as the container
@@ -119,6 +122,7 @@ pipeline {
 BASE_URL=${baseURL}
 KUBECONFIG=${kubeconfigContainerPath ? kubeconfigContainerPath : ''}
 K6_TEST=${params.K6_TEST_FILE}
+K6_NO_USAGE_REPORT=true
 ${params.K6_ENV}
 """
             writeFile file: "./${env.K6_ENV_FILE}", text: k6EnvContent
@@ -131,7 +135,7 @@ ${params.K6_ENV}
               docker run --rm --name dartboard-k6-runner \\
                 -v "${pwd()}:/app" \\
                 --workdir /app \\
-                --user "\$(id -u):\$(id -g)" \\
+                --user "root" \\
                 --entrypoint='' \\
                 ${env.IMAGE_NAME}:latest sh -c '''
                   echo "Sourcing environment and running test..."
@@ -140,7 +144,7 @@ ${params.K6_ENV}
                   set +o allexport
 
                   echo "Running k6 test: ${params.K6_TEST_FILE}..."
-                  k6 run ${params.K6_TEST_FILE} | tee ${env.K6_SUMMARY_LOG}
+                  k6 run --no-color ${params.K6_TEST_FILE} | tee ${env.K6_SUMMARY_LOG}
                 '''
             """
           }
@@ -183,6 +187,44 @@ ${params.K6_ENV}
         }
       }
     }
+
+    stage('Report to QASE') {
+      when { expression { return params.REPORT_TO_QASE } }
+      steps {
+        dir('dartboard') {
+            script {
+                def k6SummaryJsonFile = "${testFileBasename}-summary.json"
+                def k6ReportHtmlFile = "${testFileBasename}-summary.html"
+                withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
+                  sh """
+                  docker run --rm --name dartboard-qase-reporter \\
+                      -v "${pwd()}:/app" \\
+                      --workdir /app \\
+                      --user "root" \\
+                      --entrypoint='' \\
+                      -e QASE_TESTOPS_API_TOKEN \\
+                      -e QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}" \\
+                      -e QASE_TESTOPS_RUN_ID="${params.QASE_TESTOPS_RUN_ID}" \\
+                      -e QASE_TEST_RUN_NAME="${params.QASE_TEST_RUN_NAME}" \\
+                      -e QASE_TEST_CASE_NAME="${params.QASE_TEST_CASE_NAME}" \\
+                      -e K6_SUMMARY_JSON_FILE="./${k6SummaryJsonFile}" \\
+                      -e K6_SUMMARY_HTML_FILE="./${k6ReportHtmlFile}" \\
+                      ${env.IMAGE_NAME}:latest sh -c '''
+                          echo "Reporting k6 results to Qase..."
+                          if command -v qasereporter-k6 >/dev/null 2>&1; then
+                              source "${env.K6_ENV_FILE}"
+                              qasereporter-k6
+                          else
+                              echo "qasereporter-k6 not found, skipping report."
+                              exit 1
+                          fi
+                      '''
+                  """
+                }
+            }
+        }
+      }
+    }
   }
 
   post {
@@ -205,6 +247,12 @@ ${params.K6_ENV}
           sh "docker rm -f dartboard-k6-runner"
         } catch (e) {
           echo "Could not remove container 'dartboard-k6-runner'. It may have already been removed. Details: ${e.message}"
+        }
+        try {
+          echo "Attempting to remove container: dartboard-qase-reporter"
+          sh "docker rm -f dartboard-qase-reporter"
+        } catch (e) {
+          echo "Could not remove container 'dartboard-qase-reporter'. It may have already been removed. Details: ${e.message}"
         }
         try {
           echo "Attempting to remove image: ${env.IMAGE_NAME}:latest"

@@ -17,10 +17,12 @@ RUN go mod download && \
 
 RUN cd $WORKSPACE && \
     make && \
-    mv ./dartboard /usr/local/bin/dartboard
+    mv ./dartboard /usr/local/bin/dartboard && \
+    mv ./qasereporter-k6/qasereporter-k6 /usr/local/bin/qasereporter-k6
 
 FROM grafana/k6:${K6_VERSION}
 COPY --from=builder /usr/local/bin/dartboard /bin/dartboard
+COPY --from=builder /usr/local/bin/qasereporter-k6 /bin/qasereporter-k6
 
 # Run the following commands as root user so that we can easily install some needed tools
 USER root
