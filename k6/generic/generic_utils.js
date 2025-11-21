@@ -117,7 +117,6 @@ export function createDeployments(baseUrl, cookies, clusterId, namespace, iter) 
 
 }
 
-
 String.prototype.toPascalCase = function toPascalCase(useSpaces = false) {
   return this
     .match(/[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+/g)

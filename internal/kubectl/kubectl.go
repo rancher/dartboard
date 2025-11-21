@@ -37,6 +37,7 @@ const (
 	K6Namespace      = "tester"
 	K6KubeSecretName = "kube"
 	mimirURL         = "http://mimir.tester:9009/mimir"
+	K6ResultsDir     = "/tmp/k6-results"
 )
 
 type FileEntry struct {
@@ -385,6 +386,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	// prepare volumes and volume mounts
 	volumes := []any{
 		map[string]any{"name": "k6-test-files", "configMap": map[string]string{"name": "k6-test-files"}},
+		map[string]any{"name": "k6-results", "hostPath": map[string]string{"path": K6ResultsDir, "type": "DirectoryOrCreate"}},
 	}
 
 	volumeMounts := []any{}
@@ -398,6 +400,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	if _, ok := envVars["KUBECONFIG"]; ok {
 		volumes = append(volumes, map[string]any{"name": K6KubeSecretName, "secret": map[string]string{"secretName": "kube"}})
 		volumeMounts = append(volumeMounts, map[string]string{"mountPath": "/kube", "name": K6KubeSecretName})
+		volumeMounts = append(volumeMounts, map[string]string{"mountPath": K6ResultsDir, "name": "k6-results"})
 	}
 
 	// prepare pod override map

@@ -39,6 +39,10 @@ tofu_variables:
       instance_type: t3a.large
       ami: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
       root_volume_size_gb: 50
+      host_configuration_commands: [
+        "mkdir -p /tmp/k6-results",
+        "chmod -R 777 /tmp/k6-results",
+      ]
   tester_cluster_distro_module: generic/k3s
 
   downstream_cluster_templates:
