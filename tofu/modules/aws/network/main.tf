@@ -276,7 +276,7 @@ resource "aws_vpc_security_group_ingress_rule" "public_udp_weave" {
 
 resource "aws_vpc_security_group_ingress_rule" "public_k8s" {
   count             = var.ssh_prefix_list != null ? 1 : 0
-  description       = "Allow all traffic to k8s API port"
+  description       = "Allow traffic from prefix-list IPs to k8s API port"
   security_group_id = aws_security_group.public.id
   prefix_list_id    = data.aws_ec2_managed_prefix_list.this[0].id
   from_port         = 6443
