@@ -114,13 +114,9 @@ pipeline {
     stage('Determine Project Name') {
       steps {
         script {
-          // Write the DART file template to the container to parse it
-          sh "docker exec ${runningContainerName} sh -c 'cat > /dartboard/${templateDartFile}'",
-             stdin: params.DART_FILE
-
-          // Use yq to parse the project_name from the DART file inside the container
+          // Use yq to parse the project_name from the DART file contents
           def projectNameFromDart = sh(
-            script: "docker exec ${runningContainerName} yq '.tofu_variables.project_name' /dartboard/${templateDartFile}",
+            script: "docker exec ${runningContainerName} sh -c 'echo \"\$1\" | yq .tofu_variables.project_name' -- '${params.DART_FILE}'",
             returnStdout: true
           ).trim()
 
