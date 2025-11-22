@@ -121,7 +121,7 @@ pipeline {
           ).trim()
 
           // Override DEFAULT_PROJECT_NAME if a valid one is found in the DART file
-          if (projectNameFromDart && projectNameFromDart != 'null' && !projectNameFromDart.startsWith('{')) {
+          if (projectNameFromDart && projectNameFromDart != 'null' && !projectNameFromDart.startsWith('$')) {
             echo "Using project_name from DART file: ${projectNameFromDart}"
             finalProjectName = projectNameFromDart
           } else {
