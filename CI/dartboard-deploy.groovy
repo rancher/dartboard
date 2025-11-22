@@ -81,7 +81,7 @@ pipeline {
               -v ${pwd()}/dartboard:/dartboard \\
               --workdir /dartboard \\
               --env-file dartboard/${env.envFile} \\
-              --entrypoint='' --user root \\
+              --entrypoint='' --user=$(id -u) \\
               ${env.imageName}:latest sleep infinity
           """
         }
@@ -104,7 +104,7 @@ pipeline {
             echo "VERIFICATION FOR PUB KEY:"
             cat /dartboard/${finalSSHKeyName}.pub
           """
-          sh "docker exec --user root ${runningContainerName} sh -c '${sshScript}' -- '${finalSSHPemKey}'"
+          sh "docker exec --user=$(id -u) ${runningContainerName} sh -c '${sshScript}' -- '${finalSSHPemKey}'"
         }
       }
     }
@@ -122,7 +122,7 @@ pipeline {
 
             // Use docker exec to write all parameter files to the container
             sh """
-              docker exec --user root --workdir /dartboard ${runningContainerName} sh -c '''
+              docker exec --user=$(id -u) --workdir /dartboard ${runningContainerName} sh -c '''
                 echo "Writing parameter files to container using here-documents to preserve special characters..."
 
                 # Write HARVESTER_KUBECONFIG to harvester.kubeconfig
@@ -150,7 +150,7 @@ EOF
         script {
           retry(3) {
             sh """
-              docker exec --user root --workdir /dartboard ${runningContainerName} dartboard \\
+              docker exec --user=$(id -u) --workdir /dartboard ${runningContainerName} dartboard \\
                 --dart ${env.renderedDartFile} redeploy
             """
           }
@@ -162,7 +162,7 @@ EOF
             // Dynamically determine the OpenTofu state directory path
             // Create archives inside the container
             sh """
-              docker exec --user root --workdir /dartboard ${runningContainerName} sh -c '''
+              docker exec --user=$(id -u) --workdir /dartboard ${runningContainerName} sh -c '''
                   echo "Creating archives..."
                   tofuMainDir=\$(yq ".tofu_main_directory" ${env.renderedDartFile})
                   tfstateDir="\${tofuMainDir}/terraform.tfstate.d/"
@@ -189,7 +189,7 @@ EOF
           script {
             echo "Setup failed. Running dartboard destroy..."
             sh """
-              docker exec --user root --workdir /dartboard ${runningContainerName} dartboard \\
+              docker exec --user=$(id -u) --workdir /dartboard ${runningContainerName} dartboard \\
               --dart ${env.renderedDartFile} destroy
             """
           }
@@ -200,7 +200,7 @@ EOF
     stage('Get Access Details') {
       steps {
         script {
-          sh "docker exec --user root --workdir /dartboard ${runningContainerName} sh -c 'dartboard --dart ${env.renderedDartFile} get-access > ${env.accessDetailsLog}'"
+          sh "docker exec --user=$(id -u) --workdir /dartboard ${runningContainerName} sh -c 'dartboard --dart ${env.renderedDartFile} get-access > ${env.accessDetailsLog}'"
           echo "---- Access Details ----"
           sh "docker exec ${runningContainerName} cat /dartboard/${env.accessDetailsLog}"
         }

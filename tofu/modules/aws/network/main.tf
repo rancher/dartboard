@@ -204,7 +204,7 @@ resource "aws_security_group" "ssh_ipv4" {
 
   tags = {
     Project = var.project_name
-    Name    = "${var.project_name}-public-security-group"
+    Name    = "${var.project_name}-ssh-security-group"
   }
 }
 
@@ -282,6 +282,18 @@ resource "aws_vpc_security_group_ingress_rule" "public_k8s" {
   from_port         = 6443
   to_port           = 6443
   ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "public_k8s_cidrs" {
+  for_each = toset([
+    "3.0.0.0/8", "52.0.0.0/8", "13.0.0.0/8", "18.0.0.0/8", "54.0.0.0/8"
+  ])
+  description       = "K8s API from Approved CIDR ranges (${each.value})"
+  from_port         = 6443
+  to_port           = 6443
+  ip_protocol       = "tcp"
+  cidr_ipv4         = each.value
+  security_group_id = aws_security_group.public.id
 }
 
 resource "aws_vpc_security_group_ingress_rule" "public_rke2" {
@@ -378,9 +390,9 @@ resource "aws_vpc_security_group_ingress_rule" "private_udp_weave" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "private_k8s" {
-  description       = "Allow traffic from prefix-list IPs to k8s API port"
+  description       = "Allow traffic from this machine to k8s API port"
   security_group_id = aws_security_group.private.id
-  prefix_list_id    = data.aws_ec2_managed_prefix_list.this[0].id
+  cidr_ipv4         = local.myip
   from_port         = 6443
   to_port           = 6443
   ip_protocol       = "tcp"

@@ -200,7 +200,7 @@ ${params.K6_ENV}
                   docker run --rm --name dartboard-qase-reporter \\
                       -v "${pwd()}:/app" \\
                       --workdir /app \\
-                      --user "root" \\
+                      --user=$(id -u) \\
                       --entrypoint='' \\
                       -e QASE_TESTOPS_API_TOKEN \\
                       -e QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}" \\
