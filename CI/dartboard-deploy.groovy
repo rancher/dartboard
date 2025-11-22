@@ -78,11 +78,12 @@ pipeline {
           generatedNames = generate.names()
           runningContainerName = "${generatedNames.container}-service"
           sh """
-            docker run -d --rm --name ${runningContainerName} \\\\
-              -v ${pwd()}/dartboard:/dartboard \\\\
-              --workdir /dartboard \\\\
-              --env-file dartboard/${env.envFile} \\\\
-              --entrypoint='' --user=\$(id -u) \\\\
+            docker run -d --rm --name ${runningContainerName} \\
+              -v ${pwd()}/dartboard:/dartboard \\
+              --workdir /dartboard \\
+              --env-file dartboard/${env.envFile} \\
+              --entrypoint='' \\
+              --user=\$(id -u) \\
               ${env.imageName}:latest sleep infinity
           """
         }
