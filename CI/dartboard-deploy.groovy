@@ -15,6 +15,7 @@ def parseToHTML(text) { text.replace('&', '&amp;').replace('<', '&lt;').replace(
 def runningContainerName
 def finalSSHKeyName
 def finalSSHPemKey
+def finalProjectName
 
 pipeline {
   agent { label agentLabel }
@@ -109,6 +110,31 @@ pipeline {
       }
     }
 
+    stage('Determine Project Name') {
+      steps {
+        script {
+          // Write the DART file template to the container to parse it
+          sh "docker exec ${runningContainerName} sh -c 'cat > /dartboard/${templateDartFile}'",
+             stdin: params.DART_FILE
+
+          // Use yq to parse the project_name from the DART file inside the container
+          def projectNameFromDart = sh(
+            script: "docker exec ${runningContainerName} yq '.tofu_variables.project_name' /dartboard/${templateDartFile}",
+            returnStdout: true
+          ).trim()
+
+          // Override DEFAULT_PROJECT_NAME if a valid one is found in the DART file
+          if (projectNameFromDart && projectNameFromDart != 'null' && !projectNameFromDart.startsWith('{')) {
+            echo "Using project_name from DART file: ${projectNameFromDart}"
+            finalProjectName = projectNameFromDart
+          } else {
+            finalProjectName = env.DEFAULT_PROJECT_NAME
+            echo "Using default project name: ${env.DEFAULT_PROJECT_NAME}"
+          }
+        }
+      }
+    }
+
     stage('Prepare Parameter Files') {
       steps {
         script {
@@ -170,8 +196,8 @@ EOF
 
                   if [ -d "\${tfstateDir}" ]; then
                     echo "Creating OpenTofu state archive from '\${tfstateDir}'..."
-                    archiveName="tfstate-${env.DEFAULT_PROJECT_NAME}.zip"
-                    (cd "\${tfstateDir}" && zip -r "/dartboard/\${archiveName}" "${env.DEFAULT_PROJECT_NAME}")
+                    archiveName="tfstate-${finalProjectName}.zip"
+                    (cd "\${tfstateDir}" && zip -r "/dartboard/\${archiveName}" "${finalProjectName}")
                   else
                     echo "Could not find OpenTofu state directory at '\${tfstateDir}', skipping archive creation."
                   fi
@@ -251,7 +277,7 @@ EOF
                 <ul>
                   ${fileExists(env.renderedDartFile) ? "<li><a href='${env.BUILD_URL}artifact/dartboard/${env.renderedDartFile}' download target='_blank'>Download Rendered DART File (${env.renderedDartFile})</a></li>" : ""}
                   ${configDirPath ? "<li><a href='${env.BUILD_URL}artifact/dartboard/${configDirPath.split('/').last()}.zip' download target='_blank'>Download Cluster Configs (${configDirPath.split('/').last()}.zip)</a></li>" : ""}
-                  ${fileExists("tfstate-${env.DEFAULT_PROJECT_NAME}.zip") ? "<li><a href='${env.BUILD_URL}artifact/dartboard/tfstate-${env.DEFAULT_PROJECT_NAME}.zip' download target='_blank'>Download OpenTofu State (tfstate-${env.DEFAULT_PROJECT_NAME}.zip)</a></li>" : ""}
+                  ${fileExists("tfstate-${finalProjectName}.zip") ? "<li><a href='${env.BUILD_URL}artifact/dartboard/tfstate-${finalProjectName}.zip' download target='_blank'>Download OpenTofu State (tfstate-${finalProjectName}.zip)</a></li>" : ""}
                 </ul>
                 <p><i>See 'Archived Artifacts' for all generated files, including tofu state.</i></p>
               </body>
@@ -270,7 +296,7 @@ EOF
             // Explicitly copy only the artifacts used for the build summary and S3 upload
             sh """
               cp ${env.renderedDartFile} ${s3ArtifactsDir}/ 2>/dev/null || true
-              cp tfstate-${env.DEFAULT_PROJECT_NAME}.zip ${s3ArtifactsDir}/ 2>/dev/null || true
+              cp tfstate-${finalProjectName}.zip ${s3ArtifactsDir}/ 2>/dev/null || true
               cp ${env.accessDetailsLog} ${s3ArtifactsDir}/ 2>/dev/null || true
               if [ -n "${configZipFile}" ]; then cp ${configZipFile} ${s3ArtifactsDir}/ 2>/dev/null || true; fi
             """
@@ -282,7 +308,7 @@ EOF
                 -e AWS_ACCESS_KEY_ID \\
                 -e AWS_SECRET_ACCESS_KEY \\
                 -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
-                amazon/aws-cli s3 cp /artifacts "s3://${params.S3_BUCKET_NAME}/${env.DEFAULT_PROJECT_NAME}/" --recursive
+                amazon/aws-cli s3 cp /artifacts "s3://${params.S3_BUCKET_NAME}/${finalProjectName}/" --recursive
             """, returnStatus: true
 
             // Clean up the temporary directory
