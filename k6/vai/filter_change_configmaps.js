@@ -310,9 +310,9 @@ export function change() {
     "data": { "data": configMapData }
   }
 
-  k8s.create(`${kubeconfig.url}/api/v1/namespaces/${namespace}/configmaps`, body, false)
+  k8s.create(`${k8s.kubeconfig.url}/api/v1/namespaces/${namespace}/configmaps`, body, false)
   churnOpsCounter.add(1, { resource: resource });
-  k8s.del(`${kubeconfig.url}/api/v1/namespaces/${namespace}/configmaps/${name}`)
+  k8s.del(`${k8s.kubeconfig.url}/api/v1/namespaces/${namespace}/configmaps/${name}`)
   churnOpsCounter.add(1, { resource: resource });
 }
 
