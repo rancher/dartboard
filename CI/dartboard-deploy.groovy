@@ -15,6 +15,7 @@ def parseToHTML(text) { text.replace('&', '&amp;').replace('<', '&lt;').replace(
 def runningContainerName
 def finalSSHKeyName
 def finalSSHPemKey
+def finalProjectName
 
 pipeline {
   agent { label agentLabel }
@@ -81,7 +82,8 @@ pipeline {
               -v ${pwd()}/dartboard:/dartboard \\
               --workdir /dartboard \\
               --env-file dartboard/${env.envFile} \\
-              --entrypoint='' --user=$(id -u) \\
+              --entrypoint='' \\
+              --user=\$(id -u) \\
               ${env.imageName}:latest sleep infinity
           """
         }
@@ -104,7 +106,28 @@ pipeline {
             echo "VERIFICATION FOR PUB KEY:"
             cat /dartboard/${finalSSHKeyName}.pub
           """
-          sh "docker exec --user=$(id -u) ${runningContainerName} sh -c '${sshScript}' -- '${finalSSHPemKey}'"
+          sh "docker exec --user=\$(id -u) ${runningContainerName} sh -c '${sshScript}' -- '${finalSSHPemKey}'"
+        }
+      }
+    }
+
+    stage('Determine Project Name') {
+      steps {
+        script {
+          // Use yq to parse the project_name from the DART file contents
+          def projectNameFromDart = sh(
+            script: "docker exec ${runningContainerName} sh -c 'echo \"\$1\" | yq .tofu_variables.project_name' -- '${params.DART_FILE}'",
+            returnStdout: true
+          ).trim()
+
+          // Override DEFAULT_PROJECT_NAME if a valid one is found in the DART file
+          if (projectNameFromDart && projectNameFromDart != 'null' && !projectNameFromDart.startsWith('$')) {
+            echo "Using project_name from DART file: ${projectNameFromDart}"
+            finalProjectName = projectNameFromDart
+          } else {
+            finalProjectName = env.DEFAULT_PROJECT_NAME
+            echo "Using default project name: ${env.DEFAULT_PROJECT_NAME}"
+          }
         }
       }
     }
@@ -122,7 +145,7 @@ pipeline {
 
             // Use docker exec to write all parameter files to the container
             sh """
-              docker exec --user=$(id -u) --workdir /dartboard ${runningContainerName} sh -c '''
+              docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} sh -c '''
                 echo "Writing parameter files to container using here-documents to preserve special characters..."
 
                 # Write HARVESTER_KUBECONFIG to harvester.kubeconfig
@@ -150,7 +173,7 @@ EOF
         script {
           retry(3) {
             sh """
-              docker exec --user=$(id -u) --workdir /dartboard ${runningContainerName} dartboard \\
+              docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} dartboard \\
                 --dart ${env.renderedDartFile} redeploy
             """
           }
@@ -162,7 +185,7 @@ EOF
             // Dynamically determine the OpenTofu state directory path
             // Create archives inside the container
             sh """
-              docker exec --user=$(id -u) --workdir /dartboard ${runningContainerName} sh -c '''
+              docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} sh -c '''
                   echo "Creating archives..."
                   tofuMainDir=\$(yq ".tofu_main_directory" ${env.renderedDartFile})
                   tfstateDir="\${tofuMainDir}/terraform.tfstate.d/"
@@ -170,8 +193,8 @@ EOF
 
                   if [ -d "\${tfstateDir}" ]; then
                     echo "Creating OpenTofu state archive from '\${tfstateDir}'..."
-                    archiveName="tfstate-${env.DEFAULT_PROJECT_NAME}.zip"
-                    (cd "\${tfstateDir}" && zip -r "/dartboard/\${archiveName}" "${env.DEFAULT_PROJECT_NAME}")
+                    archiveName="tfstate-${finalProjectName}.zip"
+                    (cd "\${tfstateDir}" && zip -r "/dartboard/\${archiveName}" "${finalProjectName}")
                   else
                     echo "Could not find OpenTofu state directory at '\${tfstateDir}', skipping archive creation."
                   fi
@@ -189,7 +212,7 @@ EOF
           script {
             echo "Setup failed. Running dartboard destroy..."
             sh """
-              docker exec --user=$(id -u) --workdir /dartboard ${runningContainerName} dartboard \\
+              docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} dartboard \\
               --dart ${env.renderedDartFile} destroy
             """
           }
@@ -200,7 +223,7 @@ EOF
     stage('Get Access Details') {
       steps {
         script {
-          sh "docker exec --user=$(id -u) --workdir /dartboard ${runningContainerName} sh -c 'dartboard --dart ${env.renderedDartFile} get-access > ${env.accessDetailsLog}'"
+          sh "docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} sh -c 'dartboard --dart ${env.renderedDartFile} get-access > ${env.accessDetailsLog}'"
           echo "---- Access Details ----"
           sh "docker exec ${runningContainerName} cat /dartboard/${env.accessDetailsLog}"
         }
@@ -251,7 +274,7 @@ EOF
                 <ul>
                   ${fileExists(env.renderedDartFile) ? "<li><a href='${env.BUILD_URL}artifact/dartboard/${env.renderedDartFile}' download target='_blank'>Download Rendered DART File (${env.renderedDartFile})</a></li>" : ""}
                   ${configDirPath ? "<li><a href='${env.BUILD_URL}artifact/dartboard/${configDirPath.split('/').last()}.zip' download target='_blank'>Download Cluster Configs (${configDirPath.split('/').last()}.zip)</a></li>" : ""}
-                  ${fileExists("tfstate-${env.DEFAULT_PROJECT_NAME}.zip") ? "<li><a href='${env.BUILD_URL}artifact/dartboard/tfstate-${env.DEFAULT_PROJECT_NAME}.zip' download target='_blank'>Download OpenTofu State (tfstate-${env.DEFAULT_PROJECT_NAME}.zip)</a></li>" : ""}
+                  ${fileExists("tfstate-${finalProjectName}.zip") ? "<li><a href='${env.BUILD_URL}artifact/dartboard/tfstate-${finalProjectName}.zip' download target='_blank'>Download OpenTofu State (tfstate-${finalProjectName}.zip)</a></li>" : ""}
                 </ul>
                 <p><i>See 'Archived Artifacts' for all generated files, including tofu state.</i></p>
               </body>
@@ -270,7 +293,7 @@ EOF
             // Explicitly copy only the artifacts used for the build summary and S3 upload
             sh """
               cp ${env.renderedDartFile} ${s3ArtifactsDir}/ 2>/dev/null || true
-              cp tfstate-${env.DEFAULT_PROJECT_NAME}.zip ${s3ArtifactsDir}/ 2>/dev/null || true
+              cp tfstate-${finalProjectName}.zip ${s3ArtifactsDir}/ 2>/dev/null || true
               cp ${env.accessDetailsLog} ${s3ArtifactsDir}/ 2>/dev/null || true
               if [ -n "${configZipFile}" ]; then cp ${configZipFile} ${s3ArtifactsDir}/ 2>/dev/null || true; fi
             """
@@ -282,7 +305,7 @@ EOF
                 -e AWS_ACCESS_KEY_ID \\
                 -e AWS_SECRET_ACCESS_KEY \\
                 -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
-                amazon/aws-cli s3 cp /artifacts "s3://${params.S3_BUCKET_NAME}/${env.DEFAULT_PROJECT_NAME}/" --recursive
+                amazon/aws-cli s3 cp /artifacts "s3://${params.S3_BUCKET_NAME}/${finalProjectName}/" --recursive
             """, returnStatus: true
 
             // Clean up the temporary directory
