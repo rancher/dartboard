@@ -204,7 +204,7 @@ ${params.K6_ENV}
               docker run --rm --name dartboard-k6-runner \\
                 -v "${pwd()}:/app" \\
                 --workdir /app \\
-                --user "root" \\
+                --user=\$(id -u) \\
                 --entrypoint='' \\
                 ${env.IMAGE_NAME}:latest sh -c '''
                   echo "Sourcing environment and running test..."
@@ -269,7 +269,7 @@ ${params.K6_ENV}
                   docker run --rm --name dartboard-qase-reporter \\
                       -v "${pwd()}:/app" \\
                       --workdir /app \\
-                      --user=$(id -u) \\
+                      --user=\$(id -u) \\
                       --entrypoint='' \\
                       -e QASE_TESTOPS_API_TOKEN \\
                       -e QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}" \\
