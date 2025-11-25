@@ -8,7 +8,7 @@ import * as k8s from '../generic/k8s.js'
 import { customHandleSummary } from '../generic/k6_utils.js';
 
 // Parameters
-const namespace = "longhorn-system"
+const namespace = ""
 const token = __ENV.TOKEN
 const secretCount = Number(__ENV.SECRET_COUNT)
 const secretData = encoding.b64encode("a".repeat(10*1024))

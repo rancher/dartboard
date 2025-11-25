@@ -3,12 +3,14 @@ import * as k8s from '../generic/k8s.js'
 import { login, getCookies } from '../rancher/rancher_utils.js';
 import http from 'k6/http';
 import { customHandleSummary } from '../generic/k6_utils.js';
+import {loadKubeconfig} from '../generic/k8s.js'
 
 
 // Parameters
 const vus = __ENV.VUS
 const perVuIterations = __ENV.PER_VU_ITERATIONS
-const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
+const token = __ENV.TOKEN
+const kubeconfig = loadKubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
 const baseUrl = kubeconfig["url"].replace(":6443", "")
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
@@ -42,12 +44,32 @@ function pause() {
 }
 
 export function setup() {
-    if (!login(baseUrl, {}, username, password)) {
-        fail(`could not login into cluster`)
-    }
-    const cookies = getCookies(baseUrl)
+  // if session cookie was specified, save it
+  if (token) {
+    return { R_SESS: token }
+  }
+
+  // if credentials were specified, log in
+  if (username && password) {
+    const res = http.post(`${baseUrl}/v3-public/localProviders/local?action=login`, JSON.stringify({
+      "description": "UI session",
+      "responseType": "cookie",
+      "username": username,
+      "password": password
+    }))
+
+    check(res, {
+      'logging in returns status 200': (r) => r.status === 200,
+    })
+
+    pause()
+
+    const cookies = http.cookieJar().cookiesForURL(res.url)
 
     return cookies
+  }
+
+  return {}
 }
 
 export function list(cookies, filters = "") {
