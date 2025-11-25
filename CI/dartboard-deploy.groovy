@@ -90,6 +90,22 @@ pipeline {
       }
     }
 
+    stage('Set Build Description') {
+      steps {
+        script {
+          // Use yq inside the running service container to parse the rancher_version from the DART file contents
+          def rancherVersion = sh(
+            script: "docker exec ${runningContainerName} sh -c 'echo \"\$1\" | yq .chart_variables.rancher_version' -- '${params.DART_FILE}'",
+            returnStdout: true
+          ).trim()
+
+          if (rancherVersion && rancherVersion != 'null') {
+            currentBuild.description = "Rancher v${rancherVersion}"
+          }
+        }
+      }
+    }
+
     stage('Setup SSH Keys') {
       steps {
         script {
