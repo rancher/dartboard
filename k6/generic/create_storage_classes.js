@@ -4,16 +4,18 @@ import { createStorageClasses } from '../generic/generic_utils.js';
 import { login, getCookies } from '../rancher/rancher_utils.js';
 import {fail} from 'k6';
 import * as k8s from '../generic/k8s.js'
+import {loadKubeconfig} from '../generic/k8s.js'
 import { customHandleSummary } from '../generic/k6_utils.js';
 
 // Parameters
-const namespace = "scalability-test"
+//const namespace = "longhorn-system"
+const token = __ENV.TOKEN
 const storageClassCount =Number(__ENV.STORAGECLASS_COUNT)
 const clusterId = "local"
 const vus = __ENV.VUS || 2
 
 // Option setting
-const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
+const kubeconfig = loadKubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
 const baseUrl = kubeconfig["url"].replace(":6443", "")
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
@@ -48,14 +50,32 @@ export const options = {
 };
 
 export function setup() {
+  // if session cookie was specified, save it
+  if (token) {
+    return { R_SESS: token }
+  }
 
-    // log in
-    if (!login(baseUrl, {}, username, password)) {
-        fail(`could not login into cluster`)
-    }
-    const cookies = getCookies(baseUrl)
+  // if credentials were specified, log in
+  if (username && password) {
+    const res = http.post(`${baseUrl}/v3-public/localProviders/local?action=login`, JSON.stringify({
+      "description": "UI session",
+      "responseType": "cookie",
+      "username": username,
+      "password": password
+    }))
+
+    check(res, {
+      'logging in returns status 200': (r) => r.status === 200,
+    })
+
+    pause()
+
+    const cookies = http.cookieJar().cookiesForURL(res.url)
 
     return cookies
+  }
+
+  return {}
 }
 
 // create storage classes
