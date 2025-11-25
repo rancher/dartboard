@@ -286,7 +286,7 @@ resource "aws_vpc_security_group_ingress_rule" "public_k8s" {
 
 resource "aws_vpc_security_group_ingress_rule" "public_k8s_cidrs" {
   for_each = toset([
-    "3.0.0.0/8", "52.0.0.0/8", "13.0.0.0/8", "18.0.0.0/8", "54.0.0.0/8"
+    "3.0.0.0/8", "52.0.0.0/8", "13.0.0.0/8", "18.0.0.0/8", "54.0.0.0/8", local.myip
   ])
   description       = "K8s API from Approved CIDR ranges (${each.value})"
   from_port         = 6443
