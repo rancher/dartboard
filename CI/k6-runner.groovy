@@ -39,8 +39,6 @@ pipeline {
       steps {
         script {
           def testFile = params.K6_TEST_FILE ?: ''
-          sh "echo '---- Test File ----'"
-          sh "echo ${testFile}
           currentBuild.description = "${testFile}"
         }
       }

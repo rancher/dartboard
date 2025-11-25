@@ -99,9 +99,6 @@ pipeline {
             returnStdout: true
           ).trim()
 
-          sh "echo '---- Rancher Version ----'"
-          sh "echo ${rancherVersion}
-
           if (rancherVersion && rancherVersion != 'null') {
             currentBuild.description = "Rancher v${rancherVersion}"
           }
