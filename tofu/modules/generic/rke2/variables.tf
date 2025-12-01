@@ -3,7 +3,6 @@ variable "project_name" {
   default     = "st"
 }
 
-
 variable "name" {
   description = "Symbolic name of this cluster"
   type        = string
@@ -114,4 +113,3 @@ variable "datastore_endpoint" {
   type        = string
   default     = null
 }
-
