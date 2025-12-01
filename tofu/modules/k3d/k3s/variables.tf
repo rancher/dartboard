@@ -105,7 +105,6 @@ variable "node_module" {
   default     = null
 }
 
-
 variable "node_module_variables" {
   description = "Ignored"
   type        = any
