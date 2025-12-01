@@ -1,5 +1,6 @@
 variable "project_name" {
   description = "A prefix for names of objects created by this module"
+  type        = string
   default     = "st"
 }
 
@@ -43,12 +44,14 @@ variable "ssh_bastion_user" {
 
 variable "bastion_host_ami" {
   description = "AMI ID"
+  type        = string
   default     = "ami-0e55a8b472a265e3f"
   // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
 }
 
 variable "bastion_host_instance_type" {
   description = "EC2 instance type"
+  type        = string
   default     = "t4g.large"
 }
 
