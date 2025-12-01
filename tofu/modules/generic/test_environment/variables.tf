@@ -10,6 +10,7 @@ variable "ssh_private_key_path" {
 
 variable "ssh_user" {
   description = "User name to use for the SSH connection to all nodes in all clusters"
+  type        = string
   default     = "root"
 }
 
@@ -42,6 +43,7 @@ variable "upstream_cluster" {
 
 variable "upstream_cluster_distro_module" {
   description = "Name of the module to use for the upstream cluster"
+  type        = string
   default     = "generic/k3s"
 }
 
@@ -75,6 +77,7 @@ variable "downstream_cluster_templates" {
 # https://github.com/opentofu/opentofu/issues/2155
 variable "downstream_cluster_distro_module" {
   description = "Name of the module to use for the downstream clusters"
+  type        = string
   default     = "generic/k3s"
 }
 
@@ -97,12 +100,14 @@ variable "tester_cluster" {
 
 variable "tester_cluster_distro_module" {
   description = "Name of the module to use for the tester cluster"
+  type        = string
   default     = "generic/k3s"
 }
 
 # "Multi-tenancy" variables
 variable "project_name" {
   description = "Name of this project, used as prefix for resources it creates"
+  type        = string
   default     = "st"
 }
 

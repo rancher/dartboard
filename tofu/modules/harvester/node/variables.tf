@@ -1,5 +1,6 @@
 variable "project_name" {
   description = "A prefix for names of objects created by this module"
+  type        = string
   default     = "st"
 }
 
@@ -26,6 +27,7 @@ variable "ssh_tunnels" {
 
 variable "host_configuration_commands" {
   description = "Commands to run when the host is deployed"
+  type        = list(string)
   default = [
     "echo 'Waiting for cloud-init to complete...'",
     "cloud-init status --wait > /dev/null",
@@ -36,6 +38,7 @@ variable "host_configuration_commands" {
 
 variable "public" {
   description = "Whether the node is publicly accessible"
+  type        = bool
   default     = false
 }
 
