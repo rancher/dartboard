@@ -24,7 +24,7 @@ jobs:
           cache: false
 
       - name: Build dartboard
-        run: make
+        run: make build
 
       - name: Install k3d
         run: |
