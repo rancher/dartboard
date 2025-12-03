@@ -18,12 +18,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Go
-        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
-        with:
-          go-version-file: './go.mod'
-          cache: false
-
       - name: Download vendored binaries
         run: sh download-vendored-bin.sh
 
