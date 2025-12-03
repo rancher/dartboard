@@ -325,7 +325,7 @@ resource "k3d_cluster" "cluster" {
 
 locals {
   local_kubernetes_api_url = nonsensitive(k3d_cluster.cluster[0].credentials[0].host)
-  k3d_cluster_name = "${var.project_name}-${var.name}"
+  k3d_cluster_name         = "${var.project_name}-${var.name}"
 }
 
 resource "local_file" "kubeconfig" {

@@ -9,7 +9,7 @@ data "aws_vpc" "existing" {
 }
 
 data "aws_internet_gateway" "existing" {
-  count  = local.create_vpc ? 0 : 1
+  count = local.create_vpc ? 0 : 1
   filter {
     name   = "attachment.vpc-id"
     values = [local.vpc_id]
@@ -18,8 +18,8 @@ data "aws_internet_gateway" "existing" {
 
 # Data sources to look up existing subnets
 data "aws_subnet" "public" {
-  count = local.create_vpc ? 0 : 1
-  vpc_id = one(data.aws_vpc.existing[*].id)
+  count             = local.create_vpc ? 0 : 1
+  vpc_id            = one(data.aws_vpc.existing[*].id)
   availability_zone = var.availability_zone
 
   tags = {
@@ -29,8 +29,8 @@ data "aws_subnet" "public" {
 }
 
 data "aws_subnet" "private" {
-  count = !local.create_vpc ? 1 : 0
-  vpc_id = one(data.aws_vpc.existing[*].id)
+  count             = !local.create_vpc ? 1 : 0
+  vpc_id            = one(data.aws_vpc.existing[*].id)
   availability_zone = var.availability_zone
 
   tags = {
@@ -40,8 +40,8 @@ data "aws_subnet" "private" {
 }
 
 data "aws_subnet" "secondary_private" {
-  count = !local.create_vpc && var.secondary_availability_zone != null ? 1 : 0
-  vpc_id = one(data.aws_vpc.existing[*].id)
+  count             = !local.create_vpc && var.secondary_availability_zone != null ? 1 : 0
+  vpc_id            = one(data.aws_vpc.existing[*].id)
   availability_zone = var.secondary_availability_zone
 
   tags = {

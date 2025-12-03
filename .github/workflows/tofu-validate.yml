@@ -1,0 +1,53 @@
+name: OpenTofu Validation
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - 'release/*'
+      - 'main'
+permissions:
+  contents: read
+jobs:
+  tofu-validate:
+    name: tofu-validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: recursive
+
+      - name: Download vendored binaries
+        run: sh download-vendored-bin.sh
+
+      - name: Check OpenTofu version
+        run: ./internal/vendored/bin/tofu --version
+
+      - name: Format check - all configurations
+        run: |
+          ./internal/vendored/bin/tofu -chdir=./tofu/main/k3d fmt -check -recursive
+          ./internal/vendored/bin/tofu -chdir=./tofu/main/aws fmt -check -recursive
+          ./internal/vendored/bin/tofu -chdir=./tofu/main/azure fmt -check -recursive
+          ./internal/vendored/bin/tofu -chdir=./tofu/main/harvester fmt -check -recursive
+          ./internal/vendored/bin/tofu -chdir=./tofu/modules fmt -check -recursive
+
+      - name: Initialize and validate - k3d
+        run: |
+          ./internal/vendored/bin/tofu -chdir=./tofu/main/k3d init -backend=false
+          ./internal/vendored/bin/tofu -chdir=./tofu/main/k3d validate
+
+      - name: Initialize and validate - aws
+        run: |
+          ./internal/vendored/bin/tofu -chdir=./tofu/main/aws init -backend=false
+          ./internal/vendored/bin/tofu -chdir=./tofu/main/aws validate
+
+      - name: Initialize and validate - azure
+        run: |
+          ./internal/vendored/bin/tofu -chdir=./tofu/main/azure init -backend=false
+          ./internal/vendored/bin/tofu -chdir=./tofu/main/azure validate
+
+      - name: Initialize and validate - harvester
+        run: |
+          ./internal/vendored/bin/tofu -chdir=./tofu/main/harvester init -backend=false
+          ./internal/vendored/bin/tofu -chdir=./tofu/main/harvester validate

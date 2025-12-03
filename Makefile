@@ -14,5 +14,7 @@ qasereporter-k6/${REPORTER_BIN_NAME}: qasereporter-k6/*.go
 
 .PHONY: clean
 clean:
+	rm -rfv .bin
+	rm -rfv internal/vendored/bin
 	rm -fv ${DARTBOARD_BIN_NAME}
 	rm -fv qasereporter-k6/${REPORTER_BIN_NAME}
