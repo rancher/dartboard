@@ -10,7 +10,7 @@ data "http" "get_rke2" {
   url = "https://get.rke2.io"
 
   retry {
-    attempts = 5
+    attempts     = 5
     min_delay_ms = 500
     max_delay_ms = 3000
   }
@@ -63,8 +63,8 @@ resource "ssh_sensitive_resource" "first_server_installation" {
   timeout      = "600s"
 
   file {
-    content = data.http.get_rke2.response_body
-    destination = "${local.get_rke2_path}"
+    content     = data.http.get_rke2.response_body
+    destination = local.get_rke2_path
     permissions = "0700"
   }
 
@@ -117,8 +117,8 @@ resource "ssh_resource" "additional_server_installation" {
   timeout      = "600s"
 
   file {
-    content = data.http.get_rke2.response_body
-    destination = "${local.get_rke2_path}"
+    content     = data.http.get_rke2.response_body
+    destination = local.get_rke2_path
     permissions = "0700"
   }
 
@@ -163,8 +163,8 @@ resource "ssh_resource" "agent_installation" {
   timeout      = "600s"
 
   file {
-    content = data.http.get_rke2.response_body
-    destination = "${local.get_rke2_path}"
+    content     = data.http.get_rke2.response_body
+    destination = local.get_rke2_path
     permissions = "0700"
   }
 
@@ -202,10 +202,10 @@ resource "ssh_resource" "agent_installation" {
 }
 
 locals {
-  get_rke2_path   = "/tmp/get_rke2.sh"
+  get_rke2_path            = "/tmp/get_rke2.sh"
   local_kubernetes_api_url = var.create_tunnels ? "https://${var.sans[0]}:${var.local_kubernetes_api_port}" : "https://${module.server_nodes[0].public_name}:6443"
-  public_sans = concat(module.server_nodes[*].public_name, module.server_nodes[*].public_ip)
-  sans = distinct(concat(var.sans, var.public ? local.public_sans : [], module.server_nodes[*].private_ip, module.server_nodes[*].private_name))
+  public_sans              = concat(module.server_nodes[*].public_name, module.server_nodes[*].public_ip)
+  sans                     = distinct(concat(var.sans, var.public ? local.public_sans : [], module.server_nodes[*].private_ip, module.server_nodes[*].private_name))
 }
 
 resource "local_file" "kubeconfig" {
@@ -224,7 +224,7 @@ resource "local_file" "kubeconfig" {
       {
         context = {
           cluster = var.name
-          user = "admin@${var.name}"
+          user    = "admin@${var.name}"
         }
         name = var.name
       }

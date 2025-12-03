@@ -3,23 +3,23 @@ provider "harvester" {
 }
 
 module "network" {
-  source              = "../../modules/harvester/network"
-  project_name        = var.project_name
-  namespace           = var.namespace
-  network_details     = var.network
-  ssh_public_key_path = var.ssh_public_key_path
-  ssh_bastion_host    = var.ssh_bastion_host
-  ssh_bastion_user    = var.ssh_bastion_user
+  source               = "../../modules/harvester/network"
+  project_name         = var.project_name
+  namespace            = var.namespace
+  network_details      = var.network
+  ssh_public_key_path  = var.ssh_public_key_path
+  ssh_bastion_host     = var.ssh_bastion_host
+  ssh_bastion_user     = var.ssh_bastion_user
   ssh_bastion_key_path = var.ssh_bastion_key_path
 }
 
 resource "harvester_image" "created" {
-  count = var.create_image ? 1 : 0
-  name = "${var.project_name}-opensuse156"
-  namespace = var.namespace
+  count        = var.create_image ? 1 : 0
+  name         = "${var.project_name}-opensuse156"
+  namespace    = var.namespace
   display_name = "${var.project_name}-opensuse156"
-  source_type = "download"
-  url = "https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.6/images/openSUSE-Leap-15.6.x86_64-NoCloud.qcow2"
+  source_type  = "download"
+  url          = "https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.6/images/openSUSE-Leap-15.6.x86_64-NoCloud.qcow2"
 }
 
 module "test_environment" {

@@ -42,8 +42,8 @@ variable "node_module_variables" {
     ami : string,
     instance_type : string,
     root_volume_size_gb : number,
-    host_configuration_commands: optional(list(string), ["cat /etc/os-release"])
-    tags: optional(map(string)),
+    host_configuration_commands : optional(list(string), ["cat /etc/os-release"])
+    tags : optional(map(string)),
   })
   default = {
     ami : "ami-0e55a8b472a265e3f", // openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64-a516e959-df54-4035-bb1a-63599b7a6df9
@@ -68,7 +68,7 @@ variable "network_config" {
     secondary_private_subnet_id : string,
     public_security_group_id : string,
     private_security_group_id : string,
-    other_security_group_ids: optional(list(string), [""])
+    other_security_group_ids : optional(list(string), [""])
     ssh_key_name : string,
     ssh_bastion_host : string,
     ssh_bastion_user : string,

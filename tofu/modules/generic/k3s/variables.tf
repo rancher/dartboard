@@ -67,8 +67,8 @@ variable "sans" {
 
 variable "create_tunnels" {
   description = "Flag determining if we should create any SSH tunnels at all."
-  type = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 variable "max_pods" {

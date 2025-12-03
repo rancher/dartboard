@@ -6,7 +6,7 @@ locals {
 }
 
 module "upstream_postgres" {
-  count = var.upstream_cluster.postgres_node_variables != {} ? 1 : 0
+  count  = var.upstream_cluster.postgres_node_variables != {} ? 1 : 0
   source = "../postgres"
 
   name                  = "upstream-postgres"

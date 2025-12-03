@@ -1,6 +1,6 @@
 provider "k3d" {
   fixes = {
-      "dns" = false
+    "dns" = false
   }
 }
 

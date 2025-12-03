@@ -13,16 +13,16 @@ resource "aws_vpc" "main" {
 
 # Update locals to use coalescing for resource selection
 locals {
-  vpc_id         = coalesce(one(aws_vpc.main[*].id), one(data.aws_vpc.existing[*].id))
-  vpc_cidr_block = coalesce(one(aws_vpc.main[*].cidr_block), one(data.aws_vpc.existing[*].cidr_block))
+  vpc_id              = coalesce(one(aws_vpc.main[*].id), one(data.aws_vpc.existing[*].id))
+  vpc_cidr_block      = coalesce(one(aws_vpc.main[*].cidr_block), one(data.aws_vpc.existing[*].cidr_block))
   internet_gateway_id = coalesce(one(aws_internet_gateway.main[*].id), one(data.aws_internet_gateway.existing[*].id))
 
-  public_subnet_id = coalesce(one(aws_subnet.public[*].id), one(data.aws_subnet.public[*].id))
-  private_subnet_id = coalesce(one(aws_subnet.private[*].id), one(data.aws_subnet.private[*].id))
+  public_subnet_id            = coalesce(one(aws_subnet.public[*].id), one(data.aws_subnet.public[*].id))
+  private_subnet_id           = coalesce(one(aws_subnet.private[*].id), one(data.aws_subnet.private[*].id))
   secondary_private_subnet_id = (local.create_vpc && var.secondary_availability_zone != null) ? aws_subnet.secondary_private[0].id : (!local.create_vpc && var.secondary_availability_zone != null) ? data.aws_subnet.secondary_private[0].id : null
 
   create_vpc = var.existing_vpc_name == null
-  myip = "${chomp(data.http.myip.response_body)}/32"
+  myip       = "${chomp(data.http.myip.response_body)}/32"
 }
 
 data "http" "myip" {
@@ -190,7 +190,7 @@ resource "aws_vpc_dhcp_options_association" "vpc_dhcp_options" {
 
 data "aws_ec2_managed_prefix_list" "this" {
   count = var.ssh_prefix_list != null ? 1 : 0
-  name = var.ssh_prefix_list
+  name  = var.ssh_prefix_list
 }
 
 resource "aws_security_group" "ssh_ipv4" {
@@ -340,14 +340,14 @@ resource "aws_vpc_security_group_ingress_rule" "public_vpc_cidr" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "public_internal_traffic" {
-  description = "Allow all internal traffic within this SG"
-  security_group_id = aws_security_group.public.id
+  description                  = "Allow all internal traffic within this SG"
+  security_group_id            = aws_security_group.public.id
   referenced_security_group_id = aws_security_group.public.id
-  ip_protocol       = "-1" # semantically equivalent to all ports
+  ip_protocol                  = "-1" # semantically equivalent to all ports
 }
 
 resource "aws_vpc_security_group_egress_rule" "public_traffic_ipv4" {
-  description = "Allow all egress traffic"
+  description       = "Allow all egress traffic"
   security_group_id = aws_security_group.public.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1" # semantically equivalent to all ports
@@ -442,14 +442,14 @@ resource "aws_vpc_security_group_ingress_rule" "private_vpc_cidr" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "private_internal_traffic" {
-  description = "Allow all internal traffic within this SG"
-  security_group_id = aws_security_group.private.id
+  description                  = "Allow all internal traffic within this SG"
+  security_group_id            = aws_security_group.private.id
   referenced_security_group_id = aws_security_group.private.id
-  ip_protocol       = "-1" # semantically equivalent to all ports
+  ip_protocol                  = "-1" # semantically equivalent to all ports
 }
 
 resource "aws_vpc_security_group_egress_rule" "private_traffic_ipv4" {
-  description = "Allow all egress traffic"
+  description       = "Allow all egress traffic"
   security_group_id = aws_security_group.private.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1" # semantically equivalent to all ports

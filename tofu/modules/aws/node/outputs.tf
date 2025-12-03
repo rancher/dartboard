@@ -4,7 +4,7 @@ output "name" {
 
 output "private_name" {
   depends_on = [null_resource.host_configuration]
-  value = aws_instance.instance.private_dns
+  value      = aws_instance.instance.private_dns
 }
 
 output "private_ip" {

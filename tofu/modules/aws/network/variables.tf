@@ -31,8 +31,8 @@ variable "ssh_private_key_path" {
 
 variable "ssh_prefix_list" {
   description = "The name of an existing prefix list of IP addresses approved for SSH access"
-  type = string
-  default = null
+  type        = string
+  default     = null
 }
 
 variable "ssh_bastion_user" {
