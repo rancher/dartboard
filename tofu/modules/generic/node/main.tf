@@ -1,13 +1,13 @@
 module "host" {
-  source                      = "../../${var.node_module}"
-  project_name                = var.project_name
-  name                        = var.name
-  ssh_private_key_path        = var.ssh_private_key_path
-  ssh_user                    = var.ssh_user
-  ssh_tunnels                 = var.ssh_tunnels
-  node_module_variables       = var.node_module_variables
-  network_config              = var.network_config
-  public                      = var.public
+  source                = "../../${var.node_module}"
+  project_name          = var.project_name
+  name                  = var.name
+  ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
+  ssh_tunnels           = var.ssh_tunnels
+  node_module_variables = var.node_module_variables
+  network_config        = var.network_config
+  public                = var.public
 }
 
 resource "local_file" "ssh_script" {

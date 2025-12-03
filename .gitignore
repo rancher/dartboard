@@ -25,6 +25,7 @@ scripts/utils/export-metrics/*.tar.gz
 # Binaries
 /dartboard
 /scripts/soak/soak
+/qasereporter-k6/qasereporter-k6
 
 # Vendored binaries
 /internal/vendored/bin

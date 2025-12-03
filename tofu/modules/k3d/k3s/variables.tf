@@ -87,6 +87,18 @@ variable "datastore_endpoint" {
   default     = null
 }
 
+variable "create_tunnels" {
+  description = "Ignored (k3d publishes ports directly, no SSH tunnels needed)"
+  type        = bool
+  default     = false
+}
+
+variable "public" {
+  description = "Ignored (k3d clusters are always local)"
+  type        = bool
+  default     = false
+}
+
 variable "node_module" {
   description = "Ignored"
   type        = string
