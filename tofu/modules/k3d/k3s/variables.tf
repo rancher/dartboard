@@ -1,5 +1,6 @@
 variable "project_name" {
   description = "A prefix for names of objects created by this module"
+  type        = string
   default     = "st"
 }
 
@@ -10,21 +11,25 @@ variable "name" {
 
 variable "distro_version" {
   description = "k3s version"
+  type        = string
   default     = "v1.23.10+k3s1"
 }
 
 variable "server_count" {
   description = "Number of server nodes in this cluster"
+  type        = number
   default     = 1
 }
 
 variable "agent_count" {
   description = "Number of agent nodes in this cluster"
+  type        = number
   default     = 0
 }
 
 variable "reserve_node_for_monitoring" {
   description = "Whether to reserve a node for monitoring. If true, adds a taint and toleration with label 'monitoring' to the first agent node"
+  type        = bool
   default     = false
 }
 
@@ -78,6 +83,7 @@ variable "node_cidr_mask_size" {
 
 variable "enable_audit_log" {
   description = "Enable Kubernetes API audit log to /var/log/k3d/audit for server nodes. Assumes a /var/lib/k3d/audit/audit.yaml file exists on the host"
+  type        = bool
   default     = false
 }
 
@@ -105,7 +111,6 @@ variable "node_module" {
   default     = null
 }
 
-
 variable "node_module_variables" {
   description = "Ignored"
   type        = any
@@ -125,11 +130,13 @@ variable "image" {
 
 variable "enable_metrics" {
   description = "Metrics are disabled by default due to https://github.com/kubernetes/kubernetes/issues/104459"
+  type        = bool
   default     = false
 }
 
 variable "first_metrics_port" {
   description = "Starting port to publish cluster nodes' metric endpoints"
+  type        = number
   default     = 10250
 }
 
@@ -141,26 +148,31 @@ variable "log_level" {
 
 variable "datastore" {
   description = "Data store to use: mariadb, postgres, sqlite, embedded_etcd"
+  type        = string
   default     = "embedded_etcd"
 }
 
 variable "datastore_dbname" {
   description = "The database's name"
+  type        = string
   default     = "kine"
 }
 
 variable "datastore_username" {
   description = "The database's main user name"
+  type        = string
   default     = "kineuser"
 }
 
 variable "datastore_password" {
   description = "The database's main user password"
+  type        = string
   default     = "kinepassword"
 }
 
 variable "enable_pprof" {
   description = "Enable pprof endpoint on supervisor port. Beware: this breaks cert-manager until https://github.com/k3s-io/k3s/pull/6635 is merged"
+  type        = bool
   default     = false
 }
 
@@ -178,10 +190,12 @@ variable "postgres_log_min_duration_statement" {
 
 variable "kine_image" {
   description = "Kine container image"
+  type        = string
   default     = "rancher/kine:v0.9.8"
 }
 
 variable "kine_debug" {
   description = "Set to true to enable kine debug logging"
+  type        = bool
   default     = false
 }

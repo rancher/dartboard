@@ -1,10 +1,12 @@
 variable "project_name" {
   description = "A prefix for names of objects created by this module"
+  type        = string
   default     = "st"
 }
 
 variable "first_proxy_port" {
   description = "Port to publish k3d's internal registry for registry-1.docker.io"
+  type        = number
   default     = 5001
 }
 
