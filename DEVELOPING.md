@@ -1,5 +1,70 @@
 # Developer notes
 
+## Prerequisites
+
+Before contributing to this project, ensure you have the following tools installed:
+
+### Required Tools
+
+- **Go** (version specified in `go.mod`): [Installation instructions](https://go.dev/doc/install)
+- **Make**: Usually pre-installed on Linux/macOS. For Windows, use [GnuWin32](http://gnuwin32.sourceforge.net/packages/make.htm) or WSL.
+- **golangci-lint** (v2.5+): [Installation instructions](https://golangci-lint.run/welcome/install/)
+  ```bash
+  # Quick install (Linux/macOS)
+  curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin
+  ```
+
+### Optional Tools
+
+- **pre-commit**: For automatic pre-commit hooks. [Installation instructions](https://pre-commit.com/#install)
+  ```bash
+  pip install pre-commit
+  pre-commit install
+  ```
+
+## Validating Your Changes
+
+Before submitting a pull request, run the following commands to ensure your changes pass all checks:
+
+### Go Code Verification
+
+```bash
+# Verify Go modules are tidy and consistent
+make go-mod-verify
+
+# Build the project
+make build
+
+# Run Go linter
+make lint
+
+# Run all Go verification steps (go-mod-verify + build + lint)
+make verify
+```
+
+### OpenTofu Verification
+
+```bash
+# Check OpenTofu formatting
+make tofu-fmt-check
+
+# Auto-format OpenTofu files
+make tofu-fmt
+
+# Validate all OpenTofu configurations
+make tofu-validate
+
+# Run all OpenTofu verification steps
+make verify-tofu
+```
+
+### Full Verification
+
+```bash
+# Run all verification steps (Go + OpenTofu)
+make verify-all
+```
+
 ## Overall architecture
 
 For SUSE internal projects please see the [internal design document](https://docs.google.com/document/d/1-jgzGSmeH47mobXycuOgeg1W_wTB4AgY).

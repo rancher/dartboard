@@ -9,7 +9,7 @@ permissions:
   contents: read
 jobs:
   k3d-smoke-test:
-    name: k3d-smoke-test
+    name: K3d Integration Test
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -24,27 +24,27 @@ jobs:
           go-version-file: './go.mod'
           cache: false
 
-      - name: Build dartboard
+      - name: Build Dartboard
         run: make build
 
       - name: Install k3d
         run: |
           curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 
-      - name: Test k3d apply with k3d_empty_cluster_only.yaml
+      - name: Test Apply - Empty Cluster
         run: |
           ./dartboard --dart=./darts/k3d_empty_cluster_only.yaml apply
 
-      - name: Destroy k3d_empty_cluster_only environment
+      - name: Destroy - Empty Cluster
         if: always()
         run: |
           ./dartboard --dart=./darts/k3d_empty_cluster_only.yaml destroy
 
-      - name: Test k3d deploy with k3d.yaml
+      - name: Test Deploy - Full Environment
         run: |
           ./dartboard --dart=./darts/k3d.yaml deploy
 
-      - name: Destroy k3d environment
+      - name: Destroy - Full Environment
         if: always()
         run: |
           ./dartboard --dart=./darts/k3d.yaml destroy
