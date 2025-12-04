@@ -45,7 +45,7 @@ sources:
     scmid: 'default'
     spec:
       file: 'download-vendored-bin.sh'
-      matchpattern: 'OPENTOFU_VERSION=(\d+\.\d+\.\d+)'
+      matchpattern: 'OPENTOFU_VERSION=\d+\.\d+\.\d+'
     transformers:
       - find: '\d+\.\d+\.\d+'
 
@@ -55,7 +55,7 @@ sources:
     scmid: 'default'
     spec:
       file: 'download-vendored-bin.sh'
-      matchpattern: 'KUBECTL_VERSION=(\d+\.\d+\.\d+)'
+      matchpattern: 'KUBECTL_VERSION=\d+\.\d+\.\d+'
     transformers:
       - find: '\d+\.\d+\.\d+'
 
@@ -65,7 +65,7 @@ sources:
     scmid: 'default'
     spec:
       file: 'download-vendored-bin.sh'
-      matchpattern: 'HELM_VERSION=(\d+\.\d+\.\d+)'
+      matchpattern: 'HELM_VERSION=\d+\.\d+\.\d+'
     transformers:
       - find: '\d+\.\d+\.\d+'
 
@@ -75,7 +75,7 @@ sources:
     scmid: 'default'
     spec:
       file: 'download-vendored-bin.sh'
-      matchpattern: 'K3D_VERSION=(\d+\.\d+\.\d+)'
+      matchpattern: 'K3D_VERSION=\d+\.\d+\.\d+'
     transformers:
       - find: '\d+\.\d+\.\d+'
 
