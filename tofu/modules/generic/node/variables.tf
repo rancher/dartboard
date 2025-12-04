@@ -1,5 +1,6 @@
 variable "project_name" {
   description = "A prefix for names of objects created by this module"
+  type        = string
   default     = "st"
 }
 
@@ -27,11 +28,13 @@ variable "ssh_tunnels" {
 
 variable "host_configuration_commands" {
   description = "Commands to run when the host is deployed"
+  type        = list(string)
   default     = ["cat /etc/os-release"]
 }
 
 variable "public" {
   description = "Whether the node is publicly accessible"
+  type        = bool
   default     = false
 }
 

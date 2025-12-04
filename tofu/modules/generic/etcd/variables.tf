@@ -1,10 +1,12 @@
 variable "project_name" {
   description = "A prefix for names of objects created by this module"
+  type        = string
   default     = "st"
 }
 
 variable "etcd_version" {
   description = "etcd version"
+  type        = string
   default     = "v3.5.6"
 }
 
@@ -15,6 +17,7 @@ variable "name" {
 
 variable "server_count" {
   description = "Number of server nodes in this cluster"
+  type        = number
   default     = 3
 }
 

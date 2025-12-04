@@ -1,5 +1,6 @@
 variable "project_name" {
   description = "A prefix for names of objects created by this module"
+  type        = string
   default     = "st"
 }
 
@@ -10,6 +11,7 @@ variable "name" {
 
 variable "distro_version" {
   description = "Kubernetes version for AKS to use"
+  type        = string
   default     = "1.26.3"
 }
 
@@ -21,11 +23,13 @@ variable "server_count" {
 
 variable "agent_count" {
   description = "Number of nodes in this cluster"
+  type        = number
   default     = 1
 }
 
 variable "reserve_node_for_monitoring" {
   description = "Whether to reserve a node for monitoring. If true, adds a taint and toleration with label 'monitoring' to the first agent node"
+  type        = bool
   default     = false
 }
 
@@ -67,6 +71,7 @@ variable "sans" {
 
 variable "max_pods" {
   description = "Maximum number of pods per node"
+  type        = number
   default     = 250
 }
 
@@ -78,6 +83,7 @@ variable "node_cidr_mask_size" {
 
 variable "enable_audit_log" {
   description = "Whether to enable audit logging"
+  type        = bool
   default     = false
 }
 

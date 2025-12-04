@@ -1,8 +1,8 @@
 variable "project_name" {
   description = "A prefix for names of objects created by this module"
+  type        = string
   default     = "st"
 }
-
 
 variable "name" {
   description = "Symbolic name of this cluster"
@@ -11,6 +11,7 @@ variable "name" {
 
 variable "distro_version" {
   description = "RKE2 version"
+  type        = string
   default     = "v1.24.4+rke2r1"
 }
 
@@ -28,6 +29,7 @@ variable "agent_count" {
 
 variable "reserve_node_for_monitoring" {
   description = "Whether to reserve a node for monitoring. If true, adds a taint and toleration with label 'monitoring' to the first agent node"
+  type        = bool
   default     = false
 }
 
@@ -86,11 +88,13 @@ variable "node_cidr_mask_size" {
 
 variable "enable_audit_log" {
   description = "Ignored for RKE2"
+  type        = bool
   default     = false
 }
 
 variable "public" {
   description = "Whether the node is publicly accessible"
+  type        = bool
   default     = false
 }
 
@@ -114,4 +118,3 @@ variable "datastore_endpoint" {
   type        = string
   default     = null
 }
-
