@@ -4,66 +4,30 @@
 
 Before contributing to this project, ensure you have the following tools installed:
 
-### Required Tools
-
 - **Go** (version specified in `go.mod`): [Installation instructions](https://go.dev/doc/install)
-- **Make**: Usually pre-installed on Linux/macOS. For Windows, use [GnuWin32](http://gnuwin32.sourceforge.net/packages/make.htm) or WSL.
+- **Make**: Usually pre-installed on Linux/macOS
 - **golangci-lint** (v2.5+): [Installation instructions](https://golangci-lint.run/welcome/install/)
   ```bash
-  # Quick install (Linux/macOS)
   curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin
-  ```
-
-### Optional Tools
-
-- **pre-commit**: For automatic pre-commit hooks. [Installation instructions](https://pre-commit.com/#install)
-  ```bash
-  pip install pre-commit
-  pre-commit install
   ```
 
 ## Validating Your Changes
 
-Before submitting a pull request, run the following commands to ensure your changes pass all checks:
-
-### Go Code Verification
+Before submitting a pull request, run:
 
 ```bash
-# Verify Go modules are tidy and consistent
-make go-mod-verify
-
-# Build the project
-make build
-
-# Run Go linter
-make lint
-
-# Run all Go verification steps (go-mod-verify + build + lint)
-make verify
-```
-
-### OpenTofu Verification
-
-```bash
-# Check OpenTofu formatting
-make tofu-fmt-check
-
-# Auto-format OpenTofu files
-make tofu-fmt
-
-# Validate all OpenTofu configurations
-make tofu-validate
-
-# Run all OpenTofu verification steps
-make verify-tofu
-```
-
-### Full Verification
-
-```bash
-# Run all verification steps (Go + OpenTofu)
 make verify-all
 ```
+
+This runs all verification steps including Go module verification, build, linting, and OpenTofu validation.
+
+If you encounter errors, you can run individual targets to isolate the issue:
+
+- `make go-mod-verify` - Go module verification
+- `make build` - Build the project
+- `make lint` - Run Go linter
+- `make tofu-fmt-check` - Check OpenTofu formatting (use `make tofu-fmt` to auto-fix)
+- `make tofu-validate` - Validate OpenTofu configurations
 
 ## Overall architecture
 
@@ -178,28 +142,3 @@ In some situations we want to add code which "uncleanly" works around bugs in ot
 https://github.com/search?q=repo%3Amoio%2Fscalability-tests+HACK%3A&type=code
 
 If at all possible, also include a condition for the removal of the hack (eg. dependency is updated to a version that fixes a certain issue).
-
-## CI Architecture and Future Improvements
-
-The CI is organized into separate workflow files for different concerns:
-
-- `go-verification.yml`: Go module verification, build, and linting
-- `tofu-verification.yml`: OpenTofu format checking and validation
-- `k3d-smoke-test.yml`: Integration testing with k3d
-- `release.yml`: Release automation with GoReleaser
-
-### Potential Future Improvements
-
-1. **Parallel job optimization**: The Go verification workflow runs three separate jobs. Consider adding a combined job that runs `make verify` for faster feedback on simple changes, while keeping separate jobs for clearer failure isolation.
-
-2. **Caching**: Add Go module and build caching to speed up CI runs. The current configuration disables caching but this could be re-enabled with proper cache invalidation.
-
-3. **Matrix builds**: Consider testing against multiple Go versions if backward compatibility is important.
-
-4. **Reusable workflows**: Extract common setup steps (checkout, Go setup) into reusable workflows to reduce duplication.
-
-5. **Dependency updates**: The pre-commit hooks reference golangci-lint v1.57.2 while CI uses v2.5. Consider synchronizing these versions.
-
-6. **Test coverage**: Add a test target to the Makefile and CI workflow when Go tests are added to the project.
-
-7. **Documentation validation**: Add markdown linting or link checking for documentation files.

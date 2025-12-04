@@ -4,26 +4,7 @@ This file contains instructions for AI agents working on this repository.
 
 ## Verification Commands
 
-Before submitting any changes, run these make targets:
-
-### Go Code
-
-```bash
-make go-mod-verify  # Verify Go modules are tidy
-make build          # Build binaries
-make lint           # Run golangci-lint
-make verify         # All Go checks combined
-```
-
-### OpenTofu
-
-```bash
-make tofu-fmt-check  # Check formatting
-make tofu-validate   # Validate configurations
-make verify-tofu     # All OpenTofu checks combined
-```
-
-### Full Verification
+Before submitting any changes, run:
 
 ```bash
 make verify-all  # Run all verification steps
