@@ -178,3 +178,28 @@ In some situations we want to add code which "uncleanly" works around bugs in ot
 https://github.com/search?q=repo%3Amoio%2Fscalability-tests+HACK%3A&type=code
 
 If at all possible, also include a condition for the removal of the hack (eg. dependency is updated to a version that fixes a certain issue).
+
+## CI Architecture and Future Improvements
+
+The CI is organized into separate workflow files for different concerns:
+
+- `go-verification.yml`: Go module verification, build, and linting
+- `tofu-verification.yml`: OpenTofu format checking and validation
+- `k3d-smoke-test.yml`: Integration testing with k3d
+- `release.yml`: Release automation with GoReleaser
+
+### Potential Future Improvements
+
+1. **Parallel job optimization**: The Go verification workflow runs three separate jobs. Consider adding a combined job that runs `make verify` for faster feedback on simple changes, while keeping separate jobs for clearer failure isolation.
+
+2. **Caching**: Add Go module and build caching to speed up CI runs. The current configuration disables caching but this could be re-enabled with proper cache invalidation.
+
+3. **Matrix builds**: Consider testing against multiple Go versions if backward compatibility is important.
+
+4. **Reusable workflows**: Extract common setup steps (checkout, Go setup) into reusable workflows to reduce duplication.
+
+5. **Dependency updates**: The pre-commit hooks reference golangci-lint v1.57.2 while CI uses v2.5. Consider synchronizing these versions.
+
+6. **Test coverage**: Add a test target to the Makefile and CI workflow when Go tests are added to the project.
+
+7. **Documentation validation**: Add markdown linting or link checking for documentation files.
