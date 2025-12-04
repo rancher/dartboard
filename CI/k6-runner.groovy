@@ -35,6 +35,15 @@ pipeline {
       }
     }
 
+    stage('Set Build Description') {
+      steps {
+        script {
+          def testFile = params.K6_TEST_FILE ?: ''
+          currentBuild.description = "${testFile}"
+        }
+      }
+    }
+
     stage('Prepare Environment from S3') {
       when { expression { return params.DEPLOYMENT_ID } }
       steps {
