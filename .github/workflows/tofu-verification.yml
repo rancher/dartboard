@@ -1,0 +1,33 @@
+name: OpenTofu Verification
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - 'release/*'
+      - 'main'
+permissions:
+  contents: read
+jobs:
+  tofu-fmt-check:
+    name: OpenTofu Format Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: recursive
+      - name: Check OpenTofu Formatting
+        run: make tofu-fmt-check
+
+  tofu-validate:
+    name: OpenTofu Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: recursive
+      - name: Validate OpenTofu Configurations
+        run: make tofu-validate
