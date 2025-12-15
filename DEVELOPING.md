@@ -1,5 +1,31 @@
 # Developer notes
 
+## Prerequisites
+
+Before contributing to this project, ensure you have the following tools installed:
+
+- **Go** (version specified in `go.mod`): [Installation instructions](https://go.dev/doc/install)
+- **Make**: Usually pre-installed on Linux/macOS
+- **golangci-lint** (v2.5+): [Installation instructions](https://golangci-lint.run/welcome/install/)
+
+## Validating Your Changes
+
+Before submitting a pull request, run:
+
+```bash
+make verify-all
+```
+
+This runs all verification steps including Go module verification, build, linting, and OpenTofu validation.
+
+If you encounter errors, you can run individual targets to isolate the issue:
+
+- `make go-mod-verify` - Go module verification
+- `make build` - Build the project
+- `make lint` - Run Go linter
+- `make tofu-fmt-check` - Check OpenTofu formatting (use `make tofu-fmt` to auto-fix)
+- `make tofu-validate` - Validate OpenTofu configurations
+
 ## Overall architecture
 
 For SUSE internal projects please see the [internal design document](https://docs.google.com/document/d/1-jgzGSmeH47mobXycuOgeg1W_wTB4AgY).
