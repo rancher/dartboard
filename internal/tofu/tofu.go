@@ -33,9 +33,9 @@ import (
 )
 
 type ClusterAddress struct {
+	Name      string `json:"name"`
 	HTTPPort  uint   `json:"http_port"`
 	HTTPSPort uint   `json:"https_port"`
-	Name      string `json:"name"`
 }
 
 type ClusterAppAddresses struct {
@@ -51,13 +51,13 @@ type Addresses struct {
 }
 
 type Cluster struct {
-	AppAddresses             ClusterAppAddresses `json:"app_addresses"`
+	NodeAccessCommands       map[string]string   `json:"node_access_commands"`
+	KubernetesAddresses      Addresses           `json:"kubernetes_addresses"`
 	Name                     string              `json:"name"`
 	Context                  string              `json:"context"`
 	IngressClassName         string              `json:"ingress_class_name"`
 	Kubeconfig               string              `json:"kubeconfig"`
-	NodeAccessCommands       map[string]string   `json:"node_access_commands"`
-	KubernetesAddresses      Addresses           `json:"kubernetes_addresses"`
+	AppAddresses             ClusterAppAddresses `json:"app_addresses"`
 	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring"`
 }
 
@@ -72,13 +72,14 @@ type Output struct {
 type Tofu struct {
 	dir       string
 	workspace string
+	variables []string
 	threads   int
 	verbose   bool
-	variables []string
 }
 
 func New(ctx context.Context, variableMap map[string]interface{}, dir string, ws string, parallelism int, verbose bool) (*Tofu, error) {
 	var variables []string
+
 	for k, v := range variableMap {
 		variable := fmt.Sprintf("%s=%s", k, format.ConvertValueToHCL(v, false))
 		variables = append(variables, variable)
@@ -96,6 +97,7 @@ func New(ctx context.Context, variableMap map[string]interface{}, dir string, ws
 	for _, variable := range t.variables {
 		args = append(args, "-var", variable)
 	}
+
 	if err := t.exec(nil, args...); err != nil {
 		return nil, err
 	}
@@ -109,6 +111,7 @@ func (t *Tofu) exec(output io.Writer, args ...string) error {
 	cmd := vendored.Command("tofu", fullArgs...)
 
 	var errStream strings.Builder
+
 	cmd.Stderr = &errStream
 	cmd.Stdin = os.Stdin
 
@@ -123,6 +126,7 @@ func (t *Tofu) exec(output io.Writer, args ...string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("error while running tofu: %v", errStream.String())
 	}
+
 	return nil
 }
 
@@ -142,6 +146,7 @@ func (t *Tofu) handleWorkspace(ctx context.Context) error {
 	}
 
 	log.Printf("Creating new tofu workspace: %s", t.workspace)
+
 	if err = t.newWorkspace(ctx); err != nil {
 		return err
 	}
@@ -152,9 +157,10 @@ func (t *Tofu) handleWorkspace(ctx context.Context) error {
 func (t *Tofu) workspaceExists(ctx context.Context) (bool, error) {
 	args := []string{"workspace", "list"}
 
-	var out bytes.Buffer
-	var err error
-
+	var (
+		out bytes.Buffer
+		err error
+	)
 	if err = t.exec(&out, args...); err != nil {
 		return false, fmt.Errorf("failed to list workspaces: %v", err)
 	}
@@ -199,6 +205,7 @@ func (t *Tofu) commonArgs(command string) []string {
 	for _, variable := range t.variables {
 		args = append(args, "-var", variable)
 	}
+
 	return args
 }
 

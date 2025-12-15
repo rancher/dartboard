@@ -36,25 +36,35 @@ func Images(image string) ([]string, error) {
 	log.Printf("Exec: docker %s\n", strings.Join(args, " "))
 
 	cmd := exec.Command("docker", args...)
-	var outStream strings.Builder
-	var errStream strings.Builder
+
+	var (
+		outStream strings.Builder
+		errStream strings.Builder
+	)
+
 	cmd.Stdout = &outStream
+
 	cmd.Stderr = &errStream
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("%v", errStream.String())
 	}
 
 	lines := strings.Split(strings.TrimSpace(outStream.String()), "\n")
+
 	var images []string
+
 	for _, line := range lines {
 		if line != "" {
 			var img Image
+
 			err := json.Unmarshal([]byte(line), &img)
 			if err != nil {
 				return nil, fmt.Errorf("error unmarshalling JSON output from docker images: %w", err)
 			}
+
 			images = append(images, img.Repository+":"+img.Tag)
 		}
 	}
+
 	return images, nil
 }

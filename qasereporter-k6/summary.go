@@ -37,7 +37,7 @@ type K6SummaryMetric struct {
 	Thresholds map[string]K6SummaryThreshold `json:"thresholds,omitempty"`
 }
 
-// K6SummaryThreshold represents a threshold with its pass/fail status. 
+// K6SummaryThreshold represents a threshold with its pass/fail status.
 type K6SummaryThreshold struct {
 	OK bool `json:"ok"`
 }
@@ -113,6 +113,7 @@ func reportSummary(params map[string]string) {
 	resultBody.SetCaseId(testCaseID)
 	resultBody.SetComment(comment)
 	resultBody.SetAttachments(attachmentHashes)
+
 	if len(params) > 0 {
 		resultBody.SetParam(params)
 	}
