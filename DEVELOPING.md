@@ -7,9 +7,6 @@ Before contributing to this project, ensure you have the following tools install
 - **Go** (version specified in `go.mod`): [Installation instructions](https://go.dev/doc/install)
 - **Make**: Usually pre-installed on Linux/macOS
 - **golangci-lint** (v2.5+): [Installation instructions](https://golangci-lint.run/welcome/install/)
-  ```bash
-  curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin
-  ```
 
 ## Validating Your Changes
 
