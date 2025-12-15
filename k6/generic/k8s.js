@@ -1,6 +1,7 @@
 import { check, sleep } from 'k6';
 import encoding from 'k6/encoding';
 import http from 'k6/http';
+import { WebSocket } from 'k6/experimental/websockets';
 import * as YAML from '../lib/js-yaml-4.1.0.mjs'
 
 import { URL } from '../lib/url-1.0.0.js';
@@ -114,4 +115,75 @@ export function list(url, limit) {
     }
 
     return responses
+}
+
+// executes a command in a pod and returns the output
+export function exec(baseUrl, namespace, podName, container, command, timeoutSeconds = 30) {
+    const params = new URLSearchParams();
+    params.append('container', container);
+    params.append('stdout', 'true');
+    params.append('stderr', 'true');
+    
+    if (Array.isArray(command)) {
+        command.forEach(cmd => params.append('command', cmd));
+    } else {
+        params.append('command', 'sh');
+        params.append('command', '-c');
+        params.append('command', command);
+    }
+
+    const wsUrl = `${baseUrl}/api/v1/namespaces/${namespace}/pods/${podName}/exec?${params.toString()}`
+        .replace('https://', 'wss://')
+        .replace('http://', 'ws://');
+
+    let output = '';
+    let errorOutput = '';
+    let completed = false;
+
+    const ws = new WebSocket(wsUrl, 'v4.channel.k8s.io');
+
+    ws.addEventListener('open', () => {
+        console.debug(`Exec WebSocket connected to ${podName}`);
+    });
+
+    ws.addEventListener('message', (e) => {
+        if (typeof e.data === 'string') {
+            const data = e.data;
+            if (data.length > 1) {
+                const channel = data.charCodeAt(0);
+                const content = data.substring(1);
+                
+                if (channel === 1) {
+                    output += content;
+                } else if (channel === 2) {
+                    errorOutput += content;
+                }
+            }
+        }
+    });
+
+    ws.addEventListener('close', () => {
+        completed = true;
+        console.debug(`Exec WebSocket closed for ${podName}`);
+    });
+
+    ws.addEventListener('error', (e) => {
+        console.error(`Exec WebSocket error: ${e.error}`);
+        completed = true;
+    });
+
+    const startTime = Date.now();
+    while (!completed && (Date.now() - startTime) < timeoutSeconds * 1000) {
+        sleep(0.1);
+    }
+
+    if (!completed) {
+        ws.close();
+    }
+
+    return {
+        stdout: output.trim(),
+        stderr: errorOutput.trim(),
+        success: errorOutput === ''
+    };
 }
