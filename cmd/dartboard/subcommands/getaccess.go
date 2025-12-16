@@ -39,6 +39,7 @@ func GetAccess(cli *cli.Context) error {
 	tester := clusters["tester"]
 
 	downstreams := make(map[string]tofu.Cluster)
+
 	for k, v := range clusters {
 		if strings.HasPrefix(k, "downstream") {
 			downstreams[k] = v
@@ -46,6 +47,7 @@ func GetAccess(cli *cli.Context) error {
 	}
 
 	upstreamAddresses, err := getAppAddressFor(upstream)
+
 	rancherURL := ""
 	if err == nil {
 		rancherURL = upstreamAddresses.Local.HTTPSURL
@@ -57,9 +59,11 @@ func GetAccess(cli *cli.Context) error {
 	fmt.Println()
 
 	printAccessDetails(r, "UPSTREAM", upstream, rancherURL)
+
 	for name, downstream := range downstreams {
 		printAccessDetails(r, strings.ToUpper(name), downstream, "")
 	}
+
 	printAccessDetails(r, "TESTER", tester, "")
 
 	return nil

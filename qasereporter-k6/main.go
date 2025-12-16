@@ -202,6 +202,7 @@ func reportMetrics(params map[string]string) {
 	resultBody := v1.NewResultCreate(status)
 	resultBody.SetCaseId(testCaseID)
 	resultBody.SetComment(comment)
+
 	if len(params) > 0 {
 		resultBody.SetParam(params)
 	}
@@ -222,6 +223,7 @@ func getAndValidateTestCaseParameters(testCaseParameters []v1.TestCaseParameter)
 	}
 
 	logrus.Infof("Test case has %d parameter(s), validating against environment variables...", len(testCaseParameters))
+
 	parametersMap := make(map[string]string)
 
 	for _, parameter := range testCaseParameters {
@@ -247,6 +249,7 @@ func getAndValidateTestCaseParameters(testCaseParameters []v1.TestCaseParameter)
 			parametersMap[parameterTitle] = parameterValue
 		}
 	}
+
 	return parametersMap
 }
 
