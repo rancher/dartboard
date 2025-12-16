@@ -1,6 +1,6 @@
 import encoding from 'k6/encoding';
 import exec from 'k6/execution';
-import { createSecretsWithLabels, createStorageClasses } from '../generic/generic_utils.js';
+import { createSecretWithLabel } from '../generic/generic_utils.js';
 import { login, getCookies } from '../rancher/rancher_utils.js';
 import {fail} from 'k6';
 import {loadKubeconfig} from '../generic/k8s.js'
@@ -18,7 +18,7 @@ const clusterId = __ENV.CLUSTER || "local"
 const vus = __ENV.VUS || 2
 
 // Option setting
-const kubeconfig = loadKubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
+const kubeconfig = k8s.loadKubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
 const baseUrl = kubeconfig["url"].replace(":6443", "")
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
@@ -37,9 +37,9 @@ export const options = {
     setupTimeout: '8h',
 
     scenarios: {
-        createResourceSecretsWithLabels: {
+        createResourceSecretWithLabel: {
             executor: 'shared-iterations',
-            exec: 'createResourceSecretsWithLabels',
+            exec: 'createResourceSecretWithLabel',
             vus: vus,
             iterations: secretCount,
             maxDuration: '1h',
@@ -82,7 +82,7 @@ export function setup() {
 }
 
 // create storage classes
-export function createResourceSecretsWithLabels(cookies) {
+export function createResourceSecretWithLabel(cookies) {
     const iter = exec.scenario.iterationInTest
-    createSecretsWithLabels(baseUrl, cookies, secretData, clusterId, namespace, iter, key, value)
+    createSecretWithLabel(baseUrl, cookies, secretData, clusterId, namespace, iter, key, value)
 }

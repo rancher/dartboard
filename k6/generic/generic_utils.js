@@ -2,7 +2,7 @@ import {check, sleep} from 'k6';
 import http from 'k6/http';
 
 // Required params: baseurl, cookies, data, clusterId, namespace, iter
-export function createConfigMaps(baseUrl, cookies, data, clusterId, namespace, iter) {
+export function createConfigMap(baseUrl, cookies, data, clusterId, namespace, iter) {
     const name = `test-config-map-${iter}`
 
     const url = clusterId === "local"?
@@ -30,7 +30,7 @@ export function createConfigMaps(baseUrl, cookies, data, clusterId, namespace, i
 }
 
 // Required params: baseurl, cookies, data, clusterId, namespace, iter
-export function createSecrets(baseUrl, cookies, data, clusterId, namespace, iter)  {
+export function createSecret(baseUrl, cookies, data, clusterId, namespace, iter)  {
     const name = `test-secret-${iter}`
 
     const url = clusterId === "local"?
@@ -60,7 +60,7 @@ export function createSecrets(baseUrl, cookies, data, clusterId, namespace, iter
 
 // Create Secrets with Labels
 // Required params: baseurl, coookies, data, cluster, namespace, iter
-export function createSecretsWithLabels(baseUrl, cookies, data, clusterId, namespace, iter, key, value)  {
+export function createSecretWithLabel(baseUrl, cookies, data, clusterId, namespace, iter, key, value)  {
     const name = `test-secret-${iter}`
     const key_1 = key
     const value_1 = value
@@ -92,7 +92,7 @@ export function createSecretsWithLabels(baseUrl, cookies, data, clusterId, names
 }
 
 // Required params: baseurl, cookies, clusterId, namespace, iter
-export function createDeployments(baseUrl, cookies, clusterId, namespace, iter) {
+export function createDeployment(baseUrl, cookies, clusterId, namespace, iter) {
     const name = `test-deployment-${iter}`
 
     const url = clusterId === "local"?
@@ -181,7 +181,7 @@ export function getRandomElements(arr, count) {
 
 
 
-export function createStorageClasses(baseUrl, cookies, clusterId, iter){
+export function createStorageClass(baseUrl, cookies, clusterId, iter){
 
     const name = `test-storage-class-${iter}`
 

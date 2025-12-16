@@ -79,7 +79,7 @@ export function setup() {
 }
 
 // create storage classes
-export function createResourcesStorageClasses(cookies) {
+export function createResourceStorageClass(cookies) {
     const iter = exec.scenario.iterationInTest
-    createStorageClasses(baseUrl, cookies, clusterId, iter)
+    createStorageClass(baseUrl, cookies, clusterId, iter)
 }
