@@ -176,14 +176,14 @@ func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Clu
 
 		// otherwise, if one of "alpha", or "latest"
 		if strings.Contains(r.ChartVariables.RancherVersion, "alpha") {
-			rancherRepo = baseRepo + "alpha"
+			rancherRepo = baseRepo + "alpha/rancher-"
 		} else {
-			rancherRepo = baseRepo + "latest"
+			rancherRepo = baseRepo + "latest/rancher-"
 		}
 
 		// "prime"
 		if r.ChartVariables.ForcePrimeRegistry {
-			rancherRepo = "https://charts.rancher.com/server-charts/prime"
+			rancherRepo = "https://charts.rancher.com/server-charts/prime/rancher-"
 		}
 
 	}
