@@ -191,7 +191,7 @@ func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Clu
 	chartRancher := chart{
 		name:      "rancher",
 		namespace: "cattle-system",
-		path:      rancherRepo + "/rancher-" + r.ChartVariables.RancherVersion + ".tgz",
+		path:      rancherRepo + r.ChartVariables.RancherVersion + ".tgz",
 	}
 
 	clusterAdd, err := getAppAddressFor(*cluster)
@@ -472,12 +472,14 @@ func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname
 		"bootstrapPassword": bootPwd,
 		"hostname":          hostname,
 		"replicas":          replicas,
-		"rancherImageTag":   rancherImageTag,
+		"image":             map[string]any{"tag": rancherImageTag},
 		"extraEnv":          extraEnv,
 		"livenessProbe": map[string]any{
 			"initialDelaySeconds": 30,
 			"periodSeconds":       3600,
 		},
+		"fullnameOverride": "rancher",
+		"nameOverride":     "rancher",
 	}
 
 	if rancherImageOverride != "" {
