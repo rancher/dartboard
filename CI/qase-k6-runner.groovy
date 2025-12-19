@@ -151,14 +151,17 @@ pipeline {
               echo "Parameters: ${parameters}"
               echo "-------------------------------------------------------"
 
+              // Sanitize project name to prevent shell injection in filenames
+              def safeProject = (params.QASE_TESTOPS_PROJECT ?: "").replaceAll("[$`\"'<>;,\\/]", "")
+
               // 1. Prepare Environment for this specific test case
               // Use index to ensure uniqueness for file names when multiple parameter combinations exist for the same case ID
               def envFile = "k6-${caseId}-${index}.env"
               def k6Test = "${scriptPath}"
-              def summaryLog = "k6-summary-params-${params.QASE_TESTOPS_PROJECT}-${caseId}-${index}.log"
-              def summaryJson = "k6-summary-params-${params.QASE_TESTOPS_PROJECT}-${caseId}-${index}.json"
-              def htmlReport = "k6-report-${params.QASE_TESTOPS_PROJECT}-${caseId}-${index}.html"
-              def webDashboardReport = "k6-web-dashboard-${params.QASE_TESTOPS_PROJECT}-${caseId}-${index}.html"
+              def summaryLog = "k6-summary-params-${safeProject}-${caseId}-${index}.log"
+              def summaryJson = "k6-summary-params-${safeProject}-${caseId}-${index}.json"
+              def htmlReport = "k6-report-${safeProject}-${caseId}-${index}.html"
+              def webDashboardReport = "k6-web-dashboard-${safeProject}-${caseId}-${index}.html"
 
               // Construct environment variables content
               // We set QASE_TEST_CASE_ID for the reporter
