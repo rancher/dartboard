@@ -145,8 +145,8 @@ pipeline {
       steps {
         dir('dartboard') {
           script {
-            def jsonSlurper = new JsonSlurper()
-            def testCases = jsonSlurper.parse(file: 'test_cases.json')
+            def testCasesJson = sh(script: "jq -c '.' test_cases.json", returnStdout: true).trim()
+            def testCases = new groovy.json.JsonSlurperClassic().parseText(testCasesJson)
 
             if (testCases.size() == 0) {
                 echo "No test cases found with 'AutomationTestName' custom field in Run ID ${params.QASE_TESTOPS_RUN_ID}."
