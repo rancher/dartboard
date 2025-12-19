@@ -126,6 +126,10 @@ pipeline {
             withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
               sh """
                 docker run --rm --name dartboard-qase-gatherer \\
+                  -v "${pwd()}:/app" \\
+                  --user=\$(id -u) \\
+                  --workdir /app \\
+                  --entrypoint='' \\
                   -e QASE_TESTOPS_API_TOKEN \\
                   -e QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}" \\
                   ${env.IMAGE_NAME}:latest qase-k6-cli gather -runID "${safeRunID}" > test_cases.json
