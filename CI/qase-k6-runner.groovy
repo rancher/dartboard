@@ -9,6 +9,7 @@ if (params.JENKINS_AGENT_LABEL) {
 
 def kubeconfigContainerPath
 def baseURL
+def sanitizeCharacterSet = "[$`\"'<>;,\\/{}\\[\\]!?+=%\^]"
 
 pipeline {
   agent { label agentLabel }
@@ -46,9 +47,9 @@ pipeline {
           script {
             property.useWithCredentials(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
               // Sanitize inputs to prevent shell injection
-              def safeRegion = (params.S3_BUCKET_REGION ?: "").replaceAll("[$`\"'<>;,\\/]", "")
-              def safeBucket = (params.S3_BUCKET_NAME ?: "").replaceAll("[$`\"'<>;,\\/]", "")
-              def safeDeploymentId = (params.DEPLOYMENT_ID ?: "").replaceAll("[$`\"'<>;,\\/]", "")
+              def safeRegion = (params.S3_BUCKET_REGION ?: "").replaceAll(sanitizeCharacterSet, "")
+              def safeBucket = (params.S3_BUCKET_NAME ?: "").replaceAll(sanitizeCharacterSet, "")
+              def safeDeploymentId = (params.DEPLOYMENT_ID ?: "").replaceAll(sanitizeCharacterSet, "")
 
               withEnv(["SAFE_REGION=${safeRegion}", "SAFE_BUCKET=${safeBucket}", "SAFE_DEPLOYMENT_ID=${safeDeploymentId}"]) {
                 sh """
@@ -159,7 +160,7 @@ pipeline {
               echo "-------------------------------------------------------"
 
               // Sanitize project name to prevent shell injection in filenames
-              def safeProject = (params.QASE_TESTOPS_PROJECT ?: "").replaceAll("[$`\"'<>;,\\/]", "")
+              def safeProject = (params.QASE_TESTOPS_PROJECT ?: "").replaceAll(sanitizeCharacterSet, "")
 
               // 1. Prepare Environment for this specific test case
               // Use index to ensure uniqueness for file names when multiple parameter combinations exist for the same case ID
