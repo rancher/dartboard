@@ -45,26 +45,33 @@ pipeline {
         dir('dartboard') {
           script {
             property.useWithCredentials(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
-              sh """
-                mkdir -p ${env.ARTIFACTS_DIR}
-                docker run --rm \\
-                    -v "${pwd()}/${env.ARTIFACTS_DIR}:/artifacts" \\
-                    -e AWS_ACCESS_KEY_ID \\
-                    -e AWS_SECRET_ACCESS_KEY \\
-                    -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
-                    amazon/aws-cli s3 cp "s3://${params.S3_BUCKET_NAME}/${params.DEPLOYMENT_ID}/" /artifacts/ --recursive
+              // Sanitize inputs to prevent shell injection
+              def safeRegion = (params.S3_BUCKET_REGION ?: "").replaceAll("[$`\"'<>;,\\/]", "")
+              def safeBucket = (params.S3_BUCKET_NAME ?: "").replaceAll("[$`\"'<>;,\\/]", "")
+              def safeDeploymentId = (params.DEPLOYMENT_ID ?: "").replaceAll("[$`\"'<>;,\\/]", "")
 
-                # Unzip the config archive
-                config_zip=\$(find ${env.ARTIFACTS_DIR} -name '*_config.zip' | head -n 1)
-                if [ -n "\$config_zip" ]; then
-                  unzip -o "\$config_zip" -d "${env.ARTIFACTS_DIR}"
-                else
-                  echo "Warning: No config zip file found in S3 artifacts."
-                fi
+              withEnv(["SAFE_REGION=${safeRegion}", "SAFE_BUCKET=${safeBucket}", "SAFE_DEPLOYMENT_ID=${safeDeploymentId}"]) {
+                sh """
+                  mkdir -p ${env.ARTIFACTS_DIR}
+                  docker run --rm \\
+                      -v "${pwd()}/${env.ARTIFACTS_DIR}:/artifacts" \\
+                      -e AWS_ACCESS_KEY_ID \\
+                      -e AWS_SECRET_ACCESS_KEY \\
+                      -e AWS_S3_REGION="\${SAFE_REGION}" \\
+                      amazon/aws-cli s3 cp "s3://\${SAFE_BUCKET}/\${SAFE_DEPLOYMENT_ID}/" /artifacts/ --recursive
 
-                echo "Downloaded artifacts:"
-                ls -l ${env.ARTIFACTS_DIR}
-              """
+                  # Unzip the config archive
+                  config_zip=\$(find ${env.ARTIFACTS_DIR} -name '*_config.zip' | head -n 1)
+                  if [ -n "\$config_zip" ]; then
+                    unzip -o "\$config_zip" -d "${env.ARTIFACTS_DIR}"
+                  else
+                    echo "Warning: No config zip file found in S3 artifacts."
+                  fi
+
+                  echo "Downloaded artifacts:"
+                  ls -l ${env.ARTIFACTS_DIR}
+                """
+              }
             }
             // Extract FQDN and set environment variables for the next stage
             def accessLogPath = "./${env.ARTIFACTS_DIR}/${env.ACCESS_LOG}"
