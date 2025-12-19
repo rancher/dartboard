@@ -88,7 +88,7 @@ function cleanup(cookies) {
     check(res, {
         '/v1/management.cattle.io.users returns status 200': (r) => r.status === 200 || r.status === 204,
     })
-    JSON.parse(res.body)["data"].filter(r => r["description"].startsWith("Test ")).forEach(r => {
+    JSON.parse(res.body)["data"].filter(r => ("description" in r) && r["description"].startsWith("Test ")).forEach(r => {
         res = http.del(`${baseUrl}/v3/users/${r["id"]}`, {cookies: cookies})
         check(res, {
             'DELETE /v3/users returns status 200': (r) => r.status === 200  || r.status === 204,
