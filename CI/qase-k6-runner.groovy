@@ -172,7 +172,7 @@ pipeline {
                       --workdir /app \\
                       --user=\$(id -u) \\
                       --entrypoint='' \\
-                      ${env.IMAGE_NAME}:latest yq -r ".[${index}] | .id, .title, .automation_test_name, (.parameters // {} | to_entries | .[] | \\"\\(.key)=::=\\(.value)\\")" test_cases.json
+                      ${env.IMAGE_NAME}:latest yq -r ".[${index}] | (.id, .title, .automation_test_name, (.parameters // {} | to_entries | .[] | \\"\\(.key)=::=\\(.value)\\"))" test_cases.json
               """, returnStdout: true).trim().readLines()
 
               if (caseDataLines.size() < 3) {
