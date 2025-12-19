@@ -15,6 +15,7 @@ tofu/main/*/*config
 .vscode
 
 # Others
+.env
 scripts/utils/*.txt
 chunks_head
 wal
@@ -28,8 +29,7 @@ queries.active
 
 # Binaries
 /dartboard
-/scripts/soak/soak
-/qasereporter-k6/qasereporter-k6
+/qase-k6-cli/qase-k6-cli
 /summarize-tools/export-metrics/export-metrics
 /summarize-tools/collect-profile/collect-profile
 /summarize-tools/resource-counts/cr
