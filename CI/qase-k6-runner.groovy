@@ -1,7 +1,6 @@
 #!groovy
 // Declarative Pipeline Syntax
 @Library('qa-jenkins-library') _
-import groovy.json.JsonSlurper
 
 def agentLabel = 'jenkins-qa-jenkins-agent'
 if (params.JENKINS_AGENT_LABEL) {
@@ -146,20 +145,55 @@ pipeline {
       steps {
         dir('dartboard') {
           script {
-            def jsonSlurper = new JsonSlurper()
-            def testCases = jsonSlurper.parse(new File("test_cases.json"))
+            // Get the number of test cases using yq
+            def countStr = sh(script: """
+                docker run --rm \\
+                    -v "${pwd()}:/app" \\
+                    --workdir /app \\
+                    --user=\$(id -u) \\
+                    --entrypoint='' \\
+                    ${env.IMAGE_NAME}:latest yq '. | length' test_cases.json
+            """, returnStdout: true).trim()
 
-            if (testCases.size() == 0) {
+            def count = countStr.isInteger() ? countStr.toInteger() : 0
+
+            if (count == 0) {
                 echo "No test cases found with 'AutomationTestName' custom field in Run ID ${params.QASE_TESTOPS_RUN_ID}."
                 return
             }
 
             // Iterate over each gathered test case
-            testCases.eachWithIndex { testCase, index ->
-              def caseId = testCase.id
-              def caseTitle = testCase.title
-              def scriptPath = testCase.automation_test_name
-              def parameters = testCase.parameters // Map of parameter name -> v
+            for (int index = 0; index < count; index++) {
+              // Extract test case details using yq
+              // We output ID, Title, ScriptPath, and then parameters as key=::=value lines
+              def caseDataLines = sh(script: """
+                  docker run --rm \\
+                      -v "${pwd()}:/app" \\
+                      --workdir /app \\
+                      --user=\$(id -u) \\
+                      --entrypoint='' \\
+                      ${env.IMAGE_NAME}:latest yq -r ".[${index}] | .id, .title, .automation_test_name, (.parameters // {} | to_entries | .[] | \\"\\(.key)=::=\\(.value)\\")" test_cases.json
+              """, returnStdout: true).trim().readLines()
+
+              if (caseDataLines.size() < 3) {
+                  echo "Warning: Could not parse test case at index ${index}"
+                  continue
+              }
+
+              def caseId = caseDataLines[0]
+              def caseTitle = caseDataLines[1]
+              def scriptPath = caseDataLines[2]
+              def parameters = [:]
+
+              if (caseDataLines.size() > 3) {
+                  caseDataLines[3..-1].each { line ->
+                      def parts = line.split('=::=', 2)
+                      if (parts.length == 2) {
+                          parameters[parts[0]] = parts[1]
+                      }
+                  }
+              }
+
               echo "-------------------------------------------------------"
               echo "Processing Case ID: ${caseId}"
               echo "Title: ${caseTitle}"
