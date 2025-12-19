@@ -106,11 +106,11 @@ You can find this summary in the form of a `.html` file on the build's page in J
 
 See the [docs](docs) directory for a list of tests that were run with previous versions of this code and their results.
 
-## Qase k6 Reporter
+## Qase k6 CLI
 
-The `qasereporter-k6` utility is a command-line tool included as a separate golang module that parses the output of a k6 test run and reports the results to a test case wtihin a Qase test run. It can be used in CI/CD pipelines to automatically update test cases in Qase with the results from k6 performance tests.
+The `qase-k6-cli` utility is a command-line tool included as a separate golang module that bridges k6 and Qase. It can gather test case information and report k6 test results to Qase.
 
-For detailed usage instructions, including environment variables and command-line flags, please see the [qasereporter-k6 README](qasereporter-k6/README.md).
+For detailed usage instructions, including environment variables and command-line flags, please see the [qase-k6-cli README](qase-k6-cli/README.md).
 
 ## Common Troubleshooting
 
