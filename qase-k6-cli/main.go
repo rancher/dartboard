@@ -229,6 +229,7 @@ func runGather(runIDOverride string) {
 		logrus.Fatalf("Failed to get custom fields: %v", err)
 	}
 
+	// Get the ID of the "AutomationTestName" custom field
 	var automationTestNameID int64
 	for _, cf := range cfResp.Result.Entities {
 		if cf.Title != nil && *cf.Title == "AutomationTestName" {
@@ -238,7 +239,7 @@ func runGather(runIDOverride string) {
 	}
 
 	if automationTestNameID == 0 {
-		logrus.Fatalf("Custom field 'AutomationTestName' not found in project %s", projectID)
+		logrus.Fatalf("Custom field 'AutomationTestName' not found for %s", projectID)
 	}
 
 	type gatheredCase struct {
@@ -290,6 +291,10 @@ func runGather(runIDOverride string) {
 						Parameters:         combo,
 						AutomationTestName: fmt.Sprintf("%v", *cf.Value),
 					})
+				}
+			} else {
+				if automationTestNameID == 0 {
+					logrus.Infof("Custom field 'AutomationTestName' not found for %s-%d (%s)", projectID, tc.GetId(), tc.GetTitle())
 				}
 			}
 		}
