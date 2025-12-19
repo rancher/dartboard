@@ -147,7 +147,7 @@ pipeline {
         dir('dartboard') {
           script {
             def jsonSlurper = new JsonSlurper()
-            def testCases = jsonSlurper.parse(file: 'test_cases.json')
+            def testCases = jsonSlurper.parse(new File("test_cases.json"))
 
             if (testCases.size() == 0) {
                 echo "No test cases found with 'AutomationTestName' custom field in Run ID ${params.QASE_TESTOPS_RUN_ID}."
