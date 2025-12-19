@@ -114,10 +114,10 @@ pipeline {
           script {
             withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
               sh """
-                docker run --rm \\
+                docker run --rm --name dartboard-qase-gatherer \\
                   -e QASE_TESTOPS_API_TOKEN \\
                   -e QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}" \\
-                  ${env.IMAGE_NAME}:latest /app/qase-k6-cli gather -runID ${params.QASE_TESTOPS_RUN_ID} > test_cases.json
+                  ${env.IMAGE_NAME}:latest qase-k6-cli gather -runID ${params.QASE_TESTOPS_RUN_ID} > test_cases.json
               """
             }
             sh "cat test_cases.json"
@@ -154,19 +154,26 @@ pipeline {
               // 1. Prepare Environment for this specific test case
               // Use index to ensure uniqueness for file names when multiple parameter combinations exist for the same case ID
               def envFile = "k6-${caseId}-${index}.env"
-              def summaryLog = "k6-summary-${caseId}-${index}.log"
-              def summaryJson = "k6-summary-${caseId}-${index}.json"
-              def htmlJson = "k6-report-${caseId}-${index}.html"
+              def k6Test = "${scriptPath}"
+              def summaryLog = "k6-summary-params-${params.QASE_TESTOPS_PROJECT}-${caseId}-${index}.log"
+              def summaryJson = "k6-summary-params-${params.QASE_TESTOPS_PROJECT}-${caseId}-${index}.json"
+              def htmlReport = "k6-report-${params.QASE_TESTOPS_PROJECT}-${caseId}-${index}.html"
+              def webDashboardReport = "k6-web-dashboard-${params.QASE_TESTOPS_PROJECT}-${caseId}-${index}.html"
 
               // Construct environment variables content
               // We set QASE_TEST_CASE_ID for the reporter
               def envContent = """
 K6_NO_USAGE_REPORT=true
+K6_TEST=${k6Test}
 BASE_URL=${baseURL ?: ''}
 KUBECONFIG=${kubeconfigContainerPath ?: ''}
+QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}"
+QASE_TESTOPS_RUN_ID="${params.QASE_TESTOPS_RUN_ID}"
 QASE_TEST_CASE_ID=${caseId}
 K6_SUMMARY_JSON_FILE=${summaryJson}
-K6_HTML_REPORT_FILE=${htmlJson}
+K6_HTML_REPORT_FILE=${htmlReport}
+K6_WEB_DASHBOARD=true
+K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
 """
               // Handle parameters required by the test case
               parameters.each { paramName, paramValue ->
@@ -180,20 +187,17 @@ K6_HTML_REPORT_FILE=${htmlJson}
               // 2. Run k6
               try {
                   sh """
-                    docker run --rm \\
+                    docker run --rm --name dartboard-k6-runner \\
                         -v "${pwd()}:/app" \\
+                        --env-file "${envFile}" \\
                         --workdir /app \\
                         --user=\$(id -u) \\
                         --entrypoint='' \\
                         ${env.IMAGE_NAME}:latest sh -c '''
-                            set -o allexport
-                            source "${envFile}"
-                            set +o allexport
-
-                            echo "Running k6 script: ${scriptPath}"
+                            echo "Running k6 script: \$K6_TEST"
                             # Ensure the directory for the summary file exists or k6 might complain if path is deep
                             # Run k6, piping output to log and generating summary JSON
-                            k6 run --no-color "${scriptPath}" > "${summaryLog}" 2>&1
+                            k6 run --no-color "\$K6_TEST" > "${summaryLog}" 2>&1
                         '''
                   """
               } catch (Exception e) {
@@ -203,22 +207,17 @@ K6_HTML_REPORT_FILE=${htmlJson}
               // 3. Report to Qase
               withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
                   sh """
-                    docker run --rm \\
+                    docker run --rm --name dartboard-qase-reporter \\
                         -v "${pwd()}:/app" \\
+                        --env-file "${envFile}" \\
                         --workdir /app \\
                         --user=\$(id -u) \\
                         --entrypoint='' \\
                         -e QASE_TESTOPS_API_TOKEN \\
-                        -e QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}" \\
-                        -e QASE_TESTOPS_RUN_ID="${params.QASE_TESTOPS_RUN_ID}" \\
                         ${env.IMAGE_NAME}:latest sh -c '''
-                            set -o allexport
-                            source "${envFile}"
-                            set +o allexport
-
                             echo "Reporting results for Case ${caseId}..."
                             if [ -f "${summaryJson}" ]; then
-                                /app/qase-k6-cli report
+                                qase-k6-cli report
                             else
                                 echo "Summary JSON not found, skipping report for ${caseId}"
                             fi
@@ -235,8 +234,59 @@ K6_HTML_REPORT_FILE=${htmlJson}
   post {
     always {
       script {
-        archiveArtifacts artifacts: 'dartboard/*.log, dartboard/*.json', fingerprint: true, allowEmptyArchive: true
-        sh "docker rmi -f ${env.IMAGE_NAME}:latest || true"
+        echo "Archiving k6 test results..."
+        archiveArtifacts artifacts: """
+          dartboard/*.json,
+          dartboard/*.log,
+          dartboard/*.html,
+          dartboard/*.xml,
+        """.trim(), fingerprint: true
+
+        // The k6 container is run with --rm, so it should clean itself up.
+        // But if the job is aborted, the container might be left running.
+        echo "Cleaning up Docker resources..."
+        try {
+          echo "Attempting to remove container: dartboard-k6-runner"
+          sh "docker rm -f dartboard-k6-runner"
+        } catch (e) {
+          echo "Could not remove container 'dartboard-k6-runner'. It may have already been removed. Details: ${e.message}"
+        }
+        try {
+          echo "Attempting to remove container: dartboard-qase-gatherer"
+          sh "docker rm -f dartboard-qase-gatherer"
+        } catch (e) {
+          echo "Could not remove container 'dartboard-qase-gatherer'. It may have already been removed. Details: ${e.message}"
+        }
+        try {
+          echo "Attempting to remove container: dartboard-qase-reporter"
+          sh "docker rm -f dartboard-qase-reporter"
+        } catch (e) {
+          echo "Could not remove container 'dartboard-qase-reporter'. It may have already been removed. Details: ${e.message}"
+        }
+        try {
+          echo "Attempting to remove image: ${env.IMAGE_NAME}:latest"
+          sh "docker rmi -f ${env.IMAGE_NAME}:latest"
+          echo "Attempting to remove image: amazon/aws-cli"
+          sh "docker rmi amazon/aws-cli"
+        } catch (e) {
+          echo "Could not remove a Docker image. It may have already been removed or was never present. Details: ${e.message}"
+        }
+      }
+    }
+    cleanup {
+      // Clean up large files from the workspace to save disk space on the agent.
+      // These are not part of the archived artifacts but remain in the workspace.
+      echo "Cleaning up workspace..."
+      dir('dartboard') {
+        // Use find and xargs for more robust and efficient cleanup of non-artifact files and directories.
+        // This removes all files and directories from the checkout except for the archived k6 results.
+        sh """
+          set -x
+          echo "Removing all non-artifact files and directories..."
+          find . -mindepth 1 -maxdepth 1 \\
+            -not -name '*.html' -not -name '*.json' -not -name '*.log' -not -name '*.xml' \\
+            -exec rm -rf {} +
+        """
       }
     }
   }
