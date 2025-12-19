@@ -161,7 +161,7 @@ export function createProjects(data) {
 
       success = response.status === 201
       if (!success) {
-        console.log(JSON.stringify(response, null, 2))
+        console.log(`[Attempt ${j + 1}/30] Failed to create projectroletemplatebinding (status: ${response.status}). Retrying... Error: ${response.body}`)
         sleep(Math.random())
       }
     }
