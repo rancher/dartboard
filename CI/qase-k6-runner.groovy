@@ -9,7 +9,7 @@ if (params.JENKINS_AGENT_LABEL) {
 
 def kubeconfigContainerPath
 def baseURL
-def sanitizeCharacterSet = "[$`\"'<>;,\\/{}\\[\\]!?+=%\^]"
+def sanitizeCharacterRegex = "[^a-zA-Z0-9'_-]"
 
 pipeline {
   agent { label agentLabel }
@@ -47,9 +47,9 @@ pipeline {
           script {
             property.useWithCredentials(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
               // Sanitize inputs to prevent shell injection
-              def safeRegion = (params.S3_BUCKET_REGION ?: "").replaceAll(sanitizeCharacterSet, "")
-              def safeBucket = (params.S3_BUCKET_NAME ?: "").replaceAll(sanitizeCharacterSet, "")
-              def safeDeploymentId = (params.DEPLOYMENT_ID ?: "").replaceAll(sanitizeCharacterSet, "")
+              def safeRegion = (params.S3_BUCKET_REGION ?: "").replaceAll(sanitizeCharacterRegex, "")
+              def safeBucket = (params.S3_BUCKET_NAME ?: "").replaceAll(sanitizeCharacterRegex, "")
+              def safeDeploymentId = (params.DEPLOYMENT_ID ?: "").replaceAll(sanitizeCharacterRegex, "")
 
               withEnv(["SAFE_REGION=${safeRegion}", "SAFE_BUCKET=${safeBucket}", "SAFE_DEPLOYMENT_ID=${safeDeploymentId}"]) {
                 sh """
@@ -120,12 +120,15 @@ pipeline {
       steps {
         dir('dartboard') {
           script {
+            // Sanitize Run ID to be numeric only to prevent command injection
+            def safeRunID = (params.QASE_TESTOPS_RUN_ID ?: "").replaceAll("[^0-9]", "")
+
             withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
               sh """
                 docker run --rm --name dartboard-qase-gatherer \\
                   -e QASE_TESTOPS_API_TOKEN \\
                   -e QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}" \\
-                  ${env.IMAGE_NAME}:latest qase-k6-cli gather -runID ${params.QASE_TESTOPS_RUN_ID} > test_cases.json
+                  ${env.IMAGE_NAME}:latest qase-k6-cli gather -runID "${safeRunID}" > test_cases.json
               """
             }
             sh "cat test_cases.json"
@@ -160,7 +163,7 @@ pipeline {
               echo "-------------------------------------------------------"
 
               // Sanitize project name to prevent shell injection in filenames
-              def safeProject = (params.QASE_TESTOPS_PROJECT ?: "").replaceAll(sanitizeCharacterSet, "")
+              def safeProject = (params.QASE_TESTOPS_PROJECT ?: "").replaceAll(sanitizeCharacterRegex, "")
 
               // 1. Prepare Environment for this specific test case
               // Use index to ensure uniqueness for file names when multiple parameter combinations exist for the same case ID
@@ -190,6 +193,8 @@ K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
               parameters.each { paramName, paramValue ->
                  // Check if the Jenkins job has this parameter defined, otherwise use the value from Qase
                  def finalValue = params[paramName] ?: paramValue
+                 // Sanitize value to prevent newlines breaking the env file format
+                 finalValue = finalValue.toString().replaceAll("[\r\n]", "")
                  envContent += "${paramName}=${finalValue}\n"
               }
 
