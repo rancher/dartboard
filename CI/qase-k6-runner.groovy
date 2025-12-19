@@ -9,7 +9,8 @@ if (params.JENKINS_AGENT_LABEL) {
 
 def kubeconfigContainerPath
 def baseURL
-def sanitizeCharacterRegex = "[^a-zA-Z0-9'_-\\&\\*]"
+def sanitizeCharacterRegex = "[^a-zA-Z0-9'_-]"
+def sanitizeK6EnvRegex = "[^a-zA-Z0-9_=,;&*-]"
 
 pipeline {
   agent { label agentLabel }
@@ -212,7 +213,7 @@ pipeline {
               def summaryJson = "k6-summary-params-${safeProject}-${caseId}-${index}.json"
               def htmlReport = "k6-report-${safeProject}-${caseId}-${index}.html"
               def webDashboardReport = "k6-web-dashboard-${safeProject}-${caseId}-${index}.html"
-              def safeK6Env = params.K6_ENV ? params.K6_ENV.replaceAll(sanitizeCharacterRegex, "") : ""
+              def safeK6Env = params.K6_ENV ? params.K6_ENV.replaceAll(sanitizeK6EnvRegex, "") : ""
 
               // Construct environment variables content
               // We set QASE_TEST_CASE_ID for the reporter
