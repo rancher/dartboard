@@ -187,7 +187,7 @@ K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
               // 2. Run k6
               try {
                   sh """
-                    docker run --rm --name dartboard-k6-runner \\
+                    docker run --rm --name dartboard-k6-runner-${index} \\
                         -v "${pwd()}:/app" \\
                         --env-file "${envFile}" \\
                         --workdir /app \\
@@ -207,7 +207,7 @@ K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
               // 3. Report to Qase
               withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
                   sh """
-                    docker run --rm --name dartboard-qase-reporter \\
+                    docker run --rm --name dartboard-qase-reporter-${index} \\
                         -v "${pwd()}:/app" \\
                         --env-file "${envFile}" \\
                         --workdir /app \\
@@ -246,10 +246,10 @@ K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
         // But if the job is aborted, the container might be left running.
         echo "Cleaning up Docker resources..."
         try {
-          echo "Attempting to remove container: dartboard-k6-runner"
-          sh "docker rm -f dartboard-k6-runner"
+          echo "Attempting to remove containers matching: dartboard-k6-runner"
+          sh "docker ps -a -q --filter name=dartboard-k6-runner | xargs -r docker rm -f"
         } catch (e) {
-          echo "Could not remove container 'dartboard-k6-runner'. It may have already been removed. Details: ${e.message}"
+          echo "Could not remove containers matching 'dartboard-k6-runner'. Details: ${e.message}"
         }
         try {
           echo "Attempting to remove container: dartboard-qase-gatherer"
@@ -258,10 +258,10 @@ K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
           echo "Could not remove container 'dartboard-qase-gatherer'. It may have already been removed. Details: ${e.message}"
         }
         try {
-          echo "Attempting to remove container: dartboard-qase-reporter"
-          sh "docker rm -f dartboard-qase-reporter"
+          echo "Attempting to remove containers matching: dartboard-qase-reporter"
+          sh "docker ps -a -q --filter name=dartboard-qase-reporter | xargs -r docker rm -f"
         } catch (e) {
-          echo "Could not remove container 'dartboard-qase-reporter'. It may have already been removed. Details: ${e.message}"
+          echo "Could not remove containers matching 'dartboard-qase-reporter'. Details: ${e.message}"
         }
         try {
           echo "Attempting to remove image: ${env.IMAGE_NAME}:latest"
