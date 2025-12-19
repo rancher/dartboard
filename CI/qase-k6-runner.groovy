@@ -145,7 +145,14 @@ pipeline {
       steps {
         dir('dartboard') {
           script {
-            def testCasesJson = sh(script: "jq -c '.' test_cases.json", returnStdout: true).trim()
+            def testCasesJson = sh(script: """
+                docker run --rm \\
+                    -v "${pwd()}:/app" \\
+                    --workdir /app \\
+                    --user=\$(id -u) \\
+                    --entrypoint='' \\
+                    ${env.IMAGE_NAME}:latest yq -o=json -I=0 '.' test_cases.json
+            """, returnStdout: true).trim()
             def testCases = new groovy.json.JsonSlurperClassic().parseText(testCasesJson)
 
             if (testCases.size() == 0) {
