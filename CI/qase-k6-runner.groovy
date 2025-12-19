@@ -1,6 +1,7 @@
 #!groovy
 // Declarative Pipeline Syntax
 @Library('qa-jenkins-library') _
+import groovy.json.JsonSlurper
 
 def agentLabel = 'jenkins-qa-jenkins-agent'
 if (params.JENKINS_AGENT_LABEL) {
@@ -145,15 +146,8 @@ pipeline {
       steps {
         dir('dartboard') {
           script {
-            def testCasesJson = sh(script: """
-                docker run --rm \\
-                    -v "${pwd()}:/app" \\
-                    --workdir /app \\
-                    --user=\$(id -u) \\
-                    --entrypoint='' \\
-                    ${env.IMAGE_NAME}:latest yq -o=json -I=0 '.' test_cases.json
-            """, returnStdout: true).trim()
-            def testCases = new groovy.json.JsonSlurperClassic().parseText(testCasesJson)
+            def jsonSlurper = new JsonSlurper()
+            def testCases = jsonSlurper.parse(file: 'test_cases.json')
 
             if (testCases.size() == 0) {
                 echo "No test cases found with 'AutomationTestName' custom field in Run ID ${params.QASE_TESTOPS_RUN_ID}."
