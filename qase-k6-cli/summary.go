@@ -67,7 +67,16 @@ func reportSummary(params map[string]string) {
 
 	// Report to Qase
 	status := qase.StatusPassed
-	if !overallPass {
+	thresholdsFailed := false
+	for _, t := range thresholds {
+		if !t.Pass {
+			thresholdsFailed = true
+			break
+		}
+	}
+	if thresholdsFailed {
+		status = qase.StatusExceededThresholds
+	} else if !overallPass {
 		status = qase.StatusFailed
 	}
 
