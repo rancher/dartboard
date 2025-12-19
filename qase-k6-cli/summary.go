@@ -13,11 +13,14 @@ import (
 const (
 	k6SummaryJsonFileEnvVar = "K6_SUMMARY_JSON_FILE"
 	k6SummaryHtmlFileEnvVar = "K6_SUMMARY_HTML_FILE"
+	// See https://grafana.com/docs/k6/latest/results-output/web-dashboard/
+	k6WebDashboardExportEnvVar = "K6_WEB_DASHBOARD_EXPORT"
 )
 
 var (
-	k6SummaryJsonFile = os.Getenv(k6SummaryJsonFileEnvVar)
-	k6SummaryHtmlFile = os.Getenv(k6SummaryHtmlFileEnvVar)
+	k6SummaryJsonFile        = os.Getenv(k6SummaryJsonFileEnvVar)
+	k6SummaryHtmlFile        = os.Getenv(k6SummaryHtmlFileEnvVar)
+	k6WebDashboardExportFile = os.Getenv(k6WebDashboardExportEnvVar)
 )
 
 // K6Summary represents the structure of the k6 summary JSON output.
@@ -77,6 +80,15 @@ func reportSummary(params map[string]string) {
 			attachments = append(attachments, k6SummaryHtmlFile)
 		} else {
 			logrus.Warnf("HTML report file specified but not found at %s.", k6SummaryHtmlFile)
+		}
+	}
+
+	if k6WebDashboardExportFile != "" {
+		if _, err := os.Stat(k6WebDashboardExportFile); err == nil {
+			logrus.Infof("Found Web Dashboard report at %s, preparing for upload.", k6WebDashboardExportFile)
+			attachments = append(attachments, k6WebDashboardExportFile)
+		} else {
+			logrus.Warnf("Web Dashboard report file specified but not found at %s.", k6WebDashboardExportFile)
 		}
 	}
 

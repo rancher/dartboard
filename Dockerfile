@@ -18,7 +18,7 @@ RUN go mod download && \
 RUN cd $WORKSPACE && \
     make && \
     mv ./dartboard /usr/local/bin/dartboard && \
-    mv ./qasereporter-k6/qase-k6-cli /usr/local/bin/qase-k6-cli
+    mv ./qase-k6-cli/qase-k6-cli /usr/local/bin/qase-k6-cli
 
 FROM grafana/k6:${K6_VERSION}
 COPY --from=builder /usr/local/bin/dartboard /bin/dartboard
