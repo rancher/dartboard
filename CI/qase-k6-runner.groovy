@@ -212,6 +212,7 @@ pipeline {
               def summaryJson = "k6-summary-params-${safeProject}-${caseId}-${index}.json"
               def htmlReport = "k6-report-${safeProject}-${caseId}-${index}.html"
               def webDashboardReport = "k6-web-dashboard-${safeProject}-${caseId}-${index}.html"
+              def safeK6Env = params.K6_ENV ? params.K6_ENV.replaceAll(sanitizeCharacterRegex, "") : ""
 
               // Construct environment variables content
               // We set QASE_TEST_CASE_ID for the reporter
@@ -227,6 +228,7 @@ K6_SUMMARY_JSON_FILE=${summaryJson}
 K6_HTML_REPORT_FILE=${htmlReport}
 K6_WEB_DASHBOARD=true
 K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
+${safeK6Env ? "K6_ENV=${safeK6Env}" : ""}
 """
               // Handle parameters required by the test case
               parameters.each { paramName, paramValue ->
