@@ -252,7 +252,7 @@ K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
                             echo "Running k6 script: \$K6_TEST"
                             # Ensure the directory for the summary file exists or k6 might complain if path is deep
                             # Run k6, piping output to log and generating summary JSON
-                            k6 run --no-color "\$K6_TEST" > "${summaryLog}" 2>&1
+                            k6 run --no-color "\$K6_TEST" | tee "${summaryLog}"
                         '''
                   """
               } catch (Exception e) {
