@@ -229,7 +229,7 @@ K6_SUMMARY_JSON_FILE=${summaryJson}
 K6_HTML_REPORT_FILE=${htmlReport}
 K6_WEB_DASHBOARD=true
 K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
-${safeK6Env ? "K6_ENV=${safeK6Env}" : ""}
+${safeK6Env ? "${safeK6Env}" : ""}
 """
               // Handle parameters required by the test case
               parameters.each { paramName, paramValue ->
