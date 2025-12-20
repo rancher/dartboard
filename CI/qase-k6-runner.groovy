@@ -10,7 +10,7 @@ if (params.JENKINS_AGENT_LABEL) {
 def kubeconfigContainerPath
 def baseURL
 def sanitizeCharacterRegex = "[^a-zA-Z0-9'_-]"
-def sanitizeK6EnvRegex = "[^a-zA-Z0-9_=,;&*-.]"
+def sanitizeK6EnvRegex = "[^a-zA-Z0-9_=,;&*-.\\n\\r]"
 
 pipeline {
   agent { label agentLabel }
