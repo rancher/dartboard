@@ -138,7 +138,7 @@ export function createReports(prefix, data) {
  * A pre-configured `handleSummary` function that generates multiple reports.
  *
  * This function is a convenient wrapper around `createReports`. It automatically
- * determines the report filename prefix from the `K6_TEST` environment variable.
+ * determines the report filename prefix from the `K6_REPORT_PREFIX` environment variable.
  *
  * To use this, import it then export it as `handleSummary`:
  * ```javascript
@@ -158,6 +158,6 @@ export function createReports(prefix, data) {
  * @returns {object} An object mapping filenames to report content, for k6 to write to disk.
  */
 export function customHandleSummary(data) {
-  const prefix = __ENV.K6_TEST ? __ENV.K6_TEST.replace(/\.js$/, '') + "-" : '';
+  const prefix = __ENV.K6_REPORT_PREFIX ? __ENV.K6_REPORT_PREFIX.replace(/\.js$/, '') + "-" : '';
   return createReports(getPathBasename(prefix), data)
 }
