@@ -231,6 +231,10 @@ K6_WEB_DASHBOARD=true
 K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
 ${safeK6Env ? "${safeK6Env}" : ""}
 """
+              sh """
+                echo "Environment file for Case ${caseId} (index ${index}):"
+                echo "${envContent}"
+              """
               // Handle parameters required by the test case
               parameters.each { paramName, paramValue ->
                  // Check if the Jenkins job has this parameter defined, otherwise use the value from Qase
