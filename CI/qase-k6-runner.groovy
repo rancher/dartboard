@@ -208,7 +208,8 @@ pipeline {
               // 1. Prepare Environment for this specific test case
               // Use index to ensure uniqueness for file names when multiple parameter combinations exist for the same case ID
               def envFile = "k6-${caseId}-${index}.env"
-              def k6ReportPrefix = "k6-${scriptPath.replaceAll("\\.js", "")}-${safeProject}-${caseId}-${index}"
+              def basename = sh(script: "basename ${scriptPath}", returnStdout: true).trim()
+              def k6ReportPrefix = "k6-${basename.replaceAll("\\.js", "")}-${safeProject}-${caseId}-${index}"
               def summaryLog = "k6-summary-params.log"
               def summaryJson = "${k6ReportPrefix}-summary.json"
               def htmlReport = "${k6ReportPrefix}-summary.html"
