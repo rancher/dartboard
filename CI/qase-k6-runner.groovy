@@ -219,7 +219,8 @@ pipeline {
               // We set QASE_TEST_CASE_ID for the reporter
               def envContent = """
 K6_NO_USAGE_REPORT=true
-K6_TEST=${k6ReportPrefix}
+K6_TEST=${scriptPath}
+K6_REPORT_PREFIX=${k6ReportPrefix}
 BASE_URL=${baseURL ?: ''}
 KUBECONFIG=${kubeconfigContainerPath ?: ''}
 QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}"
