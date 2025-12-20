@@ -207,9 +207,9 @@ pipeline {
 
               // 1. Prepare Environment for this specific test case
               // Use index to ensure uniqueness for file names when multiple parameter combinations exist for the same case ID
-              def envFile = "k6-${caseId}-${index}.env"
-              def basename = sh(script: "basename ${scriptPath}", returnStdout: true).trim()
-              def k6ReportPrefix = "k6-${basename.replaceAll("\\.js", "")}-${safeProject}-${caseId}-${index}"
+              def basename = sh(script: "basename ${scriptPath}", returnStdout: true).trim().replaceAll("\\.js", "")
+              def envFile = "k6-${basename}-${safeProject}-${caseId}-${index}.env"
+              def k6ReportPrefix = "k6-${basename}-${safeProject}-${caseId}-${index}"
               def summaryLog = "k6-summary-params.log"
               def summaryJson = "${k6ReportPrefix}-summary.json"
               def htmlReport = "${k6ReportPrefix}-summary.html"
@@ -224,8 +224,8 @@ K6_TEST=${scriptPath}
 K6_REPORT_PREFIX=${k6ReportPrefix}
 BASE_URL=${baseURL ?: ''}
 KUBECONFIG=${kubeconfigContainerPath ?: ''}
-QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}"
-QASE_TESTOPS_RUN_ID="${params.QASE_TESTOPS_RUN_ID}"
+QASE_TESTOPS_PROJECT=${params.QASE_TESTOPS_PROJECT}
+QASE_TESTOPS_RUN_ID=${params.QASE_TESTOPS_RUN_ID}
 QASE_TEST_CASE_ID=${caseId}
 K6_SUMMARY_JSON_FILE=${summaryJson}
 K6_HTML_REPORT_FILE=${htmlReport}
@@ -233,10 +233,7 @@ K6_WEB_DASHBOARD=true
 K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
 ${safeK6Env}
 """
-              sh """
-                echo "Environment file for Case ${caseId} (index ${index}):"
-                echo "${envContent}"
-              """
+
               // Handle parameters required by the test case
               parameters.each { paramName, paramValue ->
                  // Check if the Jenkins job has this parameter defined, otherwise use the value from Qase
@@ -247,6 +244,11 @@ ${safeK6Env}
               }
 
               writeFile file: envFile, text: envContent
+
+              sh """
+                echo "Environment file for Case ${caseId} (index ${index}):"
+                echo "${envContent}"
+              """
 
               // 2. Run k6
               try {
