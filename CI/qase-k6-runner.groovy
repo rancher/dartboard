@@ -208,10 +208,10 @@ pipeline {
               // 1. Prepare Environment for this specific test case
               // Use index to ensure uniqueness for file names when multiple parameter combinations exist for the same case ID
               def envFile = "k6-${caseId}-${index}.env"
-              def k6Test = "${scriptPath}"
-              def summaryLog = "k6-summary-params-${safeProject}-${caseId}-${index}.log"
-              def summaryJson = "k6-summary-params-${safeProject}-${caseId}-${index}.json"
-              def htmlReport = "k6-report-${safeProject}-${caseId}-${index}.html"
+              def k6ReportPrefix = "k6-${scriptPath.replaceAll("\\.js", "")}-${safeProject}-${caseId}-${index}"
+              def summaryLog = "k6-summary-params.log"
+              def summaryJson = "${k6ReportPrefix}-summary.json"
+              def htmlReport = "${k6ReportPrefix}-summary.html"
               def webDashboardReport = "k6-web-dashboard-${safeProject}-${caseId}-${index}.html"
               def safeK6Env = params.K6_ENV ? params.K6_ENV.replaceAll(sanitizeK6EnvRegex, "") : ""
 
@@ -219,7 +219,7 @@ pipeline {
               // We set QASE_TEST_CASE_ID for the reporter
               def envContent = """
 K6_NO_USAGE_REPORT=true
-K6_TEST=${k6Test}
+K6_TEST=${k6ReportPrefix}
 BASE_URL=${baseURL ?: ''}
 KUBECONFIG=${kubeconfigContainerPath ?: ''}
 QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}"
