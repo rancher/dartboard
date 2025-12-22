@@ -263,10 +263,6 @@ ${safeK6Env}
                         --entrypoint='' \\
                         ${env.IMAGE_NAME}:latest sh -c '''
                             set -o pipefail
-                            echo "Running k6 script: \$K6_TEST"
-                            # Ensure the directory for the summary file exists or k6 might complain if path is deep
-                            # Run k6, piping output to log and generating summary JSON
-                            k6 run --no-color "\$K6_TEST" | tee "${summaryLog}"
 
                             # 1. Prepare a script copy with handleSummary disabled to allow Native Dashboard generation
                             TEST_DIR=\$(dirname "\$K6_TEST")
@@ -275,7 +271,7 @@ ${safeK6Env}
 
                             cp "\$K6_TEST" "\$MODIFIED_TEST"
                             # Comment out the export of handleSummary
-                            sed -i 's/export .*handleSummary/\\/\\/ &/' "\$MODIFIED_TEST"
+                            sed -i "s|export .*handleSummary|// &|" "\$MODIFIED_TEST"
 
                             echo "Running k6 script (Native Dashboard Mode): \$MODIFIED_TEST"
                             k6 run --no-color "\$MODIFIED_TEST" | tee "${summaryLog}"
