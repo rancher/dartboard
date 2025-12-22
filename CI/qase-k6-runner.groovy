@@ -210,7 +210,7 @@ pipeline {
               def basename = sh(script: "basename ${scriptPath}", returnStdout: true).trim().replaceAll("\\.js", "")
               def envFile = "k6-${basename}-${safeProject}-${caseId}-${index}.env"
               def k6ReportPrefix = "k6-${basename}-${safeProject}-${caseId}-${index}"
-              def summaryLog = "k6-summary-params.log"
+              def summaryLog = "k6-summary-${safeProject}-${caseId}-${index}-params.log"
               def summaryJson = "${k6ReportPrefix}-summary.json"
               def htmlReport = "${k6ReportPrefix}-summary.html"
               def webDashboardReport = "k6-web-dashboard-${safeProject}-${caseId}-${index}.html"
@@ -218,7 +218,18 @@ pipeline {
 
               // Construct environment variables content
               // We set QASE_TEST_CASE_ID for the reporter
-              def envContent = """
+              def envContent = ""
+
+              // Handle parameters required by the test case
+              parameters.each { paramName, paramValue ->
+                 // Check if the Jenkins job has this parameter defined, otherwise use the value from Qase
+                 def finalValue = params[paramName] ?: paramValue
+                 // Sanitize value to prevent newlines breaking the env file format
+                 finalValue = finalValue.toString().replaceAll("[\r\n]", "")
+                 envContent += "${paramName}=${finalValue}\n"
+              }
+
+              envContent += """
 K6_NO_USAGE_REPORT=true
 K6_TEST=${scriptPath}
 K6_REPORT_PREFIX=${k6ReportPrefix}
@@ -233,15 +244,6 @@ K6_WEB_DASHBOARD=true
 K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
 ${safeK6Env}
 """
-
-              // Handle parameters required by the test case
-              parameters.each { paramName, paramValue ->
-                 // Check if the Jenkins job has this parameter defined, otherwise use the value from Qase
-                 def finalValue = params[paramName] ?: paramValue
-                 // Sanitize value to prevent newlines breaking the env file format
-                 finalValue = finalValue.toString().replaceAll("[\r\n]", "")
-                 envContent += "${paramName}=${finalValue}\n"
-              }
 
               writeFile file: envFile, text: envContent
 
@@ -270,6 +272,7 @@ ${safeK6Env}
               } catch (Exception e) {
                   echo "k6 run failed for case ${caseId}, but continuing to report failure/partial results."
               }
+              sh "ls -al"
 
               // 3. Report to Qase
               withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
