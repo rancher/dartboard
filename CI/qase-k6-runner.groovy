@@ -267,6 +267,23 @@ ${safeK6Env}
                             # Ensure the directory for the summary file exists or k6 might complain if path is deep
                             # Run k6, piping output to log and generating summary JSON
                             k6 run --no-color "\$K6_TEST" | tee "${summaryLog}"
+
+                            # 1. Prepare a script copy with handleSummary disabled to allow Native Dashboard generation
+                            TEST_DIR=\$(dirname "\$K6_TEST")
+                            TEST_FILE=\$(basename "\$K6_TEST")
+                            MODIFIED_TEST="\${TEST_DIR}/native_\${TEST_FILE}"
+
+                            cp "\$K6_TEST" "\$MODIFIED_TEST"
+                            # Comment out the export of handleSummary
+                            sed -i 's/export .*handleSummary/\\/\\/ &/' "\$MODIFIED_TEST"
+
+                            echo "Running k6 script (Native Dashboard Mode): \$MODIFIED_TEST"
+                            k6 run --no-color "\$MODIFIED_TEST" | tee "${summaryLog}"
+
+                            # 2. Generate Custom Reports (k6-reporter, custom JUnit) from the JSON summary
+                            echo "Generating custom reports from ${summaryJson}..."
+                            # Use absolute path for summary file as open() in the script resolves relative to the script location
+                            k6 run --no-color -e K6_SUMMARY_JSON_FILE="/app/${summaryJson}" k6/generic/report_generator.js > /dev/null
                         '''
                   """
               } catch (Exception e) {
