@@ -119,6 +119,8 @@ github.com/git-ival/rancher-tests/actions v0.0.0-20251223194020-57770a8f364f h1:
 github.com/git-ival/rancher-tests/actions v0.0.0-20251223194020-57770a8f364f/go.mod h1:PokUicA/wNdtwUQZQXecqB0R8SqSTY9DqNKTDvz5Nvo=
 github.com/git-ival/rancher-tests/interoperability v0.0.0-20251223194020-57770a8f364f h1:tWKPZy1U1SiG37THLNx5tAsrz2aQVyWeGGETI/OI0YU=
 github.com/git-ival/rancher-tests/interoperability v0.0.0-20251223194020-57770a8f364f/go.mod h1:8VlS0VDzZBAATV2LDlwk35EFz/aJeVMSvOZzjygeI60=
+github.com/git-ival/shepherd v0.0.0-20251224010847-7ea085cf72b9 h1:iOKKkn+pqszq6jubU+ZmB//vf5bfHbLGBUWk661y7aw=
+github.com/git-ival/shepherd v0.0.0-20251224010847-7ea085cf72b9/go.mod h1:SJtW8Jqv0rphZzsGnvB965YdyR2FqFtB+TbbzVLt8F4=
 github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
 github.com/go-errors/errors v1.4.2/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3BopGUQ5a5Og=
 github.com/go-ini/ini v1.67.0 h1:z6ZrTEZqSWOTyH2FlglNbNgARyHG8oLW9gMELqKr06A=

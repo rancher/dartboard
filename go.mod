@@ -12,8 +12,7 @@ replace (
 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20200521150516-05eb9880269c
 	github.com/rancher/rancher/pkg/apis => github.com/rancher/rancher/pkg/apis v0.0.0-20251216090958-18e340c45365
 	github.com/rancher/rancher/pkg/client => github.com/rancher/rancher/pkg/client v0.0.0-20250212213103-5c3550f55322
-	// github.com/rancher/shepherd => github.com/rancher/shepherd v0.0.0-20250514182450-235145b2fd2a
-	github.com/rancher/shepherd => ../shepherd
+	github.com/rancher/shepherd => github.com/git-ival/shepherd v0.0.0-20251224010847-7ea085cf72b9
 	github.com/rancher/tests => github.com/git-ival/rancher-tests v0.0.0-20251223194020-57770a8f364f
 	github.com/rancher/tests/actions => github.com/git-ival/rancher-tests/actions v0.0.0-20251223194020-57770a8f364f
 	github.com/rancher/tests/interoperability => github.com/git-ival/rancher-tests/interoperability v0.0.0-20251223194020-57770a8f364f
