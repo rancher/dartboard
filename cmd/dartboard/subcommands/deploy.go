@@ -145,26 +145,28 @@ func Deploy(cli *cli.Context) error {
 		return err
 	}
 
-	// Get all downstream cluster info
-	downstreamClusters := []tofu.Cluster{}
-	for k, v := range clusters {
-		if strings.HasPrefix(k, "downstream") {
-			v.Name = k
-			downstreamClusters = append(downstreamClusters, v)
+	if len(clusters) > 0 {
+		// Get all downstream cluster info
+		downstreamClusters := []tofu.Cluster{}
+		for k, v := range clusters {
+			if strings.HasPrefix(k, "downstream") {
+				v.Name = k
+				downstreamClusters = append(downstreamClusters, v)
+			}
 		}
-	}
-	SortItemsNaturally(downstreamClusters, func(c tofu.Cluster) string { return c.Name })
+		SortItemsNaturally(downstreamClusters, func(c tofu.Cluster) string { return c.Name })
 
-	jsonBytes, err := json.MarshalIndent(downstreamClusters, "", "    ")
-	if err != nil {
-		fmt.Println("Error marshaling JSON:", err)
-		return err
-	}
-	fmt.Println("Import Clusters:\n", string(jsonBytes))
+		jsonBytes, err := json.MarshalIndent(downstreamClusters, "", "    ")
+		if err != nil {
+			fmt.Println("Error marshaling JSON:", err)
+			return err
+		}
+		fmt.Println("Import Clusters:\n", string(jsonBytes))
 
-	log.Printf("Importing Downstream Clusters")
-	if err = actions.ImportDownstreamClusters(r, downstreamClusters, rancherClient, &rancherConfig); err != nil {
-		return err
+		log.Printf("Importing Downstream Clusters")
+		if err = actions.ImportDownstreamClusters(r, downstreamClusters, rancherClient, &rancherConfig); err != nil {
+			return err
+		}
 	}
 
 	logrus.Debugf("\nBEFORE CUSTOM CLUSTER LOGIC\n")

@@ -23,7 +23,7 @@ func CreateProvider(name string) provisioning.Provider {
 			MachineConfigPoolResourceSteveType: machinepools.AWSPoolType,
 			MachinePoolFunc:                    machinepools.NewAWSMachineConfig,
 			CloudCredFunc:                      aws.CreateAWSCloudCredentials,
-			Roles:                              machinepools.GetAWSMachineRoles(),
+			GetMachineRolesFunc:                machinepools.GetAWSMachineRoles,
 		}
 		return provider
 	case provisioninginput.AzureProviderName.String():
@@ -32,7 +32,7 @@ func CreateProvider(name string) provisioning.Provider {
 			MachineConfigPoolResourceSteveType: machinepools.AzurePoolType,
 			MachinePoolFunc:                    machinepools.NewAzureMachineConfig,
 			CloudCredFunc:                      azure.CreateAzureCloudCredentials,
-			Roles:                              machinepools.GetAzureMachineRoles(),
+			GetMachineRolesFunc:                machinepools.GetAzureMachineRoles,
 		}
 		return provider
 	case provisioninginput.HarvesterProviderName.String():
@@ -41,7 +41,7 @@ func CreateProvider(name string) provisioning.Provider {
 			MachineConfigPoolResourceSteveType: machinepools.HarvesterPoolType,
 			MachinePoolFunc:                    machinepools.NewHarvesterMachineConfig,
 			CloudCredFunc:                      harvester.CreateHarvesterCloudCredentials,
-			Roles:                              machinepools.GetHarvesterMachineRoles(),
+			GetMachineRolesFunc:                machinepools.GetHarvesterMachineRoles,
 		}
 		return provider
 	}

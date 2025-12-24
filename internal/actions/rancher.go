@@ -13,12 +13,14 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/extensions/cloudcredentials"
 	shepherdclusters "github.com/rancher/shepherd/extensions/clusters"
 	shepherddefaults "github.com/rancher/shepherd/extensions/defaults"
 	shepherdtokens "github.com/rancher/shepherd/extensions/token"
 	"github.com/rancher/shepherd/pkg/session"
 	shepherdwait "github.com/rancher/shepherd/pkg/wait"
 
+	"github.com/rancher/tests/actions/machinepools"
 	"github.com/rancher/tests/actions/pipeline"
 	"github.com/rancher/tests/actions/provisioning"
 	"github.com/rancher/tests/actions/reports"
@@ -120,8 +122,8 @@ func ProvisionClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, ran
 }
 
 func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], template dart.ClusterTemplate,
-	statuses map[string]*ClusterStatus, rancherClient *rancher.Client) (skipped bool, err error) {
-
+	statuses map[string]*ClusterStatus, rancherClient *rancher.Client,
+) (skipped bool, err error) {
 	clusterName := template.GeneratedName()
 
 	stateMutex.Lock()
@@ -152,7 +154,7 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 	templateClusterConfig := ConvertConfigToClusterConfig(template.ClusterConfig)
 
 	// Create the cluster
-	clusterObject, err := provisioning.CreateProvisioningCluster(rancherClient, nodeProvider, templateClusterConfig, nil)
+	clusterObject, err := provisioning.CreateProvisioningCluster(rancherClient, nodeProvider, cloudcredentials.CloudCredential{}, templateClusterConfig, machinepools.MachineConfigs{}, nil)
 	reports.TimeoutClusterReport(clusterObject, err)
 	if err != nil {
 		return false, fmt.Errorf("error while provisioning cluster with ClusterConfig %v:\n%v", templateClusterConfig, err)
@@ -336,7 +338,8 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 }
 
 func RegisterCustomClusters(r *dart.Dart, templates []tofu.CustomCluster,
-	rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
+	rancherClient *rancher.Client, rancherConfig *rancher.Config,
+) error {
 	if r.ClusterBatchSize <= 0 {
 		panic("ClusterBatchSize must be > 0")
 	}
@@ -397,8 +400,8 @@ func RegisterCustomClustersInBatches(r *dart.Dart, template tofu.CustomCluster, 
 
 func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J],
 	template tofu.CustomCluster, statuses map[string]*ClusterStatus,
-	rancherClient *rancher.Client, rancherConfig *rancher.Config) (skipped bool, err error) {
-
+	rancherClient *rancher.Client, rancherConfig *rancher.Config,
+) (skipped bool, err error) {
 	fmt.Printf("\nregisterCustomClusterWithRunner\n")
 	clusterName := template.Name
 	stateMutex.Lock()
@@ -464,7 +467,20 @@ func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J]
 	}
 	provCluster.Spec.RKEConfig.MachinePools = machinePools
 
-	clusterObject, err := RegisterCustomCluster(rancherClient, clusterResp, provCluster, template.Nodes)
+	var clusterObject *v1.SteveAPIObject
+	// Retry registration if SSH handshake fails (likely due to node not being ready or concurrency limits)
+	err = BackoffWait(20, func() (bool, error) {
+		var regErr error
+		clusterObject, regErr = RegisterCustomCluster(rancherClient, clusterResp, provCluster, template.Nodes)
+		if regErr != nil {
+			if strings.Contains(regErr.Error(), "ssh: handshake failed") || strings.Contains(regErr.Error(), "ssh: unable to authenticate") {
+				fmt.Printf("SSH handshake failed for cluster %s, retrying... Error: %v\n", clusterName, regErr)
+				return false, nil
+			}
+			return false, regErr
+		}
+		return true, nil
+	})
 	reports.TimeoutClusterReport(clusterObject, err)
 	if err != nil {
 		return false, err
