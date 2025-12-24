@@ -225,10 +225,10 @@ github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 h1:+ngKgrYPPJr
 github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79/go.mod h1:FecbI9+v66THATjSRHfNgh1IVFe/9kFxbXtjV0ctIMA=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 h1:8Tjv8EJ+pM1xP8mK6egEbD1OgnVTyacbefKhmbLhIhU=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2/go.mod h1:pkJQ2tZHJ0aFOVEEot6oZmaVEZcRme73eIFmhiVuRWs=
-github.com/harvester/harvester v1.5.0 h1:rWqYuwMRjC4CkMpcVXL5O9sVFyXNVwUJUviY8stP1no=
-github.com/harvester/harvester v1.5.0/go.mod h1:JKMKr1rvYS6U2NKZQq/8IunuUhcQOkv+gmTeV+BhMdQ=
-github.com/harvester/harvester-network-controller v0.3.1 h1:WJ90eqq0HNNPE/kB1X+fsV1MZ8Lrt0s5UaOCzUotBwQ=
-github.com/harvester/harvester-network-controller v0.3.1/go.mod h1:XL6+c9WvqcEVV/Gki+wU5tZBqZGrOm1719pZdaiuG7g=
+github.com/harvester/harvester v1.7.0 h1:lkhMOXSFJnhWNn7AUtZoHXHs0D236LaghV/TD7zPs+M=
+github.com/harvester/harvester v1.7.0/go.mod h1:FNTp5MvfucfLLTsoGIz3J9y5Yu9KDqVCMoi6Ua8h7hw=
+github.com/harvester/harvester-network-controller v1.6.0-rc3 h1:lHpsxalwOboV5UaBL7T/XcV3Ib86VioyEju2J11/kUk=
+github.com/harvester/harvester-network-controller v1.6.0-rc3/go.mod h1:j+tWQZTf5aIg+rcvv4atUIu7LB7rfKtFfOfIv1MxcIs=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/huandu/xstrings v1.5.0 h1:2ag3IFq9ZDANvthTwTiqSSZLjDc+BedvHPAp5tJy2TI=
 github.com/huandu/xstrings v1.5.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
