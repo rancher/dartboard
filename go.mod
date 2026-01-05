@@ -1,8 +1,6 @@
 module github.com/rancher/dartboard
 
-go 1.24.0
-
-toolchain go1.24.2
+go 1.25.0
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.0
@@ -16,9 +14,14 @@ require (
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	gopkg.in/validator.v2 v2.0.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
+	k8s.io/apimachinery v0.35.0 // indirect
+	k8s.io/klog/v2 v2.130.1 // indirect
+	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
 )
