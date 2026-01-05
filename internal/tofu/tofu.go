@@ -33,40 +33,81 @@ import (
 )
 
 type ClusterAddress struct {
-	Name      string `json:"name"`
-	HTTPPort  uint   `json:"http_port"`
-	HTTPSPort uint   `json:"https_port"`
+	Name      string `json:"name" yaml:"name"`
+	HTTPPort  uint   `json:"http_port" yaml:"http_port"`
+	HTTPSPort uint   `json:"https_port" yaml:"https_port"`
 }
 
 type ClusterAppAddresses struct {
-	Private ClusterAddress `json:"private"`
-	Public  ClusterAddress `json:"public"`
-	Tunnel  ClusterAddress `json:"tunnel"`
+	Private ClusterAddress `json:"private" yaml:"private"`
+	Public  ClusterAddress `json:"public" yaml:"public"`
+	Tunnel  ClusterAddress `json:"tunnel" yaml:"tunnel"`
 }
 
 type Addresses struct {
-	Public  string `json:"public"`
-	Private string `json:"private"`
-	Tunnel  string `json:"tunnel"`
+	Public  string `json:"public" yaml:"public"`
+	Private string `json:"private" yaml:"private"`
+	Tunnel  string `json:"tunnel" yaml:"tunnel"`
 }
 
 type Cluster struct {
-	NodeAccessCommands       map[string]string   `json:"node_access_commands"`
-	KubernetesAddresses      Addresses           `json:"kubernetes_addresses"`
-	Name                     string              `json:"name"`
-	Context                  string              `json:"context"`
-	IngressClassName         string              `json:"ingress_class_name"`
-	Kubeconfig               string              `json:"kubeconfig"`
-	AppAddresses             ClusterAppAddresses `json:"app_addresses"`
-	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring"`
+	NodeAccessCommands       map[string]string   `json:"node_access_commands" yaml:"node_access_commands"`
+	KubernetesAddresses      Addresses           `json:"kubernetes_addresses" yaml:"kubernetes_addresses"`
+	Name                     string              `json:"name" yaml:"name"`
+	Context                  string              `json:"context" yaml:"context"`
+	IngressClassName         string              `json:"ingress_class_name" yaml:"ingress_class_name"`
+	Kubeconfig               string              `json:"kubeconfig" yaml:"kubeconfig"`
+	AppAddresses             ClusterAppAddresses `json:"app_addresses" yaml:"app_addresses"`
+	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring" yaml:"reserve_node_for_monitoring"`
+}
+
+// CustomCluster represents a cluster with externally-provisioned nodes for registration
+type CustomCluster struct {
+	Name          string              `json:"name,omitempty" yaml:"name"`
+	NamePrefix    string              `yaml:"name_prefix" json:"name_prefix,omitempty"`
+	DistroVersion string              `yaml:"distro_version" json:"distro_version,omitempty"`
+	Nodes         []Node              `yaml:"nodes" json:"nodes,omitempty"`
+	MachinePools  []MachinePoolConfig `yaml:"machine_pools" json:"machine_pools,omitempty"`
+	ClusterCount  int                 `yaml:"cluster_count" json:"cluster_count,omitempty"`
+	ServerCount   int                 `yaml:"server_count" json:"server_count,omitempty"`
+}
+
+// MachinePoolConfig defines node role configuration for custom clusters
+type MachinePoolConfig struct {
+	ControlPlane bool  `json:",omitempty" yaml:"controlplane,omitempty"`
+	Etcd         bool  `json:"etcd,omitempty" yaml:"etcd,omitempty"`
+	Worker       bool  `json:"worker,omitempty" yaml:"worker,omitempty"`
+	Quantity     int32 `json:"quantity,omitempty" yaml:"quantity,omitempty"`
+}
+
+// Node represents an externally-provisioned node for custom cluster registration
+type Node struct {
+	Name            string `json:"name" yaml:"name"`
+	PublicIP        string `json:"public_ip,omitempty" yaml:"public_ip,omitempty"`
+	PublicHostName  string `json:"public_name,omitempty" yaml:"public_name,omitempty"`
+	PrivateIP       string `json:"private_ip,omitempty" yaml:"private_ip,omitempty"`
+	PrivateHostName string `json:"private_name,omitempty" yaml:"private_name,omitempty"`
+	SSHUser         string `json:"ssh_user" yaml:"ssh_user"`
+	SSHKeyPath      string `json:"ssh_key_path" yaml:"ssh_key_path"`
 }
 
 type Clusters struct {
-	Value map[string]Cluster `json:"value"`
+	Value map[string]Cluster `json:"value,omitempty" yaml:"value,omitempty"`
+}
+
+// CustomClusters wraps a slice of CustomCluster for tofu output parsing
+type CustomClusters struct {
+	Value []CustomCluster `json:"value,omitempty" yaml:"value,omitempty"`
+}
+
+// Nodes wraps a map of Node for tofu output parsing
+type Nodes struct {
+	Value map[string]Node `json:"value,omitempty" yaml:"value,omitempty"`
 }
 
 type Output struct {
-	Clusters Clusters `json:"clusters"`
+	Clusters       Clusters       `json:"clusters,omitzero" yaml:"clusters,omitzero"`
+	CustomClusters CustomClusters `json:"custom_clusters,omitzero" yaml:"custom_clusters,omitzero"`
 }
 
 type Tofu struct {

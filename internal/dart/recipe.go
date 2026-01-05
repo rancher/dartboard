@@ -8,17 +8,32 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // Dart is a "recipe" that encodes all parameters for a test run
 type Dart struct {
-	TofuVariables     map[string]any `yaml:"tofu_variables"`
-	TofuMainDirectory string         `yaml:"tofu_main_directory"`
-	TofuWorkspace     string         `yaml:"tofu_workspace"`
-	ChartVariables    ChartVariables `yaml:"chart_variables"`
-	TestVariables     TestVariables  `yaml:"test_variables"`
-	TofuParallelism   int            `yaml:"tofu_parallelism"`
+	TofuVariables          map[string]any    `yaml:"tofu_variables"`
+	TofuMainDirectory      string            `yaml:"tofu_main_directory"`
+	TofuWorkspace          string            `yaml:"tofu_workspace"`
+	TofuWorkspaceStatePath string            `yaml:"-"`
+	ClusterTemplates       []ClusterTemplate `yaml:"cluster_templates"`
+	ChartVariables         ChartVariables    `yaml:"chart_variables"`
+	TestVariables          TestVariables     `yaml:"test_variables"`
+	TofuParallelism        int               `yaml:"tofu_parallelism"`
+	ClusterBatchSize       int               `yaml:"cluster_batch_size"`
+}
+
+// ClusterTemplate defines a template for batch cluster creation
+type ClusterTemplate struct {
+	NodeConfig      *NodeConfig    `yaml:"node_config"`
+	ClusterConfig   *ClusterConfig `yaml:"cluster_config"`
+	generatedName   string
+	NamePrefix      string `yaml:"name_prefix"`
+	DistroVersion   string `yaml:"distro_version"`
+	NodesPerCluster int    `yaml:"-"`
+	ClusterCount    int    `yaml:"cluster_count"`
+	IsCustomCluster bool   `yaml:"is_custom_cluster"`
 }
 
 type ChartVariables struct {
@@ -47,25 +62,27 @@ type TestVariables struct {
 	TestProjects   int `yaml:"test_projects"`
 }
 
-var defaultDart = Dart{
-	TofuParallelism: 10,
-	TofuVariables:   map[string]any{},
-	ChartVariables: ChartVariables{
-		RancherReplicas:             1,
-		DownstreamRancherMonitoring: false,
-		AdminPassword:               "adminadminadmin",
-		RancherVersion:              "2.9.1",
-		RancherMonitoringVersion:    "104.1.0+up57.0.3",
-		CertManagerVersion:          "1.8.0",
-		TesterGrafanaVersion:        "6.56.5",
-	},
-	TestVariables: TestVariables{
-		TestConfigMaps: 2000,
-		TestSecrets:    2000,
-		TestRoles:      20,
-		TestUsers:      10,
-		TestProjects:   20,
-	},
+func defaultDart() Dart {
+	return Dart{
+		TofuParallelism: 10,
+		TofuVariables:   map[string]any{},
+		ChartVariables: ChartVariables{
+			RancherReplicas:             1,
+			DownstreamRancherMonitoring: false,
+			AdminPassword:               "adminadminadmin",
+			RancherVersion:              "2.9.1",
+			RancherMonitoringVersion:    "104.1.0+up57.0.3",
+			CertManagerVersion:          "1.8.0",
+			TesterGrafanaVersion:        "6.56.5",
+		},
+		TestVariables: TestVariables{
+			TestConfigMaps: 2000,
+			TestSecrets:    2000,
+			TestRoles:      20,
+			TestUsers:      10,
+			TestProjects:   20,
+		},
+	}
 }
 
 func Parse(path string) (*Dart, error) {
@@ -74,7 +91,7 @@ func Parse(path string) (*Dart, error) {
 		return nil, fmt.Errorf("failed to read dart file: %w", err)
 	}
 
-	result := defaultDart
+	result := defaultDart()
 
 	err = yaml.Unmarshal(bytes, &result)
 	if err != nil {
@@ -111,4 +128,50 @@ func needsPrime(version string) bool {
 
 	return (major == 2 && minor == 7 && patch >= 11) ||
 		(major == 2 && minor == 8 && patch >= 6)
+}
+
+// UpdateDart writes the Dart configuration to a file
+func UpdateDart(r *Dart, path string) error {
+	data, err := yaml.Marshal(r)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Dart file: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return fmt.Errorf("failed to write Dart file: %w", err)
+	}
+
+	return nil
+}
+
+// SetGeneratedName sets the generated name for a cluster template
+func (ct *ClusterTemplate) SetGeneratedName(suffix string) {
+	ct.generatedName = fmt.Sprintf("%s-%s", ct.NamePrefix, suffix)
+}
+
+// GeneratedName returns the generated name for a cluster template
+func (ct *ClusterTemplate) GeneratedName() string {
+	return ct.generatedName
+}
+
+// ProcessNodesPerCluster calculates the total nodes needed for a cluster template
+func (ct *ClusterTemplate) ProcessNodesPerCluster() int {
+	var sum int32
+
+	yamlData, err := yaml.Marshal(ct.ClusterConfig)
+	if err != nil {
+		log.Fatalf("Error marshaling YAML: %v", err)
+	}
+
+	fmt.Printf("\nClusterTemplate.Config: %s\n", string(yamlData))
+
+	for _, pool := range ct.ClusterConfig.MachinePools {
+		fmt.Printf("\nFound pool with %d quantity\n", int(pool.MachinePoolConfig.Quantity))
+		sum += pool.MachinePoolConfig.Quantity
+	}
+
+	fmt.Printf("\nFound a total of %d nodes across all pools\n", int(sum))
+	ct.NodesPerCluster = int(sum)
+
+	return ct.NodesPerCluster
 }
