@@ -1,3 +1,19 @@
+/*
+Copyright © 2024 SUSE LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package dart
 
 import (
@@ -23,11 +39,13 @@ const (
 	K3DProvider       = "k3d"
 )
 
+// AnyNodeConfig is a type constraint for provider-specific node configurations
 type AnyNodeConfig interface {
 	ProviderConfig
 	HarvesterNodeConfig | AWSNodeConfig | AzureNodeConfig | K3DNodeConfig
 }
 
+// ProviderConfig defines the interface for provider-specific configurations
 type ProviderConfig interface {
 	// ProviderName returns the name of the provider
 	ProviderName() string
@@ -35,6 +53,7 @@ type ProviderConfig interface {
 	Validate() error
 }
 
+// NodeConfig wraps provider-specific node configurations, only one should be set
 type NodeConfig struct {
 	Harvester     *HarvesterNodeConfig `json:"harvester,omitempty" yaml:"harvester,omitempty"`
 	AWS           *AWSNodeConfig       `json:"aws,omitempty" yaml:"aws,omitempty"`
@@ -48,6 +67,7 @@ type (
 	K3DNodeConfig   struct{}
 )
 
+// HarvesterNodeConfig defines configuration for Harvester VMs
 type HarvesterNodeConfig struct {
 	Tags                map[string]string    `json:"tags" yaml:"tags"`
 	ImageName           string               `json:"image_name" yaml:"image_name"`
@@ -62,11 +82,13 @@ type HarvesterNodeConfig struct {
 	SecureBoot          bool                 `json:"secure_boot" yaml:"secure_boot"`
 }
 
+// SSHSharedPublicKey references a shared SSH public key in Harvester
 type SSHSharedPublicKey struct {
 	Name      string `json:"name" yaml:"name"`
 	Namespace string `json:"namespace" yaml:"namespace"`
 }
 
+// HarvesterDisk defines disk configuration for Harvester VMs
 type HarvesterDisk struct {
 	Name string `json:"name" yaml:"name"`
 	Type string `json:"type" yaml:"type"`
@@ -74,11 +96,13 @@ type HarvesterDisk struct {
 	Size int    `json:"size" yaml:"size"`
 }
 
+// ClusterConfig defines cluster provisioning configuration
 type ClusterConfig struct {
 	Provider     string         `yaml:"provider"`
 	MachinePools []MachinePools `yaml:"machine_pools"`
 }
 
+// MachinePools defines a machine pool with its configuration
 type MachinePools struct {
 	MachinePoolConfig MachinePoolConfig `yaml:"machine_pool_config,omitempty" default:"[]"`
 	machinepools.Pools
