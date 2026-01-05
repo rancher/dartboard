@@ -8,9 +8,9 @@ locals {
   nodes = flatten([
     for template_idx, template in var.downstream_cluster_templates : [
       for j in range(template.cluster_count * template.server_count) : merge(template, {
-        name = "${local.custom_cluster_name_prefix}-${template_idx}-${j}"
+        name         = "${local.custom_cluster_name_prefix}-${template_idx}-${j}"
         origin_index = template_idx
-        index = j
+        index        = j
       })
     ] if template.cluster_count > 0 && template.is_custom_cluster
   ])
@@ -102,8 +102,8 @@ module "downstream_clusters" {
 }
 
 module "nodes" {
-  count = length(local.nodes)
-  source = "../node"
+  count                 = length(local.nodes)
+  source                = "../node"
   project_name          = var.project_name
   name                  = local.nodes[count.index].name
   ssh_private_key_path  = var.ssh_private_key_path
