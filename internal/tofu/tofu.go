@@ -64,7 +64,6 @@ type Cluster struct {
 	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring" yaml:"reserve_node_for_monitoring"`
 }
 
-// CustomCluster represents a cluster with externally-provisioned nodes for registration
 type CustomCluster struct {
 	Name          string              `json:"name,omitempty" yaml:"name"`
 	NamePrefix    string              `yaml:"name_prefix" json:"name_prefix,omitempty"`
@@ -75,7 +74,11 @@ type CustomCluster struct {
 	ServerCount   int                 `yaml:"server_count" json:"server_count,omitempty"`
 }
 
-// MachinePoolConfig defines node role configuration for custom clusters
+type MachinePools struct {
+	// machinepools.Pools
+	MachinePoolConfig MachinePoolConfig `yaml:"machine_pool_config,omitempty" default:"[]"`
+}
+
 type MachinePoolConfig struct {
 	ControlPlane bool  `json:",omitempty" yaml:"controlplane,omitempty"`
 	Etcd         bool  `json:"etcd,omitempty" yaml:"etcd,omitempty"`
@@ -83,7 +86,6 @@ type MachinePoolConfig struct {
 	Quantity     int32 `json:"quantity,omitempty" yaml:"quantity,omitempty"`
 }
 
-// Node represents an externally-provisioned node for custom cluster registration
 type Node struct {
 	Name            string `json:"name" yaml:"name"`
 	PublicIP        string `json:"public_ip,omitempty" yaml:"public_ip,omitempty"`
@@ -98,12 +100,10 @@ type Clusters struct {
 	Value map[string]Cluster `json:"value,omitempty" yaml:"value,omitempty"`
 }
 
-// CustomClusters wraps a slice of CustomCluster for tofu output parsing
 type CustomClusters struct {
 	Value []CustomCluster `json:"value,omitempty" yaml:"value,omitempty"`
 }
 
-// Nodes wraps a map of Node for tofu output parsing
 type Nodes struct {
 	Value map[string]Node `json:"value,omitempty" yaml:"value,omitempty"`
 }
