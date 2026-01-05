@@ -1,6 +1,6 @@
 import { customHandleSummary } from './k6_utils.js';
 
-const summaryPath = __ENV.K6_SUMMARY_JSON_FILE || "/home/ivln/workspace/work/RancherVCS/dartboard/k6/generic/summary.json";
+const summaryPath = __ENV.K6_SUMMARY_JSON_FILE;
 
 // Load summary data during initialization
 let data = null;
