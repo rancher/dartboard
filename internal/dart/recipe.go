@@ -13,44 +13,44 @@ import (
 
 // Dart is a "recipe" that encodes all parameters for a test run
 type Dart struct {
+	TofuVariables          map[string]any    `yaml:"tofu_variables"`
 	TofuMainDirectory      string            `yaml:"tofu_main_directory"`
 	TofuWorkspace          string            `yaml:"tofu_workspace"`
-	TofuParallelism        int               `yaml:"tofu_parallelism"`
-	TofuVariables          map[string]any    `yaml:"tofu_variables"`
-	ChartVariables         ChartVariables    `yaml:"chart_variables"`
-	ClusterBatchSize       int               `yaml:"cluster_batch_size"`
+	TofuWorkspaceStatePath string            `yaml:"-"`
 	ClusterTemplates       []ClusterTemplate `yaml:"cluster_templates"`
+	ChartVariables         ChartVariables    `yaml:"chart_variables"`
 	TestVariables          TestVariables     `yaml:"test_variables"`
-	TofuWorkspaceStatePath string            `yaml:"-"` // omit from YAML output
+	TofuParallelism        int               `yaml:"tofu_parallelism"`
+	ClusterBatchSize       int               `yaml:"cluster_batch_size"`
 }
 
 type ClusterTemplate struct {
-	generatedName   string
-	NamePrefix      string         `yaml:"name_prefix"`
-	NodesPerCluster int            `yaml:"-"`
-	NodeConfig      *NodeConfig    `yaml:"node_config"` // If this != nil, use this config for all MachinePools
+	NodeConfig      *NodeConfig    `yaml:"node_config"`
 	ClusterConfig   *ClusterConfig `yaml:"cluster_config"`
-	DistroVersion   string         `yaml:"distro_version"`
-	ClusterCount    int            `yaml:"cluster_count"`
-	IsCustomCluster bool           `yaml:"is_custom_cluster"`
+	generatedName   string
+	NamePrefix      string `yaml:"name_prefix"`
+	DistroVersion   string `yaml:"distro_version"`
+	NodesPerCluster int    `yaml:"-"`
+	ClusterCount    int    `yaml:"cluster_count"`
+	IsCustomCluster bool   `yaml:"is_custom_cluster"`
 }
 
 type ChartVariables struct {
-	RancherReplicas             int              `yaml:"rancher_replicas"`
-	DownstreamRancherMonitoring bool             `yaml:"downstream_rancher_monitoring"`
+	RancherAppsRepoOverride     string           `yaml:"rancher_apps_repo_override"`
+	RancherMonitoringVersion    string           `yaml:"rancher_monitoring_version"`
 	AdminPassword               string           `yaml:"admin_password"`
 	UserPassword                string           `yaml:"user_password"`
 	RancherVersion              string           `yaml:"rancher_version"`
-	ForcePrimeRegistry          bool             `yaml:"force_prime_registry"`
-	RancherAppsRepoOverride     string           `yaml:"rancher_apps_repo_override"`
-	RancherChartRepoOverride    string           `yaml:"rancher_chart_repo_override"`
-	RancherImageOverride        string           `yaml:"rancher_image_override"`
-	RancherImageTagOverride     string           `yaml:"rancher_image_tag_override"`
-	RancherMonitoringVersion    string           `yaml:"rancher_monitoring_version"`
-	CertManagerVersion          string           `yaml:"cert_manager_version"`
-	TesterGrafanaVersion        string           `yaml:"tester_grafana_version"`
 	RancherValues               string           `yaml:"rancher_values"`
+	TesterGrafanaVersion        string           `yaml:"tester_grafana_version"`
+	RancherImageOverride        string           `yaml:"rancher_image_override"`
+	CertManagerVersion          string           `yaml:"cert_manager_version"`
+	RancherImageTagOverride     string           `yaml:"rancher_image_tag_override"`
+	RancherChartRepoOverride    string           `yaml:"rancher_chart_repo_override"`
 	ExtraEnvironmentVariables   []map[string]any `yaml:"extra_environment_variables"`
+	RancherReplicas             int              `yaml:"rancher_replicas"`
+	DownstreamRancherMonitoring bool             `yaml:"downstream_rancher_monitoring"`
+	ForcePrimeRegistry          bool             `yaml:"force_prime_registry"`
 }
 
 type TestVariables struct {
@@ -89,15 +89,19 @@ func Parse(path string) (*Dart, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read dart file: %w", err)
 	}
+
 	result := defaultDart()
+
 	err = yaml.Unmarshal(bytes, &result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal dart file: %w", err)
 	}
+
 	tofuVars, err := yaml.Marshal(result.TofuVariables)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal recipe's tofu variables: %w", err)
 	}
+
 	log.Printf("\nTofu variables: \n%v\n", string(tofuVars))
 
 	result.ChartVariables.RancherVersion = normalizeVersion(result.ChartVariables.RancherVersion)
@@ -120,6 +124,7 @@ func needsPrime(version string) bool {
 	major, _ := strconv.Atoi(versionSplits[0])
 	minor, _ := strconv.Atoi(versionSplits[1])
 	patch, _ := strconv.Atoi(versionSplits[2])
+
 	return (major == 2 && minor == 7 && patch >= 11) ||
 		(major == 2 && minor == 8 && patch >= 6)
 }
@@ -130,9 +135,10 @@ func UpdateDart(r *Dart, path string) error {
 		return fmt.Errorf("failed to marshal Dart file: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write Dart file: %w", err)
 	}
+
 	return nil
 }
 
@@ -146,17 +152,21 @@ func (ct *ClusterTemplate) GeneratedName() string {
 
 func (ct *ClusterTemplate) ProcessNodesPerCluster() int {
 	var sum int32
+
 	yamlData, err := yaml.Marshal(ct.ClusterConfig)
 	if err != nil {
 		log.Fatalf("Error marshaling YAML: %v", err)
 	}
 
 	fmt.Printf("\nClusterTemplate.Config: %s\n", string(yamlData))
+
 	for _, pool := range ct.ClusterConfig.MachinePools {
 		fmt.Printf("\nFound pool with %d quantity\n", int(pool.MachinePoolConfig.Quantity))
 		sum += pool.MachinePoolConfig.Quantity
 	}
+
 	fmt.Printf("\nFound a total of %d nodes across all pools\n", int(sum))
 	ct.NodesPerCluster = int(sum)
+
 	return ct.NodesPerCluster
 }

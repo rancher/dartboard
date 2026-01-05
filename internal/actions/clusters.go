@@ -63,8 +63,10 @@ func ConvertConfigToClusterConfig(config *dart.ClusterConfig) *rancherclusters.C
 			},
 		}
 	}
+
 	newConfig.Providers = &[]string{config.Provider}
 	newConfig.PSACT = psactRancherPrivileged
+
 	return &newConfig
 }
 
@@ -75,9 +77,11 @@ func GetK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, cluster *
 	if err != nil {
 		return nil, err
 	}
+
 	for _, obj := range clusterObjs.Data {
 		if obj.Name == cluster.Name {
 			ctx := context.Background()
+
 			err = kwait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 2*time.Minute, true, func(_ context.Context) (done bool, err error) {
 				client, err = client.ReLoginForConfig(config)
 				if err != nil {
@@ -91,13 +95,14 @@ func GetK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, cluster *
 
 				return true, nil
 			})
-
 			if err != nil {
 				return nil, err
 			}
+
 			return &obj, nil
 		}
 	}
+
 	return nil, fmt.Errorf("Could not find expected Cluster")
 }
 
@@ -110,6 +115,7 @@ func CreateK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, cluste
 	}
 
 	ctx := context.Background()
+
 	err = kwait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 2*time.Minute, true, func(_ context.Context) (done bool, err error) {
 		client, err = client.ReLoginForConfig(config)
 		if err != nil {
@@ -165,6 +171,7 @@ func CreateK3SRKE2Cluster(client *rancher.Client, config *rancher.Config, cluste
 			} else if cluster == nil {
 				return true, nil
 			}
+
 			return false, nil
 		})
 	})
@@ -177,15 +184,19 @@ func createRegistrationCommand(command, publicIP, privateIP string, machinePool 
 	if len(publicIP) > 0 {
 		command += fmt.Sprintf(" --address %s", publicIP)
 	}
+
 	if len(privateIP) > 0 {
 		command += fmt.Sprintf(" --internal-address %s", privateIP)
 	}
+
 	for labelKey, labelValue := range machinePool.Labels {
 		command += fmt.Sprintf(" --label %s=%s", labelKey, labelValue)
 	}
+
 	for _, taint := range machinePool.Taints {
 		command += fmt.Sprintf(" --taints %s=%s:%s", taint.Key, taint.Value, taint.Effect)
 	}
+
 	return command
 }
 
@@ -193,15 +204,19 @@ func createRegistrationCommand(command, publicIP, privateIP string, machinePool 
 func RegisterCustomCluster(client *rancher.Client, steveObject *v1.SteveAPIObject, cluster *apisV1.Cluster, nodes []tofu.Node) (*v1.SteveAPIObject, error) {
 	quantityPerPool := []int32{}
 	rolesPerPool := []string{}
+
 	fmt.Println("Building role oommand")
+
 	for _, pool := range cluster.Spec.RKEConfig.MachinePools {
 		var finalRoleCommand string
 		if pool.ControlPlaneRole {
 			finalRoleCommand += " --controlplane"
 		}
+
 		if pool.EtcdRole {
 			finalRoleCommand += " --etcd"
 		}
+
 		if pool.WorkerRole {
 			finalRoleCommand += " --worker"
 		}
@@ -216,6 +231,7 @@ func RegisterCustomCluster(client *rancher.Client, steveObject *v1.SteveAPIObjec
 	}
 
 	clusterStatus := &apisV1.ClusterStatus{}
+
 	err = v1.ConvertToK8sType(customCluster.Status, clusterStatus)
 	if err != nil {
 		return nil, err
@@ -240,8 +256,11 @@ func RegisterCustomCluster(client *rancher.Client, steveObject *v1.SteveAPIObjec
 	}
 
 	checkFunc := shepherdclusters.IsProvisioningClusterReady
+
 	var command string
+
 	totalNodesObserved := 0
+
 	for poolIndex, poolRole := range rolesPerPool {
 		for nodeIndex := range int(quantityPerPool[poolIndex]) {
 			node := nodes[totalNodesObserved+nodeIndex]
@@ -257,18 +276,22 @@ func RegisterCustomCluster(client *rancher.Client, steveObject *v1.SteveAPIObjec
 			if err != nil {
 				return nil, fmt.Errorf("error getting node's SSH Key from %s: %w", node.SSHKeyPath, err)
 			}
+
 			shepherdNode := shepherdnodes.Node{
 				PublicIPAddress:  node.PublicIP,
 				PrivateIPAddress: node.PrivateIP,
 				SSHUser:          node.SSHUser,
 				SSHKey:           nodeSSHKey,
 			}
+
 			output, err := shepherdNode.ExecuteCommand(command)
 			if err != nil {
 				return nil, err
 			}
+
 			logrus.Info(output)
 		}
+
 		totalNodesObserved += int(quantityPerPool[poolIndex])
 	}
 
@@ -278,6 +301,7 @@ func RegisterCustomCluster(client *rancher.Client, steveObject *v1.SteveAPIObjec
 	}
 
 	registeredCluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.Namespace + "/" + cluster.Name)
+
 	return registeredCluster, err
 }
 
@@ -287,6 +311,7 @@ func VerifyClusterCreated(client *rancher.Client, name, namespace string) (bool,
 	if err != nil {
 		return false, fmt.Errorf("API error verifying creation of %s: %w", name, err)
 	}
+
 	return obj != nil, nil
 }
 
@@ -300,28 +325,31 @@ func VerifyClusterImported(client *rancher.Client, name, namespace string) (bool
 	if obj == nil {
 		return false, nil
 	}
+
 	return obj.Status.Ready, nil
 }
 
-// VerifyCluster validates that a non-rke1 cluster and its resources are in a good state, matching a given config.
-func VerifyCluster(client *rancher.Client, config *rancher.Config, cluster *v1.SteveAPIObject) error {
+// setupClusterVerification prepares clients and watches for cluster verification
+func setupClusterVerification(client *rancher.Client, config *rancher.Config, cluster *v1.SteveAPIObject) (*rancher.Client, error) {
 	client, err := client.ReLoginForConfig(config)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
 	fmt.Printf("\nRELOGIN CLIENT: %v\n", client)
 	fmt.Printf("\nRANCHER CONFIG: %v\n", config)
 	fmt.Printf("\nCLUSTER OBJECT: %v\n", cluster)
 
 	adminClient, err := rancher.NewClientForConfig(client.RancherConfig.AdminToken, config, client.Session)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	kubeProvisioningClient, err := adminClient.GetKubeAPIProvisioningClient()
 	reports.TimeoutClusterReport(cluster, err)
+
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	watchInterface, err := kubeProvisioningClient.Clusters(cluster.Namespace).Watch(context.TODO(), metav1.ListOptions{
@@ -329,35 +357,56 @@ func VerifyCluster(client *rancher.Client, config *rancher.Config, cluster *v1.S
 		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 	})
 	reports.TimeoutClusterReport(cluster, err)
+
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	checkFunc := shepherdclusters.IsProvisioningClusterReady
 	err = wait.WatchWait(watchInterface, checkFunc)
 	reports.TimeoutClusterReport(cluster, err)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return adminClient, nil
+}
+
+// verifyClusterBasics checks service account tokens and machine readiness
+func verifyClusterBasics(client *rancher.Client, cluster *v1.SteveAPIObject) error {
+	clusterToken, err := clusters.CheckServiceAccountTokenSecret(client, cluster.Name)
+	reports.TimeoutClusterReport(cluster, err)
+
 	if err != nil {
 		return err
 	}
 
-	clusterToken, err := clusters.CheckServiceAccountTokenSecret(client, cluster.Name)
-	reports.TimeoutClusterReport(cluster, err)
-	if err != nil {
-		return err
-	}
 	if !clusterToken {
 		return fmt.Errorf("serviceAccountTokenSecret does not exist in this cluster: %s", cluster.Name)
 	}
 
 	err = nodestat.AllMachineReady(client, cluster.ID, defaults.ThirtyMinuteTimeout)
 	reports.TimeoutClusterReport(cluster, err)
+
+	return err
+}
+
+// VerifyCluster validates that a non-rke1 cluster and its resources are in a good state, matching a given config.
+func VerifyCluster(client *rancher.Client, config *rancher.Config, cluster *v1.SteveAPIObject) error {
+	adminClient, err := setupClusterVerification(client, config, cluster)
 	if err != nil {
+		return err
+	}
+
+	if err := verifyClusterBasics(client, cluster); err != nil {
 		return err
 	}
 
 	status := &apisV1.ClusterStatus{}
 	err = v1.ConvertToK8sType(cluster.Status, status)
 	reports.TimeoutClusterReport(cluster, err)
+
 	if err != nil {
 		return err
 	}
@@ -365,14 +414,15 @@ func VerifyCluster(client *rancher.Client, config *rancher.Config, cluster *v1.S
 	clusterSpec := &apisV1.ClusterSpec{}
 	err = v1.ConvertToK8sType(cluster.Spec, clusterSpec)
 	reports.TimeoutClusterReport(cluster, err)
+
 	if err != nil {
 		return err
 	}
 
 	if clusterSpec.DefaultPodSecurityAdmissionConfigurationTemplateName != "" && len(clusterSpec.DefaultPodSecurityAdmissionConfigurationTemplateName) > 0 {
-
 		err := psact.CreateNginxDeployment(client, status.ClusterName, clusterSpec.DefaultPodSecurityAdmissionConfigurationTemplateName)
 		reports.TimeoutClusterReport(cluster, err)
+
 		if err != nil {
 			return err
 		}
@@ -382,9 +432,11 @@ func VerifyCluster(client *rancher.Client, config *rancher.Config, cluster *v1.S
 		for registryName := range clusterSpec.RKEConfig.Registries.Configs {
 			havePrefix, err := registries.CheckAllClusterPodsForRegistryPrefix(client, status.ClusterName, registryName)
 			reports.TimeoutClusterReport(cluster, err)
+
 			if !havePrefix {
 				return fmt.Errorf("found cluster (%s) pods that do not have the expected registry prefix %s: %w", status.ClusterName, registryName, err)
 			}
+
 			if err != nil {
 				return err
 			}
@@ -394,9 +446,11 @@ func VerifyCluster(client *rancher.Client, config *rancher.Config, cluster *v1.S
 	if clusterSpec.LocalClusterAuthEndpoint.Enabled {
 		mgmtClusterObject, err := adminClient.Management.Cluster.ByID(status.ClusterName)
 		reports.TimeoutClusterReport(cluster, err)
+
 		if err != nil {
 			return err
 		}
+
 		err = VerifyACE(adminClient, mgmtClusterObject)
 		if err != nil {
 			return err
@@ -409,8 +463,10 @@ func VerifyCluster(client *rancher.Client, config *rancher.Config, cluster *v1.S
 		for i, e := range podErrors {
 			errorStrings[i] = e.Error()
 		}
+
 		return fmt.Errorf("encountered pod errors: %s", strings.Join(errorStrings, ";"))
 	}
+
 	return nil
 }
 
@@ -434,6 +490,7 @@ func VerifyACE(client *rancher.Client, cluster *mgmtv3.Cluster) error {
 	if err != nil {
 		return err
 	}
+
 	for _, pod := range originalResp.Items {
 		fmt.Printf("Pod %s", pod.GetName())
 	}
@@ -443,7 +500,9 @@ func VerifyACE(client *rancher.Client, cluster *mgmtv3.Cluster) error {
 	if err != nil {
 		return err
 	}
+
 	var contextNames []string
+
 	for context := range contexts {
 		if strings.Contains(context, "pool") {
 			contextNames = append(contextNames, context)
@@ -455,14 +514,18 @@ func VerifyACE(client *rancher.Client, cluster *mgmtv3.Cluster) error {
 		if err != nil {
 			return err
 		}
+
 		resp, err := dynamic.Resource(corev1.SchemeGroupVersion.WithResource("pods")).Namespace("").List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			return err
 		}
+
 		fmt.Printf("Switched Context to %v", contextName)
+
 		for _, pod := range resp.Items {
 			fmt.Printf("Pod %v", pod.GetName())
 		}
 	}
+
 	return nil
 }

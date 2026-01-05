@@ -16,6 +16,7 @@ import (
 // string of the name of the provider.
 func CreateProvider(name string) provisioning.Provider {
 	var provider provisioning.Provider
+
 	switch name {
 	case provisioninginput.AWSProviderName.String():
 		provider = provisioning.Provider{
@@ -25,6 +26,7 @@ func CreateProvider(name string) provisioning.Provider {
 			CloudCredFunc:                      aws.CreateAWSCloudCredentials,
 			GetMachineRolesFunc:                machinepools.GetAWSMachineRoles,
 		}
+
 		return provider
 	case provisioninginput.AzureProviderName.String():
 		provider = provisioning.Provider{
@@ -34,6 +36,7 @@ func CreateProvider(name string) provisioning.Provider {
 			CloudCredFunc:                      azure.CreateAzureCloudCredentials,
 			GetMachineRolesFunc:                machinepools.GetAzureMachineRoles,
 		}
+
 		return provider
 	case provisioninginput.HarvesterProviderName.String():
 		provider = provisioning.Provider{
@@ -43,8 +46,10 @@ func CreateProvider(name string) provisioning.Provider {
 			CloudCredFunc:                      harvester.CreateHarvesterCloudCredentials,
 			GetMachineRolesFunc:                machinepools.GetHarvesterMachineRoles,
 		}
+
 		return provider
 	}
+
 	panic(fmt.Sprintf("Provider:%v not found", name))
 	// Unreachable, but makes golangci-lint (govet) analyzer happy
 	// return provider

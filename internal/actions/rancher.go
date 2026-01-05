@@ -33,6 +33,7 @@ const fleetNamespace = "fleet-default"
 
 func NewRancherConfig(host, adminToken, adminPassword string, insecure bool) rancher.Config {
 	defaultBool := false
+
 	return rancher.Config{
 		Host:          host,
 		AdminToken:    adminToken,
@@ -47,11 +48,14 @@ func SetupRancherClient(rancherConfig *rancher.Config, bootstrapPassword string,
 		Username: "admin",
 		Password: bootstrapPassword,
 	}
+
 	fmt.Printf("Rancher Config:\nHost: %s\nAdminPassword: %s\nAdminToken: %s\nInsecure: %t\n", rancherConfig.Host, rancherConfig.AdminPassword, rancherConfig.AdminToken, *rancherConfig.Insecure)
+
 	adminToken, err := shepherdtokens.GenerateUserToken(adminUser, rancherConfig.Host)
 	if err != nil {
 		return nil, fmt.Errorf("error while creating Admin Token with config %v:\n%v", &rancherConfig, err)
 	}
+
 	rancherConfig.AdminToken = adminToken.Token
 
 	client, err := rancher.NewClientForConfig(rancherConfig.AdminToken, rancherConfig, session)
@@ -76,12 +80,14 @@ func ProvisionDownstreamClusters(r *dart.Dart, templates []dart.ClusterTemplate,
 	if r.ClusterBatchSize <= 0 {
 		panic("ClusterBatchSize must be > 0")
 	}
+
 	for _, template := range r.ClusterTemplates {
 		err := ProvisionClustersInBatches(r, template, rancherClient)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -89,6 +95,7 @@ func ProvisionDownstreamClusters(r *dart.Dart, templates []dart.ClusterTemplate,
 // This will continue to provision clusters until template.ClusterCount # of Clusters have been provisioned
 func ProvisionClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, rancherClient *rancher.Client) error {
 	clusterStatePath := fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, ClustersStateFile)
+
 	statuses, err := LoadClusterState(clusterStatePath)
 	if err != nil {
 		return err
@@ -110,6 +117,7 @@ func ProvisionClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, ran
 
 		// Create and run a batch runner for this batch of templates
 		batchRunner := NewSequencedBatchRunner[dart.ClusterTemplate](len(batchTemplates))
+
 		err := batchRunner.Run(batchTemplates, statuses, clusterStatePath, rancherClient, nil)
 		if err != nil {
 			return err
@@ -127,18 +135,22 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 	clusterName := template.GeneratedName()
 
 	stateMutex.Lock()
+
 	cs := FindOrCreateStatusByName(statuses, clusterName)
 	// cs.ClusterTemplate = template
 	stateMutex.Unlock()
 
 	<-br.seqCh
+
 	br.Updates <- stateUpdate{Name: clusterName, Stage: StageNew, Completed: time.Now()}
+
 	br.seqCh <- struct{}{}
 
 	if cs.Provisioned {
 		fmt.Printf("Cluster %s has already been provisioned, skipping...\n", cs.Name)
 		return true, nil
 	}
+
 	fmt.Printf("Continuing with cluster provisioning...\n")
 
 	// switch {
@@ -156,13 +168,17 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 	// Create the cluster
 	clusterObject, err := provisioning.CreateProvisioningCluster(rancherClient, nodeProvider, cloudcredentials.CloudCredential{}, templateClusterConfig, machinepools.MachineConfigs{}, nil)
 	reports.TimeoutClusterReport(clusterObject, err)
+
 	if err != nil {
 		return false, fmt.Errorf("error while provisioning cluster with ClusterConfig %v:\n%v", templateClusterConfig, err)
 	}
 
 	<-br.seqCh
+
 	br.Updates <- stateUpdate{Name: clusterName, Stage: StageCreated, Completed: time.Now()}
+
 	br.seqCh <- struct{}{}
+
 	fmt.Printf("Cluster named %s was created.\n", clusterName)
 
 	// Wait for the cluster to be ready
@@ -171,6 +187,7 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 		FieldSelector:  "metadata.name=" + clusterObject.ID,
 		TimeoutSeconds: &fiveMinuteTimeout,
 	}
+
 	watchInterface, err := rancherClient.GetManagementWatchInterface(management.ClusterType, listOpts)
 	if err != nil {
 		return false, fmt.Errorf("error while getting Management Watch Interface with Cluster %v and ListOptions %v:\n%v", clusterObject.ID, listOpts, err)
@@ -179,14 +196,19 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 	checkFunc := shepherdclusters.IsProvisioningClusterReady
 	err = shepherdwait.WatchWait(watchInterface, checkFunc)
 	reports.TimeoutClusterReport(clusterObject, err)
+
 	if err != nil {
 		return false, fmt.Errorf("error while waiting for Provisioned Cluster to be Ready %v:\n%v", clusterObject.ID, err)
 	}
 
 	cs.Provisioned = true
+
 	<-br.seqCh
+
 	br.Updates <- stateUpdate{Name: clusterName, Stage: StageProvisioned, Completed: time.Now()}
+
 	br.seqCh <- struct{}{}
+
 	fmt.Printf("Cluster named %s was provisioned.\n", clusterName)
 
 	return false, nil
@@ -211,6 +233,7 @@ func ImportDownstreamClusters(r *dart.Dart, clusters []tofu.Cluster, rancherClie
 
 func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
 	clusterStatePath := fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, ClustersStateFile)
+
 	statuses, err := LoadClusterState(clusterStatePath)
 	if err != nil {
 		return err
@@ -222,6 +245,7 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, rancherClien
 		batch := clusters[i:j]
 
 		batchRunner := NewSequencedBatchRunner[tofu.Cluster](len(batch))
+
 		err := batchRunner.Run(batch, statuses, clusterStatePath, rancherClient, rancherConfig)
 		if err != nil {
 			return err
@@ -231,80 +255,56 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, rancherClien
 	return nil
 }
 
-func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluster tofu.Cluster,
-	statuses map[string]*ClusterStatus, rancherClient *rancher.Client, rancherConfig *rancher.Config,
-) (skipped bool, err error) {
-	stateMutex.Lock()
-	cs := FindOrCreateStatusByName(statuses, cluster.Name)
-	stateMutex.Unlock()
-	<-br.seqCh
-	br.Updates <- stateUpdate{Name: cluster.Name, Stage: StageNew, Completed: time.Now()}
-	br.seqCh <- struct{}{}
-
-	fmt.Printf("Found existing ClusterStatus object for Cluster with name %s.\n", cluster.Name)
-	if cs.Imported {
-		fmt.Printf("Cluster %s has already been imported, skipping...\n", cs.Name)
-		return true, nil
-	}
-	fmt.Printf("Continuing with cluster creation...\n")
-
-	importCluster := provv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.Name,
-			Namespace: fleetNamespace,
-		},
-	}
-	if !cs.Created {
-		if _, err = CreateK3SRKE2Cluster(rancherClient, rancherConfig, &importCluster); err != nil {
-			return false, fmt.Errorf("error while creating Steve Cluster with Name %s:\n%w", importCluster.Name, err)
-		}
-		err = BackoffWait(30, func() (finished bool, err error) {
-			updatedCluster, _, err := shepherdclusters.GetProvisioningClusterByName(rancherClient, importCluster.Name, importCluster.Namespace)
-			if err != nil {
-				return false, fmt.Errorf("error while getting Cluster by Name %s in Namespace %s:\n%w", importCluster.Name, importCluster.Namespace, err)
-			}
-			if updatedCluster.Status.ClusterName != "" {
-				return true, nil
-			}
-			return false, nil
-		})
-		if err != nil {
-			return false, err
-		}
-		// sequence the Created event
-		<-br.seqCh
-		br.Updates <- stateUpdate{Name: cluster.Name, Stage: StageCreated, Completed: time.Now()}
-		br.seqCh <- struct{}{}
-		fmt.Printf("Cluster named %s was created.\n", importCluster.Name)
+// createAndWaitForCluster creates a cluster and waits for it to be ready
+func createAndWaitForCluster(rancherClient *rancher.Client, rancherConfig *rancher.Config, importCluster *provv1.Cluster) (*provv1.Cluster, error) {
+	if _, err := CreateK3SRKE2Cluster(rancherClient, rancherConfig, importCluster); err != nil {
+		return nil, fmt.Errorf("error while creating Steve Cluster with Name %s:\n%w", importCluster.Name, err)
 	}
 
-	updatedCluster := new(provv1.Cluster)
-	err = BackoffWait(30, func() (finished bool, err error) {
-		updatedCluster, _, err = shepherdclusters.GetProvisioningClusterByName(rancherClient, importCluster.Name, importCluster.Namespace)
+	err := BackoffWait(30, func() (finished bool, err error) {
+		updatedCluster, _, err := shepherdclusters.GetProvisioningClusterByName(rancherClient, importCluster.Name, importCluster.Namespace)
 		if err != nil {
 			return false, fmt.Errorf("error while getting Cluster by Name %s in Namespace %s:\n%w", importCluster.Name, importCluster.Namespace, err)
 		}
+
 		if updatedCluster.Status.ClusterName != "" {
 			return true, nil
 		}
+
 		return false, nil
 	})
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
+	updatedCluster, _, err := shepherdclusters.GetProvisioningClusterByName(rancherClient, importCluster.Name, importCluster.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error while getting Cluster by Name %s in Namespace %s:\n%w", importCluster.Name, importCluster.Namespace, err)
+	}
+
+	return updatedCluster, nil
+}
+
+// performClusterImport imports an external cluster into Rancher
+func performClusterImport(rancherClient *rancher.Client, cluster tofu.Cluster, importCluster *provv1.Cluster) (*provv1.Cluster, error) {
 	restConfig, err := GetRESTConfigFromPath(cluster.Kubeconfig)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	// Apply client-side rate limiting
 	restConfig.QPS = 50
 	restConfig.Burst = 100
 
+	updatedCluster, _, err := shepherdclusters.GetProvisioningClusterByName(rancherClient, importCluster.Name, importCluster.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error while getting Cluster by Name %s in Namespace %s:\n%w", importCluster.Name, importCluster.Namespace, err)
+	}
+
 	fmt.Printf("Importing Cluster, ID:%s Name:%s\n", updatedCluster.Status.ClusterName, updatedCluster.Name)
+
 	err = shepherdclusters.ImportCluster(rancherClient, updatedCluster, restConfig)
 	if err != nil {
-		return false, fmt.Errorf("error while creating Job for importing Cluster %s:\n%w", updatedCluster.Name, err)
+		return nil, fmt.Errorf("error while creating Job for importing Cluster %s:\n%w", updatedCluster.Name, err)
 	}
 
 	err = BackoffWait(100, func() (finished bool, err error) {
@@ -316,13 +316,72 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 		return updatedCluster.Status.Ready, nil
 	})
 	if err != nil {
+		return nil, err
+	}
+
+	return updatedCluster, nil
+}
+
+func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluster tofu.Cluster,
+	statuses map[string]*ClusterStatus, rancherClient *rancher.Client, rancherConfig *rancher.Config,
+) (skipped bool, err error) {
+	stateMutex.Lock()
+
+	cs := FindOrCreateStatusByName(statuses, cluster.Name)
+
+	stateMutex.Unlock()
+	<-br.seqCh
+
+	br.Updates <- stateUpdate{Name: cluster.Name, Stage: StageNew, Completed: time.Now()}
+
+	br.seqCh <- struct{}{}
+
+	fmt.Printf("Found existing ClusterStatus object for Cluster with name %s.\n", cluster.Name)
+
+	if cs.Imported {
+		fmt.Printf("Cluster %s has already been imported, skipping...\n", cs.Name)
+		return true, nil
+	}
+
+	fmt.Printf("Continuing with cluster creation...\n")
+
+	importCluster := provv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cluster.Name,
+			Namespace: fleetNamespace,
+		},
+	}
+	if !cs.Created {
+		updatedCluster, err := createAndWaitForCluster(rancherClient, rancherConfig, &importCluster)
+		if err != nil {
+			return false, err
+		}
+
+		_ = updatedCluster // used for side effects in createAndWaitForCluster
+
+		// sequence the Created event
+		<-br.seqCh
+
+		br.Updates <- stateUpdate{Name: cluster.Name, Stage: StageCreated, Completed: time.Now()}
+
+		br.seqCh <- struct{}{}
+
+		fmt.Printf("Cluster named %s was created.\n", importCluster.Name)
+	}
+
+	updatedCluster, err := performClusterImport(rancherClient, cluster, &importCluster)
+	if err != nil {
 		return false, err
 	}
 
 	cs.Imported = true
+
 	<-br.seqCh
+
 	br.Updates <- stateUpdate{Name: cluster.Name, Stage: StageImported, Completed: time.Now()}
+
 	br.seqCh <- struct{}{}
+
 	fmt.Printf("Cluster named %s was imported.\n", updatedCluster.Name)
 
 	podErrors := StatusPodsWithTimeout(rancherClient, updatedCluster.Status.ClusterName, shepherddefaults.OneMinuteTimeout)
@@ -331,6 +390,7 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 		for i, e := range podErrors {
 			errorStrings[i] = e.Error()
 		}
+
 		return false, fmt.Errorf("error while checking Status of Pods in Cluster %s:\n%s", updatedCluster.Status.ClusterName, strings.Join(errorStrings, "\n"))
 	}
 
@@ -349,6 +409,7 @@ func RegisterCustomClusters(r *dart.Dart, templates []tofu.CustomCluster,
 		if err != nil {
 			log.Fatalf("Error marshaling YAML: %v", err)
 		}
+
 		fmt.Printf("\ntofu.CustomCluster:\n%s\n", string(yamlData))
 	}
 
@@ -364,21 +425,25 @@ func RegisterCustomClusters(r *dart.Dart, templates []tofu.CustomCluster,
 
 func RegisterCustomClustersInBatches(r *dart.Dart, template tofu.CustomCluster, rancherClient *rancher.Client, rancherConfig *rancher.Config) error {
 	clusterStatePath := fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, ClustersStateFile)
+
 	statuses, err := LoadClusterState(clusterStatePath)
 	if err != nil {
 		return err
 	}
+
 	var custom_clusters []tofu.CustomCluster
 	// Build []tofu.CustomCluster, length = template.ClusterCount
 	startNodes := 0
 	nodeBatchSize := len(template.Nodes) / template.ClusterCount
 	endNodes := nodeBatchSize
+
 	for i := range template.ClusterCount {
 		customCluster := template
 		customCluster.Name = fmt.Sprintf("%s-%d", template.Name, i)
 		customCluster.Nodes = template.Nodes[startNodes:endNodes]
 		startNodes += nodeBatchSize
 		endNodes += nodeBatchSize
+
 		custom_clusters = append(custom_clusters, customCluster)
 	}
 
@@ -388,6 +453,7 @@ func RegisterCustomClustersInBatches(r *dart.Dart, template tofu.CustomCluster, 
 		batchTemplates := custom_clusters[startTemplate:endTemplate]
 
 		batchRunner := NewSequencedBatchRunner[tofu.CustomCluster](len(batchTemplates))
+
 		err := batchRunner.Run(batchTemplates, statuses, clusterStatePath, rancherClient, rancherConfig)
 		if err != nil {
 			return err
@@ -398,24 +464,85 @@ func RegisterCustomClustersInBatches(r *dart.Dart, template tofu.CustomCluster, 
 	return nil
 }
 
+// createMachinePools creates machine pools from template configuration
+func createMachinePools(template tofu.CustomCluster) []provv1.RKEMachinePool {
+	var machinePools []provv1.RKEMachinePool
+
+	for _, pool := range template.MachinePools {
+		newPool := provv1.RKEMachinePool{
+			EtcdRole:         pool.Etcd,
+			ControlPlaneRole: pool.ControlPlane,
+			WorkerRole:       pool.Worker,
+			Quantity:         &pool.Quantity,
+		}
+		machinePools = append(machinePools, newPool)
+	}
+
+	return machinePools
+}
+
+// createOrGetClusterObject creates a new cluster object or retrieves an existing one
+func createOrGetClusterObject[J JobDataTypes](br *SequencedBatchRunner[J], rancherClient *rancher.Client, rancherConfig *rancher.Config, provCluster *provv1.Cluster, cs *ClusterStatus, clusterName string) (*v1.SteveAPIObject, error) {
+	var (
+		clusterResp *v1.SteveAPIObject
+		err         error
+	)
+
+	if !cs.Created {
+		fmt.Printf("Creating Cluster object for %s\n", cs.Name)
+
+		clusterResp, err = CreateK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = GetK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
+		if err != nil {
+			return nil, err
+		}
+
+		<-br.seqCh
+
+		br.Updates <- stateUpdate{Name: clusterName, Stage: StageCreated, Completed: time.Now()}
+
+		br.seqCh <- struct{}{}
+
+		fmt.Printf("Cluster named %s was created.\n", provCluster.Name)
+	} else {
+		clusterResp, err = GetK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return clusterResp, nil
+}
+
 func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J],
 	template tofu.CustomCluster, statuses map[string]*ClusterStatus,
 	rancherClient *rancher.Client, rancherConfig *rancher.Config,
 ) (skipped bool, err error) {
 	fmt.Printf("\nregisterCustomClusterWithRunner\n")
+
 	clusterName := template.Name
+
 	stateMutex.Lock()
+
 	cs := FindOrCreateStatusByName(statuses, clusterName)
+
 	stateMutex.Unlock()
 
 	<-br.seqCh
+
 	br.Updates <- stateUpdate{Name: clusterName, Stage: StageNew, Completed: time.Now()}
+
 	br.seqCh <- struct{}{}
 
 	if cs.Registered {
 		fmt.Printf("Cluster %s has already been registered, skipping...\n", cs.Name)
 		return true, nil
 	}
+
 	fmt.Printf("Continuing with cluster registration...\n")
 
 	provCluster := &provv1.Cluster{
@@ -433,55 +560,34 @@ func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J]
 			RKEConfig: &provv1.RKEConfig{},
 		},
 	}
-	var clusterResp *v1.SteveAPIObject
-	if !cs.Created {
-		fmt.Printf("Creating Cluster object for %s\n", cs.Name)
-		clusterResp, err = CreateK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
-		if err != nil {
-			return false, err
-		}
-		_, err = GetK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
-		if err != nil {
-			return false, err
-		}
-		<-br.seqCh
-		br.Updates <- stateUpdate{Name: clusterName, Stage: StageCreated, Completed: time.Now()}
-		br.seqCh <- struct{}{}
-		fmt.Printf("Cluster named %s was created.\n", provCluster.Name)
-	} else {
-		clusterResp, err = GetK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
-		if err != nil {
-			return false, err
-		}
+
+	clusterResp, err := createOrGetClusterObject(br, rancherClient, rancherConfig, provCluster, cs, clusterName)
+	if err != nil {
+		return false, err
 	}
 
-	var machinePools []provv1.RKEMachinePool
-	for _, pool := range template.MachinePools {
-		newPool := provv1.RKEMachinePool{
-			EtcdRole:         pool.Etcd,
-			ControlPlaneRole: pool.ControlPlane,
-			WorkerRole:       pool.Worker,
-			Quantity:         &pool.Quantity,
-		}
-		machinePools = append(machinePools, newPool)
-	}
+	machinePools := createMachinePools(template)
 	provCluster.Spec.RKEConfig.MachinePools = machinePools
 
 	var clusterObject *v1.SteveAPIObject
 	// Retry registration if SSH handshake fails (likely due to node not being ready or concurrency limits)
 	err = BackoffWait(20, func() (bool, error) {
 		var regErr error
+
 		clusterObject, regErr = RegisterCustomCluster(rancherClient, clusterResp, provCluster, template.Nodes)
 		if regErr != nil {
 			if strings.Contains(regErr.Error(), "ssh: handshake failed") || strings.Contains(regErr.Error(), "ssh: unable to authenticate") {
 				fmt.Printf("SSH handshake failed for cluster %s, retrying... Error: %v\n", clusterName, regErr)
 				return false, nil
 			}
+
 			return false, regErr
 		}
+
 		return true, nil
 	})
 	reports.TimeoutClusterReport(clusterObject, err)
+
 	if err != nil {
 		return false, err
 	}
@@ -490,9 +596,13 @@ func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J]
 	if err != nil {
 		return false, err
 	}
+
 	<-br.seqCh
+
 	br.Updates <- stateUpdate{Name: clusterName, Stage: StageRegistered, Completed: time.Now()}
+
 	br.seqCh <- struct{}{}
+
 	fmt.Printf("Cluster named %s was registered.\n", clusterName)
 
 	return false, nil

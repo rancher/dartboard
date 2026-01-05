@@ -14,12 +14,13 @@ import (
 type HarvesterImportClient struct {
 	client          *rancher.Client
 	session         *session.Session
-	clusterID       string
 	harvesterClient *harvester.Client
+	clusterID       string
 }
 
 func NewHarvesterConfig(host, adminToken, adminPassword string, insecure bool) harvester.Config {
 	defaultBool := false
+
 	return harvester.Config{
 		Host:          host,
 		AdminToken:    adminToken,
@@ -40,6 +41,7 @@ func NewHarvesterImportClient(rancherClient *rancher.Client, harvesterConfig *ha
 	if err != nil {
 		return nil, fmt.Errorf("error while setting up Harvester client: %v", err)
 	}
+
 	h.harvesterClient = harvesterClient
 
 	h.session.RegisterCleanupFunc(func() error {
@@ -54,6 +56,7 @@ func (h *HarvesterImportClient) ImportCluster() error {
 	if err != nil {
 		return fmt.Errorf("error while registering Harvester cluster with Rancher: %v", err)
 	}
+
 	logrus.Info(harvesterInRancherID)
 
 	h.clusterID = harvesterInRancherID

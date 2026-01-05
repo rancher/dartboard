@@ -35,5 +35,6 @@ func Destroy(cli *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
 	return tf.Destroy()
 }

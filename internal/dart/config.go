@@ -29,7 +29,9 @@ type AnyNodeConfig interface {
 }
 
 type ProviderConfig interface {
+	// ProviderName returns the name of the provider
 	ProviderName() string
+	// Validate validates the config, returning an error if invalid
 	Validate() error
 }
 
@@ -40,20 +42,22 @@ type NodeConfig struct {
 	K3DNodeConfig *K3DNodeConfig       `json:"k3d_node_config,omitempty" yaml:"k3d_node_config,omitempty"`
 }
 
-type AWSNodeConfig struct{}
-type AzureNodeConfig struct{}
-type K3DNodeConfig struct{}
+type (
+	AWSNodeConfig   struct{}
+	AzureNodeConfig struct{}
+	K3DNodeConfig   struct{}
+)
 
 type HarvesterNodeConfig struct {
-	CPU                 int                  `json:"cpu" yaml:"cpu"`
-	Memory              int                  `json:"memory" yaml:"memory"`
-	Disks               []HarvesterDisk      `json:"disks" yaml:"disks"`
+	Tags                map[string]string    `json:"tags" yaml:"tags"`
 	ImageName           string               `json:"image_name" yaml:"image_name"`
 	ImageNamespace      string               `json:"image_namespace" yaml:"image_namespace"`
 	Namespace           string               `json:"namespace" yaml:"namespace"`
-	Tags                map[string]string    `json:"tags" yaml:"tags"`
 	Password            string               `json:"password" yaml:"password"`
+	Disks               []HarvesterDisk      `json:"disks" yaml:"disks"`
 	SSHSharedPublicKeys []SSHSharedPublicKey `json:"ssh_shared_public_keys" yaml:"ssh_shared_public_keys"`
+	CPU                 int                  `json:"cpu" yaml:"cpu"`
+	Memory              int                  `json:"memory" yaml:"memory"`
 	EFI                 bool                 `json:"efi" yaml:"efi"`
 	SecureBoot          bool                 `json:"secure_boot" yaml:"secure_boot"`
 }
@@ -65,27 +69,27 @@ type SSHSharedPublicKey struct {
 
 type HarvesterDisk struct {
 	Name string `json:"name" yaml:"name"`
-	Size int    `json:"size" yaml:"size"`
 	Type string `json:"type" yaml:"type"`
 	Bus  string `json:"bus" yaml:"bus"`
+	Size int    `json:"size" yaml:"size"`
 }
 
 type ClusterConfig struct {
-	MachinePools []MachinePools `yaml:"machine_pools"`
 	Provider     string         `yaml:"provider"`
+	MachinePools []MachinePools `yaml:"machine_pools"`
 }
 
 type MachinePools struct {
-	machinepools.Pools
 	MachinePoolConfig MachinePoolConfig `yaml:"machine_pool_config,omitempty" default:"[]"`
+	machinepools.Pools
 }
 
 type MachinePoolConfig struct {
+	NodeConfig   NodeConfig `yaml:"node_config"`
+	Quantity     int32      `json:"quantity" yaml:"quantity"`
 	ControlPlane bool       `json:"controlplane,omitempty" yaml:"controlplane,omitempty"`
 	Etcd         bool       `json:"etcd,omitempty" yaml:"etcd,omitempty"`
 	Worker       bool       `json:"worker,omitempty" yaml:"worker,omitempty"`
-	Quantity     int32      `json:"quantity" yaml:"quantity"`
-	NodeConfig   NodeConfig `yaml:"node_config"`
 }
 
 func (h HarvesterNodeConfig) ProviderName() string { return "harvester" }
@@ -94,12 +98,15 @@ func (h HarvesterNodeConfig) Validate() error {
 	if h.CPU <= 0 {
 		return fmt.Errorf("error while validating harvester: %w", ErrInvalidCPU)
 	}
+
 	if h.Memory <= 0 {
 		return fmt.Errorf("error while validating harvester: %w", ErrInvalidMemory)
 	}
+
 	if h.Password == "" {
 		return fmt.Errorf("error while validating harvester: password %w", ErrInvalidString)
 	}
+
 	return nil
 }
 func (h AWSNodeConfig) ProviderName() string { return "aws" }
@@ -133,21 +140,26 @@ func ToMap(a any) (map[string]interface{}, error) {
 // GetActiveConfig returns the single non‑nil ProviderConfig inside nc
 // If exactly one is set, it returns that, otherwise an error.
 func (nc *NodeConfig) GetActiveConfig() (ProviderConfig, error) {
-	var found ProviderConfig
-	var count int
+	var (
+		found ProviderConfig
+		count int
+	)
 
 	if nc.Harvester != nil {
 		found = *nc.Harvester
 		count++
 	}
+
 	if nc.AWS != nil {
 		found = *nc.AWS
 		count++
 	}
+
 	if nc.Azure != nil {
 		found = *nc.Azure
 		count++
 	}
+
 	if nc.K3DNodeConfig != nil {
 		found = *nc.K3DNodeConfig
 		count++

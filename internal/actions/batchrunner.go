@@ -20,14 +20,14 @@ var stateMutex sync.Mutex
 
 // stateUpdate is a simple "signaling" struct for the file writer goroutine to persist state
 type stateUpdate struct {
+	Completed time.Time
 	Name      string
 	Stage     Stage
-	Completed time.Time
 }
 
 type jobResult struct {
-	skipped bool
 	err     error
+	skipped bool
 }
 
 type JobDataTypes interface {
@@ -61,20 +61,24 @@ func NewSequencedBatchRunner[J JobDataTypes](batchSize int) *SequencedBatchRunne
 	}
 	// seed the sequencer
 	br.seqCh <- struct{}{}
+
 	return br
 }
 
 // Run executes the batch: starts the file writer, workers, enqueues jobs, collects results
 func (br *SequencedBatchRunner[J]) Run(batch []J,
 	statuses map[string]*ClusterStatus, statePath string, client *rancher.Client,
-	config *rancher.Config) error {
+	config *rancher.Config,
+) error {
 	// Start writer
 	br.wgWriter.Add(1)
+
 	go br.writer(statuses, statePath)
 
 	// Spawn workers
 	for range maxWorkers {
 		br.wgWorkers.Add(1)
+
 		go br.worker(statuses, client, config)
 	}
 
@@ -82,6 +86,7 @@ func (br *SequencedBatchRunner[J]) Run(batch []J,
 	for _, c := range batch {
 		br.Jobs <- c
 	}
+
 	close(br.Jobs)
 
 	// Reset skip count for this batch
@@ -95,6 +100,7 @@ func (br *SequencedBatchRunner[J]) Run(batch []J,
 			br.Wait()
 			return fmt.Errorf("error during batch run: %w", res.err)
 		}
+
 		if res.skipped {
 			numSkipped++
 		}
@@ -114,6 +120,7 @@ func (br *SequencedBatchRunner[J]) Run(batch []J,
 
 	// Clean up
 	br.Wait()
+
 	return nil
 }
 
@@ -127,11 +134,13 @@ func (br *SequencedBatchRunner[J]) Wait() {
 // writer serializes all state updates and persists immediately
 func (br *SequencedBatchRunner[J]) writer(statuses map[string]*ClusterStatus, statePath string) {
 	defer br.wgWriter.Done()
+
 	for u := range br.Updates {
 		stateMutex.Lock()
 		logrus.Debugf("\nIN WRITER\n")
 		logrus.Debugf("\n%v\n", statuses)
 		cs := statuses[u.Name]
+
 		cs.Stage = u.Stage
 		switch u.Stage {
 		case StageNew:
@@ -147,21 +156,28 @@ func (br *SequencedBatchRunner[J]) writer(statuses map[string]*ClusterStatus, st
 		case StageRegistered:
 			cs.Registered = true
 		}
+
 		if err := SaveClusterState(statePath, statuses); err != nil {
 			logrus.Errorf("failed to save state for %s:%s: %v", u.Name, u.Stage, err)
 		}
+
 		stateMutex.Unlock()
 	}
 }
 
 // worker consumes Jobs, calls the proper handler based on the Job Type, signals Updates and Results
 func (br *SequencedBatchRunner[J]) worker(statuses map[string]*ClusterStatus,
-	client *rancher.Client, config *rancher.Config) {
+	client *rancher.Client, config *rancher.Config,
+) {
 	defer br.wgWorkers.Done()
+
 	for job := range br.Jobs {
-		var skipped bool
-		var err error
+		var (
+			skipped bool
+			err     error
+		)
 		// Use type assertion to determine which function to call
+
 		switch typedJob := any(job).(type) {
 		case tofu.Cluster:
 			skipped, err = importClusterWithRunner(br, typedJob, statuses, client, config)
@@ -172,7 +188,9 @@ func (br *SequencedBatchRunner[J]) worker(statuses map[string]*ClusterStatus,
 		default:
 			err = fmt.Errorf("unsupported job type: %T", job)
 		}
+
 		br.Results <- jobResult{skipped: skipped, err: err}
+
 		if err != nil {
 			return
 		}

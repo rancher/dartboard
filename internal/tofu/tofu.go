@@ -36,9 +36,9 @@ import (
 )
 
 type ClusterAddress struct {
+	Name      string `json:"name" yaml:"name"`
 	HTTPPort  uint   `json:"http_port" yaml:"http_port"`
 	HTTPSPort uint   `json:"https_port" yaml:"https_port"`
-	Name      string `json:"name" yaml:"name"`
 }
 
 type ClusterAppAddresses struct {
@@ -54,22 +54,22 @@ type Addresses struct {
 }
 
 type Cluster struct {
-	AppAddresses             ClusterAppAddresses `json:"app_addresses" yaml:"app_addresses"`
+	NodeAccessCommands       map[string]string   `json:"node_access_commands" yaml:"node_access_commands"`
+	KubernetesAddresses      Addresses           `json:"kubernetes_addresses" yaml:"kubernetes_addresses"`
 	Name                     string              `json:"name" yaml:"name"`
 	Context                  string              `json:"context" yaml:"context"`
 	IngressClassName         string              `json:"ingress_class_name" yaml:"ingress_class_name"`
 	Kubeconfig               string              `json:"kubeconfig" yaml:"kubeconfig"`
-	NodeAccessCommands       map[string]string   `json:"node_access_commands" yaml:"node_access_commands"`
-	KubernetesAddresses      Addresses           `json:"kubernetes_addresses" yaml:"kubernetes_addresses"`
+	AppAddresses             ClusterAppAddresses `json:"app_addresses" yaml:"app_addresses"`
 	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring" yaml:"reserve_node_for_monitoring"`
 }
 
 type CustomCluster struct {
 	Name          string              `json:"name,omitempty" yaml:"name"`
 	NamePrefix    string              `yaml:"name_prefix" json:"name_prefix,omitempty"`
+	DistroVersion string              `yaml:"distro_version" json:"distro_version,omitempty"`
 	Nodes         []Node              `yaml:"nodes" json:"nodes,omitempty"`
 	MachinePools  []MachinePoolConfig `yaml:"machine_pools" json:"machine_pools,omitempty"`
-	DistroVersion string              `yaml:"distro_version" json:"distro_version,omitempty"`
 	ClusterCount  int                 `yaml:"cluster_count" json:"cluster_count,omitempty"`
 	ServerCount   int                 `yaml:"server_count" json:"server_count,omitempty"`
 }
@@ -116,13 +116,14 @@ type Output struct {
 type Tofu struct {
 	dir       string
 	workspace string
+	variables []string
 	threads   int
 	verbose   bool
-	variables []string
 }
 
 func New(variableMap map[string]interface{}, dir string, ws string, parallelism int, verbose bool) (*Tofu, error) {
 	var variables []string
+
 	for k, v := range variableMap {
 		variable := fmt.Sprintf("%s=%s", k, format.ConvertValueToHCL(v, false))
 		variables = append(variables, variable)
@@ -140,6 +141,7 @@ func New(variableMap map[string]interface{}, dir string, ws string, parallelism 
 	for _, variable := range t.variables {
 		args = append(args, "-var", variable)
 	}
+
 	if err := t.exec(nil, args...); err != nil {
 		return nil, err
 	}
@@ -153,6 +155,7 @@ func (t *Tofu) exec(output io.Writer, args ...string) error {
 	cmd := vendored.Command("tofu", fullArgs...)
 
 	var errStream strings.Builder
+
 	cmd.Stderr = &errStream
 	cmd.Stdin = os.Stdin
 
@@ -167,6 +170,7 @@ func (t *Tofu) exec(output io.Writer, args ...string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("error while running tofu: %v", errStream.String())
 	}
+
 	return nil
 }
 
@@ -186,6 +190,7 @@ func (t *Tofu) handleWorkspace() error {
 	}
 
 	log.Printf("Creating new tofu workspace: %s", t.workspace)
+
 	if err = t.newWorkspace(); err != nil {
 		return err
 	}
@@ -196,8 +201,10 @@ func (t *Tofu) handleWorkspace() error {
 func (t *Tofu) workspaceExists() (bool, error) {
 	args := []string{"workspace", "list"}
 
-	var out bytes.Buffer
-	var err error
+	var (
+		out bytes.Buffer
+		err error
+	)
 
 	if err = t.exec(&out, args...); err != nil {
 		return false, fmt.Errorf("failed to list workspaces: %v", err)
@@ -251,6 +258,7 @@ func (t *Tofu) Output(out io.Writer, jsonFormat bool) error {
 	writer := out
 	if out == nil {
 		logrus.Debugf("\nLogging to stdout since no io.Writer was provided\n")
+
 		writer = os.Stdout
 	}
 
@@ -275,6 +283,7 @@ func (t *Tofu) commonArgs(command string) []string {
 	for _, variable := range t.variables {
 		args = append(args, "-var", variable)
 	}
+
 	return args
 }
 
@@ -310,17 +319,22 @@ func (t *Tofu) IsK3d() bool {
 
 // ReadBytesFromPath reads in the file from the given path, returns the file in []byte format
 func ReadBytesFromPath(filePath string) ([]byte, error) {
-	var fileBytes []byte
-	var path string
+	var (
+		fileBytes []byte
+		path      string
+	)
+
 	if strings.Contains(filePath, "~") {
 		usr, err := user.Current()
 		if err != nil {
 			return nil, errors.New("error retrieving current user")
 		}
+
 		path = strings.Replace(filePath, "~", usr.HomeDir, 1)
 	} else {
 		path = filePath
 	}
+
 	if _, err := os.Stat(path); err == nil {
 		fileBytes, err = os.ReadFile(path)
 		if err != nil {
@@ -337,11 +351,13 @@ func ReadBytesFromPath(filePath string) ([]byte, error) {
 // from prefix → slice of Nodes whose key begins with that prefix.
 func GetNodesByPrefix(all map[string]Node, prefix string) []Node {
 	grouped := []Node{}
+
 	for key := range all {
 		if strings.HasPrefix(key, prefix) {
 			fmt.Printf("Appending node: %v", all[key])
 			grouped = append(grouped, all[key])
 		}
 	}
+
 	return grouped
 }

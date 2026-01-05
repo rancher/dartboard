@@ -69,6 +69,7 @@ func SaveClusterState(filePath string, statuses map[string]*ClusterStatus) error
 	if err := os.WriteFile(filePath, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write Cluster state file: %w", err)
 	}
+
 	return nil
 }
 
@@ -77,21 +78,26 @@ func SaveClusterState(filePath string, statuses map[string]*ClusterStatus) error
 func LoadClusterState(filePath string) (map[string]*ClusterStatus, error) {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		fmt.Printf("Did not find existing Cluster state file at %s.\n Creating new Cluster state file and returning new empty map[string]*ClusterStatus\n", filePath)
+
 		if err := SaveClusterState(filePath, map[string]*ClusterStatus{}); err != nil {
 			return nil, fmt.Errorf("failed init Cluster state file: %w", err)
 		}
+
 		return map[string]*ClusterStatus{}, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to os.Stat Cluster state file at %s: %w", filePath, err)
 	}
+
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to os.ReadFile Cluster state file at %s: %w", filePath, err)
 	}
+
 	var statuses map[string]*ClusterStatus
 	if err := yaml.Unmarshal(data, &statuses); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal state: %w", err)
 	}
+
 	return statuses, nil
 }
 
@@ -117,6 +123,7 @@ func FindClusterStatus(statuses map[string]*ClusterStatus, condition func(*Clust
 			return statuses[key]
 		}
 	}
+
 	return nil
 }
 
@@ -135,6 +142,7 @@ func FindOrCreateStatusByName(statuses map[string]*ClusterStatus, name string) *
 			Name: name,
 		}
 		statuses[name] = &newClusterStatus
+
 		logrus.Debugf("Created new ClusterStatus object. ClusterStatus.")
 		logrus.Debugf("\n%v\n", statuses)
 
@@ -142,5 +150,6 @@ func FindOrCreateStatusByName(statuses map[string]*ClusterStatus, name string) *
 	}
 
 	fmt.Printf("Found ClusterStatus object named %s. ClusterStatus.", name)
+
 	return clusterStatus
 }

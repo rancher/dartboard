@@ -13,10 +13,10 @@ import (
 type Kubeconfig struct {
 	APIVersion     string
 	Kind           string
+	CurrentContext string
 	Clusters       []Cluster
 	Users          []User
 	Contexts       []Context
-	CurrentContext string
 }
 
 type Cluster struct {
@@ -50,10 +50,12 @@ type ContextData struct {
 
 func ParseKubeconfig(kubeconfigPath string) (*Kubeconfig, error) {
 	kubeconfig := Kubeconfig{}
+
 	kubeconfigBytes, err := GetKubeconfigBytes(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
+
 	err = yaml.Unmarshal(kubeconfigBytes, &kubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling kubeconfig YAML for %s: %w", kubeconfigBytes, err)
@@ -78,6 +80,7 @@ func GetRESTConfigFromBytes(kubeconfig []byte) (*rest.Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while getting Rest Config from kubeconfig bytes: %w", err)
 	}
+
 	return restConfig, nil
 }
 
@@ -86,10 +89,12 @@ func GetRESTConfigFromPath(kubeconfigPath string) (*rest.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	restConfig, err := GetRESTConfigFromBytes(clusterKubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("error getting REST Config for Kubeconfig at %s:\n%w", kubeconfigPath, err)
 	}
+
 	return restConfig, nil
 }
 
@@ -98,6 +103,7 @@ func GetRESTConfigForClusterID(rancherClient *rancher.Client, id string) (*rest.
 	if err != nil {
 		return nil, fmt.Errorf("error while getting Cluster by ID %s: %v", id, err)
 	}
+
 	output, err := rancherClient.Management.Cluster.ActionGenerateKubeconfig(cluster)
 	if err != nil {
 		return nil, fmt.Errorf("error while generating Kubeconfig for Cluster with ID %s: %v", id, err)
