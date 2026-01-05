@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/rancher/dartboard/internal/tofu"
-	"github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v2"
 )
 
 func GetAccess(cli *cli.Context) error {
@@ -30,7 +30,7 @@ func GetAccess(cli *cli.Context) error {
 		return err
 	}
 
-	clusters, err := tf.OutputClusters(cli.Context)
+	clusters, _, err := tf.ParseOutputs()
 	if err != nil {
 		return err
 	}
