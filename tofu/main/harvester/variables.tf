@@ -121,7 +121,7 @@ variable "network" {
     vlan_id             = 100
     name                = "vmnet-shared"
     namespace           = "default"
-    interace_type       = "bridge"
+    interface_type      = "bridge"
     public              = true
     wait_for_lease      = true
   }
