@@ -24,6 +24,7 @@ type Dart struct {
 	ClusterBatchSize       int               `yaml:"cluster_batch_size"`
 }
 
+// ClusterTemplate defines a template for batch cluster creation
 type ClusterTemplate struct {
 	NodeConfig      *NodeConfig    `yaml:"node_config"`
 	ClusterConfig   *ClusterConfig `yaml:"cluster_config"`
@@ -129,6 +130,7 @@ func needsPrime(version string) bool {
 		(major == 2 && minor == 8 && patch >= 6)
 }
 
+// UpdateDart writes the Dart configuration to a file
 func UpdateDart(r *Dart, path string) error {
 	data, err := yaml.Marshal(r)
 	if err != nil {
@@ -142,14 +144,17 @@ func UpdateDart(r *Dart, path string) error {
 	return nil
 }
 
+// SetGeneratedName sets the generated name for a cluster template
 func (ct *ClusterTemplate) SetGeneratedName(suffix string) {
 	ct.generatedName = fmt.Sprintf("%s-%s", ct.NamePrefix, suffix)
 }
 
+// GeneratedName returns the generated name for a cluster template
 func (ct *ClusterTemplate) GeneratedName() string {
 	return ct.generatedName
 }
 
+// ProcessNodesPerCluster calculates the total nodes needed for a cluster template
 func (ct *ClusterTemplate) ProcessNodesPerCluster() int {
 	var sum int32
 
