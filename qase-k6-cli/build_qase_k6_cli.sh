@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 set -e
 
-# Path to the Go source code for the k6 reporter
-REPORTER_SRC_DIR="$(dirname "$0")"
+# Path to the Go source code for the qase-k6-cli
+QASE_K6_CLI_SRC_DIR="$(dirname "$0")"
 
 # Output binary path
-OUTPUT_BINARY="${REPORTER_SRC_DIR}/reporter-k6"
+OUTPUT_BINARY="${QASE_K6_CLI_SRC_DIR}/qase-k6-cli"
 
-echo "Building k6 Qase reporter..."
-echo "Source directory: ${REPORTER_SRC_DIR}"
+echo "Building qase-k6-cli..."
+echo "Source directory: ${QASE_K6_CLI_SRC_DIR}"
 echo "Output binary: ${OUTPUT_BINARY}"
 
 # Ensure we are in the correct directory to resolve modules
-cd "${REPORTER_SRC_DIR}"
+cd "${QASE_K6_CLI_SRC_DIR}"
 
 # Tidy and build the Go application
 go mod tidy
