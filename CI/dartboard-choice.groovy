@@ -1,0 +1,512 @@
+#!groovy
+// Declarative Pipeline Syntax
+@Library('qa-jenkins-library') _
+
+def agentLabel = 'jenkins-qa-jenkins-agent'
+if (params.HARVESTER_KUBECONFIG) {
+    agentLabel = 'vsphere-vpn-1'
+}
+
+def scmWorkspace
+def generatedNames
+def configDirPath
+def parseToHTML(text) { text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;') }
+
+def runningContainerName
+def finalSSHKeyName
+def finalSSHPemKey
+def finalProjectName
+
+pipeline {
+  agent { label agentLabel }
+
+  environment {
+    // Define environment variables here.  These are available throughout the pipeline.
+    imageName = 'dartboard'
+    harvesterKubeconfig = 'harvester.kubeconfig'
+    templateDartFile = 'template-dart.yaml'
+    renderedDartFile = 'rendered-dart.yaml'
+    envFile = ".env"
+    DEFAULT_PROJECT_NAME = "${JOB_NAME.split('/').last()}-${BUILD_NUMBER}"
+    accessDetailsLog = 'access-details.log'
+    summaryHtmlFile = 'summary.html'
+  }
+
+  // No parameters block here—JJB YAML defines them
+
+
+  stages {
+    stage('Validate Parameters') {
+      steps {
+        script {
+          def command = params.DARTBOARD_COMMAND ?: 'redeploy'
+
+          // Commands that act on an existing deployment require a DEPLOYMENT_ID to target the correct resources.
+          // Its up to the user to determine if the 'apply' command will require this parameter, so it is not included in the validation
+          def existingDeploymentCommands = ['destroy', 'get-access', 'load']
+          if (command in existingDeploymentCommands && !params.DEPLOYMENT_ID) {
+            error("For the '${command}' command, the 'DEPLOYMENT_ID' parameter is required to target a specific existing deployment.")
+          }
+        }
+      }
+    }
+
+    stage('Initialize & Checkout') {
+      steps {
+        script {
+          // Use useWithCredentials to securely handle the PEM key
+          property.useWithCredentials(['AWS_SSH_PEM_KEY_NAME', 'AWS_SSH_PEM_KEY']) {
+            // Initialize variables with fallback logic
+            finalSSHPemKey = params.SSH_PEM_KEY ? params.SSH_PEM_KEY : env.AWS_SSH_PEM_KEY
+            def sshKeyNameFromCreds = env.AWS_SSH_PEM_KEY_NAME ? env.AWS_SSH_PEM_KEY_NAME.trim().split('\\.')[0] : null
+            finalSSHKeyName = params.SSH_KEY_NAME ? params.SSH_KEY_NAME : sshKeyNameFromCreds
+
+            def command = params.DARTBOARD_COMMAND ?: 'redeploy'
+            // Commands that create/modify infrastructure require SSH keys for node provisioning.
+            def sshRequiredCommands = ['redeploy', 'deploy', 'apply', 'reapply', 'destroy']
+            if (command in sshRequiredCommands && (!finalSSHPemKey || !finalSSHKeyName)) {
+              error("The '${command}' command requires SSH keys. Please provide both 'SSH_PEM_KEY' and 'SSH_KEY_NAME' parameters, or ensure corresponding credentials (AWS_SSH_PEM_KEY, AWS_SSH_PEM_KEY_NAME) are available.")
+            }
+
+            sh """
+            echo '---- SSH KEY NAME ---'
+            echo ${finalSSHKeyName}
+            """
+            scmWorkspace = project.checkout(repository: params.REPO, branch: params.BRANCH, target: 'dartboard')
+          }
+        }
+      }
+    }
+
+    stage('Configure and Build') {
+      steps {
+        dir('dartboard') {
+          script {
+            property.useWithProperties(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
+              echo "Storing env in file"
+              sh "printenv | egrep '^(ARM_|CATTLE_|ADMIN|USER|DO|RANCHER_|AWS_|DEBUG|LOGLEVEL|DEFAULT_|OS_|DOCKER_|CLOUD_|KUBE|BUILD_NUMBER|AZURE|TEST_|SLACK_|harvester|TF_).*=.+' | sort > ${env.envFile}"
+              if (params.EXTRA_ENV_VARS) {
+                sh "echo \"${params.EXTRA_ENV_VARS}\" >> ${env.envFile}"
+              }
+              sh "docker build -t ${env.imageName}:latest ."
+            }
+          }
+        }
+      }
+    }
+
+    stage('Start Service Container') {
+      steps {
+        script {
+          generatedNames = generate.names()
+          runningContainerName = "${generatedNames.container}-service"
+          sh """
+            docker run -d --rm --name ${runningContainerName} \\
+              -v ${pwd()}/dartboard:/dartboard \\
+              --workdir /dartboard \\
+              --env-file dartboard/${env.envFile} \\
+              --entrypoint='' \\
+              --user=\$(id -u) \\
+              ${env.imageName}:latest sleep infinity
+          """
+        }
+      }
+    }
+
+    stage('Set Build Description') {
+      steps {
+        script {
+          // Use yq inside the running service container to parse the rancher_version from the DART file contents
+          def rancherVersion = sh(
+            script: "docker exec ${runningContainerName} sh -c 'echo \"\$1\" | yq .chart_variables.rancher_version' -- '${params.DART_FILE}'",
+            returnStdout: true
+          ).trim()
+
+          def description = ""
+          if (rancherVersion && rancherVersion != 'null') {
+            description = "Rancher v${rancherVersion}"
+          }
+
+          def command = params.DARTBOARD_COMMAND ?: 'redeploy'
+          if (description) {
+            currentBuild.description = "${description} (${command})"
+          } else {
+            currentBuild.description = "(${command})"
+          }
+        }
+      }
+    }
+
+    stage('Setup SSH Keys') {
+      steps {
+        script {
+          def command = params.DARTBOARD_COMMAND ?: 'redeploy'
+          // Only set up SSH keys for commands that actually need them for provisioning.
+          def sshRequiredCommands = ['redeploy', 'deploy', 'apply', 'reapply', 'destroy']
+
+          if (command in sshRequiredCommands) {
+            def sshScript = """
+              echo "Writing SSH keys to container..."
+              # The PEM key is passed via standard input to avoid issues with special characters
+              echo "\${1}" | base64 -d > /dartboard/${finalSSHKeyName}.pem
+              chmod 600 /dartboard/${finalSSHKeyName}.pem
+
+              echo "Generating public key from PEM key..."
+              ssh-keygen -y -f /dartboard/${finalSSHKeyName}.pem > /dartboard/${finalSSHKeyName}.pub
+              chmod 644 /dartboard/${finalSSHKeyName}.pub
+
+              echo "VERIFICATION FOR PUB KEY:"
+              cat /dartboard/${finalSSHKeyName}.pub
+            """
+            sh "docker exec --user=\$(id -u) ${runningContainerName} sh -c '${sshScript}' -- '${finalSSHPemKey}'"
+          } else {
+            echo "Skipping SSH key setup for command '${command}' as it is not required."
+          }
+        }
+      }
+    }
+
+    stage('Determine Project Name') {
+      steps {
+        script {
+          if (params.DEPLOYMENT_ID) {
+            finalProjectName = params.DEPLOYMENT_ID
+            echo "Using project name from DEPLOYMENT_ID parameter: ${finalProjectName}"
+          } else {
+            // Use yq to parse the project_name from the DART file contents
+            def projectNameFromDart = sh(
+              script: "docker exec ${runningContainerName} sh -c 'echo \"\$1\" | yq .tofu_variables.project_name' -- '${params.DART_FILE}'",
+              returnStdout: true
+            ).trim()
+
+            // Override DEFAULT_PROJECT_NAME if a valid one is found in the DART file
+            if (projectNameFromDart && projectNameFromDart != 'null' && !projectNameFromDart.startsWith('$')) {
+              echo "Using project_name from DART file: ${projectNameFromDart}"
+              finalProjectName = projectNameFromDart
+            } else {
+              finalProjectName = env.DEFAULT_PROJECT_NAME
+              echo "Using default project name: ${env.DEFAULT_PROJECT_NAME}"
+            }
+          }
+        }
+      }
+    }
+
+    stage('Restore State from S3') {
+      // Only run this stage if we passed in a deployment ID, indicating this job should pull from an existing tofu state
+      when { expression { return params.DEPLOYMENT_ID } }
+      steps {
+        dir('dartboard') {
+          script {
+            property.useWithCredentials(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
+              def artifactsDir = "deployment-artifacts"
+              sh """
+                echo "Downloading artifacts from S3 for deployment ${params.DEPLOYMENT_ID}..."
+                mkdir -p ${artifactsDir}
+                docker run --rm \\
+                    -v "${pwd()}/${artifactsDir}:/artifacts" \\
+                    -e AWS_ACCESS_KEY_ID \\
+                    -e AWS_SECRET_ACCESS_KEY \\
+                    -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
+                    amazon/aws-cli s3 cp "s3://${params.S3_BUCKET_NAME}/${params.DEPLOYMENT_ID}/" /artifacts/ --recursive
+              """
+
+              def tofuMainDirFromDart = sh(script: "docker exec ${runningContainerName} sh -c 'echo \"\$1\" | yq .tofu_main_directory' -- '${params.DART_FILE}'", returnStdout: true).trim()
+
+              // Unzip artifacts inside the service container
+              def restoreScript = """
+                  echo "Extracting downloaded artifacts..."
+                  artifactsDir="/dartboard/${artifactsDir}"
+
+                  tfstate_zip=\$(find \${artifactsDir} -name 'tfstate-*.zip' | head -n 1)
+                  if [ -n "\$tfstate_zip" ]; then
+                    echo "Extracting OpenTofu state archive: \$tfstate_zip"
+                    tfstateDir="${tofuMainDirFromDart}/terraform.tfstate.d/"
+                    echo "Ensuring OpenTofu state directory exists at \${tfstateDir}"
+                    mkdir -p "\${tfstateDir}"
+                    echo "Unzipping state into \${tfstateDir}"
+                    unzip -o "\$tfstate_zip" -d "\${tfstateDir}"
+                  else
+                    echo "Warning: No OpenTofu state zip file found in S3 artifacts."
+                  fi
+
+                  config_zip=\$(find \${artifactsDir} -name '*_config.zip' | head -n 1)
+                  if [ -n "\$config_zip" ]; then
+                    configDirName=\$(basename "\$config_zip" .zip)
+                    configDestDir="${tofuMainDirFromDart}/\${configDirName}"
+                    echo "Extracting config archive: \$config_zip to \${configDestDir}"
+                    mkdir -p "\${configDestDir}"
+                    unzip -o "\$config_zip" -d "\${configDestDir}"
+                  else
+                    echo "Warning: No config zip file found in S3 artifacts."
+                  fi
+
+              """
+              sh "docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} sh -c '${restoreScript}'"
+              sh "rm -rf ${artifactsDir}"
+            }
+          }
+        }
+      }
+    }
+
+    stage('Prepare Parameter Files') {
+      steps {
+        script {
+          property.useWithCredentials(['ADMIN_PASSWORD', 'USER_PASSWORD']) {
+            // Render the Dart file using Groovy string replacement
+            def dartTemplate = params.DART_FILE
+            def renderedDart = dartTemplate.replaceAll('\\$\\{HARVESTER_KUBECONFIG\\}', "/dartboard/${env.harvesterKubeconfig}")
+                                            .replaceAll('\\$\\{SSH_KEY_NAME\\}', "/dartboard/${finalSSHKeyName}")
+                                            .replaceAll('\\$\\{PROJECT_NAME\\}', finalProjectName)
+                                            .replaceAll('\\$\\{ADMIN_PASSWORD\\}', ADMIN_PASSWORD)
+                                            .replaceAll('\\$\\{USER_PASSWORD\\}', USER_PASSWORD)
+
+            // Use docker exec to write all parameter files to the container
+            sh """
+              docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} sh -c '''
+                echo "Writing parameter files to container using here-documents to preserve special characters..."
+
+                # Write HARVESTER_KUBECONFIG to harvester.kubeconfig
+                cat <<'EOF' > ${env.harvesterKubeconfig}
+${params.HARVESTER_KUBECONFIG}
+EOF
+                # Write the rendered DART file
+                cat <<'EOF' > ${env.renderedDartFile}
+${renderedDart}
+EOF
+                echo "DUMPING INPUT FILES FOR MANUAL VERIFICATION"
+                echo "---- harvester.kubeconfig ----"
+                cat ${env.harvesterKubeconfig}
+                echo "---- rendered-dart.yaml ----"
+                cat ${env.renderedDartFile}
+              '''
+            """
+          }
+        }
+      }
+    }
+
+    stage('Execute Dartboard Command') {
+      steps {
+        script {
+          // Default to redeploy for backward compatibility
+          def command = params.DARTBOARD_COMMAND ?: 'redeploy'
+          echo "Executing 'dartboard ${command}'..."
+
+          // For get-access, we want to capture stdout to the log file
+          if (command == 'get-access') {
+            sh "docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} sh -c 'dartboard --dart ${env.renderedDartFile} get-access > ${env.accessDetailsLog}'"
+          } else {
+            def dartboardCmd = """
+              docker exec -t --user=\$(id -u) --workdir /dartboard ${runningContainerName} dartboard \\
+                --dart ${env.renderedDartFile} ${command}
+            """
+            // Retry on infrastructure setup commands
+            if (command in ['redeploy', 'deploy', 'apply', 'reapply', 'destroy']) {
+              retry(3) {
+                sh dartboardCmd
+              }
+            } else {
+              sh dartboardCmd
+            }
+          }
+        }
+      }
+      post {
+        success {
+          script {
+            def command = params.DARTBOARD_COMMAND ?: 'redeploy'
+            // Only archive state for infrastructure setup commands
+            if (command in ['redeploy', 'deploy', 'apply', 'reapply']) {
+              sh """
+                docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} sh -c '''
+                    echo "Creating archives..."
+                    tofuMainDir=\$(yq ".tofu_main_directory" ${env.renderedDartFile})
+                    tfstateDir="\${tofuMainDir}/terraform.tfstate.d/"
+                    configDirPath=\$(find . -type d -name "*_config" | head -n 1)
+
+                    if [ -d "\${tfstateDir}" ]; then
+                      echo "Creating OpenTofu state archive from '\${tfstateDir}'..."
+                      archiveName="tfstate-${finalProjectName}.zip"
+                      (cd "\${tfstateDir}" && zip -r "/dartboard/\${archiveName}" "${finalProjectName}")
+                    else
+                      echo "Could not find OpenTofu state directory at '\${tfstateDir}', skipping archive creation."
+                    fi
+
+                    if [ -n "\${configDirPath}" ] && [ -d "\${configDirPath}" ]; then
+                      echo "Creating config archive from \${configDirPath}..."
+                      archiveName="\$(basename \${configDirPath}).zip"
+                      (cd \${configDirPath} && zip -r "/dartboard/\${archiveName}" ./)
+                    fi
+                '''
+              """
+            }
+          }
+        }
+        failure {
+          script {
+            def command = params.DARTBOARD_COMMAND ?: 'redeploy'
+            // Only run destroy on failure if the initial command was a setup command
+            if (command in ['redeploy', 'deploy', 'apply', 'reapply']) {
+              echo "Setup failed. Running dartboard destroy..."
+              sh """
+                docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} dartboard \\
+                --dart ${env.renderedDartFile} destroy
+              """
+            } else {
+              echo "'dartboard ${command}' failed. No automatic cleanup will be performed."
+            }
+          }
+        }
+      }
+    }
+
+    stage('Get Access Details') {
+      // Run for setup commands to show access info. Skip for destroy, and it's redundant for get-access.
+      when {
+        expression {
+          def command = params.DARTBOARD_COMMAND ?: 'redeploy'
+          return command in ['redeploy', 'deploy', 'apply', 'reapply', 'load']
+        }
+      }
+      steps {
+        script {
+          sh "docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} sh -c 'dartboard --dart ${env.renderedDartFile} get-access > ${env.accessDetailsLog}'"
+          echo "---- Access Details ----"
+          sh "docker exec ${runningContainerName} cat /dartboard/${env.accessDetailsLog}"
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      script {
+        echo "Generating build summary..."
+        // Artifacts are on the agent workspace via the volume mount, no copy needed.
+
+        dir('dartboard') {
+          def accessDetails = fileExists(env.accessDetailsLog) ? parseToHTML(readFile(env.accessDetailsLog)) : "Access details log not found."
+
+          // We need to find the config dir path again on the agent for the summary link
+          try {
+              configDirPath = sh(script: "find . -type d -name '*_config' | head -n 1", returnStdout: true).trim()
+          } catch (e) {
+              configDirPath = null
+          }
+
+          // Generate the HTML content
+          def htmlContent = """
+            <html>
+              <head>
+                <title>Build Summary for ${env.JOB_NAME} #${env.BUILD_NUMBER}</title>
+                <style>
+                  body { font-family: sans-serif; background-color: #1e1e1e; color: #d4d4d4; }
+                  h1, h2 { color: #d4d4d4; }
+                  h2 { border-bottom: 1px solid #3c3c3c; padding-bottom: 5px; }
+                  pre { background-color: #252526; border: 1px solid #3c3c3c; padding: 10px; white-space: pre-wrap; word-wrap: break-word; color: #ce9178; }
+                  ul { list-style-type: none; padding-left: 0; }
+                  li { margin-bottom: 10px; }
+                  a { color: #3794ff; text-decoration: none; }
+                  a:hover { text-decoration: underline; }
+                  i { color: #808080; }
+                </style>
+              </head>
+              <body>
+                <h1>Build Summary: ${env.JOB_NAME} #${env.BUILD_NUMBER}</h1>
+
+                <h2>Cluster Access Details</h2>
+                <pre>${accessDetails}</pre>
+
+                <h2>Downloads</h2>
+                <ul>
+                  ${fileExists(env.renderedDartFile) ? "<li><a href='${env.BUILD_URL}artifact/dartboard/${env.renderedDartFile}' download target='_blank'>Download Rendered DART File (${env.renderedDartFile})</a></li>" : ""}
+                  ${configDirPath ? "<li><a href='${env.BUILD_URL}artifact/dartboard/${configDirPath.split('/').last()}.zip' download target='_blank'>Download Cluster Configs (${configDirPath.split('/').last()}.zip)</a></li>" : ""}
+                  ${fileExists("tfstate-${finalProjectName}.zip") ? "<li><a href='${env.BUILD_URL}artifact/dartboard/tfstate-${finalProjectName}.zip' download target='_blank'>Download OpenTofu State (tfstate-${finalProjectName}.zip)</a></li>" : ""}
+                </ul>
+                <p><i>See 'Archived Artifacts' for all generated files, including tofu state.</i></p>
+              </body>
+            </html>
+          """
+          writeFile file: env.summaryHtmlFile, text: htmlContent
+
+          property.useWithCredentials(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']) {
+            echo "Uploading build artifacts to S3..."
+            // Copy files from the workspace (which is mounted into the container) to the temp s3 dir
+            def s3ArtifactsDir = "s3-upload-artifacts"
+            sh "mkdir -p ${s3ArtifactsDir}"
+            // Find the config zip file name first
+            def configZipFile = sh(script: "find . -maxdepth 1 -name '*_config.zip' -exec basename {} \\;", returnStdout: true).trim()
+
+            // Explicitly copy only the artifacts used for the build summary and S3 upload
+            sh """
+              cp ${env.renderedDartFile} ${s3ArtifactsDir}/ 2>/dev/null || true
+              cp tfstate-${finalProjectName}.zip ${s3ArtifactsDir}/ 2>/dev/null || true
+              cp ${env.accessDetailsLog} ${s3ArtifactsDir}/ 2>/dev/null || true
+              if [ -n "${configZipFile}" ]; then cp ${configZipFile} ${s3ArtifactsDir}/ 2>/dev/null || true; fi
+            """
+
+            // Run the aws-cli container to upload the files
+            sh script: """
+              docker run --rm \\
+                -v "${pwd()}/${s3ArtifactsDir}:/artifacts" \\
+                -e AWS_ACCESS_KEY_ID \\
+                -e AWS_SECRET_ACCESS_KEY \\
+                -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
+                amazon/aws-cli s3 cp /artifacts "s3://${params.S3_BUCKET_NAME}/${finalProjectName}/" --recursive
+            """, returnStatus: true
+
+            // Clean up the temporary directory
+            sh "rm -rf ${s3ArtifactsDir}"
+          }
+        }
+
+        echo "Archiving build artifacts..."
+        archiveArtifacts artifacts: """
+            dartboard/*.html,
+            dartboard/*.json,
+            dartboard/**/rendered-dart.yaml,
+            dartboard/*.log,
+            dartboard/*.zip
+        """.trim(), fingerprint: true
+
+        // Cleanup Docker resources with explicit logging
+        try {
+          if (runningContainerName) {
+            echo "Attempting to remove service container: ${runningContainerName}"
+            sh "docker rm -f ${runningContainerName}"
+          }
+        } catch (e) {
+          echo "Could not remove container '${runningContainerName}'. It may have already been removed or never started. Details: ${e.message}"
+        }
+        try {
+          echo "Attempting to remove image: ${env.imageName}:latest"
+          sh "docker rmi -f ${env.imageName}:latest"
+          echo "Attempting to remove image: amazon/aws-cli"
+          sh "docker rmi amazon/aws-cli"
+        } catch (e) {
+          echo "Could not remove a Docker image. It may have already been removed or was never present. Details: ${e.message}"
+        }
+      }
+    }
+    cleanup {
+      // Clean up large files from the workspace to save disk space on the agent.
+      // These are not part of the archived artifacts but remain in the workspace.
+      echo "Cleaning up workspace..."
+      dir('dartboard') {
+        // Use find and xargs for more robust and efficient cleanup of non-artifact files and directories.
+        sh """
+          set -x
+          echo "Removing large source and cache directories..."
+          rm -rf charts/ docs/ internal/ k6/ tofu/ cmd/ scripts/ darts/
+
+          echo "Removing other non-artifact files..."
+          find . -maxdepth 1 -type f \\
+            -not -name '*.html' -not -name '*.json' -not -name '*.log' -not -name '*.zip' \\
+            -not -name 'rendered-dart.yaml' -not -name 'Jenkinsfile' -delete
+        """
+      }
+    }
+  }
+}

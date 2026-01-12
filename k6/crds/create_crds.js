@@ -39,6 +39,7 @@ export const options = {
     [`endpoint_data_recv{url:'/v1/apiextensions.k8s.io.customresourcedefinitions'}`]: ['min > 2048'], // bytes in this case
     [`time_polled{url:'/v1/apiextensions.k8s.io.customresourcedefinitions'}`]: ['p(99) < 5000', 'avg < 2500'],
   },
+  insecureSkipTLSVerify: true,
   setupTimeout: '15m',
   teardownTimeout: '15m'
 }

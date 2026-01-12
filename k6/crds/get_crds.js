@@ -20,6 +20,7 @@ export const handleSummary = k6Util.customHandleSummary;
 
 // Option setting
 export const options = {
+  insecureSkipTLSVerify: true,
   setupTimeout: '8h',
   scenarios: {
     get: {

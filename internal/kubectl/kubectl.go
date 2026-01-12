@@ -377,10 +377,13 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	for k, v := range tags {
 		args = append(args, "--tag", fmt.Sprintf("%s=%s", k, v))
 	}
-	args = append(args, relTestPath)
+	// Use an absolute path for the test script to avoid issues with workingDir
+	args = append(args, "/"+relTestPath)
 	if record {
 		args = append(args, "-o", "experimental-prometheus-rw")
 	}
+	// Always disable color output for cleaner logs in CI
+	args = append(args, "--no-color")
 
 	// prepare volumes and volume mounts
 	volumes := []any{
@@ -411,7 +414,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 					"stdin":      true,
 					"tty":        true,
 					"args":       args,
-					"workingDir": "/",
+					"workingDir": "/tmp",
 					"env": []any{
 						map[string]any{"name": "K6_PROMETHEUS_RW_SERVER_URL", "value": mimirURL + "/api/v1/push"},
 						map[string]any{"name": "K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM", "value": "true"},
