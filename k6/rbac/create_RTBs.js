@@ -99,7 +99,6 @@ export function setup() {
     }
   }
 
-  sleep(2)
   let projectsRes = listProjects(baseUrl, cookies)
   if (projectsRes.status !== 200) {
     fail("Failed to retrieve Projects")
@@ -332,7 +331,6 @@ export function createPRTBs(data) {
   if (!login(baseUrl, {}, user.username, testUserPassword)) {
     fail(`could not login to cluster as ${user.username}`)
   }
-  sleep(2)
   const cookies = getCookies(baseUrl)
 
   // updateRBACNumbers with admin cookies
@@ -342,7 +340,6 @@ export function createPRTBs(data) {
   listProjects(baseUrl, cookies)
   createProjectExpectFail(baseUrl, cookies, `Test Create Project Should Fail ${i}`, data.clusterId, user.id)
 
-  sleep(1)
   res = logout(baseUrl, cookies);
   if (res.status !== 200) {
     console.log("\nResponse post-verify prtb: ", JSON.stringify(res, null, 2), "\n")
@@ -400,7 +397,6 @@ export function createCRTBs(data) {
   if (!login(baseUrl, {}, user.username, testUserPassword)) {
     fail(`could not login to cluster as ${user.username}`)
   }
-  sleep(2)
   const cookies = getCookies(baseUrl)
 
   // updateRBACNumbers with admin cookies
@@ -410,7 +406,6 @@ export function createCRTBs(data) {
   listProjects(baseUrl, cookies)
   createProjectExpectFail(baseUrl, cookies, `Test Create Project Should Fail ${i}`, data.clusterId, user.id)
 
-  sleep(1)
   res = logout(baseUrl, cookies);
   if (res.status !== 200) {
     console.log("\nResponse post-verify crtb: ", JSON.stringify(res, null, 2), "\n")
