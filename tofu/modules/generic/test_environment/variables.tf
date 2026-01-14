@@ -55,10 +55,10 @@ variable "downstream_cluster_templates" {
     agent_count    = number // Number of agent nodes in the downstream cluster
     distro_version = string // Version of the Kubernetes distro in the downstream cluster
 
-    is_custom_cluster           = bool                  // Whether the downstream cluster is a custom cluster (it should only have nodes created)
-    public_ip                   = bool                  // Whether the downstream cluster should have a public IP assigned
-    reserve_node_for_monitoring = bool                  // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring
-    enable_audit_log            = bool                  // Enable audit log for the cluster
+    is_custom_cluster           = optional(bool, false) // Whether the downstream cluster is a custom cluster (it should only have nodes created)
+    public_ip                   = optional(bool, false) // Whether the downstream cluster should have a public IP assigned
+    reserve_node_for_monitoring = optional(bool, false) // Set a 'monitoring' label and taint on one node of the downstream cluster to reserve it for monitoring
+    enable_audit_log            = optional(bool, false) // Enable audit log for the cluster
     create_tunnels              = optional(bool, false) // Whether ssh tunnels to the downstream cluster's first server node should be created. Default false
     max_pods                    = optional(number, 110) // Max pods per node
     node_cidr_mask_size         = optional(number, 24)  // Number of IP addresses for pods per node
@@ -72,7 +72,7 @@ variable "downstream_cluster_templates" {
         node_module_variables = optional(any)
       })
     })))
-    node_module_variables = any // Node module-specific variables
+    node_module_variables = optional(any, {}) // Node module-specific variables
   }))
 
   validation {
