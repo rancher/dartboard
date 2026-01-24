@@ -443,3 +443,21 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 
 	return nil
 }
+
+func GetProject(kubePath string, kind string, name string, jsonpath string) (string, error) {
+	output := new(bytes.Buffer)
+	args := []string{
+		"get",
+		kind,
+	}
+	if name != "" {
+		args = append(args, name)
+	}
+	args = append(args, "-o", fmt.Sprintf("jsonpath={%s}", jsonpath))
+
+	if err := Exec(kubePath, output, args...); err != nil {
+		return "", fmt.Errorf("failed to kubectl get %v: %w", name, err)
+	}
+
+	return strings.TrimSpace(output.String()), nil
+}

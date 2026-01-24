@@ -88,6 +88,12 @@ func main() {
 				Description: "runs `tofu destroy` and then deploys all the provisioned clusters",
 				Action:      subcommands.Redeploy,
 			},
+			{
+				Name:        "summarize",
+				Usage:       "Summarize the current deployment by capturing metrics, profiles, and resource counts",
+				Description: "runs `export-metrics`, `collect-profile`, and `resource-counts` against the deployed clusters",
+				Action:      subcommands.Summarize,
+			},
 		},
 	}
 
