@@ -1,0 +1,20 @@
+### mimirtool.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mimirtool
+  namespace: cattle-monitoring-system
+  labels:
+    app: mimirtool
+spec:
+  containers:
+  - name: mimirtool
+    image: grafana/mimirtool:2.13.0
+    command: ["/bin/sh", "-c"]
+    args:
+    - |
+      echo "Mimirtool pod is running. Use 'kubectl exec' to run commands."
+      # Keep the container running
+      while true; do
+        sleep 30
+      done
