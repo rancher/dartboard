@@ -12,10 +12,7 @@ replace (
 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20200521150516-05eb9880269c
 	github.com/rancher/rancher/pkg/apis => github.com/rancher/rancher/pkg/apis v0.0.0-20251216090958-18e340c45365
 	github.com/rancher/rancher/pkg/client => github.com/rancher/rancher/pkg/client v0.0.0-20250212213103-5c3550f55322
-	github.com/rancher/shepherd => github.com/git-ival/shepherd v0.0.0-20251224010847-7ea085cf72b9
-	github.com/rancher/tests => github.com/git-ival/rancher-tests v0.0.0-20251223194020-57770a8f364f
-	github.com/rancher/tests/actions => github.com/git-ival/rancher-tests/actions v0.0.0-20251223194020-57770a8f364f
-	github.com/rancher/tests/interoperability => github.com/git-ival/rancher-tests/interoperability v0.0.0-20251223194020-57770a8f364f
+	github.com/rancher/tests/actions => github.com/git-ival/rancher-tests/actions v0.0.0-20260124000123-5a84324608ac
 
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.53.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0
@@ -70,9 +67,9 @@ require (
 	github.com/qase-tms/qase-go/qase-api-client v1.2.1
 	github.com/qase-tms/qase-go/qase-api-v2-client v1.1.4
 	github.com/rancher/rancher/pkg/apis v0.0.0
-	github.com/rancher/shepherd v0.0.0-20251203195144-c9f6483abe67
-	github.com/rancher/tests/actions v0.0.0-20251222130938-f37830bc438e
-	github.com/rancher/tests/interoperability v0.0.0-20251222130938-f37830bc438e
+	github.com/rancher/shepherd v0.0.0-20260122211220-e4fc12acd2be
+	github.com/rancher/tests/actions v0.0.0-20260123231955-aec9bc41f9c9
+	github.com/rancher/tests/interoperability v0.0.0-20260123231955-aec9bc41f9c9
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli/v2 v2.27.6
 	gopkg.in/yaml.v2 v2.4.0
@@ -190,7 +187,7 @@ require (
 	github.com/rancher/gke-operator v1.13.0-rc.3 // indirect
 	github.com/rancher/lasso v0.2.5 // indirect
 	github.com/rancher/norman v0.8.1 // indirect
-	github.com/rancher/rancher v0.0.0-20251203234820-b95b2fb0d738 // indirect
+	github.com/rancher/rancher v0.0.0-20251223145833-24cecce3325e // indirect
 	github.com/rancher/rke v1.8.5 // indirect
 	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20250930163923-f2c9e60b1078 // indirect
 	github.com/rancher/tfp-automation v0.0.0-20251219210947-f4a1a9882c29 // indirect
@@ -216,14 +213,14 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.43.0 // indirect
-	golang.org/x/mod v0.28.0 // indirect
-	golang.org/x/net v0.46.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/mod v0.30.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.32.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
-	golang.org/x/term v0.36.0 // indirect
-	golang.org/x/text v0.30.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/term v0.37.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.13.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250825161204-c5933d9347a5 // indirect
@@ -242,7 +239,7 @@ require (
 	k8s.io/kube-aggregator v0.34.1 // indirect
 	k8s.io/kube-openapi v0.31.9 // indirect
 	k8s.io/kubectl v0.34.1 // indirect
-	k8s.io/kubernetes v1.34.1 // indirect
+	k8s.io/kubernetes v1.34.2 // indirect
 	k8s.io/pod-security-admission v0.34.1 // indirect
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
 	kubevirt.io/containerized-data-importer-api v1.62.0 // indirect
