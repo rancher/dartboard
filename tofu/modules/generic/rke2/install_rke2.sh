@@ -146,4 +146,3 @@ fi
 
 systemctl enable rke2-${type}.service
 systemctl restart rke2-${type}.service
-

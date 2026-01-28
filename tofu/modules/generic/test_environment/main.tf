@@ -2,7 +2,18 @@ locals {
   downstream_clusters = flatten([
     for i, template in var.downstream_cluster_templates : [
       for j in range(template.cluster_count) : merge(template, { name = "downstream-${i}-${j}" })
-  ] if template.cluster_count > 0])
+    ] if template.cluster_count > 0 && !template.is_custom_cluster
+  ])
+  custom_cluster_name_prefix = "downstream-custom"
+  nodes = flatten([
+    for template_idx, template in var.downstream_cluster_templates : [
+      for j in range(template.cluster_count * template.server_count) : merge(template, {
+        name         = "${local.custom_cluster_name_prefix}-${template_idx}-${j}"
+        origin_index = template_idx
+        index        = j
+      })
+    ] if template.cluster_count > 0 && template.is_custom_cluster
+  ])
 }
 
 module "upstream_postgres" {
@@ -88,4 +99,17 @@ module "downstream_clusters" {
   node_module               = var.node_module
   network_config            = var.network_config
   node_module_variables     = local.downstream_clusters[count.index].node_module_variables
+}
+
+module "nodes" {
+  count                 = length(local.nodes)
+  source                = "../node"
+  project_name          = var.project_name
+  name                  = local.nodes[count.index].name
+  ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
+  node_module           = var.node_module
+  node_module_variables = local.nodes[count.index].node_module_variables
+  network_config        = var.network_config
+  public                = local.nodes[count.index].public_ip
 }

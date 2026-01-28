@@ -15,6 +15,7 @@ tofu/main/*/*config
 .vscode
 
 # Others
+.env
 scripts/utils/*.txt
 scripts/utils/export-metrics/metrics*
 scripts/utils/export-metrics/chunks_head

@@ -18,67 +18,112 @@ package tofu
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/rancher/dartboard/internal/tofu/format"
 	"github.com/rancher/dartboard/internal/vendored"
 )
 
 type ClusterAddress struct {
-	HTTPPort  uint   `json:"http_port"`
-	HTTPSPort uint   `json:"https_port"`
-	Name      string `json:"name"`
+	Name      string `json:"name" yaml:"name"`
+	HTTPPort  uint   `json:"http_port" yaml:"http_port"`
+	HTTPSPort uint   `json:"https_port" yaml:"https_port"`
 }
 
 type ClusterAppAddresses struct {
-	Private ClusterAddress `json:"private"`
-	Public  ClusterAddress `json:"public"`
-	Tunnel  ClusterAddress `json:"tunnel"`
+	Private ClusterAddress `json:"private" yaml:"private"`
+	Public  ClusterAddress `json:"public" yaml:"public"`
+	Tunnel  ClusterAddress `json:"tunnel" yaml:"tunnel"`
 }
 
 type Addresses struct {
-	Public  string `json:"public"`
-	Private string `json:"private"`
-	Tunnel  string `json:"tunnel"`
+	Public  string `json:"public" yaml:"public"`
+	Private string `json:"private" yaml:"private"`
+	Tunnel  string `json:"tunnel" yaml:"tunnel"`
 }
 
 type Cluster struct {
-	AppAddresses             ClusterAppAddresses `json:"app_addresses"`
-	Name                     string              `json:"name"`
-	Context                  string              `json:"context"`
-	IngressClassName         string              `json:"ingress_class_name"`
-	Kubeconfig               string              `json:"kubeconfig"`
-	NodeAccessCommands       map[string]string   `json:"node_access_commands"`
-	KubernetesAddresses      Addresses           `json:"kubernetes_addresses"`
-	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring"`
+	NodeAccessCommands       map[string]string   `json:"node_access_commands" yaml:"node_access_commands"`
+	KubernetesAddresses      Addresses           `json:"kubernetes_addresses" yaml:"kubernetes_addresses"`
+	Name                     string              `json:"name" yaml:"name"`
+	Context                  string              `json:"context" yaml:"context"`
+	IngressClassName         string              `json:"ingress_class_name" yaml:"ingress_class_name"`
+	Kubeconfig               string              `json:"kubeconfig" yaml:"kubeconfig"`
+	AppAddresses             ClusterAppAddresses `json:"app_addresses" yaml:"app_addresses"`
+	ReserveNodeForMonitoring bool                `json:"reserve_node_for_monitoring" yaml:"reserve_node_for_monitoring"`
+}
+
+type CustomCluster struct {
+	Name          string              `json:"name,omitempty" yaml:"name"`
+	NamePrefix    string              `yaml:"name_prefix" json:"name_prefix,omitempty"`
+	DistroVersion string              `yaml:"distro_version" json:"distro_version,omitempty"`
+	Nodes         []Node              `yaml:"nodes" json:"nodes,omitempty"`
+	MachinePools  []MachinePoolConfig `yaml:"machine_pools" json:"machine_pools,omitempty"`
+	ClusterCount  int                 `yaml:"cluster_count" json:"cluster_count,omitempty"`
+	ServerCount   int                 `yaml:"server_count" json:"server_count,omitempty"`
+}
+
+type MachinePools struct {
+	// machinepools.Pools
+	MachinePoolConfig MachinePoolConfig `yaml:"machine_pool_config,omitempty" default:"[]"`
+}
+
+type MachinePoolConfig struct {
+	ControlPlane bool  `json:",omitempty" yaml:"controlplane,omitempty"`
+	Etcd         bool  `json:"etcd,omitempty" yaml:"etcd,omitempty"`
+	Worker       bool  `json:"worker,omitempty" yaml:"worker,omitempty"`
+	Quantity     int32 `json:"quantity,omitempty" yaml:"quantity,omitempty"`
+}
+
+type Node struct {
+	Name            string `json:"name" yaml:"name"`
+	PublicIP        string `json:"public_ip,omitempty" yaml:"public_ip,omitempty"`
+	PublicHostName  string `json:"public_name,omitempty" yaml:"public_name,omitempty"`
+	PrivateIP       string `json:"private_ip,omitempty" yaml:"private_ip,omitempty"`
+	PrivateHostName string `json:"private_name,omitempty" yaml:"private_name,omitempty"`
+	SSHUser         string `json:"ssh_user" yaml:"ssh_user"`
+	SSHKeyPath      string `json:"ssh_key_path" yaml:"ssh_key_path"`
 }
 
 type Clusters struct {
-	Value map[string]Cluster `json:"value"`
+	Value map[string]Cluster `json:"value,omitempty" yaml:"value,omitempty"`
+}
+
+type CustomClusters struct {
+	Value []CustomCluster `json:"value,omitempty" yaml:"value,omitempty"`
+}
+
+type Nodes struct {
+	Value map[string]Node `json:"value,omitempty" yaml:"value,omitempty"`
 }
 
 type Output struct {
-	Clusters Clusters `json:"clusters"`
+	Clusters       Clusters       `json:"clusters,omitzero" yaml:"clusters,omitzero"`
+	CustomClusters CustomClusters `json:"custom_clusters,omitzero" yaml:"custom_clusters,omitzero"`
 }
 
 type Tofu struct {
 	dir       string
 	workspace string
+	variables []string
 	threads   int
 	verbose   bool
-	variables []string
 }
 
-func New(ctx context.Context, variableMap map[string]interface{}, dir string, ws string, parallelism int, verbose bool) (*Tofu, error) {
+func New(variableMap map[string]interface{}, dir string, ws string, parallelism int, verbose bool) (*Tofu, error) {
 	var variables []string
+
 	for k, v := range variableMap {
 		variable := fmt.Sprintf("%s=%s", k, format.ConvertValueToHCL(v, false))
 		variables = append(variables, variable)
@@ -96,6 +141,7 @@ func New(ctx context.Context, variableMap map[string]interface{}, dir string, ws
 	for _, variable := range t.variables {
 		args = append(args, "-var", variable)
 	}
+
 	if err := t.exec(nil, args...); err != nil {
 		return nil, err
 	}
@@ -109,6 +155,7 @@ func (t *Tofu) exec(output io.Writer, args ...string) error {
 	cmd := vendored.Command("tofu", fullArgs...)
 
 	var errStream strings.Builder
+
 	cmd.Stderr = &errStream
 	cmd.Stdin = os.Stdin
 
@@ -123,37 +170,41 @@ func (t *Tofu) exec(output io.Writer, args ...string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("error while running tofu: %v", errStream.String())
 	}
+
 	return nil
 }
 
-func (t *Tofu) handleWorkspace(ctx context.Context) error {
+func (t *Tofu) handleWorkspace() error {
 	if !(len(t.workspace) > 0) {
 		t.workspace = "default"
 	}
 
-	wsExists, err := t.workspaceExists(ctx)
+	wsExists, err := t.workspaceExists()
 	if err != nil {
 		return err
 	}
 
 	if wsExists {
 		log.Printf("Found existing tofu workspace: %s", t.workspace)
-		return t.selectWorkspace(ctx)
+		return t.selectWorkspace()
 	}
 
 	log.Printf("Creating new tofu workspace: %s", t.workspace)
-	if err = t.newWorkspace(ctx); err != nil {
+
+	if err = t.newWorkspace(); err != nil {
 		return err
 	}
 
-	return t.selectWorkspace(ctx)
+	return t.selectWorkspace()
 }
 
-func (t *Tofu) workspaceExists(ctx context.Context) (bool, error) {
+func (t *Tofu) workspaceExists() (bool, error) {
 	args := []string{"workspace", "list"}
 
-	var out bytes.Buffer
-	var err error
+	var (
+		out bytes.Buffer
+		err error
+	)
 
 	if err = t.exec(&out, args...); err != nil {
 		return false, fmt.Errorf("failed to list workspaces: %v", err)
@@ -164,28 +215,61 @@ func (t *Tofu) workspaceExists(ctx context.Context) (bool, error) {
 	return wsExists, err
 }
 
-func (t *Tofu) selectWorkspace(ctx context.Context) error {
+func (t *Tofu) selectWorkspace() error {
 	args := []string{"workspace", "select", t.workspace}
 
 	return t.exec(nil, args...)
 }
 
-func (t *Tofu) newWorkspace(ctx context.Context) error {
+func (t *Tofu) newWorkspace() error {
 	args := []string{"workspace", "new", t.workspace}
 
 	return t.exec(nil, args...)
 }
 
-func (t *Tofu) Apply(ctx context.Context) error {
-	t.handleWorkspace(ctx)
+func (t *Tofu) Apply(skipRefresh bool) error {
+	err := t.handleWorkspace()
+	if err != nil {
+		return err
+	}
 
 	args := t.commonArgs("apply")
+
+	if skipRefresh {
+		args = append(args, "-refresh=false")
+	}
 
 	return t.exec(nil, args...)
 }
 
-func (t *Tofu) Destroy(ctx context.Context) error {
-	t.handleWorkspace(ctx)
+func (t *Tofu) Output(out io.Writer, jsonFormat bool) error {
+	err := t.handleWorkspace()
+	if err != nil {
+		return err
+	}
+
+	var args []string
+	if jsonFormat {
+		args = []string{"output", "-json"}
+	} else {
+		args = []string{"output"}
+	}
+
+	writer := out
+	if out == nil {
+		logrus.Debugf("\nLogging to stdout since no io.Writer was provided\n")
+
+		writer = os.Stdout
+	}
+
+	return t.exec(writer, args...)
+}
+
+func (t *Tofu) Destroy() error {
+	err := t.handleWorkspace()
+	if err != nil {
+		return err
+	}
 
 	args := t.commonArgs("destroy")
 
@@ -199,27 +283,31 @@ func (t *Tofu) commonArgs(command string) []string {
 	for _, variable := range t.variables {
 		args = append(args, "-var", variable)
 	}
+
 	return args
 }
 
-func (t *Tofu) OutputClusters(ctx context.Context) (map[string]Cluster, error) {
-	t.handleWorkspace(ctx)
+func (t *Tofu) ParseOutputs() (map[string]Cluster, []CustomCluster, error) {
+	err := t.handleWorkspace()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	buffer := new(bytes.Buffer)
-	if err := t.exec(buffer, "output", "-json"); err != nil {
-		return nil, err
+	if err := t.Output(buffer, true); err != nil {
+		return nil, nil, err
 	}
 
 	output := &Output{}
 	if err := json.Unmarshal(buffer.Bytes(), output); err != nil {
-		return nil, fmt.Errorf("error: tofu OutputClusters: %w", err)
+		return nil, nil, fmt.Errorf("error: tofu ParseOutputs: %w", err)
 	}
 
-	return output.Clusters.Value, nil
+	return output.Clusters.Value, output.CustomClusters.Value, nil
 }
 
 // PrintVersion prints the Tofu version information
-func (t *Tofu) PrintVersion(ctx context.Context) error {
+func (t *Tofu) PrintVersion() error {
 	return t.exec(log.Writer(), "version")
 }
 
@@ -227,4 +315,49 @@ func (t *Tofu) PrintVersion(ctx context.Context) error {
 func (t *Tofu) IsK3d() bool {
 	_, f := filepath.Split(t.dir)
 	return f == "k3d"
+}
+
+// ReadBytesFromPath reads in the file from the given path, returns the file in []byte format
+func ReadBytesFromPath(filePath string) ([]byte, error) {
+	var (
+		fileBytes []byte
+		path      string
+	)
+
+	if strings.Contains(filePath, "~") {
+		usr, err := user.Current()
+		if err != nil {
+			return nil, errors.New("error retrieving current user")
+		}
+
+		path = strings.Replace(filePath, "~", usr.HomeDir, 1)
+	} else {
+		path = filePath
+	}
+
+	if _, err := os.Stat(path); err == nil {
+		fileBytes, err = os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("error reading file at %s: %w", path, err)
+		}
+	} else {
+		return nil, fmt.Errorf("error could not find file at %s: %w", path, err)
+	}
+
+	return fileBytes, nil
+}
+
+// GetNodesByPrefix takes a flat map of nodes and returns a map
+// from prefix → slice of Nodes whose key begins with that prefix.
+func GetNodesByPrefix(all map[string]Node, prefix string) []Node {
+	grouped := []Node{}
+
+	for key := range all {
+		if strings.HasPrefix(key, prefix) {
+			fmt.Printf("Appending node: %v", all[key])
+			grouped = append(grouped, all[key])
+		}
+	}
+
+	return grouped
 }

@@ -28,8 +28,11 @@ func ImageImport(k3dClusterName string, image string) error {
 	args := []string{"image", "import", "--cluster", k3dClusterName, image}
 
 	cmd := vendored.Command("k3d", args...)
+
 	var errStream strings.Builder
+
 	cmd.Stdout = os.Stdout
+
 	cmd.Stderr = &errStream
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("%v", errStream.String())

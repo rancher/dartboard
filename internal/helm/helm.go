@@ -35,22 +35,30 @@ func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[str
 		chartLocation,
 		"--create-namespace",
 	}
+
 	if vals != nil {
 		valueString := ""
+
 		for k, v := range vals {
 			jsonVal, err := json.Marshal(v)
 			if err != nil {
 				return err
 			}
+
 			valueString += k + "=" + string(jsonVal) + ","
 		}
+
 		args = append(args, "--set-json="+valueString)
 	}
+
 	args = append(args, extraArgs...)
 
 	cmd := vendored.Command("helm", args...)
+
 	var errStream strings.Builder
+
 	cmd.Stdout = os.Stdout
+
 	cmd.Stderr = &errStream
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("%v", errStream.String())

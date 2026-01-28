@@ -55,9 +55,9 @@ lint: internal/vendored/bin
 .PHONY: tofu-fmt-check
 tofu-fmt-check: internal/vendored/bin
 	@for dir in $(TOFU_MAIN_DIRS); do \
-		$(TOFU) -chdir=./tofu/main/$$dir fmt -check -recursive || exit 1; \
+		$(TOFU) -chdir=./tofu/main/$$dir fmt -check -diff -recursive || exit 1; \
 	done
-	$(TOFU) -chdir=./tofu/modules fmt -check -recursive
+	$(TOFU) -chdir=./tofu/modules fmt -check -diff -recursive
 
 .PHONY: tofu-fmt
 tofu-fmt: internal/vendored/bin

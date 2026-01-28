@@ -18,11 +18,12 @@ package subcommands
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/rancher/dartboard/internal/docker"
 	"github.com/rancher/dartboard/internal/k3d"
 	"github.com/rancher/dartboard/internal/vendored"
-	"github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v2"
 
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/kubectl"
@@ -30,8 +31,10 @@ import (
 )
 
 const (
-	ArgDart      = "dart"
-	ArgSkipApply = "skip-apply"
+	ArgDart        = "dart"
+	ArgSkipApply   = "skip-apply"
+	ArgSkipCharts  = "skip-charts"
+	ArgSkipRefresh = "skip-refresh"
 )
 
 type clusterAddress struct {
@@ -48,10 +51,21 @@ type clusterAddresses struct {
 // prepare prepares tofu for execution and parses a dart file from the command line context
 func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
 	dartPath := cli.String(ArgDart)
+
 	d, err := dart.Parse(dartPath)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	tofuWorkspaceStatePath := fmt.Sprintf("%s/%s_config", d.TofuMainDirectory, d.TofuWorkspace)
+
+	absPath, err := filepath.Abs(tofuWorkspaceStatePath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	d.TofuWorkspaceStatePath = absPath
+
 	fmt.Printf("Using dart: %s\n", dartPath)
 	fmt.Printf("OpenTofu main directory: %s\n", d.TofuMainDirectory)
 	fmt.Printf("Using Tofu workspace: %s\n", d.TofuWorkspace)
@@ -61,25 +75,30 @@ func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
 		return nil, nil, err
 	}
 
-	tf, err := tofu.New(cli.Context, d.TofuVariables, d.TofuMainDirectory, d.TofuWorkspace, d.TofuParallelism, true)
+	tf, err := tofu.New(d.TofuVariables, d.TofuMainDirectory, d.TofuWorkspace, d.TofuParallelism, true)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	return tf, d, nil
 }
 
 // printAccessDetails prints to console addresses and kubeconfig file paths of a cluster for user convenience
 func printAccessDetails(r *dart.Dart, name string, cluster tofu.Cluster, rancherURL string) {
 	fmt.Printf("*** %s CLUSTER\n", name)
+
 	if rancherURL != "" {
 		fmt.Printf("    Rancher UI: %s (admin/%s)\n", rancherURL, r.ChartVariables.AdminPassword)
 	}
+
 	fmt.Println("    Kubernetes API:")
 	fmt.Printf("export KUBECONFIG=%q\n", cluster.Kubeconfig)
 	fmt.Printf("kubectl config use-context %q\n", cluster.Context)
+
 	for node, command := range cluster.NodeAccessCommands {
 		fmt.Printf("    Node %s: %q\n", node, command)
 	}
+
 	fmt.Println()
 }
 
@@ -101,6 +120,7 @@ func getAppAddressFor(cluster tofu.Cluster) (clusterAddresses, error) {
 			localNetworkName = loadBalancerName
 		}
 	}
+
 	localNetworkHTTPPort := add.Tunnel.HTTPPort
 	if localNetworkHTTPPort == 0 {
 		localNetworkHTTPPort = add.Public.HTTPPort
@@ -108,6 +128,7 @@ func getAppAddressFor(cluster tofu.Cluster) (clusterAddresses, error) {
 			localNetworkHTTPPort = 80
 		}
 	}
+
 	localNetworkHTTPSPort := add.Tunnel.HTTPSPort
 	if localNetworkHTTPSPort == 0 {
 		localNetworkHTTPSPort = add.Public.HTTPSPort
@@ -125,6 +146,7 @@ func getAppAddressFor(cluster tofu.Cluster) (clusterAddresses, error) {
 			clusterNetworkName = loadBalancerName
 		}
 	}
+
 	clusterNetworkHTTPPort := add.Public.HTTPPort
 	if clusterNetworkHTTPPort == 0 {
 		clusterNetworkHTTPPort = add.Private.HTTPPort
@@ -132,6 +154,7 @@ func getAppAddressFor(cluster tofu.Cluster) (clusterAddresses, error) {
 			clusterNetworkHTTPPort = 80
 		}
 	}
+
 	clusterNetworkHTTPSPort := add.Public.HTTPSPort
 	if clusterNetworkHTTPSPort == 0 {
 		clusterNetworkHTTPSPort = add.Private.HTTPSPort
@@ -167,5 +190,6 @@ func importImageIntoK3d(tf *tofu.Tofu, image string, cluster tofu.Cluster) error
 			}
 		}
 	}
+
 	return nil
 }

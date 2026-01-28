@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/rancher/dartboard/internal/tofu"
-	"github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v2"
 )
 
 func GetAccess(cli *cli.Context) error {
@@ -30,7 +30,7 @@ func GetAccess(cli *cli.Context) error {
 		return err
 	}
 
-	clusters, err := tf.OutputClusters(cli.Context)
+	clusters, _, err := tf.ParseOutputs()
 	if err != nil {
 		return err
 	}
@@ -39,6 +39,7 @@ func GetAccess(cli *cli.Context) error {
 	tester := clusters["tester"]
 
 	downstreams := make(map[string]tofu.Cluster)
+
 	for k, v := range clusters {
 		if strings.HasPrefix(k, "downstream") {
 			downstreams[k] = v
@@ -46,6 +47,7 @@ func GetAccess(cli *cli.Context) error {
 	}
 
 	upstreamAddresses, err := getAppAddressFor(upstream)
+
 	rancherURL := ""
 	if err == nil {
 		rancherURL = upstreamAddresses.Local.HTTPSURL
@@ -57,9 +59,11 @@ func GetAccess(cli *cli.Context) error {
 	fmt.Println()
 
 	printAccessDetails(r, "UPSTREAM", upstream, rancherURL)
+
 	for name, downstream := range downstreams {
 		printAccessDetails(r, strings.ToUpper(name), downstream, "")
 	}
+
 	printAccessDetails(r, "TESTER", tester, "")
 
 	return nil
