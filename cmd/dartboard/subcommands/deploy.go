@@ -419,12 +419,13 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 	}
 
 	var sans []string
-	if len(clusterAdd.Local.Name) > 0 {
+	if len(clusterAdd.Local.Name) > 0 && clusterAdd.Local.Name != clusterAdd.Public.Name {
 		sans = append(sans, clusterAdd.Local.Name)
 	}
 
-	if len(clusterAdd.Public.Name) > 0 {
-		sans = append(sans, clusterAdd.Public.Name)
+	if len(sans) == 0 {
+		log.Printf("Skipping chart %q as no additional SANs are defined", chartRancherIngress.name)
+		return nil
 	}
 
 	chartVals := map[string]any{
