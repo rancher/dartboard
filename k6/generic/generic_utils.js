@@ -137,3 +137,8 @@ export function getPathBasename(filePath) {
   // Extract the substring after the last slash
   return filePath.substring(lastSlashIndex + 1);
 }
+
+export function getRandomElements(arr, count) {
+  const shuffled = [...arr].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+}

@@ -4,7 +4,7 @@ import http from 'k6/http';
 /*
   Usernames are prefixed with "user", password defaults to "useruseruser" if not set
 */
-export function createUser(baseUrl, cookies, displayName, userName, password = "useruseruser") {
+export function createUser(baseUrl, cookies, displayName, userName = "test-user", password = "useruseruser") {
   const res = http.post(`${baseUrl}/v3/users`,
     JSON.stringify({
       "type": "user",
@@ -13,9 +13,12 @@ export function createUser(baseUrl, cookies, displayName, userName, password = "
       "enabled": true,
       "mustChangePassword": false,
       "password": password,
-      "username": `user-${userName}`
+      "username": `${userName}`
     }),
-    { cookies: cookies }
+    { 
+      headers: { accept: "application/json", "content-type": "application/json" },
+      cookies: cookies 
+    }
   )
 
   check(res, {
@@ -54,7 +57,7 @@ export function listUsers(baseUrl, cookies) {
     fail("Status check failed or did not receive list of Users data")
   }
 
-  return res
+  return { res: res, usersData: usersData }
 }
 
 export function listRoleTemplates(baseUrl, cookies) {
@@ -332,13 +335,13 @@ export function createCRTB(baseUrl, cookies, clusterId, roleTemplateId, userId) 
 export function deleteUsersByPrefix(baseUrl, cookies, prefix = "Dartboard ") {
   let deletedAll = true
 
-  let res = listUsers(baseUrl, cookies)
+  let {res: res, usersData: usersData} = listUsers(baseUrl, cookies)
   if (res.status !== 200) {
     console.log("list users status: ", res.status)
     return false
   }
 
-  JSON.parse(res.body)["data"].filter(r => ("description" in r) && r["description"].startsWith(prefix)).forEach(r => {
+  usersData.filter(r => ("description" in r) && r["description"].startsWith(prefix)).forEach(r => {
     res = http.del(`${baseUrl}/v3/users/${r["id"]}`, { cookies: cookies })
 
     if (res.status !== 200 && res.status !== 204) {
@@ -403,7 +406,7 @@ export function deleteRoleTemplatesByPrefix(baseUrl, cookies, prefix = "Dartboar
   return deletedAll
 }
 
-export function deleteCRTBsByDescriptionLabel(baseUrl, cookies, label = { "description": "Dartboard" }) {
+export function deleteCRTBsByDescriptionLabel(baseUrl, cookies, label = "Dartboard") {
   let deletedAll = true
 
   let res = listCRTBs(baseUrl, cookies)
@@ -412,7 +415,7 @@ export function deleteCRTBsByDescriptionLabel(baseUrl, cookies, label = { "descr
     return false
   }
 
-  JSON.parse(res.body)["data"].filter(r => ("labels" in r) && ("description" in r["labels"]) && r["labels"].description == label["description"]).forEach(r => {
+  JSON.parse(res.body)["data"].filter(r => ("labels" in r) && ("description" in r["labels"]) && r["labels"].description == label).forEach(r => {
     res = http.del(`${baseUrl}/v3/clusterroletemplatebindings/${r["id"]}`, { cookies: cookies })
 
 
@@ -429,7 +432,7 @@ export function deleteCRTBsByDescriptionLabel(baseUrl, cookies, label = { "descr
   return deletedAll
 }
 
-export function deletePRTBsByDescriptionLabel(baseUrl, cookies, label = { "description": "Dartboard" }) {
+export function deletePRTBsByDescriptionLabel(baseUrl, cookies, label = "Dartboard") {
   let deletedAll = true
 
   let res = listPRTBs(baseUrl, cookies)
@@ -438,7 +441,7 @@ export function deletePRTBsByDescriptionLabel(baseUrl, cookies, label = { "descr
     return false
   }
 
-  JSON.parse(res.body)["data"].filter(r => ("labels" in r) && ("description" in r["labels"]) && r["labels"].description == label["description"]).forEach(r => {
+  JSON.parse(res.body)["data"].filter(r => ("labels" in r) && ("description" in r["labels"]) && r["labels"].description == label).forEach(r => {
     res = http.del(`${baseUrl}/v3/projectroletemplatebindings/${r["id"]}`, { cookies: cookies })
 
 

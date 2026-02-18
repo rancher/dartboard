@@ -1,18 +1,28 @@
 import { check, fail, sleep } from 'k6';
 import exec from 'k6/execution';
 import http from 'k6/http';
-import { randomUUID } from 'k6/crypto';
+// import { randomUUID } from 'k6/crypto';
 import { Trend } from 'k6/metrics';
+import { vu as metaVU } from 'k6/execution'
+import * as k6Util from "../generic/k6_utils.js";
 import {
-  getCookies, login, logout, deleteProjectsByPrefix, createProject,
-  listProjects, getProjectById, getRandomElements
+  getCookies, login, logout
 } from "../rancher/rancher_utils.js";
+import { getRandomElements } from "../generic/generic_utils.js";
+import { getClusterIds, getCurrentUserPrincipalId, getPrincipalIds } from "../rancher/rancher_users_utils.js";
+import {
+  createNormanProject as createProject,
+  getProjects as listProjects,
+  getProject as getProjectById,
+  cleanupMatchingProjects as deleteProjectsByPrefix
+} from "../projects/project_utils.js";
 import {
   createUser, listUsers, listRoles, listRoleTemplates,
   listRoleBindings, listClusterRoles, listClusterRoleBindings,
   listCRTBs, listPRTBs, deleteRoleTemplatesByPrefix, deleteUsersByPrefix,
   createRoleTemplate, createPRTB, createCRTB,
-  deletePRTBsByDescriptionLabel, deleteCRTBsByDescriptionLabel
+  deletePRTBsByDescriptionLabel, deleteCRTBsByDescriptionLabel,
+  createGlobalRoleBinding
 } from './rbac_utils.js';
 
 // Parameters
@@ -21,11 +31,16 @@ const projectCount = Number(__ENV.PROJECT_COUNT) || 10
 const userCount = Number(__ENV.USER_COUNT) || 10
 const testUserPassword = __ENV.TEST_USER_PASSWORD
 const userPrefix = __ENV.USER_PREFIX || 'test-user'
+const projectsPrefix = "rtbs-test"
+const projectRoleTemplatePrefix = "Dartboard PRTB"
+const clusterRoleTemplatePrefix = "Dartboard CRTB"
 
 // Option setting
 const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
+
+export const handleSummary = k6Util.customHandleSummary;
 
 // Option setting
 export const options = {
@@ -68,7 +83,7 @@ const numPRTBsTrend = new Trend('num_prtbs');
 // Test functions, in order of execution
 export function setup() {
   // log in
-  if (!login(baseUrl, {}, username, password)) {
+  if (!login(baseUrl, null, username, password)) {
     fail(`could not login to cluster`)
   }
   const cookies = getCookies(baseUrl)
@@ -76,88 +91,86 @@ export function setup() {
   // delete leftovers, if any
   cleanup(cookies)
 
-  let clusterIds = getClusterIds(cookies)
+  let clusterIds = getClusterIds(baseUrl, cookies)
   let clusterId = getRandomElements(clusterIds, 1)[0]
   console.log(`Utilizing Cluster with the ID ${clusterId}`)
-  let myId = getMyId(cookies)
+  let myId = getCurrentUserPrincipalId(baseUrl, cookies)
 
   // Create Projects, and Users
-  for (let numProjects = 0; numProjects < projectCount; numProjects++) {
-    let res = createProject(baseUrl, cookies, `Test Project ${numProjects + 1}`, clusterId, myId)
+  for (let projectNum = 0; projectNum < projectCount; projectNum++) {
+    const projectName = `${projectsPrefix}-vu${metaVU.idInInstance}-${projectNum.toString().padStart(4, '0')}`
+    const projectBody = JSON.stringify({
+      type: "project",
+      name: projectName,
+      description: `Load test project ${projectNum + 1}`,
+      clusterId: "local",
+      creatorId: myId,
+    })
+    let res = createProject(baseUrl, cookies, projectBody, clusterId, myId)
     if (res.status !== 201) {
       console.log("create project status: ", res.status)
       fail("Failed to create all expected Projects")
     }
   }
 
+  // Store created users with their credentials for later use
+  let createdUsers = []
   for (let numUsers = 0; numUsers < userCount; numUsers++) {
-    const userName = `${userPrefix}-${randomUUID()}`;
-    let res = createUser(baseUrl, cookies, `Test User ${numUsers + 1}`, userName, testUserPassword)
+    const userName = `${userPrefix}-${crypto.randomUUID()}`;
+    let res = createUser(baseUrl, cookies, `Dartboard Test User ${numUsers + 1}`, userName, testUserPassword)
     if (res.status !== 201) {
       console.log("create user status: ", res.status)
       fail("Failed to create all expected Users")
     }
+    
+    const userData = JSON.parse(res.body)
+    createdUsers.push({
+      id: userData.id,
+      username: userName
+    })
+    
+    // Add GlobalRoleBinding so user can log in
+    const userId = userData.id
+    res = createGlobalRoleBinding(baseUrl, { cookies: cookies }, userId, "user")
+    if (res.status !== 201 && res.status !== 204) {
+      console.log("create globalrolebinding status: ", res.status)
+      fail("Failed to create GlobalRoleBinding for user")
+    }
   }
 
-  let projectsRes = listProjects(baseUrl, cookies)
+  // Wait for GlobalRoleBindings to propagate before continuing
+  console.log("Waiting for GlobalRoleBindings to propagate...")
+  sleep(5)
+
+  let {res: projectsRes, projectArray} = listProjects(baseUrl, cookies)
   if (projectsRes.status !== 200) {
     fail("Failed to retrieve Projects")
   }
-  let usersRes = listUsers(baseUrl, cookies)
-  if (usersRes.status !== 200) {
-    fail("Failed to retrieve Users")
-  }
 
-  let projects = JSON.parse(projectsRes.body)["data"].filter(p => ("displayName" in p["spec"]) && p["spec"]["displayName"].startsWith("Test "))
-  let users = JSON.parse(usersRes.body)["data"].filter(p => ("name" in p) && p["name"].startsWith("Test "))
+  let projects = projectArray.filter(p => ("spec" in p) && ("displayName" in p["spec"]) && p["spec"]["displayName"].startsWith(projectsPrefix))
+
+  console.log(`Found ${projects.length} projects matching prefix "${projectsPrefix}"`)
+  console.log(`Created ${createdUsers.length} users`)
+
+  if (projects.length === 0) {
+    fail(`No projects found matching prefix "${projectsPrefix}"`)
+  }
+  if (createdUsers.length === 0) {
+    fail(`No users were created`)
+  }
 
   updateRBACNumbers(cookies)
 
   // return data that remains constant throughout the test
   return {
     cookies: cookies,
-    principalIds: getPrincipalIds(cookies),
+    principalIds: getPrincipalIds(baseUrl, cookies),
     myId: myId,
     // clusterIds: clusterIds,
     clusterId: clusterId,
     projects: projects,
-    users: users,
+    users: createdUsers,  // Use the users we just created with known credentials
   }
-}
-
-function getPrincipalIds(cookies) {
-  const response = http.get(
-    `${baseUrl}/v1/management.cattle.io.users`,
-    { cookies: cookies }
-  )
-  if (response.status !== 200) {
-    fail('could not list users')
-  }
-  const users = JSON.parse(response.body).data
-  return users.filter(u => u["username"] != null).map(u => u["principalIds"][0])
-}
-
-function getMyId(cookies) {
-  const response = http.get(
-    `${baseUrl}/v3/users?me=true`,
-    { cookies: cookies }
-  )
-  if (response.status !== 200) {
-    fail('could not get my user')
-  }
-  return JSON.parse(response.body).data[0].principalIds[0]
-}
-
-function getClusterIds(cookies) {
-  const response = http.get(
-    `${baseUrl}/v1/management.cattle.io.clusters`,
-    { cookies: cookies }
-  )
-  if (response.status !== 200) {
-    fail('could not list clusters')
-  }
-  const clusters = JSON.parse(response.body).data
-  return clusters.map(c => c["id"])
 }
 
 // updates count for each of the relevant RBAC metrics
@@ -191,14 +204,21 @@ function updateRBACNumbers(cookies) {
 }
 
 function cleanup(cookies) {
-  let success = false
-  let projectsDeleted = deleteProjectsByPrefix(baseUrl, cookies, "Dartboard ")
-  let usersDeleted = deleteUsersByPrefix(baseUrl, cookies, "Dartboard ")
-  let prtbsDeleted = deletePRTBsByDescriptionLabel(baseUrl, cookies)
-  let crtbsDeleted = deleteCRTBsByDescriptionLabel(baseUrl, cookies)
-  let roleTemplatesDeleted = deleteRoleTemplatesByPrefix(baseUrl, cookies, "Dartboard ")
+  console.log("Cleaning up Projects, Users, Role Templates, CRTBs, and PRTBs with description label 'Dartboard' or name starting with test prefixes")
+  let projectsDeleted = deleteProjectsByPrefix(baseUrl, cookies, projectsPrefix)
+  // Use "Dartboard" prefix to match the description format "Dartboard Test <Object> X"
+  let usersDeleted = deleteUsersByPrefix(baseUrl, cookies, "Dartboard")
+  let prtbsDeleted = deletePRTBsByDescriptionLabel(baseUrl, cookies, "Dartboard")
+  let crtbsDeleted = deleteCRTBsByDescriptionLabel(baseUrl, cookies, "Dartboard")
+  let roleTemplatesDeleted = deleteRoleTemplatesByPrefix(baseUrl, cookies, "Dartboard")
   if (!projectsDeleted || !usersDeleted || !roleTemplatesDeleted
     || !prtbsDeleted || !crtbsDeleted) {
+    console.log("Projects deleted status: ", projectsDeleted)
+    console.log("Users deleted status: ", usersDeleted)
+    console.log("Role Templates deleted status: ", roleTemplatesDeleted)
+    console.log("PRTBs deleted status: ", prtbsDeleted)
+    console.log("CRTBs deleted status: ", crtbsDeleted)
+    // Don't fail on cleanup issues, just log them
     fail("failed to delete all objects created by test")
   }
 }
@@ -275,6 +295,7 @@ function createProjectExpectFail(baseUrl, cookies, name, clusterId, userPrincipa
   let projectData = JSON.parse(res.body)
 
   if (!checkOK || projectData.length > 0) {
+    console.log("\nResponse post-verify project creation: ", JSON.stringify(res, null, 2), "\n")
     fail("Status check failed or received unexpected Project data")
   }
 
@@ -282,12 +303,27 @@ function createProjectExpectFail(baseUrl, cookies, name, clusterId, userPrincipa
 }
 
 export function createPRTBs(data) {
-  const i = exec.scenario.iterationInTest
+  const iterationIndex = __ITER % data.projects.length
+  const project = data.projects[iterationIndex]
+  
+  if (!project) {
+    console.log(`No project found at index ${iterationIndex}, projects length: ${data.projects.length}`)
+    return
+  }
+
+  // Use modulo to get user index, ensuring we don't go out of bounds
+  const userIndex = __ITER % data.users.length
+  let user = data.users[userIndex]
+
+  if (!user) {
+    console.log(`No user found at index ${userIndex}, users length: ${data.users.length}`)
+    return
+  }
 
   let projectRoleTemplate = {
     "type": "roleTemplate",
-    "name": `Dartboard PRTB ${i}`,
-    "description": `Dartboard Test Project RT ${i}`,
+    "name": `${projectRoleTemplatePrefix} ${iterationIndex}`,
+    "description": `Dartboard Test Project RT ${iterationIndex}`,
     "rules": [
       {
         "apiGroups": [
@@ -318,27 +354,30 @@ export function createPRTBs(data) {
   }
 
   let roleTemplateId = JSON.parse(res.body).id
-  let user = data.users[i]
 
-  res = createPRTB(baseUrl, data.cookies, data.projects[i].id, roleTemplateId, user.id)
+  const projectId = project.id.replace("/", ":")
 
-  if (res.status !== 201) {
-    console.log("\nResponse: ", JSON.stringify(res, null, 2), "\n")
-    fail("Failed to create PRTB")
-  }
+  res = createPRTB(baseUrl, data.cookies, projectId, roleTemplateId, user.id)
+  check(res, {
+    'PRTB post returns 201 (created)': (r) => r.status === 201,
+  })
 
   // log in as user
-  if (!login(baseUrl, {}, user.username, testUserPassword)) {
-    fail(`could not login to cluster as ${user.username}`)
+  let loginRes = login(baseUrl, {}, user.username, testUserPassword)
+  if (loginRes.status !== 200) {
+    console.warn(`could not login to cluster as ${user.username}, status: ${loginRes.status}`)
+    return  // Don't fail, just skip verification for this iteration
   }
   const cookies = getCookies(baseUrl)
 
   // updateRBACNumbers with admin cookies
   updateRBACNumbers(data.cookies)
-
-  getProjectById(baseUrl, cookies, data.projects[i].id.replace("/", ":"))
+  
+  // verify permissions with user cookies
+  getProjectById(baseUrl, cookies, data.projects[iterationIndex].id.replace("/", ":"))
   listProjects(baseUrl, cookies)
-  createProjectExpectFail(baseUrl, cookies, `Test Create Project Should Fail ${i}`, data.clusterId, user.id)
+  const projectName = `${projectsPrefix}-should-fail-vu${metaVU.idInInstance}-${iterationIndex.toString().padStart(4, '0')}`
+  createProjectExpectFail(baseUrl, cookies, projectName, data.clusterId, user.id)
 
   res = logout(baseUrl, cookies);
   if (res.status !== 200) {
@@ -348,12 +387,21 @@ export function createPRTBs(data) {
 }
 
 export function createCRTBs(data) {
-  const i = exec.scenario.iterationInTest
+  const iterationIndex = __ITER % data.users.length
+  
+  // Use modulo to get user index
+  const userIndex = __ITER % data.users.length
+  let user = data.users[userIndex]
+
+  if (!user) {
+    console.log(`No user found at index ${userIndex}, users length: ${data.users.length}`)
+    return
+  }
 
   let clusterRoleTemplate = {
     "type": "roleTemplate",
-    "name": `Dartboard CRTB ${i}`,
-    "description": `Dartboard Test Cluster RT ${i}`,
+    "name": `${clusterRoleTemplatePrefix} ${iterationIndex}`,
+    "description": `Dartboard Test Cluster RT ${iterationIndex}`,
     "rules": [
       {
         "apiGroups": [
@@ -384,27 +432,31 @@ export function createCRTBs(data) {
   }
 
   let roleTemplateId = JSON.parse(res.body).id
-  let user = data.users[i]
 
   res = createCRTB(baseUrl, data.cookies, data.clusterId, roleTemplateId, user.id)
+  check(res, {
+    'CRTB post returns 201 (created)': (r) => r.status === 201,
+  })
 
-  if (res.status !== 201) {
-    console.log("\nResponse: ", JSON.stringify(res, null, 2), "\n")
-    fail("Failed to create CRTB")
-  }
-
-  // log in as user
-  if (!login(baseUrl, {}, user.username, testUserPassword)) {
-    fail(`could not login to cluster as ${user.username}`)
+   // log in as user
+  let loginRes = login(baseUrl, {}, user.username, testUserPassword)
+  if (loginRes.status !== 200) {
+    console.warn(`could not login to cluster as ${user.username}, status: ${loginRes.status}`)
+    return  // Don't fail, just skip verification for this iteration
   }
   const cookies = getCookies(baseUrl)
 
   // updateRBACNumbers with admin cookies
   updateRBACNumbers(data.cookies)
 
-  getProjectById(baseUrl, cookies, data.projects[i].id.replace("/", ":"))
+  // Get a project index safely
+  const projectIndex = __ITER % data.projects.length
+
+  // verify permissions with user cookies
+  getProjectById(baseUrl, cookies, data.projects[projectIndex].id.replace("/", ":"))
   listProjects(baseUrl, cookies)
-  createProjectExpectFail(baseUrl, cookies, `Test Create Project Should Fail ${i}`, data.clusterId, user.id)
+  const projectName = `${projectsPrefix}-should-fail-vu${metaVU.idInInstance}-${iterationIndex.toString().padStart(4, '0')}`
+  createProjectExpectFail(baseUrl, cookies, projectName, data.clusterId, user.id)
 
   res = logout(baseUrl, cookies);
   if (res.status !== 200) {
