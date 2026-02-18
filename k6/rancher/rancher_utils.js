@@ -10,18 +10,23 @@ export function getCookies(baseUrl) {
 }
 
 export function login(baseUrl, cookies, username, password) {
+  const params = {
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json; charset=UTF-8',
+    },
+  }
+  
+  // Only add cookies if they exist and are not empty
+  if (cookies && Object.keys(cookies).length > 0) {
+    console.log("Using cookies: ", cookies)
+    params.cookies = cookies
+  }
   const response = http.post(
     `${baseUrl}/v3-public/localProviders/local?action=login`,
     JSON.stringify({ "description": "UI session", "responseType": "cookie", "username": username, "password": password }),
-    {
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json; charset=UTF-8',
-      },
-      cookies: { cookies },
-    }
+    params
   )
-  console.log("POST login: ", response.status);
 
   check(response, {
     'login works': (r) => r.status === 200 || r.status === 401,
@@ -384,6 +389,8 @@ export function logout(baseUrl, cookies) {
   check(response, {
     'logging out works': (r) => r.status === 200,
   })
+
+  return response
 }
 
 export function generateAuthorizationHeader(token) {

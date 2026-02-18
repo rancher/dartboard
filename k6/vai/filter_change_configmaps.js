@@ -239,7 +239,7 @@ export function setup() {
     containerDefaultResourceLimit: {},
     namespaceDefaultResourceQuota: {}
   })
-  let projRes = projectsUtil.createNormanProject(baseUrl, projectBody, cookies)
+  let projRes = projectsUtil.createNormanProject(baseUrl, cookies, projectBody)
   if (projRes.status !== 201) {
     fail("Dartboard test project not created")
   }

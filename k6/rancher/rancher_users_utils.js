@@ -52,7 +52,7 @@ export function setUserPreferences(baseUrl, cookies, userId, userPreferences) {
 export function getPrincipalIds(baseUrl, cookies) {
   const response = http.get(
     `${baseUrl}/v1/management.cattle.io.users`,
-    { cookies: cookies }
+    { headers: { accept: 'application/json' }, cookies: cookies }
   )
   if (response.status !== 200) {
     fail('could not list users')
@@ -64,7 +64,7 @@ export function getPrincipalIds(baseUrl, cookies) {
 export function getPrincipalById(baseUrl, cookies, id) {
   const response = http.get(
     `${baseUrl}/v3/principals/${id}`,
-    { cookies: cookies }
+    { headers: { accept: 'application/json' }, cookies: cookies }
   )
   if (response.status !== 200) {
     fail('could not get principal by ID')
@@ -82,7 +82,7 @@ export function getNormanUsers(baseUrl, params = null) {
 export function getCurrentUserPrincipal(baseUrl, cookies) {
   const response = http.get(
     `${baseUrl}/v3/principals?me=true`,
-    { cookies: cookies }
+    { headers: { accept: 'application/json' }, cookies: cookies }
   )
   if (response.status !== 200) {
     fail('could not get current User\'s Principal')
@@ -93,7 +93,7 @@ export function getCurrentUserPrincipal(baseUrl, cookies) {
 export function getCurrentUserPrincipalId(baseUrl, cookies) {
   const response = http.get(
     `${baseUrl}/v3/users?me=true`,
-    { cookies: cookies }
+    { headers: { accept: 'application/json' }, cookies: cookies }
   )
   if (response.status !== 200) {
     fail('could not get my user')
@@ -104,7 +104,7 @@ export function getCurrentUserPrincipalId(baseUrl, cookies) {
 export function getClusterIds(baseUrl, cookies) {
   const response = http.get(
     `${baseUrl}/v1/management.cattle.io.clusters`,
-    { cookies: cookies }
+    { headers: { accept: 'application/json' }, cookies: cookies }
   )
   if (response.status !== 200) {
     fail('could not list clusters')
@@ -146,7 +146,7 @@ export function getUsers(baseUrl, cookies) {
 }
 
 export function getUser(baseUrl, cookies, userId) {
-  const res = http.get(`${baseUrl}/v1/management.cattle.io.users/${userId}`, { cookies: cookies })
+  const res = http.get(`${baseUrl}/v1/management.cattle.io.users/${userId}`, { headers: { accept: 'application/json' }, cookies: cookies })
   check(res, {
     '/v1/management.cattle.io.users/ returns status 200': (r) => r.status === 200 || r.status === 204,
   })
@@ -154,7 +154,7 @@ export function getUser(baseUrl, cookies, userId) {
 }
 
 export function deleteUser(baseUrl, cookies, userId) {
-  const res = http.del(`${baseUrl}/v3/users/${userId}`, { cookies: cookies })
+  const res = http.del(`${baseUrl}/v3/users/${userId}`, { headers: { accept: 'application/json' }, cookies: cookies })
   check(res, {
     'DELETE /v3/users returns status 200': (r) => r.status === 200 || r.status === 204,
   })

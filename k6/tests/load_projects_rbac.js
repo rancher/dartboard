@@ -403,9 +403,9 @@ function getProjectWithRetry(baseUrl, cookies, projectId, maxRetries = 5) {
   return {}
 }
 
-function createNormanProjectWithRetry(baseUrl, projectBody, cookies, maxRetries = 5) {
+function createNormanProjectWithRetry(baseUrl, cookies, projectBody, maxRetries = 5) {
   for (let retry = 0; retry < maxRetries; retry++) {
-    const res = projectUtil.createNormanProject(baseUrl, projectBody, cookies)
+    const res = projectUtil.createNormanProject(baseUrl, cookies, projectBody)
     if (res.status === 201) {
       return res
     }
@@ -435,7 +435,7 @@ function createProjectsAndNamespaces(data, startIndex, endIndex) {
     })
 
     console.log(`Creating project ${i + 1}/${projectCount}: ${projectName}`)
-    const projectRes = createNormanProjectWithRetry(baseUrl, projectBody, data.adminCookies, 5)
+    const projectRes = createNormanProjectWithRetry(baseUrl, data.adminCookies, projectBody, 5)
 
     if (projectRes.status === 201) {
       const projectData = JSON.parse(projectRes.body)
