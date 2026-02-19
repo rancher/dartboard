@@ -19,7 +19,7 @@ export function login(baseUrl, cookies, username, password) {
   
   // Only add cookies if they exist and are not empty
   if (cookies && Object.keys(cookies).length > 0) {
-    console.log("Using cookies: ", cookies)
+    console.log("Using cookies, count:", Object.keys(cookies).length)
     params.cookies = cookies
   }
   const response = http.post(
@@ -375,6 +375,32 @@ export function createImportedCluster(baseUrl, cookies, name) {
   check(response, {
     'querying clustertemplaterevisions works': (r) => r.status === 200,
   })
+}
+
+export function getProvisioningClusters(baseUrl, cookies) {
+  const response = http.get(`${baseUrl}/v1/provisioning.cattle.io.clusters?pagesize=100000&exclude=metadata.managedFields`, {
+    headers: {
+      accept: 'application/json',
+    },
+    cookies: cookies,
+  })
+  check(response, {
+    'GET v1/provisioning.cattle.io.clusters returns status 200': (r) => r.status === 200,
+  })
+  return response
+}
+
+export function getManagementClusters(baseUrl, cookies) {
+  const response = http.get(`${baseUrl}/v1/management.cattle.io.clusters?pagesize=100000&exclude=metadata.managedFields`, {
+    headers: {
+      accept: 'application/json',
+    },
+    cookies: cookies,
+  })
+  check(response, {
+    'GET v1/management.cattle.io.clusters returns status 200': (r) => r.status === 200,
+  })
+  return response
 }
 
 export function logout(baseUrl, cookies) {

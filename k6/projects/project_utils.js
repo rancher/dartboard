@@ -20,7 +20,7 @@ export function cleanupMatchingProjects(baseUrl, cookies, namePrefix) {
    }, 
    cookies: cookies })
   check(res, {
-    '/v1/management.cattle.io.projects returns status 200': (r) => r.status === 200,
+    'GET /v3/projects returns status 200': (r) => r.status === 200,
   })
   JSON.parse(res.body)["data"].filter(r => r["name"].startsWith(namePrefix)).forEach(r => {
     res = http.del(`${baseUrl}/${normanProjectsPath}/${r["id"]}`, { cookies: cookies })
