@@ -2,7 +2,7 @@ import { check, fail } from 'k6';
 import http from 'k6/http';
 
 /*
-  Usernames are prefixed with "user", password defaults to "useruseruser" if not set
+  Username defaults to "test-user" and password defaults to "useruseruser" if not set
 */
 export function createUser(baseUrl, cookies, displayName, userName = "test-user", password = "useruseruser") {
   const res = http.post(`${baseUrl}/v3/users`,

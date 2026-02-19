@@ -1,12 +1,10 @@
 import { check, fail, sleep } from 'k6';
-import exec from 'k6/execution';
 import http from 'k6/http';
-// import { randomUUID } from 'k6/crypto';
 import { Trend } from 'k6/metrics';
 import { vu as metaVU } from 'k6/execution'
 import * as k6Util from "../generic/k6_utils.js";
 import {
-  getCookies, login, logout
+  getCookies, login, logout, getManagementClusters
 } from "../rancher/rancher_utils.js";
 import { getRandomElements } from "../generic/generic_utils.js";
 import { getClusterIds, getCurrentUserPrincipalId, getPrincipalIds } from "../rancher/rancher_users_utils.js";
@@ -17,7 +15,7 @@ import {
   cleanupMatchingProjects as deleteProjectsByPrefix
 } from "../projects/project_utils.js";
 import {
-  createUser, listUsers, listRoles, listRoleTemplates,
+  createUser, listRoles, listRoleTemplates,
   listRoleBindings, listClusterRoles, listClusterRoleBindings,
   listCRTBs, listPRTBs, deleteRoleTemplatesByPrefix, deleteUsersByPrefix,
   createRoleTemplate, createPRTB, createCRTB,
@@ -83,7 +81,7 @@ const numPRTBsTrend = new Trend('num_prtbs');
 // Test functions, in order of execution
 export function setup() {
   // log in
-  if (!login(baseUrl, null, username, password)) {
+  if (login(baseUrl, null, username, password).status !== 200) {
     fail(`could not login to cluster`)
   }
   const cookies = getCookies(baseUrl)
@@ -94,6 +92,15 @@ export function setup() {
   let clusterIds = getClusterIds(baseUrl, cookies)
   let clusterId = getRandomElements(clusterIds, 1)[0]
   console.log(`Utilizing Cluster with the ID ${clusterId}`)
+
+  const clustersResponse = getManagementClusters(baseUrl, cookies)
+  if (clustersResponse.status === 200) {
+    const clusters = JSON.parse(clustersResponse.body).data
+    const cluster = clusters.find(c => c.id === clusterId)
+    if (cluster) {
+      console.log(`Selected Cluster Name: ${cluster.spec.displayName}`)
+    }
+  }
   let myId = getCurrentUserPrincipalId(baseUrl, cookies)
 
   // Create Projects, and Users
@@ -106,7 +113,7 @@ export function setup() {
       clusterId: "local",
       creatorId: myId,
     })
-    let res = createProject(baseUrl, cookies, projectBody, clusterId, myId)
+    let res = createProject(baseUrl, cookies, projectBody)
     if (res.status !== 201) {
       console.log("create project status: ", res.status)
       fail("Failed to create all expected Projects")
@@ -218,7 +225,7 @@ function cleanup(cookies) {
     console.log("Role Templates deleted status: ", roleTemplatesDeleted)
     console.log("PRTBs deleted status: ", prtbsDeleted)
     console.log("CRTBs deleted status: ", crtbsDeleted)
-    // Don't fail on cleanup issues, just log them
+    // Fail the test if any cleanup operation did not complete successfully
     fail("failed to delete all objects created by test")
   }
 }
@@ -234,7 +241,11 @@ function createUserExpectFail(baseUrl, cookies, name, password = "useruseruser")
       "password": password,
       "username": `user-${userName}`
     }),
-    { cookies: cookies }
+    { 
+      cookies: cookies,
+      // prevent k6 from marking non-2xx responses as failed requests for this request, since we're explicitly testing for failure
+      responseCallback: http.expectedStatuses(401, 403)
+     }
   )
 
   let checkOK = check(res, {
@@ -285,7 +296,11 @@ function createProjectExpectFail(baseUrl, cookies, name, clusterId, userPrincipa
         }
       }
     }),
-    { cookies: cookies }
+    { 
+      cookies: cookies,
+      // prevent k6 from marking non-2xx responses as failed requests for this request, since we're explicitly testing for failure
+      responseCallback: http.expectedStatuses(401, 403)
+     }
   )
 
   let checkOK = check(res, {
@@ -364,8 +379,8 @@ export function createPRTBs(data) {
 
   // log in as user
   let loginRes = login(baseUrl, {}, user.username, testUserPassword)
-  if (loginRes.status !== 200) {
-    console.warn(`could not login to cluster as ${user.username}, status: ${loginRes.status}`)
+  if (!loginRes || loginRes.status !== 200) {
+    console.warn(`could not login to cluster as ${user.username}, status: ${loginRes ? loginRes.status : 'unknown'}`)
     return  // Don't fail, just skip verification for this iteration
   }
   const cookies = getCookies(baseUrl)
@@ -440,8 +455,8 @@ export function createCRTBs(data) {
 
    // log in as user
   let loginRes = login(baseUrl, {}, user.username, testUserPassword)
-  if (loginRes.status !== 200) {
-    console.warn(`could not login to cluster as ${user.username}, status: ${loginRes.status}`)
+  if (!loginRes || loginRes.status !== 200) {
+    console.warn(`could not login to cluster as ${user.username}, status: ${loginRes ? loginRes.status : 'unknown'}`)
     return  // Don't fail, just skip verification for this iteration
   }
   const cookies = getCookies(baseUrl)
