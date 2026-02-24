@@ -94,8 +94,12 @@ func main() {
 	ts1 := time.Now().Format("2006-01-02")
 	kubeName := strings.Split(filepath.Base(config.Kubeconfig), ".")[0]
 	exportDir := fmt.Sprintf("metrics-%s-%s", kubeName, ts1)
-	os.MkdirAll(exportDir, 0755)
-	os.Chdir(exportDir)
+	if err := os.MkdirAll(exportDir, 0755); err != nil {
+		log.Fatalf("failed to create export directory %q: %v", exportDir, err)
+	}
+	if err := os.Chdir(exportDir); err != nil {
+		log.Fatalf("failed to change to export directory %q: %v", exportDir, err)
+	}
 
 	// 6. Loop through time ranges
 	currentTo := config.ToSeconds
@@ -117,7 +121,6 @@ func main() {
 			"--tsdb-path", "./prometheus-export",
 			"--address", "http://rancher-monitoring-prometheus:9090",
 			"--remote-read-path", "/api/v1/read",
-			//"--insecure-skip-tls-verify",
 			"--to="+toStr, "--from="+fromStr, "--selector", config.Selector)
 
 		// Tar in pod
@@ -146,62 +149,6 @@ func main() {
 					log.Printf("failed to remove local tar file %q: %v", localTar, err)
 				}
 			} else {
-				// Copy blocks to parent (exportDir)
-				for _, f := range files {
-					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
-				}
-			}
-			if err := os.RemoveAll("prometheus-export"); err != nil {
-				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
-			}
-				// Copy blocks to parent (exportDir)
-				for _, f := range files {
-					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
-				}
-			}
-			if err := os.RemoveAll("prometheus-export"); err != nil {
-				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
-			}
-				// Copy blocks to parent (exportDir)
-				for _, f := range files {
-					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
-				}
-			}
-			if err := os.RemoveAll("prometheus-export"); err != nil {
-				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
-			}
-				// Copy blocks to parent (exportDir)
-				for _, f := range files {
-					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
-				}
-			}
-			if err := os.RemoveAll("prometheus-export"); err != nil {
-				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
-			}
-				// Copy blocks to parent (exportDir)
-				for _, f := range files {
-					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
-				}
-			}
-			if err := os.RemoveAll("prometheus-export"); err != nil {
-				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
-			}
-				// Copy blocks to parent (exportDir)
-				for _, f := range files {
-					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
-				}
-			}
-			if err := os.RemoveAll("prometheus-export"); err != nil {
-				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
-			}
-				// Copy blocks to parent (exportDir)
-				for _, f := range files {
-					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
-				}
-			}
-			if err := os.RemoveAll("prometheus-export"); err != nil {
-				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
-			}
 				// Copy blocks to parent (exportDir)
 				for _, f := range files {
 					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
