@@ -133,19 +133,83 @@ func main() {
 		// Extract and merge
 		runCmd("tar", "xf", localTar)
 		if _, err := os.Stat("prometheus-export"); err == nil {
-			os.RemoveAll("prometheus-export/wal")
+			if err := os.RemoveAll("prometheus-export/wal"); err != nil {
+				log.Printf("failed to remove wal directory %q: %v", "prometheus-export/wal", err)
+			}
 
-			files, _ := os.ReadDir("prometheus-export")
-			if len(files) == 0 {
+			files, err := os.ReadDir("prometheus-export")
+			if err != nil {
+				log.Printf("failed to read directory %q: %v", "prometheus-export", err)
+			} else if len(files) == 0 {
 				fmt.Println(" - No blocks to copy")
-				os.Remove(localTar)
+				if err := os.Remove(localTar); err != nil {
+					log.Printf("failed to remove local tar file %q: %v", localTar, err)
+				}
 			} else {
 				// Copy blocks to parent (exportDir)
 				for _, f := range files {
 					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
 				}
 			}
-			os.RemoveAll("prometheus-export")
+			if err := os.RemoveAll("prometheus-export"); err != nil {
+				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
+			}
+				// Copy blocks to parent (exportDir)
+				for _, f := range files {
+					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
+				}
+			}
+			if err := os.RemoveAll("prometheus-export"); err != nil {
+				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
+			}
+				// Copy blocks to parent (exportDir)
+				for _, f := range files {
+					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
+				}
+			}
+			if err := os.RemoveAll("prometheus-export"); err != nil {
+				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
+			}
+				// Copy blocks to parent (exportDir)
+				for _, f := range files {
+					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
+				}
+			}
+			if err := os.RemoveAll("prometheus-export"); err != nil {
+				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
+			}
+				// Copy blocks to parent (exportDir)
+				for _, f := range files {
+					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
+				}
+			}
+			if err := os.RemoveAll("prometheus-export"); err != nil {
+				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
+			}
+				// Copy blocks to parent (exportDir)
+				for _, f := range files {
+					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
+				}
+			}
+			if err := os.RemoveAll("prometheus-export"); err != nil {
+				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
+			}
+				// Copy blocks to parent (exportDir)
+				for _, f := range files {
+					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
+				}
+			}
+			if err := os.RemoveAll("prometheus-export"); err != nil {
+				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
+			}
+				// Copy blocks to parent (exportDir)
+				for _, f := range files {
+					runCmd("cp", "-R", filepath.Join("prometheus-export", f.Name()), "./")
+				}
+			}
+			if err := os.RemoveAll("prometheus-export"); err != nil {
+				log.Printf("failed to remove directory %q: %v", "prometheus-export", err)
+			}
 		}
 
 		currentTo -= offset
@@ -203,12 +267,20 @@ func parseArgs(args []string) Config {
 
 	// Handle dates
 	if len(foundDates) >= 1 {
-		t, _ := time.Parse(PromTimeFormat, foundDates[0])
-		conf.FromSeconds = t.Unix()
+		t, err := time.Parse(PromTimeFormat, foundDates[0])
+		if err != nil {
+			log.Printf("failed to parse start time %q with format %q: %v", foundDates[0], PromTimeFormat, err)
+		} else {
+			conf.FromSeconds = t.Unix()
+		}
 	}
 	if len(foundDates) >= 2 {
-		t, _ := time.Parse(PromTimeFormat, foundDates[1])
-		conf.ToSeconds = t.Unix()
+		t, err := time.Parse(PromTimeFormat, foundDates[1])
+		if err != nil {
+			log.Printf("failed to parse end time %q with format %q: %v", foundDates[1], PromTimeFormat, err)
+		} else {
+			conf.ToSeconds = t.Unix()
+		}
 	}
 
 	// Normalize order

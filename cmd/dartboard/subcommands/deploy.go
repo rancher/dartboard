@@ -674,7 +674,7 @@ func updateMonitoringProject(cluster *tofu.Cluster) error {
 	}
 	projID := strings.TrimSpace(b.String())
 	if projID == "" {
-		return fmt.Errorf("No projectId found")
+		return fmt.Errorf("no projectId found")
 	}
 
 	if err := kubectl.Exec(cluster.Kubeconfig, log.Writer(),
