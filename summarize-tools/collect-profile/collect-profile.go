@@ -268,9 +268,8 @@ func execKubectlCurl(pod, url, outFile string) {
 	if err != nil {
 	if err := os.WriteFile(outFile, out, 0644); err != nil {
 		techo("Error writing to " + outFile + ": " + err.Error())
+		}
 	}
-	}
-	os.WriteFile(outFile, out, 0644)
 }
 
 func execLocalCurl(url, outFile string) {
@@ -287,13 +286,17 @@ func execLocalCurl(url, outFile string) {
 		return
 	}
 	defer out.Close()
-	io.Copy(out, resp.Body)
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		techo("Error writing response body to " + outFile + ": " + err.Error())
+	}
 }
 
 func shellExecToFile(filename string, name string, args ...string) {
 	cmd := exec.Command(name, args...)
 	out, _ := cmd.CombinedOutput() // Ignore error, just write what we got
-	os.WriteFile(filename, out, 0644)
+	if err := os.WriteFile(filename, out, 0644); err != nil {
+		techo("Error writing to " + filename + ": " + err.Error())
+	}
 }
 
 func appendToFile(filename string, text string) {
@@ -352,7 +355,6 @@ func handleUploadOrAppend(srcPath, srcName string) {
 		techo("Appending to " + cfg.MainFilename)
 		exec.Command("tar", "rf", cfg.MainFilename, srcPath).Run()
 	}
-	os.Remove(srcPath)
 }
 
 func cleanup() {
@@ -360,12 +362,16 @@ func cleanup() {
 		techo("Resetting Rancher log level to info")
 		setRancherLogLevel("info")
 	} else if (cfg.App == "fleet-controller" || cfg.App == "fleet-agent") && portForwardCmd != nil {
-		if portForwardCmd.Process != nil {
-			techo("Killing port-forward")
-			portForwardCmd.Process.Kill()
+		if err := portForwardCmd.Process.Kill(); err != nil {
+			techo("Error killing port-forward: " + err.Error())
 		}
+		if err := portForwardCmd.Wait(); err != nil {
+			techo("Error waiting for port-forward to exit: " + err.Error())
+		}
+		techo("Killing port-forward")
 	}
 }
+
 
 func techo(msg string) {
 	fmt.Printf("%s: %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
