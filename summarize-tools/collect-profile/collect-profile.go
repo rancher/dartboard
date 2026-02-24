@@ -195,7 +195,9 @@ func collectRancherLogic() {
 			
 			cmd := exec.Command("kubectl", "exec", "-n", cfg.Namespace, pod, "-c", cfg.Container, "--", "bash", "-c", metricsCmd)
 			output, _ := cmd.CombinedOutput()
-			os.WriteFile(outFile, output, 0644)
+			if err := os.WriteFile(outFile, output, 0644); err != nil {
+				techo(fmt.Sprintf("Failed to write metrics to %s: %v", outFile, err))
+			}
 		}
 	}
 }
@@ -264,7 +266,9 @@ func execKubectlCurl(pod, url, outFile string) {
 	cmd := exec.Command("kubectl", "exec", "-n", cfg.Namespace, pod, "-c", cfg.Container, "--", "curl", "-s", url)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		techo("Error curling " + url + ": " + err.Error())
+	if err := os.WriteFile(outFile, out, 0644); err != nil {
+		techo("Error writing to " + outFile + ": " + err.Error())
+	}
 	}
 	os.WriteFile(outFile, out, 0644)
 }
@@ -278,7 +282,8 @@ func execLocalCurl(url, outFile string) {
 	defer resp.Body.Close()
 
 	out, err := os.Create(outFile)
-	if err != nil {
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		techo("Error writing response body to " + outFile + ": " + err.Error())
 		return
 	}
 	defer out.Close()
@@ -340,7 +345,9 @@ func handleUploadOrAppend(srcPath, srcName string) {
 			techo("Upload failed: " + string(out))
 		}
 	} else {
-		// Append to main tarball
+	if err := os.Remove(srcPath); err != nil {
+		techo("Failed to remove " + srcPath + ": " + err.Error())
+	}
 		// Note: 'tar rf' appends. 'tar' needs to be available.
 		techo("Appending to " + cfg.MainFilename)
 		exec.Command("tar", "rf", cfg.MainFilename, srcPath).Run()
