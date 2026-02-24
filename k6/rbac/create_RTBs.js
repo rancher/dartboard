@@ -28,10 +28,11 @@ const vus = __ENV.VUS || 5
 const projectCount = Number(__ENV.PROJECT_COUNT) || 10
 const userCount = Number(__ENV.USER_COUNT) || 10
 const testUserPassword = __ENV.TEST_USER_PASSWORD
-const userPrefix = __ENV.USER_PREFIX || 'test-user'
-const projectsPrefix = "rtbs-test"
-const projectRoleTemplatePrefix = "Dartboard PRTB"
-const clusterRoleTemplatePrefix = "Dartboard CRTB"
+const testPrefix = "create-RTBs"
+const userPrefix = `${testPrefix}-${__ENV.USER_PREFIX || 'test-user'}`
+const projectsPrefix = `${testPrefix}-rtbs-test`
+const projectRoleTemplatePrefix = `${testPrefix}-Dartboard-PRTB`
+const clusterRoleTemplatePrefix = `${testPrefix}-Dartboard-CRTB`
 
 // Option setting
 const baseUrl = __ENV.BASE_URL
@@ -124,7 +125,7 @@ export function setup() {
   let createdUsers = []
   for (let numUsers = 0; numUsers < userCount; numUsers++) {
     const userName = `${userPrefix}-${crypto.randomUUID()}`;
-    let res = createUser(baseUrl, cookies, `Dartboard Test User ${numUsers + 1}`, userName, testUserPassword)
+    let res = createUser(baseUrl, cookies, `Dartboard Test User ${numUsers + 1}`, userPrefix, userName, testUserPassword)
     if (res.status !== 201) {
       console.log("create user status: ", res.status)
       fail("Failed to create all expected Users")
@@ -211,13 +212,13 @@ function updateRBACNumbers(cookies) {
 }
 
 function cleanup(cookies) {
-  console.log("Cleaning up Projects, Users, Role Templates, CRTBs, and PRTBs with description label 'Dartboard' or name starting with test prefixes")
+  console.log(`Cleaning up Projects, Users, Role Templates, CRTBs, and PRTBs with description label starting with test prefixes`)
   let projectsDeleted = deleteProjectsByPrefix(baseUrl, cookies, projectsPrefix)
   // Use "Dartboard" prefix to match the description format "Dartboard Test <Object> X"
-  let usersDeleted = deleteUsersByPrefix(baseUrl, cookies, "Dartboard")
-  let prtbsDeleted = deletePRTBsByDescriptionLabel(baseUrl, cookies, "Dartboard")
-  let crtbsDeleted = deleteCRTBsByDescriptionLabel(baseUrl, cookies, "Dartboard")
-  let roleTemplatesDeleted = deleteRoleTemplatesByPrefix(baseUrl, cookies, "Dartboard")
+  let usersDeleted = deleteUsersByPrefix(baseUrl, cookies, userPrefix)
+  let prtbsDeleted = deletePRTBsByDescriptionLabel(baseUrl, cookies, projectRoleTemplatePrefix)
+  let crtbsDeleted = deleteCRTBsByDescriptionLabel(baseUrl, cookies, clusterRoleTemplatePrefix)
+  let roleTemplatesDeleted = deleteRoleTemplatesByPrefix(baseUrl, cookies, projectRoleTemplatePrefix)
   if (!projectsDeleted || !usersDeleted || !roleTemplatesDeleted
     || !prtbsDeleted || !crtbsDeleted) {
     console.log("Projects deleted status: ", projectsDeleted)
@@ -338,7 +339,7 @@ export function createPRTBs(data) {
   let projectRoleTemplate = {
     "type": "roleTemplate",
     "name": `${projectRoleTemplatePrefix} ${iterationIndex}`,
-    "description": `Dartboard Test Project RT ${iterationIndex}`,
+    "description": `${projectRoleTemplatePrefix} ${iterationIndex}`,
     "rules": [
       {
         "apiGroups": [
@@ -372,7 +373,7 @@ export function createPRTBs(data) {
 
   const projectId = project.id.replace("/", ":")
 
-  res = createPRTB(baseUrl, data.cookies, projectId, roleTemplateId, user.id)
+  res = createPRTB(baseUrl, data.cookies, projectId, roleTemplateId, user.id, projectRoleTemplatePrefix)
   check(res, {
     'PRTB post returns 201 (created)': (r) => r.status === 201,
   })
@@ -416,7 +417,7 @@ export function createCRTBs(data) {
   let clusterRoleTemplate = {
     "type": "roleTemplate",
     "name": `${clusterRoleTemplatePrefix} ${iterationIndex}`,
-    "description": `Dartboard Test Cluster RT ${iterationIndex}`,
+    "description": `${clusterRoleTemplatePrefix} ${iterationIndex}`,
     "rules": [
       {
         "apiGroups": [

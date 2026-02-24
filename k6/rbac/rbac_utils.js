@@ -4,12 +4,12 @@ import http from 'k6/http';
 /*
   Username defaults to "test-user" and password defaults to "useruseruser" if not set
 */
-export function createUser(baseUrl, cookies, displayName, userName = "test-user", password = "useruseruser") {
+export function createUser(baseUrl, cookies, displayName, description = `Dartboard ${displayName}`, userName = "test-user", password = "useruseruser") {
   const res = http.post(`${baseUrl}/v3/users`,
     JSON.stringify({
       "type": "user",
       "name": displayName,
-      "description": `Dartboard ${displayName}`,
+      "description": description,
       "enabled": true,
       "mustChangePassword": false,
       "password": password,
@@ -277,13 +277,13 @@ export function createGlobalRoleBinding(baseUrl, params, userId, roles = ["user"
 }
 
 
-export function createPRTB(baseUrl, cookies, projectId, roleTemplateId, userId) {
+export function createPRTB(baseUrl, cookies, projectId, roleTemplateId, userId, description = "Dartboard") {
   const res = http.post(
     `${baseUrl}/v3/projectroletemplatebindings`,
     JSON.stringify({
       "type": "projectroletemplatebinding",
       "labels": {
-        "description": "Dartboard"
+        "description": description
       },
       "roleTemplateId": roleTemplateId,
       "userPrincipalId": `local://${userId}`,
