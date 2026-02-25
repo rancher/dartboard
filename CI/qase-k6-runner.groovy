@@ -123,18 +123,21 @@ pipeline {
           script {
             // Sanitize Run ID to be numeric only to prevent command injection
             def safeRunID = (params.QASE_TESTOPS_RUN_ID ?: "").replaceAll("[^0-9]", "")
+            def safeProject = (params.QASE_TESTOPS_PROJECT ?: "").replaceAll(sanitizeCharacterRegex, "")
 
-            withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
-              sh """
-                docker run --rm --name dartboard-qase-gatherer \\
-                  -v "${pwd()}:/app" \\
-                  --user=\$(id -u) \\
-                  --workdir /app \\
-                  --entrypoint='' \\
-                  -e QASE_TESTOPS_API_TOKEN \\
-                  -e QASE_TESTOPS_PROJECT="${params.QASE_TESTOPS_PROJECT}" \\
-                  ${env.IMAGE_NAME}:latest qase-k6-cli gather -runID "${safeRunID}" > test_cases.json
-              """
+            withEnv(["QASE_PROJECT=${safeProject}", "QASE_RUN_ID=${safeRunID}"]) {
+              withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
+                sh """
+                  docker run --rm --name dartboard-qase-gatherer \\
+                    -v "${pwd()}:/app" \\
+                    --user=\$(id -u) \\
+                    --workdir /app \\
+                    --entrypoint='' \\
+                    -e QASE_TESTOPS_API_TOKEN \\
+                    -e QASE_TESTOPS_PROJECT="\${QASE_PROJECT}" \\
+                    ${env.IMAGE_NAME}:latest qase-k6-cli gather -runID "\${QASE_RUN_ID}" > test_cases.json
+                """
+              }
             }
             sh "cat test_cases.json"
           }
@@ -239,7 +242,7 @@ QASE_TESTOPS_PROJECT=${params.QASE_TESTOPS_PROJECT}
 QASE_TESTOPS_RUN_ID=${params.QASE_TESTOPS_RUN_ID}
 QASE_TEST_CASE_ID=${caseId}
 K6_SUMMARY_JSON_FILE=${summaryJson}
-K6_HTML_REPORT_FILE=${htmlReport}
+K6_SUMMARY_HTML_FILE=${htmlReport}
 K6_WEB_DASHBOARD=true
 K6_WEB_DASHBOARD_EXPORT=${webDashboardReport}
 ${safeK6Env}
@@ -247,10 +250,8 @@ ${safeK6Env}
 
               writeFile file: envFile, text: envContent
 
-              sh """
-                echo "Environment file for Case ${caseId} (index ${index}):"
-                echo "${envContent}"
-              """
+              echo "Environment file for Case ${caseId} (index ${index}):"
+              echo envContent
 
               // 2. Run k6
               try {
