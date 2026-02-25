@@ -21,6 +21,7 @@ export const timePolled = new Trend('time_polled', true);
 export const handleSummary = k6Util.customHandleSummary;
 
 export const options = {
+  insecureSkipTLSVerify: true,
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(95)', 'p(99)', 'count'],
   scenarios: {
     verify: {
