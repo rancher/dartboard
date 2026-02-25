@@ -72,7 +72,7 @@ export QASE_TESTOPS_PROJECT=PRJ
 | `K6_SUMMARY_JSON_FILE`   | Path to the k6 summary JSON file. (Used in **Summary Mode**).                                             | For Summary Mode                 |
 | `K6_SUMMARY_HTML_FILE`   | (Optional) Path to the k6 HTML report file to be attached to the Qase result. (Used in **Summary Mode**). | No                               |
 | `K6_OUTPUT_FILE`         | Path to the k6 raw JSON output file. (Used in **Granular Mode**).                                         | For Granular Mode                |
-| `QASE_DEBUG`             | A string ("true" or "false") that enables or disables debug logs.                                          | No                               |
+| `QASE_DEBUG`             | A string ("true" or "false") that enables or disables debug logs.                                         | No                               |
 
 ### Command-line Flags
 
