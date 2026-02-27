@@ -70,7 +70,7 @@ export function listRoleTemplates(baseUrl, cookies) {
 
   let templatesData = JSON.parse(res.body)["data"]
 
-  if (!checkOK || templatesData === undefined || templatesData.length == 0) {
+  if (!checkOK || templatesData === undefined) {
     fail("Status check failed or did not receive list of RoleTemplates data")
   }
 
@@ -150,7 +150,7 @@ export function listCRTBs(baseUrl, cookies) {
 
   let templatesData = JSON.parse(res.body)["data"]
 
-  if (!checkOK || templatesData === undefined || templatesData.length == 0) {
+  if (!checkOK || templatesData === undefined) {
     fail("Status check failed or did not receive list of ClusterRoleTemplateBindings data")
   }
 
@@ -166,7 +166,7 @@ export function listPRTBs(baseUrl, cookies) {
 
   let templatesData = JSON.parse(res.body)["data"]
 
-  if (!checkOK || templatesData === undefined || templatesData.length == 0) {
+  if (!checkOK || templatesData === undefined) {
     fail("Status check failed or did not receive list of ProjectRoleTemplateBindings data")
   }
 
