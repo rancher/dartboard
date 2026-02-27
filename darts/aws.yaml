@@ -41,6 +41,7 @@ tofu_variables:
     agent_count: 0
     distro_version: v1.34.2+k3s1
     public_ip: false
+    create_tunnels: true
     reserve_node_for_monitoring: false
     enable_audit_log: false
     node_module_variables:
