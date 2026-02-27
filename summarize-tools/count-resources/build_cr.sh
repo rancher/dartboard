@@ -6,9 +6,9 @@ set -euo pipefail
 CR_SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Output binary path (place binary next to this script)
-OUTPUT_BINARY="${CR_SRC_DIR}/cr"
+OUTPUT_BINARY="${CR_SRC_DIR}/count-resources"
 
-echo "Building cr (resource-counts)..."
+echo "Building count-resources..."
 echo "Source directory: ${CR_SRC_DIR}"
 echo "Output binary: ${OUTPUT_BINARY}"
 
