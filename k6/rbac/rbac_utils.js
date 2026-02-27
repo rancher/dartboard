@@ -2,20 +2,24 @@ import { check, fail } from 'k6';
 import http from 'k6/http';
 
 /*
-  Usernames are prefixed with "user", password defaults to "useruseruser" if not set
+  Username defaults to "test-user" and password defaults to "useruseruser" if not set
 */
-export function createUser(baseUrl, cookies, displayName, userName, password = "useruseruser") {
+export function createUser(baseUrl, cookies, displayName, description = `Dartboard ${displayName}`, userName = "test-user", password = "useruseruser") {
   const res = http.post(`${baseUrl}/v3/users`,
     JSON.stringify({
       "type": "user",
       "name": displayName,
-      "description": `Dartboard ${displayName}`,
+      "description": description,
       "enabled": true,
       "mustChangePassword": false,
       "password": password,
-      "username": `user-${userName}`
+      "username": `${userName}`
     }),
-    { cookies: cookies }
+    { 
+      headers: { accept: "application/json", "content-type": "application/json" },
+      cookies: cookies,
+      tags: { name: "POST v3/users" }
+    }
   )
 
   check(res, {
@@ -26,7 +30,7 @@ export function createUser(baseUrl, cookies, displayName, userName, password = "
 }
 
 export function getUserById(baseUrl, cookies, userId) {
-  let res = http.get(`${baseUrl}/v3/users?id=${userId}`, { cookies: cookies })
+  let res = http.get(`${baseUrl}/v3/users?id=${userId}`, { cookies: cookies, tags: { name: "GET v3/users" } })
 
   let checkOK = check(res, {
     '/v1/management.cattle.io.users returns status 200': (r) => r.status === 200 || r.status === 204,
@@ -42,7 +46,7 @@ export function getUserById(baseUrl, cookies, userId) {
 }
 
 export function listUsers(baseUrl, cookies) {
-  let res = http.get(`${baseUrl}/v3/users`, { cookies: cookies })
+  let res = http.get(`${baseUrl}/v3/users`, { cookies: cookies, tags: { name: "GET v3/users" } })
 
   let checkOK = check(res, {
     '/v1/management.cattle.io.users returns status 200': (r) => r.status === 200 || r.status === 204,
@@ -54,11 +58,11 @@ export function listUsers(baseUrl, cookies) {
     fail("Status check failed or did not receive list of Users data")
   }
 
-  return res
+  return { res: res, usersData: usersData }
 }
 
 export function listRoleTemplates(baseUrl, cookies) {
-  let res = http.get(`${baseUrl}/v1/management.cattle.io.roletemplates`, { cookies: cookies })
+  let res = http.get(`${baseUrl}/v1/management.cattle.io.roletemplates`, { cookies: cookies, tags: { name: "GET v1/management.cattle.io.roletemplates" } })
 
   let checkOK = check(res, {
     '/v1/management.cattle.io.roletemplates returns status 200': (r) => r.status === 200 || r.status === 204,
@@ -66,7 +70,7 @@ export function listRoleTemplates(baseUrl, cookies) {
 
   let templatesData = JSON.parse(res.body)["data"]
 
-  if (!checkOK || templatesData === undefined || templatesData.length == 0) {
+  if (!checkOK || templatesData === undefined) {
     fail("Status check failed or did not receive list of RoleTemplates data")
   }
 
@@ -74,7 +78,7 @@ export function listRoleTemplates(baseUrl, cookies) {
 }
 
 export function listRoles(baseUrl, cookies) {
-  let res = http.get(`${baseUrl}/v1/rbac.authorization.k8s.io.roles`, { cookies: cookies })
+  let res = http.get(`${baseUrl}/v1/rbac.authorization.k8s.io.roles`, { cookies: cookies, tags: { name: "GET v1/rbac.authorization.k8s.io.roles" } })
 
   let checkOK = check(res, {
     '/v1/rbac.authorization.k8s.io.roles returns status 200': (r) => r.status === 200 || r.status === 204,
@@ -90,7 +94,7 @@ export function listRoles(baseUrl, cookies) {
 }
 
 export function listClusterRoles(baseUrl, cookies) {
-  let res = http.get(`${baseUrl}/v1/rbac.authorization.k8s.io.clusterroles`, { cookies: cookies })
+  let res = http.get(`${baseUrl}/v1/rbac.authorization.k8s.io.clusterroles`, { cookies: cookies, tags: { name: "GET v1/rbac.authorization.k8s.io.clusterroles" } })
 
   let checkOK = check(res, {
     '/v1/rbac.authorization.k8s.io.clusterroles returns status 200': (r) => r.status === 200 || r.status === 204,
@@ -106,7 +110,7 @@ export function listClusterRoles(baseUrl, cookies) {
 }
 
 export function listRoleBindings(baseUrl, cookies) {
-  let res = http.get(`${baseUrl}/v1/rbac.authorization.k8s.io.rolebindings`, { cookies: cookies })
+  let res = http.get(`${baseUrl}/v1/rbac.authorization.k8s.io.rolebindings`, { cookies: cookies, tags: { name: "GET v1/rbac.authorization.k8s.io.rolebindings" } })
 
   let checkOK = check(res, {
     '/v1/rbac.authorization.k8s.io.rolebindings returns status 200': (r) => r.status === 200 || r.status === 204,
@@ -122,7 +126,7 @@ export function listRoleBindings(baseUrl, cookies) {
 }
 
 export function listClusterRoleBindings(baseUrl, cookies) {
-  let res = http.get(`${baseUrl}/v1/rbac.authorization.k8s.io.clusterrolebindings`, { cookies: cookies })
+  let res = http.get(`${baseUrl}/v1/rbac.authorization.k8s.io.clusterrolebindings`, { cookies: cookies, tags: { name: "GET v1/rbac.authorization.k8s.io.clusterrolebindings" } })
 
   let checkOK = check(res, {
     '/v1/rbac.authorization.k8s.io.clusterrolebindings returns status 200': (r) => r.status === 200 || r.status === 204,
@@ -138,7 +142,7 @@ export function listClusterRoleBindings(baseUrl, cookies) {
 }
 
 export function listCRTBs(baseUrl, cookies) {
-  let res = http.get(`${baseUrl}/v1/management.cattle.io.clusterroletemplatebindings`, { cookies: cookies })
+  let res = http.get(`${baseUrl}/v1/management.cattle.io.clusterroletemplatebindings`, { cookies: cookies, tags: { name: "GET v1/management.cattle.io.clusterroletemplatebindings" } })
 
   let checkOK = check(res, {
     '/v1/management.cattle.io.clusterroletemplatebindings returns status 200': (r) => r.status === 200 || r.status === 204,
@@ -146,7 +150,7 @@ export function listCRTBs(baseUrl, cookies) {
 
   let templatesData = JSON.parse(res.body)["data"]
 
-  if (!checkOK || templatesData === undefined || templatesData.length == 0) {
+  if (!checkOK || templatesData === undefined) {
     fail("Status check failed or did not receive list of ClusterRoleTemplateBindings data")
   }
 
@@ -154,7 +158,7 @@ export function listCRTBs(baseUrl, cookies) {
 }
 
 export function listPRTBs(baseUrl, cookies) {
-  let res = http.get(`${baseUrl}/v1/management.cattle.io.projectroletemplatebindings`, { cookies: cookies })
+  let res = http.get(`${baseUrl}/v1/management.cattle.io.projectroletemplatebindings`, { cookies: cookies, tags: { name: "GET v1/management.cattle.io.projectroletemplatebindings" } })
 
   let checkOK = check(res, {
     '/v1/management.cattle.io.projectroletemplatebindings returns status 200': (r) => r.status === 200 || r.status === 204,
@@ -162,7 +166,7 @@ export function listPRTBs(baseUrl, cookies) {
 
   let templatesData = JSON.parse(res.body)["data"]
 
-  if (!checkOK || templatesData === undefined || templatesData.length == 0) {
+  if (!checkOK || templatesData === undefined) {
     fail("Status check failed or did not receive list of ProjectRoleTemplateBindings data")
   }
 
@@ -170,7 +174,7 @@ export function listPRTBs(baseUrl, cookies) {
 }
 
 export function getGlobalRoles(baseUrl, cookies) {
-  let res = http.get(`${baseUrl}/v1/management.cattle.io.globalroles`, { cookies: cookies })
+  let res = http.get(`${baseUrl}/v1/management.cattle.io.globalroles`, { cookies: cookies, tags: { name: "GET v1/management.cattle.io.globalroles" } })
   check(res, {
     '/v1/management.cattle.io.globalroles returns status 200': (r) => r.status === 200 || r.status === 204,
   })
@@ -246,6 +250,7 @@ export function createRoleTemplate(baseUrl, cookies, template) {
         accept: 'application/json',
       },
       cookies: cookies,
+      tags: { name: "POST v3/roletemplates" }
     }
   )
   check(res, {
@@ -256,6 +261,11 @@ export function createRoleTemplate(baseUrl, cookies, template) {
 }
 
 export function createGlobalRoleBinding(baseUrl, params, userId, roles = ["user"]) {
+  if (params) {
+    params.tags = { name: "POST v3/globalrolebindings" }
+  } else {
+    params = { tags: { name: "POST v3/globalrolebindings" } }
+  }
   const res = http.post(
     `${baseUrl}/v3/globalrolebindings`,
     JSON.stringify({
@@ -274,13 +284,13 @@ export function createGlobalRoleBinding(baseUrl, params, userId, roles = ["user"
 }
 
 
-export function createPRTB(baseUrl, cookies, projectId, roleTemplateId, userId) {
+export function createPRTB(baseUrl, cookies, projectId, roleTemplateId, userId, description = "Dartboard") {
   const res = http.post(
     `${baseUrl}/v3/projectroletemplatebindings`,
     JSON.stringify({
       "type": "projectroletemplatebinding",
       "labels": {
-        "description": "Dartboard"
+        "description": description
       },
       "roleTemplateId": roleTemplateId,
       "userPrincipalId": `local://${userId}`,
@@ -291,7 +301,8 @@ export function createPRTB(baseUrl, cookies, projectId, roleTemplateId, userId) 
         accept: 'application/json',
         'content-type': 'application/json',
       },
-      cookies: cookies
+      cookies: cookies,
+      tags: { name: "POST v3/projectroletemplatebindings" }
     }
   )
 
@@ -318,7 +329,8 @@ export function createCRTB(baseUrl, cookies, clusterId, roleTemplateId, userId) 
         accept: 'application/json',
         'content-type': 'application/json',
       },
-      cookies: cookies
+      cookies: cookies,
+      tags: { name: "POST v3/clusterroletemplatebindings" }
     }
   )
 
@@ -332,14 +344,14 @@ export function createCRTB(baseUrl, cookies, clusterId, roleTemplateId, userId) 
 export function deleteUsersByPrefix(baseUrl, cookies, prefix = "Dartboard ") {
   let deletedAll = true
 
-  let res = listUsers(baseUrl, cookies)
+  let {res: res, usersData: usersData} = listUsers(baseUrl, cookies)
   if (res.status !== 200) {
     console.log("list users status: ", res.status)
     return false
   }
 
-  JSON.parse(res.body)["data"].filter(r => ("description" in r) && r["description"].startsWith(prefix)).forEach(r => {
-    res = http.del(`${baseUrl}/v3/users/${r["id"]}`, { cookies: cookies })
+  usersData.filter(r => ("description" in r) && r["description"].startsWith(prefix)).forEach(r => {
+    res = http.del(`${baseUrl}/v3/users/${r["id"]}`, { cookies: cookies, tags: { name: "DELETE v3/users" } })
 
     if (res.status !== 200 && res.status !== 204) {
       console.log("delete user status: ", res.status)
@@ -363,7 +375,7 @@ export function deleteGlobalRolesByPrefix(baseUrl, cookies, prefix = "Dartboard 
   }
 
   JSON.parse(res.body)["data"].filter(r => ("description" in r) && r["description"].startsWith(prefix)).forEach(r => {
-    res = http.del(`${baseUrl}/v3/globalRoles/${r["id"]}`, { cookies: cookies })
+    res = http.del(`${baseUrl}/v3/globalRoles/${r["id"]}`, { cookies: cookies, tags: { name: "DELETE v3/globalRoles" } })
 
     if (res.status !== 200) {
       deletedAll = false
@@ -387,7 +399,7 @@ export function deleteRoleTemplatesByPrefix(baseUrl, cookies, prefix = "Dartboar
   }
 
   JSON.parse(res.body)["data"].filter(r => ("description" in r) && r["description"].startsWith(prefix)).forEach(r => {
-    res = http.del(`${baseUrl}/v3/roletemplates/${r["id"].replace("/", ":")}`, { cookies: cookies })
+    res = http.del(`${baseUrl}/v3/roletemplates/${r["id"].replace("/", ":")}`, { cookies: cookies, tags: { name: "DELETE v3/roletemplates" } })
 
 
     if (res.status !== 200) {
@@ -403,7 +415,7 @@ export function deleteRoleTemplatesByPrefix(baseUrl, cookies, prefix = "Dartboar
   return deletedAll
 }
 
-export function deleteCRTBsByDescriptionLabel(baseUrl, cookies, label = { "description": "Dartboard" }) {
+export function deleteCRTBsByDescriptionLabel(baseUrl, cookies, label = "Dartboard") {
   let deletedAll = true
 
   let res = listCRTBs(baseUrl, cookies)
@@ -412,8 +424,8 @@ export function deleteCRTBsByDescriptionLabel(baseUrl, cookies, label = { "descr
     return false
   }
 
-  JSON.parse(res.body)["data"].filter(r => ("labels" in r) && ("description" in r["labels"]) && r["labels"].description == label["description"]).forEach(r => {
-    res = http.del(`${baseUrl}/v3/clusterroletemplatebindings/${r["id"]}`, { cookies: cookies })
+  JSON.parse(res.body)["data"].filter(r => ("labels" in r) && ("description" in r["labels"]) && r["labels"].description == label).forEach(r => {
+    res = http.del(`${baseUrl}/v3/clusterroletemplatebindings/${r["id"]}`, { cookies: cookies, tags: { name: "DELETE v3/clusterroletemplatebindings" } })
 
 
     if (res.status !== 200) {
@@ -429,7 +441,7 @@ export function deleteCRTBsByDescriptionLabel(baseUrl, cookies, label = { "descr
   return deletedAll
 }
 
-export function deletePRTBsByDescriptionLabel(baseUrl, cookies, label = { "description": "Dartboard" }) {
+export function deletePRTBsByDescriptionLabel(baseUrl, cookies, label = "Dartboard") {
   let deletedAll = true
 
   let res = listPRTBs(baseUrl, cookies)
@@ -438,8 +450,8 @@ export function deletePRTBsByDescriptionLabel(baseUrl, cookies, label = { "descr
     return false
   }
 
-  JSON.parse(res.body)["data"].filter(r => ("labels" in r) && ("description" in r["labels"]) && r["labels"].description == label["description"]).forEach(r => {
-    res = http.del(`${baseUrl}/v3/projectroletemplatebindings/${r["id"]}`, { cookies: cookies })
+  JSON.parse(res.body)["data"].filter(r => ("labels" in r) && ("description" in r["labels"]) && r["labels"].description == label).forEach(r => {
+    res = http.del(`${baseUrl}/v3/projectroletemplatebindings/${r["id"]}`, { cookies: cookies, tags: { name: "DELETE v3/projectroletemplatebindings" } })
 
 
     if (res.status !== 200) {
