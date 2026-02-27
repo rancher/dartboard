@@ -19,10 +19,11 @@ package subcommands
 import (
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"time"
 
+	"github.com/rancher/dartboard/internal/summarize/collectprofiles"
+	"github.com/rancher/dartboard/internal/summarize/exportmetrics"
+	"github.com/rancher/dartboard/internal/summarize/countresources"
 	"github.com/urfave/cli/v2"
 )
 
@@ -56,101 +57,66 @@ func Summarize(cli *cli.Context) error {
         metrics, counts, profiles = true, true, true
     }
 
-    // buildItems in the order we want to run them
-    type buildItem struct {
-        script string
-        binary string
-    }
-
-    var builds []buildItem
-    if profiles {
-        builds = append(builds, buildItem{
-            script: "./summarize-tools/collect-profile/build_collect_profile.sh",
-            binary: "./summarize-tools/collect-profile/collect-profile",
-        })
-    }
-    if counts {
-        builds = append(builds, buildItem{
-            script: "./summarize-tools/resource-counts/build_cr.sh",
-            binary: "./summarize-tools/resource-counts/cr",
-        })
-    }
-    if metrics {
-        builds = append(builds, buildItem{
-            script: "./summarize-tools/export-metrics/build_export_metrics.sh",
-            binary: "./summarize-tools/export-metrics/export-metrics",
-        })
-    }
-
-    runScript := func(script string) error {
-        cmd := exec.Command("bash", script)
-        cmd.Stdout = os.Stdout
-        cmd.Stderr = os.Stderr
-        return cmd.Run()
-    }
-
-    for _, b := range builds {
-        if err := runScript(b.script); err != nil {
-            return fmt.Errorf("failed to run build script %s: %w", b.script, err)
-        }
-
-        if err := os.Chmod(b.binary, 0755); err != nil {
-            return fmt.Errorf("failed to set executable permission on %s: %w", b.binary, err)
-        }
-
-        // Ensure each built binary is removed after use. Capture path for defer.
-        bin := b.binary
-        defer func(p string) {
-            if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
-                fmt.Fprintf(os.Stderr, "warning: failed to delete %s: %v\n", p, err)
-            }
-        }(bin)
-    }
-
     // Create top-level summary directory for this run so all tool outputs aggregate there
     summaryDir := fmt.Sprintf("summarize-results-%s", time.Now().Format("2006-01-02"))
     if err := os.MkdirAll(summaryDir, 0755); err != nil {
         return fmt.Errorf("failed to create summary directory %s: %w", summaryDir, err)
     }
 
-    // Build runBins based on selected tools in the same order as builds
-    var runBins []string
-    if profiles {
-        runBins = append(runBins, "./summarize-tools/collect-profile/collect-profile")
-    }
-    if counts {
-        runBins = append(runBins, "./summarize-tools/resource-counts/cr")
-    }
-    if metrics {
-        runBins = append(runBins, "./summarize-tools/export-metrics/export-metrics")
-    }
-
-    // Resolve run binary paths relative to the repo root so setting `cmd.Dir` doesn't break exec path lookup
-    repoRoot, err := os.Getwd()
+	// Change working directory to summaryDir so tools output files there
+	originalWd, err := os.Getwd()
     if err != nil {
         return fmt.Errorf("failed to determine working directory: %w", err)
     }
+	if err := os.Chdir(summaryDir); err != nil {
+		return fmt.Errorf("failed to change directory to %s: %w", summaryDir, err)
+	}
+	defer func() {
+		if err := os.Chdir(originalWd); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to restore working directory: %v\n", err)
+		}
+	}()
 
-    for _, bin := range runBins {
-        binPath := bin
-        if !filepath.IsAbs(binPath) {
-            binPath = filepath.Join(repoRoot, binPath)
-        }
+	ctx := cli.Context
 
-        // Ensure the tools use the correct kubeconfig by setting KUBECONFIG
-        env := os.Environ()
-        if upstream.Kubeconfig != "" {
-            env = append(env, "KUBECONFIG="+upstream.Kubeconfig)
-        }
+	// Run Tools
+	if profiles {
+		fmt.Println(">>> Running collect-profile...")
+		// Defaults match original flags
+		cfg := collectprofile.Config{
+			App:      "rancher",
+			Profiles: "goroutine,heap,profile",
+			Duration: 30,
+			LogLevel: "debug",
+		}
+		if err := collectprofile.Run(ctx, cfg); err != nil {
+			fmt.Printf("Error running collect-profile: %v\n", err)
+		}
+	}
 
-        cmd := exec.Command(binPath)
-        cmd.Env = env
-        cmd.Stdout = os.Stdout
-        cmd.Stderr = os.Stderr
-        cmd.Dir = summaryDir
-        if err := cmd.Run(); err != nil {
-            return fmt.Errorf("failed to run %s: %w", binPath, err)
-        }
+	if counts {
+		fmt.Println(">>> Running resource-counts...")
+		cfg := countresources.Config{
+			Kubeconfig: upstream.Kubeconfig,
+		}
+		if err := countresources.Run(ctx, cfg); err != nil {
+			fmt.Printf("Error running resource-counts: %v\n", err)
+		}
+	}
+
+	if metrics {
+		fmt.Println(">>> Running export-metrics...")
+		cfg := exportmetrics.Config{
+			Kubeconfig: upstream.Kubeconfig,
+			// Defaults
+			Selector:      `{__name__!=""}`,
+			OffsetSeconds: 3600,
+			ToSeconds:     time.Now().Unix(),
+			FromSeconds:   time.Now().Add(-1 * time.Hour).Unix(),
+		}
+		if err := exportmetrics.Run(ctx, cfg); err != nil {
+			fmt.Printf("Error running export-metrics: %v\n", err)
+		}
     }
 
     return nil

@@ -1,10 +1,10 @@
-package main
+package countresources
 
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,24 +12,17 @@ import (
 	"time"
 )
 
-func main() {
-	// 1. Determine Kubeconfig Path
-	// Priority: 1. Command Line Arg, 2. Environment Variable
-	kubeconfigPath := os.Getenv("KUBECONFIG")
+type Config struct {
+	Kubeconfig string
+}
 
-	if len(os.Args) > 1 {
-		kubeconfigPath = os.Args[1]
-	}
-
-	if kubeconfigPath == "" {
-		log.Fatal("Error: Kubeconfig not found. Please set KUBECONFIG env var or pass as argument.")
-	}
-
+func Run(ctx context.Context, cfg Config) error {
 	// Set the KUBECONFIG environment variable for the current process
-	// This ensures the subsequent 'kubectl' commands use the correct config
-	os.Setenv("KUBECONFIG", kubeconfigPath)
+	if cfg.Kubeconfig != "" {
+		os.Setenv("KUBECONFIG", cfg.Kubeconfig)
+	}
 
-	// 2. Prepare Directory Paths
+	// Prepare Directory Paths
 	now := time.Now()
 
 	// Parent directory: counts-MM-DD
@@ -42,12 +35,14 @@ func main() {
 
 	// Create directories
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		log.Fatalf("Failed to create directories: %v", err)
+		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
-	// 3. Prepare Output Filename
-	// Extract just the filename, removing the directory path
-	baseName := filepath.Base(kubeconfigPath)
+	// Prepare Output Filename
+	baseName := filepath.Base(cfg.Kubeconfig)
+	if baseName == "." || baseName == "" {
+		baseName = "kubeconfig"
+	}
 	// Remove the file extension (e.g., .yaml)
 	cleanName := strings.TrimSuffix(baseName, filepath.Ext(baseName))
 
@@ -59,19 +54,18 @@ func main() {
 	// Create the output file
 	outFile, err := os.Create(outputPath)
 	if err != nil {
-		log.Fatalf("Failed to create output file: %v", err)
+		return fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer outFile.Close()
 
-	fmt.Printf("Using Kubeconfig: %s\n", kubeconfigPath)
+	fmt.Printf("Using Kubeconfig: %s\n", cfg.Kubeconfig)
 	fmt.Printf("Writing report to: %s\n", outputPath)
 
-	// 4. Get List of Resources
-	// Equivalent to: kubectl api-resources -o wide | grep -v "NAME" | awk '{ print $1 }'
-	cmd := exec.Command("kubectl", "api-resources", "--no-headers", "-o", "wide")
+	// Get List of Resources
+	cmd := exec.CommandContext(ctx, "kubectl", "api-resources", "--no-headers", "-o", "wide")
 	output, err := cmd.Output()
 	if err != nil {
-		log.Fatalf("Failed to get api-resources: %v", err)
+		return fmt.Errorf("failed to get api-resources: %w", err)
 	}
 
 	scanner := bufio.NewScanner(bytes.NewReader(output))
@@ -83,16 +77,12 @@ func main() {
 		}
 		resource := fields[0]
 
-		// 5. Count Resources
-		// Equivalent to: kubectl get "$resource" -A | grep -v ... | wc -l
-		countCmd := exec.Command("kubectl", "get", resource, "-A", "--no-headers", "--ignore-not-found")
+		// Count Resources
+		countCmd := exec.CommandContext(ctx, "kubectl", "get", resource, "-A", "--no-headers", "--ignore-not-found")
 		countOutput, err := countCmd.Output()
 
 		var count int
-		if err != nil {
-			// If error occurs (e.g., permission denied), assume 0
-			count = 0
-		} else {
+		if err == nil {
 			// Count non-empty lines
 			lines := bytes.Split(countOutput, []byte{'\n'})
 			for _, l := range lines {
@@ -102,15 +92,16 @@ func main() {
 			}
 		}
 
-		// 6. Write to File
-		// Format: " resource : count"
+		// Write to File
 		lineOutput := fmt.Sprintf(" %s : %d\n", resource, count)
 		if _, err := outFile.WriteString(lineOutput); err != nil {
-			log.Printf("Error writing to file: %v", err)
+			fmt.Printf("Error writing to file: %v\n", err)
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatalf("Error reading api-resources output: %v", err)
+		return fmt.Errorf("error reading api-resources output: %w", err)
 	}
+
+	return nil
 }
