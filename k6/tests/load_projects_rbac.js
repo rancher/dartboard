@@ -39,6 +39,7 @@ let createdNamespaceIds = []
 export const handleSummary = k6Util.customHandleSummary;
 
 export const options = {
+  insecureSkipTLSVerify: true,
   scenarios: {
     load: {
       executor: 'per-vu-iterations',
@@ -128,7 +129,6 @@ export const options = {
   },
   setupTimeout: '30m',
   teardownTimeout: '30m',
-  insecureSkipTLSVerify: true,
   // httpDebug: 'full',
 }
 

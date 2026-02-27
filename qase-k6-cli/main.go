@@ -25,6 +25,7 @@ var (
 	runIDStr            = os.Getenv(qase_config.QaseTestOpsRunIDEnvVar)
 	runName             = os.Getenv(qase.TestRunNameEnvVar)
 	testCaseName        = os.Getenv(qase.TestCaseNameEnvVar)
+	testCaseIDEnv       = os.Getenv(qase.TestCaseIDEnvVar)
 	k6MetricsOutputFile = os.Getenv(k6MetricsOutputFileEnvVar)
 )
 
@@ -95,12 +96,34 @@ type K6Check struct {
 }
 
 func main() {
-	logrus.Info("Running k6 QASE reporter")
+	if len(os.Args) < 2 {
+		fmt.Printf("Usage: %s <subcommand> [options]\n\n", os.Args[0])
+		fmt.Println("Subcommands:")
+		fmt.Println("  report\tParses k6 metrics/summary and reports the result to Qase.")
+		fmt.Println("  gather\tRetrieves test cases from a Qase test run and outputs the 'AutomationTestName' custom field value for each case.")
+		fmt.Println()
+		logrus.Fatal("expected 'report' or 'gather' subcommands")
+	}
 
-	granularReporting := flag.Bool("granular", false, "Enable granular reporting of all Metric and Point lines from k6 JSON output.")
-	// The -runID flag allows overriding the test case ID.
-	runIDOverride := flag.String("runID", "", "Qase test run ID to report results against.")
-	flag.Parse()
+	switch os.Args[1] {
+	case "report":
+		reportCmd := flag.NewFlagSet("report", flag.ExitOnError)
+		granularReporting := reportCmd.Bool("granular", false, "Enable granular reporting of all Metric and Point lines from k6 JSON output.")
+		runIDOverride := reportCmd.String("runID", "", "Qase test run ID to report results against.")
+		reportCmd.Parse(os.Args[2:])
+		runReport(*granularReporting, *runIDOverride)
+	case "gather":
+		gatherCmd := flag.NewFlagSet("gather", flag.ExitOnError)
+		runIDGather := gatherCmd.String("runID", "", "Qase test run ID to gather test cases from.")
+		gatherCmd.Parse(os.Args[2:])
+		runGather(*runIDGather)
+	default:
+		logrus.Fatalf("Unknown subcommand: %s", os.Args[1])
+	}
+}
+
+func runReport(granularReporting bool, runIDOverride string) {
+	logrus.Info("Running qase-k6-cli reporter")
 
 	if runIDStr == "" && runName == "" {
 		logrus.Fatalf("Missing required environment variables for reporting: both %s, and %s",
@@ -108,8 +131,8 @@ func main() {
 	}
 
 	// Use the provided case ID flag, otherwise default to the run ID.
-	if *runIDOverride != "" {
-		runIDStr = *runIDOverride
+	if runIDOverride != "" {
+		runIDStr = runIDOverride
 	}
 
 	qaseClient = qase.SetupQaseClient()
@@ -132,7 +155,7 @@ func main() {
 	} else {
 		runID = parsedRunID
 
-		resp, err := qaseClient.GetTestRun(context.Background(), projectID, runID)
+		resp, err := qaseClient.GetTestRun(context.Background(), projectID, runID, nil)
 		if err != nil {
 			logrus.Fatalf("Failed to get Qase test run while fetching run title (runID: %v): %v", int32(runID), err)
 		}
@@ -140,7 +163,16 @@ func main() {
 		runName = *resp.Title
 	}
 
-	if testCaseName != "" {
+	if testCaseIDEnv != "" {
+		id, err := strconv.ParseInt(testCaseIDEnv, 10, 64)
+		if err != nil {
+			logrus.Fatalf("Invalid QASE_TEST_CASE_ID: %v", err)
+		}
+		testCaseID = id
+		logrus.Infof("Using provided Qase test case ID: %d", testCaseID)
+	}
+
+	if testCaseID == 0 && testCaseName != "" {
 		logrus.Infof("Fetching Qase test case by title: %s", testCaseName)
 
 		testCase, err := qaseClient.GetTestCaseByTitle(context.Background(), projectID, testCaseName)
@@ -149,11 +181,10 @@ func main() {
 		}
 
 		testCaseID = *testCase.Id
-	} else {
+	} else if testCaseID == 0 {
 		// Fallback or error if no test case name is provided
-		logrus.Fatalf("%s environment variable not set.", qase.TestCaseNameEnvVar)
+		logrus.Fatalf("Neither %s nor %s environment variables are set.", qase.TestCaseNameEnvVar, qase.TestCaseIDEnvVar)
 	}
-
 	// Get the full test case details to check for parameters
 	testCaseDetails, err := qaseClient.GetTestCase(context.Background(), projectID, testCaseID)
 	if err != nil {
@@ -162,11 +193,162 @@ func main() {
 
 	params := getAndValidateTestCaseParameters(testCaseDetails.Parameters)
 
-	if !*granularReporting {
+	if !granularReporting {
 		reportSummary(params)
 	} else {
 		reportMetrics(params)
 	}
+}
+
+func runGather(runIDOverride string) {
+	logrus.Info("Running qase-k6-cli gatherer")
+
+	if projectID == "" {
+		logrus.Fatalf("Missing required environment variable: %s", qase_config.QaseTestOpsProjectEnvVar)
+	}
+
+	if runIDOverride == "" {
+		logrus.Fatal("runID is required for gather subcommand")
+	}
+
+	runIDVal, err := strconv.ParseInt(runIDOverride, 10, 64)
+	if err != nil {
+		logrus.Fatalf("Invalid runID: %v", err)
+	}
+
+	qaseClient = qase.SetupQaseClient()
+
+	include := "cases"
+	run, err := qaseClient.GetTestRun(context.Background(), projectID, runIDVal, &include)
+	if err != nil {
+		logrus.Fatalf("Failed to get test run: %v", err)
+	}
+
+	cfResp, err := qaseClient.GetCustomFields(context.Background())
+	if err != nil {
+		logrus.Fatalf("Failed to get custom fields: %v", err)
+	}
+
+	// Get the ID of the "AutomationTestName" custom field
+	var automationTestNameID int64
+	for _, cf := range cfResp.Result.Entities {
+		if cf.Title != nil && *cf.Title == "AutomationTestName" {
+			automationTestNameID = *cf.Id
+			break
+		}
+	}
+
+	if automationTestNameID == 0 {
+		logrus.Fatalf("Custom field 'AutomationTestName' not found for %s", projectID)
+	}
+
+	type gatheredCase struct {
+		ID                 int64             `json:"id"`
+		Title              string            `json:"title"`
+		Parameters         map[string]string `json:"parameters"`
+		AutomationTestName string            `json:"automation_test_name"`
+	}
+	results := []gatheredCase{}
+	processedIDs := map[int64]bool{}
+
+	for _, caseID := range run.Cases {
+		if processedIDs[caseID] {
+			continue
+		}
+		processedIDs[caseID] = true
+
+		tc, err := qaseClient.GetTestCase(context.Background(), projectID, caseID)
+		if err != nil {
+			logrus.Errorf("Failed to get test case %d: %v", caseID, err)
+			continue
+		}
+
+		paramMap := map[string][]string{}
+		for _, parameter := range tc.Parameters {
+			var items []v1.ParameterSingle
+			if parameter.TestCaseParameterSingle != nil {
+				items = append(items, parameter.TestCaseParameterSingle.Item)
+			} else if parameter.TestCaseParameterGroup != nil {
+				items = append(items, parameter.TestCaseParameterGroup.Items...)
+			}
+			for _, item := range items {
+				val := []string{}
+				if item.Values != nil {
+					val = item.Values
+				}
+				paramMap[item.Title] = val
+			}
+		}
+
+		combinations := generateCombinations(paramMap)
+
+		for _, cf := range tc.CustomFields {
+			if *cf.Id == automationTestNameID && cf.Value != nil {
+				for _, combo := range combinations {
+					results = append(results, gatheredCase{
+						ID:                 caseID,
+						Title:              *tc.Title,
+						Parameters:         combo,
+						AutomationTestName: fmt.Sprintf("%v", *cf.Value),
+					})
+				}
+			} else {
+				if automationTestNameID == 0 {
+					logrus.Infof("Custom field 'AutomationTestName' not found for %s-%d (%s)", projectID, tc.GetId(), tc.GetTitle())
+				}
+			}
+		}
+	}
+
+	if err := json.NewEncoder(os.Stdout).Encode(results); err != nil {
+		logrus.Fatalf("Failed to encode results to JSON: %v", err)
+	}
+}
+
+// generateCombinations creates a Cartesian product of all parameter values.
+// It takes a map where keys are parameter names and values are lists of possible values for that parameter.
+// It returns a slice of maps, where each map represents a unique combination of parameter values.
+func generateCombinations(params map[string][]string) []map[string]string {
+	// Extract keys to a slice to allow indexing during recursion.
+	keys := make([]string, 0, len(params))
+	for k := range params {
+		keys = append(keys, k)
+	}
+
+	var results []map[string]string
+	var backtrack func(index int, current map[string]string)
+
+	backtrack = func(index int, current map[string]string) {
+		// Base case: if we have processed all keys, we have a complete combination.
+		if index == len(keys) {
+			// Create a copy of the current map because 'current' is mutated in the recursion.
+			combo := make(map[string]string, len(current))
+			for k, v := range current {
+				combo[k] = v
+			}
+			results = append(results, combo)
+			return
+		}
+
+		key := keys[index]
+		values := params[key]
+
+		// If a parameter has no values, skip it and proceed to the next key.
+		if len(values) == 0 {
+			backtrack(index+1, current)
+		} else {
+			// Iterate through each possible value for the current parameter.
+			for _, v := range values {
+				current[key] = v
+				backtrack(index+1, current)
+				// Backtrack: remove the key to restore the map state.
+				delete(current, key)
+			}
+		}
+	}
+
+	backtrack(0, make(map[string]string))
+	return results
 }
 
 func reportMetrics(params map[string]string) {
@@ -194,7 +376,16 @@ func reportMetrics(params map[string]string) {
 
 	// Report to Qase
 	status := qase.StatusPassed
-	if !overallPass {
+	thresholdsFailed := false
+	for _, t := range thresholds {
+		if !t.Pass {
+			thresholdsFailed = true
+			break
+		}
+	}
+	if thresholdsFailed {
+		status = qase.StatusExceededThresholds
+	} else if !overallPass {
 		status = qase.StatusFailed
 	}
 

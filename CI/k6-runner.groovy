@@ -130,7 +130,7 @@ pipeline {
             def k6EnvContent = """
 BASE_URL=${baseURL}
 KUBECONFIG=${kubeconfigContainerPath ? kubeconfigContainerPath : ''}
-K6_TEST=${params.K6_TEST_FILE}
+K6_REPORT_PREFIX=${params.K6_TEST_FILE}
 K6_NO_USAGE_REPORT=true
 ${params.K6_ENV}
 """

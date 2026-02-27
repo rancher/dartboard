@@ -1,5 +1,5 @@
 DARTBOARD_BIN_NAME := dartboard
-REPORTER_BIN_NAME := qasereporter-k6
+QASE_K6_CLI_BIN_NAME := qase-k6-cli
 LDFLAGS := -w -s
 TOFU := ./internal/vendored/bin/tofu
 TOFU_MAIN_DIRS := k3d aws azure harvester
@@ -9,21 +9,21 @@ TOFU_MAIN_DIRS := k3d aws azure harvester
 # =============================================================================
 
 .PHONY: build
-build: internal/vendored/bin qasereporter-k6/${REPORTER_BIN_NAME}
+build: internal/vendored/bin qase-k6-cli/${QASE_K6_CLI_BIN_NAME}
 	CGO_ENABLED=0 go build -ldflags '$(LDFLAGS)' -o ${DARTBOARD_BIN_NAME} cmd/dartboard/*.go
 
 internal/vendored/bin:
 	sh download-vendored-bin.sh
 
-qasereporter-k6/${REPORTER_BIN_NAME}: qasereporter-k6/*.go
-	CGO_ENABLED=0 go build -ldflags '$(LDFLAGS)' -o $@ qasereporter-k6/*.go
+qase-k6-cli/${QASE_K6_CLI_BIN_NAME}: qase-k6-cli/*.go
+	CGO_ENABLED=0 go build -ldflags '$(LDFLAGS)' -o $@ qase-k6-cli/*.go
 
 .PHONY: clean
 clean:
 	rm -rfv .bin
 	rm -rfv internal/vendored/bin
 	rm -fv ${DARTBOARD_BIN_NAME}
-	rm -fv qasereporter-k6/${REPORTER_BIN_NAME}
+	rm -fv qase-k6-cli/${QASE_K6_CLI_BIN_NAME}
 
 # =============================================================================
 # Go module verification

@@ -19,6 +19,7 @@ import (
 const (
 	TestRunNameEnvVar  = "QASE_TEST_RUN_NAME"
 	TestCaseNameEnvVar = "QASE_TEST_CASE_NAME"
+	TestCaseIDEnvVar   = "QASE_TEST_CASE_ID"
 )
 
 // CustomUnifiedClient combines V1 and V2 clients for our specific needs.
@@ -112,14 +113,18 @@ func (c *CustomUnifiedClient) CreateTestRun(ctx context.Context, testRunName, pr
 }
 
 // GetTestRun retrieves a Qase test run by its ID.
-func (c *CustomUnifiedClient) GetTestRun(ctx context.Context, projectCode string, runID int64) (*api_v1_client.Run, error) {
+func (c *CustomUnifiedClient) GetTestRun(ctx context.Context, projectCode string, runID int64, include *string) (*api_v1_client.Run, error) {
 	logrus.Debugf("Getting test run with ID %d in project %s", runID, projectCode)
 
 	authCtx := context.WithValue(ctx, api_v1_client.ContextAPIKeys, map[string]api_v1_client.APIKey{
 		"TokenAuth": {Key: c.Config.TestOps.API.Token},
 	})
 
-	resp, res, err := c.V1Client.GetAPIClient().RunsAPI.GetRun(authCtx, projectCode, int32(runID)).Execute()
+	apiRunRequest := c.V1Client.GetAPIClient().RunsAPI.GetRun(authCtx, projectCode, int32(runID))
+	if include != nil {
+		apiRunRequest = apiRunRequest.Include(*include)
+	}
+	resp, res, err := apiRunRequest.Execute()
 	logResponseBody(res, "GetTestRun")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get test run: %w", err)
@@ -230,6 +235,23 @@ func (c *CustomUnifiedClient) GetTestCaseByTitle(ctx context.Context, projectCod
 	}
 
 	return matchingCase, nil
+}
+
+// GetCustomFields retrieves all custom fields.
+func (c *CustomUnifiedClient) GetCustomFields(ctx context.Context) (*api_v1_client.CustomFieldListResponse, error) {
+	logrus.Debug("Getting custom fields")
+
+	authCtx := context.WithValue(ctx, api_v1_client.ContextAPIKeys, map[string]api_v1_client.APIKey{
+		"TokenAuth": {Key: c.Config.TestOps.API.Token},
+	})
+
+	resp, res, err := c.V1Client.GetAPIClient().CustomFieldsAPI.GetCustomFields(authCtx).Execute()
+	logResponseBody(res, "GetCustomFields")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get custom fields: %w", err)
+	}
+
+	return resp, nil
 }
 
 // CreateTestResultV1 creates a test result using the V1 API.

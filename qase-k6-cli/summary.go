@@ -13,11 +13,14 @@ import (
 const (
 	k6SummaryJsonFileEnvVar = "K6_SUMMARY_JSON_FILE"
 	k6SummaryHtmlFileEnvVar = "K6_SUMMARY_HTML_FILE"
+	// See https://grafana.com/docs/k6/latest/results-output/web-dashboard/
+	k6WebDashboardExportEnvVar = "K6_WEB_DASHBOARD_EXPORT"
 )
 
 var (
-	k6SummaryJsonFile = os.Getenv(k6SummaryJsonFileEnvVar)
-	k6SummaryHtmlFile = os.Getenv(k6SummaryHtmlFileEnvVar)
+	k6SummaryJsonFile        = os.Getenv(k6SummaryJsonFileEnvVar)
+	k6SummaryHtmlFile        = os.Getenv(k6SummaryHtmlFileEnvVar)
+	k6WebDashboardExportFile = os.Getenv(k6WebDashboardExportEnvVar)
 )
 
 // K6Summary represents the structure of the k6 summary JSON output.
@@ -37,13 +40,13 @@ type K6SummaryMetric struct {
 	Thresholds map[string]K6SummaryThreshold `json:"thresholds,omitempty"`
 }
 
-// K6SummaryThreshold represents a threshold with its pass/fail status. 
+// K6SummaryThreshold represents a threshold with its pass/fail status.
 type K6SummaryThreshold struct {
 	OK bool `json:"ok"`
 }
 
 func reportSummary(params map[string]string) {
-	logrus.Info("Running k6 QASE reporter")
+	logrus.Info("Running qase-k6-cli reporter")
 
 	if k6SummaryJsonFile == "" {
 		logrus.Fatalf("Missing required environment variable: %s", k6SummaryJsonFileEnvVar)
@@ -64,7 +67,16 @@ func reportSummary(params map[string]string) {
 
 	// Report to Qase
 	status := qase.StatusPassed
-	if !overallPass {
+	thresholdsFailed := false
+	for _, t := range thresholds {
+		if !t.Pass {
+			thresholdsFailed = true
+			break
+		}
+	}
+	if thresholdsFailed {
+		status = qase.StatusExceededThresholds
+	} else if !overallPass {
 		status = qase.StatusFailed
 	}
 
@@ -77,6 +89,15 @@ func reportSummary(params map[string]string) {
 			attachments = append(attachments, k6SummaryHtmlFile)
 		} else {
 			logrus.Warnf("HTML report file specified but not found at %s.", k6SummaryHtmlFile)
+		}
+	}
+
+	if k6WebDashboardExportFile != "" {
+		if _, err := os.Stat(k6WebDashboardExportFile); err == nil {
+			logrus.Infof("Found Web Dashboard report at %s, preparing for upload.", k6WebDashboardExportFile)
+			attachments = append(attachments, k6WebDashboardExportFile)
+		} else {
+			logrus.Warnf("Web Dashboard report file specified but not found at %s.", k6WebDashboardExportFile)
 		}
 	}
 
