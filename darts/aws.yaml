@@ -3,6 +3,14 @@
 tofu_main_directory: ./tofu/main/aws
 tofu_parallelism: 10
 
+# To change or refresh AMIs use:
+
+# Latest openSUSE 16.0 Leap on ARM:
+# aws ec2 describe-images --owners aws-marketplace --filters "Name=name,Values=openSUSE-Leap-16-0*" "Name=architecture,Values=arm64" --query "sort_by(Images, &CreationDate)[-1].ImageId" --region us-east-1
+
+# Latest openSUSE 16.0 Leap on x86_64:
+# aws ec2 describe-images --owners aws-marketplace --filters "Name=name,Values=openSUSE-Leap-16-0*" "Name=architecture,Values=x86_64" --query "sort_by(Images, &CreationDate)[-1].ImageId" --region us-east-1
+
 tofu_variables:
   project_name: st
   region: us-east-1
