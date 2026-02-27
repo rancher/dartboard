@@ -99,7 +99,17 @@ EOF
 sysctl -p /etc/sysctl.d/99-inotify.conf
 
 # can be used for longhorn or rancher/local-path-provisioner
-mkdir -p /data/storage
+if [ -f /etc/os-release ]; then
+  . /etc/os-release
+fi
+
+if [ "$${ID}" == "sl-micro" ]; then
+  if [ -d /data ]; then
+    mkdir -p /data/storage
+  fi
+else
+  mkdir -p /data/storage
+fi
 
 cat >>/root/.bash_profile <<EOF
 export PATH=\$PATH:/var/lib/rancher/rke2/bin/
