@@ -13,31 +13,31 @@ tofu_variables:
   ssh_private_key_path: ~/.ssh/id_ed25519
   ssh_user: root
   ssh_bastion_user: root
-  bastion_host_ami: ami-0e55a8b472a265e3f # openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
+  bastion_host_ami: ami-02ac0271dfcad44a2 # latest openSUSE Leap 15.6 arm64
 
   upstream_cluster:
     server_count: 1
     agent_count: 0
-    distro_version: v1.26.9+k3s1
+    distro_version: v1.34.2+k3s1
     public_ip: true
     reserve_node_for_monitoring: false
     enable_audit_log: false
     node_module_variables:
       instance_type: i3.large
-      ami: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
+      ami: ami-095197d9bbe1d2fb3 # latest openSUSE Leap 15.6 x86_64
       root_volume_size_gb: 50
   upstream_cluster_distro_module: generic/k3s
 
   tester_cluster:
     server_count: 1
     agent_count: 0
-    distro_version: v1.26.9+k3s1
+    distro_version: v1.34.2+k3s1
     public_ip: false
     reserve_node_for_monitoring: false
     enable_audit_log: false
     node_module_variables:
       instance_type: t3a.large
-      ami: ami-009fd8a4732ea789b # openSUSE-Leap-15-5-v20230608-hvm-ssd-x86_64
+      ami: ami-095197d9bbe1d2fb3 # latest openSUSE Leap 15.6 x86_64
       root_volume_size_gb: 50
   tester_cluster_distro_module: generic/k3s
 
@@ -45,13 +45,13 @@ tofu_variables:
     - cluster_count: 0
       server_count: 1
       agent_count: 0
-      distro_version: v1.26.9+k3s1
+      distro_version: v1.34.2+k3s1
       public_ip: false
       reserve_node_for_monitoring: false
       enable_audit_log: false
       node_module_variables:
         instance_type: t4g.large
-        ami: ami-0e55a8b472a265e3f # openSUSE-Leap-15-5-v20230608-hvm-ssd-arm64
+        ami: ami-02ac0271dfcad44a2 # latest openSUSE Leap 15.6 arm64
         root_volume_size_gb: 50
   downstream_cluster_distro_module: generic/k3s
 
@@ -64,10 +64,10 @@ chart_variables:
   downstream_rancher_monitoring: true
   admin_password: adminadminadmin
   # rancher_apps_repo_override: # must be the "raw" link not the "blob" link ex: https://github.com/rancher/charts/raw/dev-v2.11 vs https://github.com/rancher/charts/blob/dev-v2.12
-  rancher_monitoring_version: 104.1.0+up57.0.3 # see https://github.com/rancher/charts/tree/release-v2.9/assets/rancher-monitoring-crd
-  cert_manager_version: 1.8.0
+  rancher_monitoring_version: 108.0.0+up77.9.1-rancher.6 # see https://github.com/rancher/charts/tree/dev-v2.13/assets/rancher-monitoring-crd
+  cert_manager_version: 1.19.1
   tester_grafana_version: 6.56.5
-  rancher_version: 2.9.1
+  rancher_version: 2.13.3
   # rancher_chart_repo_override: # URL override defining where to pull Rancher's helm chart from
   force_prime_registry: false
   # extra_environment_variables:
