@@ -67,6 +67,27 @@ export const options = {
     http_req_failed: ['rate<=0.01'], // http errors should be less than 1%
     http_req_duration: ['p(99)<=500'], // 95% of requests should be below 500ms
     checks: ['rate>0.99'], // the rate of successful checks should be higher than 99%
+    'http_req_duration{name:"POST v3/users"}': ['p(99)<=500'],
+    'http_req_duration{name:"GET v3/users"}': ['p(99)<=500'],
+    'http_req_duration{name:"GET v1/management.cattle.io.roletemplates"}': ['p(99)<=500'],
+    'http_req_duration{name:"GET v1/rbac.authorization.k8s.io.roles"}': ['p(99)<=500'],
+    'http_req_duration{name:"GET v1/rbac.authorization.k8s.io.clusterroles"}': ['p(99)<=500'],
+    'http_req_duration{name:"GET v1/rbac.authorization.k8s.io.rolebindings"}': ['p(99)<=500'],
+    'http_req_duration{name:"GET v1/rbac.authorization.k8s.io.clusterrolebindings"}': ['p(99)<=500'],
+    'http_req_duration{name:"GET v1/management.cattle.io.clusterroletemplatebindings"}': ['p(99)<=500'],
+    'http_req_duration{name:"GET v1/management.cattle.io.projectroletemplatebindings"}': ['p(99)<=500'],
+    'http_req_duration{name:"GET v1/management.cattle.io.globalroles"}': ['p(99)<=500'],
+    'http_req_duration{name:"POST v3/roletemplates"}': ['p(99)<=500'],
+    'http_req_duration{name:"POST v3/globalrolebindings"}': ['p(99)<=500'],
+    'http_req_duration{name:"POST v3/projectroletemplatebindings"}': ['p(99)<=500'],
+    'http_req_duration{name:"POST v3/clusterroletemplatebindings"}': ['p(99)<=500'],
+    'http_req_duration{name:"DELETE v3/users"}': ['p(99)<=500'],
+    'http_req_duration{name:"DELETE v3/globalRoles"}': ['p(99)<=500'],
+    'http_req_duration{name:"DELETE v3/roletemplates"}': ['p(99)<=500'],
+    'http_req_duration{name:"DELETE v3/clusterroletemplatebindings"}': ['p(99)<=500'],
+    'http_req_duration{name:"DELETE v3/projectroletemplatebindings"}': ['p(99)<=500'],
+    'http_req_duration{name:"POST v3/users (xfail)"}': ['p(99)<=500'],
+    'http_req_duration{name:"POST v3/projects (xfail)"}': ['p(99)<=500'],
   }
 }
 
@@ -245,7 +266,8 @@ function createUserExpectFail(baseUrl, cookies, name, password = "useruseruser")
     { 
       cookies: cookies,
       // prevent k6 from marking non-2xx responses as failed requests for this request, since we're explicitly testing for failure
-      responseCallback: http.expectedStatuses(401, 403)
+      responseCallback: http.expectedStatuses(401, 403),
+      tags: { name: "POST v3/users (xfail)" }
      }
   )
 
@@ -300,7 +322,8 @@ function createProjectExpectFail(baseUrl, cookies, name, clusterId, userPrincipa
     { 
       cookies: cookies,
       // prevent k6 from marking non-2xx responses as failed requests for this request, since we're explicitly testing for failure
-      responseCallback: http.expectedStatuses(401, 403)
+      responseCallback: http.expectedStatuses(401, 403),
+      tags: { name: "POST v3/projects (xfail)" }
      }
   )
 
