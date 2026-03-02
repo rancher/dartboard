@@ -7,7 +7,7 @@ import { URL } from '../lib/url-1.0.0.js';
 
 const timeout = '3600s'
 
-function loadKubeconfig(file, contextName) {
+export function loadKubeconfig(file, contextName) {
     const config = YAML.load(open(file));
 
     console.debug(`Loading kubeconfig from '${file}' using context '${contextName}'.`);
