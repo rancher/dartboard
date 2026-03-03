@@ -27,7 +27,7 @@ import {
 const vus = __ENV.VUS || 5
 const projectCount = Number(__ENV.PROJECT_COUNT) || 10
 const userCount = Number(__ENV.USER_COUNT) || 10
-const testUserPassword = __ENV.TEST_USER_PASSWORD
+const testUserPassword = __ENV.USER_PASSWORD
 const testPrefix = "create-RTBs"
 const userPrefix = `${testPrefix}-${__ENV.USER_PREFIX || 'test-user'}`
 const projectsPrefix = `${testPrefix}-rtbs-test`
