@@ -54,10 +54,8 @@ export const options = {
     checks: ['rate>0.99'], // the rate of successful checks should be higher than 99%
     [`time_polled{url:'/v1/management.cattle.io.projects'}`]: ['p(99) < 5000', 'avg < 2500'],
     // API response time thresholds - baseline
-    [`api_systemimage_duration{phase:'baseline', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_event_duration{phase:'baseline', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_k8sevent_duration{phase:'baseline', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
-    [`api_settings_duration{phase:'baseline', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_clusterrole_duration{phase:'baseline', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_crd_duration{phase:'baseline', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_configmap_duration{phase:'baseline', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
@@ -66,10 +64,8 @@ export const options = {
     [`api_project_duration{phase:'baseline', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_namespace_duration{phase:'baseline', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     // API response time thresholds - halfway
-    [`api_systemimage_duration{phase:'halfway', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_event_duration{phase:'halfway', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_k8sevent_duration{phase:'halfway', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
-    [`api_settings_duration{phase:'halfway', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_clusterrole_duration{phase:'halfway', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_crd_duration{phase:'halfway', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_configmap_duration{phase:'halfway', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
@@ -78,10 +74,8 @@ export const options = {
     [`api_project_duration{phase:'halfway', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_namespace_duration{phase:'halfway', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     // API response time thresholds - final
-    [`api_systemimage_duration{phase:'final', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_event_duration{phase:'final', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_k8sevent_duration{phase:'final', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
-    [`api_settings_duration{phase:'final', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_clusterrole_duration{phase:'final', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_crd_duration{phase:'final', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_configmap_duration{phase:'final', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
@@ -90,10 +84,8 @@ export const options = {
     [`api_project_duration{phase:'final', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_namespace_duration{phase:'final', user:'admin'}`]: ['avg<1000', 'p(95)<2000'],
     // API response time thresholds - baseline
-    [`api_systemimage_duration{phase:'baseline', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_event_duration{phase:'baseline', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_k8sevent_duration{phase:'baseline', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
-    [`api_settings_duration{phase:'baseline', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_clusterrole_duration{phase:'baseline', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_crd_duration{phase:'baseline', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_configmap_duration{phase:'baseline', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
@@ -102,10 +94,8 @@ export const options = {
     [`api_project_duration{phase:'baseline', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_namespace_duration{phase:'baseline', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     // API response time thresholds - halfway
-    [`api_systemimage_duration{phase:'halfway', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_event_duration{phase:'halfway', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_k8sevent_duration{phase:'halfway', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
-    [`api_settings_duration{phase:'halfway', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_clusterrole_duration{phase:'halfway', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_crd_duration{phase:'halfway', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_configmap_duration{phase:'halfway', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
@@ -114,10 +104,8 @@ export const options = {
     [`api_project_duration{phase:'halfway', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_namespace_duration{phase:'halfway', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     // API response time thresholds - final
-    [`api_systemimage_duration{phase:'final', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_event_duration{phase:'final', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_k8sevent_duration{phase:'final', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
-    [`api_settings_duration{phase:'final', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_clusterrole_duration{phase:'final', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_crd_duration{phase:'final', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
     [`api_configmap_duration{phase:'final', user:'user-standard'}`]: ['avg<1000', 'p(95)<2000'],
@@ -211,7 +199,7 @@ export function setup() {
   const userCRTBId = crtbData.id
 
   console.log("Logging in with standard user")
-  let userLoginRes = login(baseUrl, {}, standardUserName, "useruseruser")
+  let userLoginRes = login(baseUrl, {}, standardUserName, userPassword)
   if (userLoginRes.status !== 200) {
     fail(`could not login to cluster as standard user`)
   }
@@ -235,12 +223,6 @@ export function setup() {
     userCRTBId: userCRTBId
   }
 }
-
-// export function teardown(data) {
-//   cleanup(data, namePrefix)
-//   logout(baseUrl, data.userCookies)
-//   logout(baseUrl, data.adminCookies)
-// }
 
 function collectResourceCounts(cookies, phase) {
   console.log(`Collecting resource counts for phase: ${phase}`)
@@ -299,20 +281,12 @@ function collectAPITimings(cookies, phase, user) {
   // Record each API timing with phase and user tags
   const timingsTags = { phase: phase, user: user }
 
-  if (timings["management.cattle.io.rkek8ssystemimage"]) {
-    diagnosticsUtil.systemImageAPITime.add(timings["management.cattle.io.rkek8ssystemimage"], timingsTags)
-  }
-
   if (timings["event"]) {
     diagnosticsUtil.eventAPITime.add(timings["event"], timingsTags)
   }
 
   if (timings["events.k8s.io.event"]) {
     diagnosticsUtil.k8sEventAPITime.add(timings["events.k8s.io.event"], timingsTags)
-  }
-
-  if (timings["management.cattle.io.setting"]) {
-    diagnosticsUtil.settingsAPITime.add(timings["management.cattle.io.setting"], timingsTags)
   }
 
   if (timings["rbac.authorization.k8s.io.clusterrole"]) {
