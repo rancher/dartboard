@@ -264,11 +264,8 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 	}
 
 	var sans []string
-	if len(clusterAdd.Local.Name) > 0 {
+	if len(clusterAdd.Local.Name) > 0 && clusterAdd.Local.Name != clusterAdd.Public.Name {
 		sans = append(sans, clusterAdd.Local.Name)
-	}
-	if len(clusterAdd.Public.Name) > 0 {
-		sans = append(sans, clusterAdd.Public.Name)
 	}
 
 	chartVals := map[string]any{
@@ -333,7 +330,6 @@ func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
 }
 
 func getRancherMonitoringValsJSON(reserveNodeForMonitoring bool, mimirURL string) map[string]any {
-
 	nodeSelector := map[string]any{}
 	tolerations := []any{}
 	monitoringRestrictions := map[string]any{}
@@ -490,7 +486,6 @@ func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname
 }
 
 func importDownstreamClusters(r *dart.Dart, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster) error {
-
 	log.Print("Import downstream clusters")
 
 	if err := importDownstreamClustersRancherSetup(r, clusters); err != nil {
