@@ -264,8 +264,16 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 	}
 
 	var sans []string
+	// Add the local address as a SAN if it's different from the public address, which can occur when using port forwarding or with certain k3d configurations.
+	// This ensures that the TLS certificate will be valid for both the public and local addresses.
 	if len(clusterAdd.Local.Name) > 0 && clusterAdd.Local.Name != clusterAdd.Public.Name {
 		sans = append(sans, clusterAdd.Local.Name)
+	}
+
+	// If there are no additional SANs to configure, skip installing the
+	// rancher-ingress chart to avoid creating an invalid Ingress manifest.
+	if len(sans) == 0 {
+		return nil
 	}
 
 	chartVals := map[string]any{
