@@ -21,32 +21,32 @@ tofu_variables:
   ssh_private_key_path: ~/.ssh/id_ed25519
   ssh_user: root
   ssh_bastion_user: root
-  bastion_host_ami: ami-02ac0271dfcad44a2 # latest openSUSE Leap 15.6 arm64
+  bastion_host_ami: ami-02ac0271dfcad44a2 # latest openSUSE Leap 16.0 arm64
 
   upstream_cluster:
     server_count: 1
     agent_count: 0
-    distro_version: v1.34.2+k3s1
+    distro_version: v1.34.4+k3s1
     public_ip: true
     reserve_node_for_monitoring: false
     enable_audit_log: false
     node_module_variables:
       instance_type: i3.large
-      ami: ami-095197d9bbe1d2fb3 # latest openSUSE Leap 15.6 x86_64
+      ami: ami-095197d9bbe1d2fb3 # latest openSUSE Leap 16.0 x86_64
       root_volume_size_gb: 50
   upstream_cluster_distro_module: generic/k3s
 
   tester_cluster:
     server_count: 1
     agent_count: 0
-    distro_version: v1.34.2+k3s1
+    distro_version: v1.34.4+k3s1
     public_ip: false
     create_tunnels: true
     reserve_node_for_monitoring: false
     enable_audit_log: false
     node_module_variables:
       instance_type: t3a.large
-      ami: ami-095197d9bbe1d2fb3 # latest openSUSE Leap 15.6 x86_64
+      ami: ami-095197d9bbe1d2fb3 # latest openSUSE Leap 16.0 x86_64
       root_volume_size_gb: 50
   tester_cluster_distro_module: generic/k3s
 
@@ -54,13 +54,13 @@ tofu_variables:
     - cluster_count: 0
       server_count: 1
       agent_count: 0
-      distro_version: v1.34.2+k3s1
+      distro_version: v1.34.4+k3s1
       public_ip: false
       reserve_node_for_monitoring: false
       enable_audit_log: false
       node_module_variables:
         instance_type: t4g.large
-        ami: ami-02ac0271dfcad44a2 # latest openSUSE Leap 15.6 arm64
+        ami: ami-02ac0271dfcad44a2 # latest openSUSE Leap 16.0 arm64
         root_volume_size_gb: 50
   downstream_cluster_distro_module: generic/k3s
 
