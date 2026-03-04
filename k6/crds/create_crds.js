@@ -22,6 +22,7 @@ export const timePolled = new Trend('time_polled', true);
 export const handleSummary = k6Util.customHandleSummary;
 
 export const options = {
+  insecureSkipTLSVerify: true,
   scenarios: {
     create: {
       executor: 'shared-iterations',
