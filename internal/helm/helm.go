@@ -58,3 +58,29 @@ func Install(kubecfg, chartLocation, releaseName, namespace string, vals map[str
 
 	return nil
 }
+
+// UninstallIfPresent removes a Helm release from the given namespace.
+// If the release does not exist, it returns nil without error.
+func UninstallIfPresent(kubecfg, releaseName, namespace string) error {
+	args := []string{
+		"--kubeconfig=" + kubecfg,
+		"uninstall",
+		releaseName,
+		"--namespace=" + namespace,
+	}
+
+	cmd := vendored.Command("helm", args...)
+	var errStream strings.Builder
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = &errStream
+	if err := cmd.Run(); err != nil {
+		errMsg := errStream.String()
+		if strings.Contains(errMsg, "not found") {
+			return nil
+		}
+		return fmt.Errorf("%v", errMsg)
+	}
+
+	fmt.Printf("Release %q in namespace %q uninstalled successfully\n", releaseName, namespace)
+	return nil
+}

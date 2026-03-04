@@ -270,9 +270,14 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 		sans = append(sans, clusterAdd.Local.Name)
 	}
 
-	// If there are no additional SANs to configure, skip installing the
-	// rancher-ingress chart to avoid creating an invalid Ingress manifest.
+	// If there are no additional SANs to configure, uninstall any existing
+	// rancher-ingress release to avoid leaving behind an invalid Ingress
+	// manifest, then return without installing.
 	if len(sans) == 0 {
+		log.Printf("No additional SANs needed, uninstalling chart %q if present\n", chartRancherIngress.namespace+"/"+chartRancherIngress.name)
+		if err := helm.UninstallIfPresent(cluster.Kubeconfig, chartRancherIngress.name, chartRancherIngress.namespace); err != nil {
+			return fmt.Errorf("chart %s: uninstall: %w", chartRancherIngress.name, err)
+		}
 		return nil
 	}
 
