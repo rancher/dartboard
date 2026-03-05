@@ -329,7 +329,18 @@ func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
 }
 
 func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
-	return chartInstall(cluster.Kubeconfig, chart{"cgroups-exporter", "cattle-monitoring-system", "cgroups-exporter"}, nil)
+	var b strings.Builder
+	if err := kubectl.Exec(cluster.Kubeconfig, &b, "get", "nodes", "-o", "jsonpath={.items[*].status.nodeInfo.osImage}"); err != nil {
+		return fmt.Errorf("failed to get node os images: %w", err)
+	}
+
+	vals := map[string]any{}
+	osImages := strings.ToLower(b.String())
+	if strings.Contains(osImages, "suse linux micro") || strings.Contains(osImages, "opensuse micro") || strings.Contains(osImages, "open suse micro") {
+		vals["mountHostSys"] = false
+		log.Printf("Disabling mountHostSys for cgroups-exporter due to detected OS: %s", b.String())
+	}
+	return chartInstall(cluster.Kubeconfig, chart{"cgroups-exporter", "cattle-monitoring-system", "cgroups-exporter"}, vals)
 }
 
 func getRancherMonitoringValsJSON(reserveNodeForMonitoring bool, mimirURL string) map[string]any {
