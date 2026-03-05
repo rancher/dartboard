@@ -284,7 +284,7 @@ export function createGlobalRoleBinding(baseUrl, params, userId, roles = ["user"
 }
 
 
-export function createPRTB(baseUrl, cookies, projectId, roleTemplateId, userId, description = "Dartboard") {
+export function createPRTB(baseUrl, cookies, description = "Dartboard", projectId, roleTemplateId, userId) {
   const res = http.post(
     `${baseUrl}/v3/projectroletemplatebindings`,
     JSON.stringify({
@@ -313,12 +313,12 @@ export function createPRTB(baseUrl, cookies, projectId, roleTemplateId, userId, 
   return res
 }
 
-export function createCRTB(baseUrl, cookies, clusterId, roleTemplateId, userId) {
+export function createCRTB(baseUrl, cookies, description = "Dartboard", clusterId, roleTemplateId, userId) {
   const res = http.post(`${baseUrl}/v3/clusterroletemplatebindings`,
     JSON.stringify({
       "type": "clusterroletemplatebinding",
       "labels": {
-        "description": "Dartboard"
+        "description": description
       },
       "clusterId": clusterId,
       "roleTemplateId": roleTemplateId,
@@ -351,7 +351,7 @@ export function deleteUsersByPrefix(baseUrl, cookies, prefix = "Dartboard ") {
   }
 
   usersData.filter(r => ("description" in r) && r["description"].startsWith(prefix)).forEach(r => {
-    res = http.del(`${baseUrl}/v3/users/${r["id"]}`, { cookies: cookies, tags: { name: "DELETE v3/users" } })
+    res = http.del(`${baseUrl}/v3/users/${r["id"]}`, null, { cookies: cookies, tags: { name: "DELETE v3/users" } })
 
     if (res.status !== 200 && res.status !== 204) {
       console.log("delete user status: ", res.status)
@@ -375,7 +375,7 @@ export function deleteGlobalRolesByPrefix(baseUrl, cookies, prefix = "Dartboard 
   }
 
   JSON.parse(res.body)["data"].filter(r => ("description" in r) && r["description"].startsWith(prefix)).forEach(r => {
-    res = http.del(`${baseUrl}/v3/globalRoles/${r["id"]}`, { cookies: cookies, tags: { name: "DELETE v3/globalRoles" } })
+    res = http.del(`${baseUrl}/v3/globalRoles/${r["id"]}`, null, { cookies: cookies, tags: { name: "DELETE v3/globalRoles" } })
 
     if (res.status !== 200) {
       deletedAll = false
@@ -399,7 +399,7 @@ export function deleteRoleTemplatesByPrefix(baseUrl, cookies, prefix = "Dartboar
   }
 
   JSON.parse(res.body)["data"].filter(r => ("description" in r) && r["description"].startsWith(prefix)).forEach(r => {
-    res = http.del(`${baseUrl}/v3/roletemplates/${r["id"].replace("/", ":")}`, { cookies: cookies, tags: { name: "DELETE v3/roletemplates" } })
+    res = http.del(`${baseUrl}/v3/roletemplates/${r["id"].replace("/", ":")}`, null, { cookies: cookies, tags: { name: "DELETE v3/roletemplates" } })
 
 
     if (res.status !== 200) {
@@ -425,7 +425,7 @@ export function deleteCRTBsByDescriptionLabel(baseUrl, cookies, label = "Dartboa
   }
 
   JSON.parse(res.body)["data"].filter(r => ("labels" in r) && ("description" in r["labels"]) && r["labels"].description == label).forEach(r => {
-    res = http.del(`${baseUrl}/v3/clusterroletemplatebindings/${r["id"]}`, { cookies: cookies, tags: { name: "DELETE v3/clusterroletemplatebindings" } })
+    res = http.del(`${baseUrl}/v3/clusterroletemplatebindings/${r["id"]}`, null, { cookies: cookies, tags: { name: "DELETE v3/clusterroletemplatebindings" } })
 
 
     if (res.status !== 200) {
@@ -451,7 +451,7 @@ export function deletePRTBsByDescriptionLabel(baseUrl, cookies, label = "Dartboa
   }
 
   JSON.parse(res.body)["data"].filter(r => ("labels" in r) && ("description" in r["labels"]) && r["labels"].description == label).forEach(r => {
-    res = http.del(`${baseUrl}/v3/projectroletemplatebindings/${r["id"]}`, { cookies: cookies, tags: { name: "DELETE v3/projectroletemplatebindings" } })
+    res = http.del(`${baseUrl}/v3/projectroletemplatebindings/${r["id"]}`, null, { cookies: cookies, tags: { name: "DELETE v3/projectroletemplatebindings" } })
 
 
     if (res.status !== 200) {

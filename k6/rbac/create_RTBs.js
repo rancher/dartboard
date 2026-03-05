@@ -28,6 +28,7 @@ const vus = __ENV.VUS || 5
 const projectCount = Number(__ENV.PROJECT_COUNT) || 10
 const userCount = Number(__ENV.USER_COUNT) || 10
 const testUserPassword = __ENV.USER_PASSWORD
+const targetCluster = __ENV.CLUSTER
 const testPrefix = "create-RTBs"
 const userPrefix = `${testPrefix}-${__ENV.USER_PREFIX || 'test-user'}`
 const projectsPrefix = `${testPrefix}-rtbs-test`
@@ -38,6 +39,8 @@ const clusterRoleTemplatePrefix = `${testPrefix}-Dartboard-CRTB`
 const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
+
+let clusterId
 
 export const handleSummary = k6Util.customHandleSummary;
 
@@ -112,12 +115,16 @@ export function setup() {
   cleanup(cookies)
 
   let clusterIds = getClusterIds(baseUrl, cookies)
-  let clusterId = getRandomElements(clusterIds, 1)[0]
-  console.log(`Utilizing Cluster with the ID ${clusterId}`)
 
   const clustersResponse = getManagementClusters(baseUrl, cookies)
   if (clustersResponse.status === 200) {
     const clusters = JSON.parse(clustersResponse.body).data
+    if (targetCluster && !clusters.some(c => c.spec.displayName === targetCluster)) {
+      fail(`Target cluster "${targetCluster}" not found among management clusters`)
+    } else {
+      clusterId = clusters.find(c => c.spec.displayName === targetCluster)?.id || getRandomElements(clusterIds, 1)[0]
+      console.log(`Utilizing Cluster with the ID ${clusterId}`)
+    }
     const cluster = clusters.find(c => c.id === clusterId)
     if (cluster) {
       console.log(`Selected Cluster Name: ${cluster.spec.displayName}`)
@@ -202,6 +209,10 @@ export function setup() {
   }
 }
 
+export function teardown(data) {
+  cleanup(data.cookies)
+}
+
 // updates count for each of the relevant RBAC metrics
 // NOTE: k6 does not update metrics until the end of an iteration,
 //       so the minimums reported post- the first iteration!
@@ -232,24 +243,30 @@ function updateRBACNumbers(cookies) {
   }
 }
 
-function cleanup(cookies) {
+function cleanup(cookies, retries = 5) {
   console.log(`Cleaning up Projects, Users, Role Templates, CRTBs, and PRTBs with description label starting with test prefixes`)
-  let projectsDeleted = deleteProjectsByPrefix(baseUrl, cookies, projectsPrefix)
-  // Use "Dartboard" prefix to match the description format "Dartboard Test <Object> X"
-  let usersDeleted = deleteUsersByPrefix(baseUrl, cookies, userPrefix)
-  let prtbsDeleted = deletePRTBsByDescriptionLabel(baseUrl, cookies, projectRoleTemplatePrefix)
-  let crtbsDeleted = deleteCRTBsByDescriptionLabel(baseUrl, cookies, clusterRoleTemplatePrefix)
-  let roleTemplatesDeleted = deleteRoleTemplatesByPrefix(baseUrl, cookies, projectRoleTemplatePrefix)
-  if (!projectsDeleted || !usersDeleted || !roleTemplatesDeleted
-    || !prtbsDeleted || !crtbsDeleted) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    console.log(`Cleanup attempt ${attempt}/${retries}...`)
+    // Use "Dartboard" prefix to match the description format "Dartboard Test <Object> X"
+    let prtbsDeleted = deletePRTBsByDescriptionLabel(baseUrl, cookies, projectRoleTemplatePrefix)
+    let crtbsDeleted = deleteCRTBsByDescriptionLabel(baseUrl, cookies, clusterRoleTemplatePrefix)
+    let roleTemplatesDeleted = deleteRoleTemplatesByPrefix(baseUrl, cookies, projectRoleTemplatePrefix)
+    let usersDeleted = deleteUsersByPrefix(baseUrl, cookies, userPrefix)
+    let projectsDeleted = deleteProjectsByPrefix(baseUrl, cookies, projectsPrefix)
+    if (projectsDeleted && usersDeleted && roleTemplatesDeleted && prtbsDeleted && crtbsDeleted) {
+      console.log(`Cleanup succeeded on attempt ${attempt}/${retries}`)
+      return true
+    }
     console.log("Projects deleted status: ", projectsDeleted)
     console.log("Users deleted status: ", usersDeleted)
     console.log("Role Templates deleted status: ", roleTemplatesDeleted)
     console.log("PRTBs deleted status: ", prtbsDeleted)
     console.log("CRTBs deleted status: ", crtbsDeleted)
-    // Fail the test if any cleanup operation did not complete successfully
-    fail("failed to delete all objects created by test")
+    if (attempt < retries) {
+      sleep(1)
+    }
   }
+  fail(`failed to delete all objects created by test after ${retries} attempts`)
 }
 
 function createUserExpectFail(baseUrl, cookies, name, password = "useruseruser") {
@@ -396,7 +413,7 @@ export function createPRTBs(data) {
 
   const projectId = project.id.replace("/", ":")
 
-  res = createPRTB(baseUrl, data.cookies, projectId, roleTemplateId, user.id, projectRoleTemplatePrefix)
+  res = createPRTB(baseUrl, data.cookies, projectRoleTemplatePrefix, projectId, roleTemplateId, user.id)
   check(res, {
     'PRTB post returns 201 (created)': (r) => r.status === 201,
   })
@@ -472,7 +489,7 @@ export function createCRTBs(data) {
 
   let roleTemplateId = JSON.parse(res.body).id
 
-  res = createCRTB(baseUrl, data.cookies, data.clusterId, roleTemplateId, user.id)
+  res = createCRTB(baseUrl, data.cookies, clusterRoleTemplatePrefix, data.clusterId, roleTemplateId, user.id)
   check(res, {
     'CRTB post returns 201 (created)': (r) => r.status === 201,
   })

@@ -13,6 +13,7 @@ export const putProjectTag = { url: `/v3/projects/<Project ID>` }
 
 
 export function cleanupMatchingProjects(baseUrl, cookies, namePrefix) {
+  let deletedAll = true
   let res = http.get(`${baseUrl}/${normanProjectsPath}`, { 
     headers: { 
     accept: "application/json",
@@ -22,13 +23,18 @@ export function cleanupMatchingProjects(baseUrl, cookies, namePrefix) {
   check(res, {
     'GET /v3/projects returns status 200': (r) => r.status === 200,
   })
+  if (res.status !== 200) return false
   JSON.parse(res.body)["data"].filter(r => r["name"].startsWith(namePrefix)).forEach(r => {
-    res = http.del(`${baseUrl}/${normanProjectsPath}/${r["id"]}`, { cookies: cookies })
+    res = http.del(`${baseUrl}/${normanProjectsPath}/${r["id"]}`, null, { cookies: cookies })
+    if (res.status !== 200 && res.status !== 204) {
+      console.log("delete project status: ", res.status)
+      deletedAll = false
+    }
     check(res, {
-      'DELETE /v3/projects returns status 200': (r) => r.status === 200,
+      'DELETE /v3/projects returns status 200': (r) => r.status === 200 || r.status === 204,
     })
   })
-  return res
+  return deletedAll
 }
 
 export function getProject(baseUrl, cookies, id) {
