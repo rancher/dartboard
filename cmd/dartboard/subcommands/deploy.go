@@ -198,15 +198,15 @@ func installUpstreamCharts(r *dart.Dart, rancherImageTag string, upstream *tofu.
 	}
 
 	// Wait for Rancher deployments to be complete, or subsequent steps may fail
-	if err = kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
+	if err := kubectl.WaitRancher(upstream.Kubeconfig); err != nil {
 		return err
 	}
 
-	if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
+	if err := chartInstallRancherMonitoring(r, upstream); err != nil {
 		return err
 	}
 
-	if err = updateMonitoringProject(&upstream); err != nil {
+	if err := updateMonitoringProject(upstream); err != nil {
 		return err
 	}
 
