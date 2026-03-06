@@ -16,11 +16,12 @@ tofu/main/*/*config
 
 # Others
 scripts/utils/*.txt
-scripts/utils/export-metrics/metrics*
-scripts/utils/export-metrics/chunks_head
-scripts/utils/export-metrics/wal
-scripts/utils/export-metrics/queries.active
-scripts/utils/export-metrics/*.tar.gz
+chunks_head
+wal
+queries.active
+*.tar
+*.tar.gz
+.env
 
 # Binaries
 /dartboard

@@ -13,16 +13,28 @@ export const putProjectTag = { url: `/v3/projects/<Project ID>` }
 
 
 export function cleanupMatchingProjects(baseUrl, cookies, namePrefix) {
-  let res = http.get(`${baseUrl}/${baseProjectsPath}`, { cookies: cookies })
+  let deletedAll = true
+  let res = http.get(`${baseUrl}/${normanProjectsPath}`, { 
+    headers: { 
+    accept: "application/json",
+    'content-type': "application/json",
+   }, 
+   cookies: cookies })
   check(res, {
-    '/v1/management.cattle.io.projects returns status 200': (r) => r.status === 200,
+    'GET /v3/projects returns status 200': (r) => r.status === 200,
   })
-  JSON.parse(res.body)["data"].filter(r => r["spec"]["displayName"].startsWith(namePrefix)).forEach(r => {
-    res = http.del(`${baseUrl}/${normanProjectsPath}/${r["id"]}`, { cookies: cookies })
+  if (res.status !== 200) return false
+  JSON.parse(res.body)["data"].filter(r => r["name"].startsWith(namePrefix)).forEach(r => {
+    res = http.del(`${baseUrl}/${normanProjectsPath}/${r["id"]}`, null, { cookies: cookies })
+    if (res.status !== 200 && res.status !== 204) {
+      console.log("delete project status: ", res.status)
+      deletedAll = false
+    }
     check(res, {
-      'DELETE /v3/projects returns status 200': (r) => r.status === 200,
+      'DELETE /v3/projects returns status 200': (r) => r.status === 200 || r.status === 204,
     })
   })
+  return deletedAll
 }
 
 export function getProject(baseUrl, cookies, id) {
@@ -52,7 +64,7 @@ export function getNormanProjects(baseUrl, cookies) {
   return { res: res, projectArray: projectArray }
 }
 
-export function createNormanProject(baseUrl, body, cookies) {
+export function createNormanProject(baseUrl, cookies, body) {
   const res = http.post(
     `${baseUrl}/${normanProjectsPath}`,
     body,
