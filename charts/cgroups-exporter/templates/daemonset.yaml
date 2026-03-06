@@ -32,10 +32,12 @@ spec:
             - /host/sys/fs/cgroup/memory/kubepods.slice/*
             - /host/sys/fs/cgroup/cpu,cpuacct/system.slice/k3s.service
             - /host/sys/fs/cgroup/cpu,cpuacct/kubepods.slice/*
+            {{- if .Values.mountHostSys }}
             - /host/host/sys/fs/cgroup/memory/docker/*/k3s
             - /host/host/sys/fs/cgroup/memory/docker/*/kubepods/*
             - /host/host/sys/fs/cgroup/cpu,cpuacct/docker/*/k3s
             - /host/host/sys/fs/cgroup/cpu,cpuacct/docker/*/kubepods/*
+            {{- end }}
           ports:
             - containerPort: 9753
               hostPort: 9753
@@ -45,15 +47,19 @@ spec:
             - name: host-sys
               mountPath: /host/sys
               readOnly: true
+            {{- if .Values.mountHostSys }}
             - name: host-host-sys
               mountPath: /host/host/sys
               readOnly: true
+            {{- end }}
       volumes:
         - name: host-sys
           hostPath:
             path: /sys
             type: Directory
+        {{- if .Values.mountHostSys }}
         - name: host-host-sys
           hostPath:
             path: /host/sys
             type: DirectoryOrCreate
+        {{- end }}

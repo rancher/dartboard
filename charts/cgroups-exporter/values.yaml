@@ -4,4 +4,6 @@
 
 image:
   name: ghcr.io/mosquito/cgroups-exporter
-  tag: 0.8.0
+  tag: 0.8.6
+
+mountHostSys: true
