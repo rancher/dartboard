@@ -336,7 +336,7 @@ func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
 
 	vals := map[string]any{}
 	osImages := strings.ToLower(b.String())
-	if strings.Contains(osImages, "suse linux micro") || strings.Contains(osImages, "opensuse micro") || strings.Contains(osImages, "open suse micro") {
+	if strings.Contains(osImages, "suse linux micro") || strings.Contains(osImages, "opensuse leap micro") {
 		vals["mountHostSys"] = false
 		log.Printf("Disabling mountHostSys for cgroups-exporter due to detected OS: %s", b.String())
 	}
@@ -344,7 +344,6 @@ func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
 }
 
 func getRancherMonitoringValsJSON(reserveNodeForMonitoring bool, mimirURL string) map[string]any {
-
 	nodeSelector := map[string]any{}
 	tolerations := []any{}
 	monitoringRestrictions := map[string]any{}
@@ -501,7 +500,6 @@ func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname
 }
 
 func importDownstreamClusters(r *dart.Dart, rancherImageTag string, tf *tofu.Tofu, clusters map[string]tofu.Cluster) error {
-
 	log.Print("Import downstream clusters")
 
 	if err := importDownstreamClustersRancherSetup(r, clusters); err != nil {
