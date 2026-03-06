@@ -174,9 +174,7 @@ export function setup() {
     }
   }
 
-  // Wait for GlobalRoleBindings to propagate before continuing
-  console.log("Waiting for GlobalRoleBindings to propagate...")
-  sleep(5)
+  waitForGlobalRoleBindings(baseUrl, cookies, createdUsers.map(u => u.id))
 
   let {res: projectsRes, projectArray} = listProjects(baseUrl, cookies)
   if (projectsRes.status !== 200) {
@@ -241,6 +239,39 @@ function updateRBACNumbers(cookies) {
     numCRTBs: numCRTBs,
     numPRTBs: numPRTBs,
   }
+}
+
+// Polls /v3/globalrolebindings until all expected userIds have a binding,
+// or fails after timeoutSecs. Checks every intervalSecs seconds.
+function waitForGlobalRoleBindings(baseUrl, cookies, userIds, timeoutSecs = 60, intervalSecs = 2) {
+  const deadline = Date.now() + timeoutSecs * 1000
+  const pending = new Set(userIds)
+
+  while (Date.now() < deadline) {
+    const res = http.get(`${baseUrl}/v3/globalrolebindings`, {
+      cookies: cookies,
+      tags: { name: "GET v3/globalrolebindings" }
+    })
+    if (res.status === 200) {
+      const bindings = JSON.parse(res.body).data || []
+
+      pending.forEach(id => {
+        if (bindings.filter(b => b.userId === id).length === 1) {
+          pending.delete(id)
+        }
+      })
+
+      if (pending.size === 0) {
+        console.log(`All GlobalRoleBindings have propagated according to API response`)
+        return
+      }
+      
+      console.log(`Waiting for ${pending.size}/${userIds.length} GlobalRoleBindings to propagate...`)
+    }
+    sleep(intervalSecs)
+  }
+
+  fail(`Timed out waiting for GlobalRoleBindings to propagate after ${timeoutSecs}s`)
 }
 
 function cleanup(cookies, retries = 5) {
