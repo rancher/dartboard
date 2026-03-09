@@ -264,11 +264,21 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 	}
 
 	var sans []string
-	if len(clusterAdd.Local.Name) > 0 {
+	// Add the local address as a SAN if it's different from the public address, which can occur when using port forwarding or with certain k3d configurations.
+	// This ensures that the TLS certificate will be valid for both the public and local addresses.
+	if len(clusterAdd.Local.Name) > 0 && clusterAdd.Local.Name != clusterAdd.Public.Name {
 		sans = append(sans, clusterAdd.Local.Name)
 	}
-	if len(clusterAdd.Public.Name) > 0 {
-		sans = append(sans, clusterAdd.Public.Name)
+
+	// If there are no additional SANs to configure, uninstall any existing
+	// rancher-ingress release to avoid leaving behind an invalid Ingress
+	// manifest, then return without installing.
+	if len(sans) == 0 {
+		log.Printf("No additional SANs needed, uninstalling chart %q if present\n", chartRancherIngress.namespace+"/"+chartRancherIngress.name)
+		if err := helm.UninstallIfPresent(cluster.Kubeconfig, chartRancherIngress.name, chartRancherIngress.namespace); err != nil {
+			return fmt.Errorf("chart %s: uninstall: %w", chartRancherIngress.name, err)
+		}
+		return nil
 	}
 
 	chartVals := map[string]any{
