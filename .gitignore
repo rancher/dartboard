@@ -22,10 +22,16 @@ scripts/utils/export-metrics/wal
 scripts/utils/export-metrics/queries.active
 scripts/utils/export-metrics/*.tar.gz
 
+# Results and reports
+/summarize-results*
+
 # Binaries
 /dartboard
 /scripts/soak/soak
 /qasereporter-k6/qasereporter-k6
+/summarize-tools/export-metrics/export-metrics
+/summarize-tools/collect-profile/collect-profile
+/summarize-tools/resource-counts/cr
 
 # Vendored binaries
 /internal/vendored/bin
