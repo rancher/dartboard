@@ -58,27 +58,35 @@ func NewCustomUnifiedClient(cfg *config.Config) (*CustomUnifiedClient, error) {
 func SetupQaseClient() *CustomUnifiedClient {
 	token := os.Getenv(config.QaseTestOpsAPITokenEnvVar)
 	projectCode := os.Getenv(config.QaseTestOpsProjectEnvVar)
+
 	if token == "" {
 		logrus.Fatalf("%s environment variable not set", config.QaseTestOpsAPITokenEnvVar)
 	}
+
 	if projectCode == "" {
 		logrus.Fatalf("%s environment variable not set", config.QaseTestOpsProjectEnvVar)
 	}
 
-	var err error
-	var cfg *config.Config
+	var (
+		err error
+		cfg *config.Config
+	)
 
 	cfgBuilder := config.NewConfigBuilder().LoadFromEnvironment()
+
 	cfg, err = cfgBuilder.Build()
 	if err != nil {
 		logrus.Fatalf("Failed to build Qase config from environment variables: %v", err)
 	}
+
 	if cfg.Mode == "" {
 		cfg.Mode = config.MODE_TESTOPS
 	}
+
 	if cfg.Fallback == "" {
 		cfg.Fallback = config.MODE_REPORT
 	}
+
 	if cfg.Debug {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
@@ -104,11 +112,14 @@ func (c *CustomUnifiedClient) CreateTestRun(ctx context.Context, testRunName, pr
 
 	resp, res, err := c.V1Client.GetAPIClient().RunsAPI.CreateRun(authCtx, projectCode).RunCreate(*runCreate).Execute()
 	logResponseBody(res, "CreateTestRun")
+
 	if err != nil {
 		return 0, fmt.Errorf("failed to create test run: %w", err)
 	}
+
 	runID := *resp.Result.Id
 	c.Config.TestOps.Run.ID = &runID
+
 	return runID, nil
 }
 
@@ -126,6 +137,7 @@ func (c *CustomUnifiedClient) GetTestRun(ctx context.Context, projectCode string
 	}
 	resp, res, err := apiRunRequest.Execute()
 	logResponseBody(res, "GetTestRun")
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get test run: %w", err)
 	}
@@ -140,6 +152,7 @@ func (c *CustomUnifiedClient) GetTestCase(ctx context.Context, projectCode strin
 	})
 	resp, res, err := c.V1Client.GetAPIClient().CasesAPI.GetCase(authCtx, projectCode, int32(caseID)).Execute()
 	logResponseBody(res, "GetTestCase")
+
 	return resp.Result, err
 }
 
@@ -156,10 +169,12 @@ func (c *CustomUnifiedClient) CompleteTestRun(ctx context.Context, projectCode s
 		logrus.Debugf("Completing test run ID: %d", runID)
 		_, res, err := c.V1Client.GetAPIClient().RunsAPI.CompleteRun(authCtx, c.Config.TestOps.Project, int32(runID)).Execute()
 		logResponseBody(res, "CompleteTestRun")
+
 		if err != nil {
 			return fmt.Errorf("failed to complete test run: %w", err)
 		}
 	}
+
 	return nil
 }
 
@@ -172,13 +187,16 @@ func (c *CustomUnifiedClient) UploadAttachments(ctx context.Context, files []*os
 	projectCode := c.Config.TestOps.Project
 
 	var hashes []string
+
 	for _, file := range files {
 		logrus.Debugf("Uploading attachment: %s", file.Name())
+
 		hash, err := c.V1Client.UploadAttachment(ctx, projectCode, []*os.File{file})
 		if err != nil {
 			logrus.Warnf("Failed to upload attachment %s: %v", file.Name(), err)
 			continue
 		}
+
 		if hash != "" {
 			hashes = append(hashes, hash)
 		}
@@ -189,6 +207,7 @@ func (c *CustomUnifiedClient) UploadAttachments(ctx context.Context, files []*os
 	}
 
 	logrus.Infof("Successfully uploaded %d out of %d attachments.", len(hashes), len(files))
+
 	return hashes, nil
 }
 
@@ -202,6 +221,7 @@ func (c *CustomUnifiedClient) GetTestCaseByTitle(ctx context.Context, projectCod
 
 	limit := int32(100)
 	offset := int32(0)
+
 	var matchingCase *api_v1_client.TestCase
 
 	for {
@@ -211,6 +231,7 @@ func (c *CustomUnifiedClient) GetTestCaseByTitle(ctx context.Context, projectCod
 			Offset(offset).
 			Execute()
 		logResponseBody(res, "GetTestCaseByTitle")
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to get test cases: %w", err)
 		}
@@ -261,19 +282,23 @@ func (c *CustomUnifiedClient) CreateTestResultV1(ctx context.Context, projectCod
 	})
 	_, res, err := c.V1Client.GetAPIClient().ResultsAPI.CreateResult(authCtx, projectCode, int32(runID)).ResultCreate(result).Execute()
 	logResponseBody(res, "CreateTestResultV1")
+
 	if err != nil || !strings.Contains(strings.ToLower(res.Status), "ok") {
 		return fmt.Errorf("failed to create v1 test result or did not receive 'OK; response: %w", err)
 	}
+
 	return nil
 }
 
 // CreateTestResultV2 creates a test result using the V2 API.
 func (c *CustomUnifiedClient) CreateTestResultV2(ctx context.Context, projectCode string, runID int64, result api_v2_client.ResultCreate) error {
-	res, err := c.V2Client.GetAPIClient().ResultsAPI.CreateResultV2(ctx, projectCode, runID).ResultCreate(result).Execute()
+	_, res, err := c.V2Client.GetAPIClient().ResultsAPI.CreateResultV2(ctx, projectCode, runID).ResultCreate(result).Execute()
 	logResponseBody(res, "CreateTestResultV2")
+
 	if err != nil {
 		return fmt.Errorf("failed to create v2 test result: %w", err)
 	}
+
 	return nil
 }
 
