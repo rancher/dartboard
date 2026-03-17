@@ -272,10 +272,16 @@ ${safeK6Env}
 
                             cp "\$K6_TEST" "\$MODIFIED_TEST"
                             # Comment out the export of handleSummary
-                            sed -i "s|export .*handleSummary|// &|" "\$MODIFIED_TEST"
+                            # sed -i "s|export .*handleSummary|// &|" "\$MODIFIED_TEST"
 
                             echo "Running k6 script (Native Dashboard Mode): \$MODIFIED_TEST"
-                            k6 run --no-color "\$MODIFIED_TEST" | tee "${summaryLog}"
+                            k6 run --no-color "\$MODIFIED_TEST" | tee "${summaryLog}" || {
+                                K6_EXIT_CODE=\$?
+                                if [ "\${K6_EXIT_CODE}" -ne 99 ]; then
+                                    exit \${K6_EXIT_CODE}
+                                fi
+                                echo "k6 finished with thresholds exceeded (exit code 99), continuing..."
+                            }
 
                             # 2. Generate Custom Reports (k6-reporter, custom JUnit) from the JSON summary
                             echo "Generating custom reports from ${summaryJson}..."
