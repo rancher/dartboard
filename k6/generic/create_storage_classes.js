@@ -1,14 +1,9 @@
-import encoding from 'k6/encoding';
 import exec from 'k6/execution';
-import { createStorageClasses } from '../generic/generic_utils.js';
-import { login, getCookies } from '../rancher/rancher_utils.js';
-import {fail} from 'k6';
-import * as k8s from '../generic/k8s.js'
 import {loadKubeconfig} from '../generic/k8s.js'
 import { customHandleSummary } from '../generic/k6_utils.js';
+import { createStorageClass } from '../generic/generic_utils.js';
 
 // Parameters
-//const namespace = "longhorn-system"
 const token = __ENV.TOKEN
 const storageClassCount =Number(__ENV.STORAGECLASS_COUNT)
 const clusterId = "local"
@@ -34,9 +29,9 @@ export const options = {
     setupTimeout: '8h',
 
     scenarios: {
-        createResourcesStorageClasses: {
+        createResourceStorageClass: {
             executor: 'shared-iterations',
-            exec: 'createResourcesStorageClasses',
+            exec: 'createResourceStorageClass',
             vus: vus,
             iterations: storageClassCount,
             maxDuration: '1h',

@@ -1,14 +1,11 @@
 import encoding from 'k6/encoding';
 import exec from 'k6/execution';
 import { createSecretWithLabel } from '../generic/generic_utils.js';
-import { login, getCookies } from '../rancher/rancher_utils.js';
-import {fail} from 'k6';
-import {loadKubeconfig} from '../generic/k8s.js'
 import * as k8s from '../generic/k8s.js'
 import { customHandleSummary } from '../generic/k6_utils.js';
 
 // Parameters
-const namespace = ""
+const namespace = __ENV.NAMESPACE || "scalability-test"
 const token = __ENV.TOKEN
 const secretCount = Number(__ENV.SECRET_COUNT)
 const secretData = encoding.b64encode("a".repeat(10*1024))
