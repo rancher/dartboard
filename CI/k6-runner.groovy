@@ -208,7 +208,7 @@ ${params.K6_ENV}
         dir('dartboard') {
             script {
                 def k6SummaryJsonFile = "${testFileBasename}-summary.json"
-                def k6ReportHtmlFile = "${testFileBasename}-summary.html"
+                def k6ReportHtmlFile = "${testFileBasename}-report.html"
                 withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
                   sh """
                   docker run --rm --name dartboard-qase-reporter \\
@@ -225,11 +225,11 @@ ${params.K6_ENV}
                       -e K6_SUMMARY_HTML_FILE="./${k6ReportHtmlFile}" \\
                       ${env.IMAGE_NAME}:latest sh -c '''
                           echo "Reporting k6 results to Qase..."
-                          if command -v qasereporter-k6 >/dev/null 2>&1; then
+                          if command -v qase-k6-cli >/dev/null 2>&1; then
                               source "${env.K6_ENV_FILE}"
-                              qasereporter-k6
+                              qase-k6-cli report
                           else
-                              echo "qasereporter-k6 not found, skipping report."
+                              echo "qase-k6-cli not found, skipping report."
                               exit 1
                           fi
                       '''
