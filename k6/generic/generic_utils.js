@@ -2,7 +2,7 @@ import {check, sleep} from 'k6';
 import http from 'k6/http';
 
 // Required params: baseurl, cookies, data, clusterId, namespace, iter
-export function createConfigMaps(baseUrl, cookies, data, clusterId, namespace, iter) {
+export function createConfigMap(baseUrl, cookies, data, clusterId, namespace, iter) {
     const name = `test-config-map-${iter}`
 
     const url = clusterId === "local"?
@@ -30,8 +30,8 @@ export function createConfigMaps(baseUrl, cookies, data, clusterId, namespace, i
 }
 
 // Required params: baseurl, cookies, data, clusterId, namespace, iter
-export function createSecrets(baseUrl, cookies, data, clusterId, namespace, iter)  {
-    const name = `test-secrets-${iter}`
+export function createSecret(baseUrl, cookies, data, clusterId, namespace, iter)  {
+    const name = `test-secret-${iter}`
 
     const url = clusterId === "local"?
       `${baseUrl}/v1/secrets` :
@@ -58,9 +58,41 @@ export function createSecrets(baseUrl, cookies, data, clusterId, namespace, iter
     })
 }
 
+// Create Secrets with Labels
+// Required params: baseurl, coookies, data, cluster, namespace, iter
+export function createSecretWithLabel(baseUrl, cookies, data, clusterId, namespace, iter, key, value)  {
+    const name = `test-secret-${iter}`
+    const key_1 = key
+    const value_1 = value
+
+    const url = clusterId === "local"?
+      `${baseUrl}/v1/secrets` :
+      `${baseUrl}/k8s/clusters/${clusterId}/v1/secrets`
+
+    const res = http.post(`${url}`,
+        JSON.stringify({
+            "metadata": {
+                "name": name,
+                "namespace": namespace,
+                "labels": {[key_1]:value_1}
+            },
+            "data": {"data": data},
+            "type": "opaque"
+        }),
+        { cookies: cookies }
+    )
+
+    sleep(0.1)
+    if (res.status != 201) {
+        console.log(res)
+    }
+    check(res, {
+        '/v1/secrets returns status 201': (r) => r.status === 201,
+    })
+}
 
 // Required params: baseurl, cookies, clusterId, namespace, iter
-export function createDeployments(baseUrl, cookies, clusterId, namespace, iter) {
+export function createDeployment(baseUrl, cookies, clusterId, namespace, iter) {
     const name = `test-deployment-${iter}`
 
     const url = clusterId === "local"?
@@ -147,3 +179,34 @@ export function getRandomElements(arr, count) {
   return shuffled.slice(0, count);
 }
 
+
+
+export function createStorageClass(baseUrl, cookies, clusterId, iter){
+
+    const name = `test-storage-class-${iter}`
+
+    const url = clusterId === "local"?
+      `${baseUrl}/v1/storage.k8s.io.storageclasses` :
+      `${baseUrl}/k8s/clusters/${clusterId}/v1/storage.k8s.io.storageclasses`
+
+
+    const res = http.post( `${url}`, JSON.stringify({
+        "type": "storage.k8s.io.storageclass",
+        "metadata": {"name": name},
+        "parameters": { "numberOfReplicas": "3", "staleReplicaTimeout": "2880" },
+        "provisioner": "driver.longhorn.io",
+        "allowVolumeExpansion": true,
+        "reclaimPolicy": "Delete",
+        "volumeBindingMode": "Immediate"
+        }),
+        {cookies: cookies}
+    )
+
+    sleep(0.1)
+    if (res.status != 201) {
+        console.log(res)
+    }
+    check(res, {
+        '/v1/storage.k8s.io.storageclasses returns status 201': (r) => r.status === 201,
+    })
+}
