@@ -108,6 +108,7 @@ func reportSummary(params map[string]string) {
 
 	if len(attachments) > 0 {
 		var files []*os.File
+
 		for _, filePath := range attachments {
 			file, err := os.Open(filePath)
 			if err != nil {
@@ -134,6 +135,7 @@ func reportSummary(params map[string]string) {
 	resultBody.SetCaseId(testCaseID)
 	resultBody.SetComment(comment)
 	resultBody.SetAttachments(attachmentHashes)
+
 	if len(params) > 0 {
 		resultBody.SetParam(params)
 	}
