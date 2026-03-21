@@ -197,7 +197,7 @@ function cleanup(cookies, namePrefix) {
 function getProjectWithRetry(baseUrl, cookies, projectId, maxRetries = 5) {
   for (let retry = 0; retry < maxRetries; retry++) {
     let { res, project } = projectsUtil.getProject(baseUrl, cookies, projectId)
-    if (res.status == 200 && project && project.status.conditions) {
+    if (res.status == 200 && project?.status?.conditions) {
       return project
     }
     console.warn(`GET Project attempt #${retry + 1} failed with status ${res.status}`)
@@ -250,7 +250,7 @@ export function setup() {
   sleep(15)
 
   let steveProject = getProjectWithRetry(baseUrl, cookies, projectId, 10)
-  if (!steveProject || !steveProject.status.conditions) {
+  if (!steveProject?.status?.conditions) {
     fail("Dartboard test project could not be retrieved")
   }
 
