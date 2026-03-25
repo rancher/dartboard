@@ -1,5 +1,14 @@
 import { customHandleSummary } from './k6_utils.js';
 
+/*
+This module is responsible for generating custom reports from the k6 summary data. 
+It reads the summary JSON file specified by the K6_SUMMARY_JSON_FILE environment variable, 
+processes the data, and generates custom reports based on the test results. The handleSummary 
+function is called by k6 at the end of the test execution to generate the reports.
+
+Can be used ad-hoc to generate custom reports based on the summary data.
+*/
+
 const summaryPath = __ENV.K6_SUMMARY_JSON_FILE;
 
 // Load summary data during initialization
