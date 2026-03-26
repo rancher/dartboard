@@ -13,30 +13,30 @@ import (
 
 // Dart is a "recipe" that encodes all parameters for a test run
 type Dart struct {
+	TofuVariables     map[string]any `yaml:"tofu_variables"`
 	TofuMainDirectory string         `yaml:"tofu_main_directory"`
 	TofuWorkspace     string         `yaml:"tofu_workspace"`
-	TofuParallelism   int            `yaml:"tofu_parallelism"`
-	TofuVariables     map[string]any `yaml:"tofu_variables"`
 	ChartVariables    ChartVariables `yaml:"chart_variables"`
 	TestVariables     TestVariables  `yaml:"test_variables"`
+	TofuParallelism   int            `yaml:"tofu_parallelism"`
 }
 
 type ChartVariables struct {
-	RancherReplicas             int              `yaml:"rancher_replicas"`
-	DownstreamRancherMonitoring bool             `yaml:"downstream_rancher_monitoring"`
+	RancherAppsRepoOverride     string           `yaml:"rancher_apps_repo_override"`
+	RancherMonitoringVersion    string           `yaml:"rancher_monitoring_version"`
 	AdminPassword               string           `yaml:"admin_password"`
 	UserPassword                string           `yaml:"user_password"`
 	RancherVersion              string           `yaml:"rancher_version"`
-	ForcePrimeRegistry          bool             `yaml:"force_prime_registry"`
-	RancherAppsRepoOverride     string           `yaml:"rancher_apps_repo_override"`
-	RancherChartRepoOverride    string           `yaml:"rancher_chart_repo_override"`
-	RancherImageOverride        string           `yaml:"rancher_image_override"`
-	RancherImageTagOverride     string           `yaml:"rancher_image_tag_override"`
-	RancherMonitoringVersion    string           `yaml:"rancher_monitoring_version"`
-	CertManagerVersion          string           `yaml:"cert_manager_version"`
-	TesterGrafanaVersion        string           `yaml:"tester_grafana_version"`
 	RancherValues               string           `yaml:"rancher_values"`
+	TesterGrafanaVersion        string           `yaml:"tester_grafana_version"`
+	RancherImageOverride        string           `yaml:"rancher_image_override"`
+	CertManagerVersion          string           `yaml:"cert_manager_version"`
+	RancherImageTagOverride     string           `yaml:"rancher_image_tag_override"`
+	RancherChartRepoOverride    string           `yaml:"rancher_chart_repo_override"`
 	ExtraEnvironmentVariables   []map[string]any `yaml:"extra_environment_variables"`
+	RancherReplicas             int              `yaml:"rancher_replicas"`
+	DownstreamRancherMonitoring bool             `yaml:"downstream_rancher_monitoring"`
+	ForcePrimeRegistry          bool             `yaml:"force_prime_registry"`
 }
 
 type TestVariables struct {
@@ -73,15 +73,19 @@ func Parse(path string) (*Dart, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read dart file: %w", err)
 	}
+
 	result := defaultDart
+
 	err = yaml.Unmarshal(bytes, &result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal dart file: %w", err)
 	}
+
 	tofuVars, err := yaml.Marshal(result.TofuVariables)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal recipe's tofu variables: %w", err)
 	}
+
 	log.Printf("\nTofu variables: \n%v\n", string(tofuVars))
 
 	result.ChartVariables.RancherVersion = normalizeVersion(result.ChartVariables.RancherVersion)
@@ -104,6 +108,7 @@ func needsPrime(version string) bool {
 	major, _ := strconv.Atoi(versionSplits[0])
 	minor, _ := strconv.Atoi(versionSplits[1])
 	patch, _ := strconv.Atoi(versionSplits[2])
+
 	return (major == 2 && minor == 7 && patch >= 11) ||
 		(major == 2 && minor == 8 && patch >= 6)
 }

@@ -54,6 +54,7 @@ func Load(cli *cli.Context) error {
 		if clusterName != "upstream" && !strings.HasPrefix(clusterName, "downstream") {
 			continue
 		}
+
 		if err := loadConfigMapAndSecrets(r, tester.Kubeconfig, clusterName, clusterData); err != nil {
 			return err
 		}
@@ -67,6 +68,7 @@ func Load(cli *cli.Context) error {
 	if err := loadProjects(r, tester.Kubeconfig, "upstream", clusters["upstream"]); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -89,19 +91,23 @@ func loadConfigMapAndSecrets(r *dart.Dart, kubeconfig string, clusterName string
 	}
 
 	log.Printf("Load resources on cluster %q (#ConfigMaps: %s, #Secrets: %s)\n", clusterName, configMapCount, secretCount)
+
 	if err := kubectl.K6run(kubeconfig, "generic/create_k8s_resources.js", envVars, tags, true, clusterData.KubernetesAddresses.Tunnel, false); err != nil {
 		return fmt.Errorf("failed loading ConfigMaps and Secrets on cluster %q: %w", clusterName, err)
 	}
+
 	return nil
 }
 
 func loadRolesAndUsers(r *dart.Dart, kubeconfig string, clusterName string, clusterData tofu.Cluster) error {
 	roleCount := strconv.Itoa(r.TestVariables.TestRoles)
 	userCount := strconv.Itoa(r.TestVariables.TestUsers)
+
 	clusterAdd, err := getAppAddressFor(clusterData)
 	if err != nil {
 		return fmt.Errorf("failed loading Roles and Users on cluster %q: %w", clusterName, err)
 	}
+
 	envVars := map[string]string{
 		"BASE_URL":      clusterAdd.Public.HTTPSURL,
 		"USERNAME":      "admin",
@@ -122,15 +128,18 @@ func loadRolesAndUsers(r *dart.Dart, kubeconfig string, clusterName string, clus
 	if err := kubectl.K6run(kubeconfig, "generic/create_roles_users.js", envVars, tags, true, clusterAdd.Local.HTTPSURL, false); err != nil {
 		return fmt.Errorf("failed loading Roles and Users on cluster %q: %w", clusterName, err)
 	}
+
 	return nil
 }
 
 func loadProjects(r *dart.Dart, kubeconfig string, clusterName string, clusterData tofu.Cluster) error {
 	projectCount := strconv.Itoa(r.TestVariables.TestProjects)
+
 	clusterAdd, err := getAppAddressFor(clusterData)
 	if err != nil {
 		return fmt.Errorf("failed loading Projects on cluster %q: %w", clusterName, err)
 	}
+
 	envVars := map[string]string{
 		"BASE_URL":      clusterAdd.Public.HTTPSURL,
 		"USERNAME":      "admin",
@@ -148,5 +157,6 @@ func loadProjects(r *dart.Dart, kubeconfig string, clusterName string, clusterDa
 	if err := kubectl.K6run(kubeconfig, "generic/create_projects.js", envVars, tags, true, clusterAdd.Local.HTTPSURL, false); err != nil {
 		return fmt.Errorf("failed loading Projects on cluster %q: %w", clusterName, err)
 	}
+
 	return nil
 }

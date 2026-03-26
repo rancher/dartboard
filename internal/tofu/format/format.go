@@ -65,6 +65,7 @@ func primitiveToHclString(value interface{}, isNested bool) (string, error) {
 		if isNested {
 			return fmt.Sprintf("\"%v\"", v), nil
 		}
+
 		return fmt.Sprintf("%v", v), nil
 	case bool:
 		return strconv.FormatBool(v), nil
@@ -79,6 +80,7 @@ func primitiveToHclString(value interface{}, isNested bool) (string, error) {
 				vInt64 = int64(vInt32)
 			}
 		}
+
 		return fmt.Sprintf("%d", vInt64), nil
 	case float32, float64:
 		// explicitly convert to float64 if needed
@@ -87,6 +89,7 @@ func primitiveToHclString(value interface{}, isNested bool) (string, error) {
 			vFloat64 = float64(v.(float32))
 			return strconv.FormatFloat(vFloat64, 'f', -1, 32), nil
 		}
+
 		return strconv.FormatFloat(vFloat64, 'f', -1, 64), nil
 	default:
 		return fmt.Sprintf("%v", v), fmt.Errorf("no defined case for type of value: %T", v)
@@ -100,8 +103,11 @@ func primitiveToHclString(value interface{}, isNested bool) (string, error) {
 // good enough for the type of variables we deal with in Dartboard.
 func ConvertValueToHCL(value any, isNested bool) string {
 	// We use type assertions to manually convert into []interface{} and map[string]interface{} if and when needed
-	var v string
-	var err error
+	var (
+		v   string
+		err error
+	)
+
 	if slice, isSlice := value.([]any); isSlice {
 		v = sliceToHclString(slice)
 	} else if m, isMap := value.(map[string]any); isMap {
@@ -109,8 +115,10 @@ func ConvertValueToHCL(value any, isNested bool) string {
 	} else {
 		v, err = primitiveToHclString(value, isNested)
 	}
+
 	if err != nil {
 		log.Panicf("%v", err)
 	}
+
 	return v
 }
