@@ -27,7 +27,6 @@ func Apply(cli *cli.Context) error {
 	if err = tf.PrintVersion(cli.Context); err != nil {
 		return err
 	}
-
 	if err = tf.Apply(cli.Context); err != nil {
 		return err
 	}
