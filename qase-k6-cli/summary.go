@@ -68,12 +68,14 @@ func reportSummary(params map[string]string) {
 	// Report to Qase
 	status := qase.StatusPassed
 	thresholdsFailed := false
+
 	for _, t := range thresholds {
 		if !t.Pass {
 			thresholdsFailed = true
 			break
 		}
 	}
+
 	if thresholdsFailed {
 		status = qase.StatusExceededThresholds
 	} else if !overallPass {
@@ -121,14 +123,14 @@ func reportSummary(params map[string]string) {
 			}(file, filePath)
 
 			files = append(files, file)
-
-			hashes, err := qaseClient.UploadAttachments(context.Background(), files)
-			if err != nil {
-				logrus.Fatalf("Failed to upload attachments to Qase: %v", err)
-			}
-
-			attachmentHashes = append(attachmentHashes, hashes...)
 		}
+
+		hashes, err := qaseClient.UploadAttachments(context.Background(), files)
+		if err != nil {
+			logrus.Fatalf("Failed to upload attachments to Qase: %v", err)
+		}
+
+		attachmentHashes = append(attachmentHashes, hashes...)
 	}
 
 	resultBody := v1.NewResultCreate(status)
