@@ -168,6 +168,7 @@ func runReport(granularReporting bool, runIDOverride string) {
 		if err != nil {
 			logrus.Fatalf("Invalid QASE_TEST_CASE_ID: %v", err)
 		}
+
 		testCaseID = id
 		logrus.Infof("Using provided Qase test case ID: %d", testCaseID)
 	}
@@ -219,6 +220,7 @@ func runGather(runIDOverride string) {
 	qaseClient = qase.SetupQaseClient()
 
 	include := "cases"
+
 	run, err := qaseClient.GetTestRun(context.Background(), projectID, runIDVal, &include)
 	if err != nil {
 		logrus.Fatalf("Failed to get test run: %v", err)
@@ -231,6 +233,7 @@ func runGather(runIDOverride string) {
 
 	// Get the ID of the "AutomationTestName" custom field
 	var automationTestNameID int64
+
 	for _, cf := range cfResp.Result.Entities {
 		if cf.Title != nil && *cf.Title == "AutomationTestName" {
 			automationTestNameID = *cf.Id
@@ -243,11 +246,12 @@ func runGather(runIDOverride string) {
 	}
 
 	type gatheredCase struct {
-		ID                 int64             `json:"id"`
-		Title              string            `json:"title"`
 		Parameters         map[string]string `json:"parameters"`
+		Title              string            `json:"title"`
 		AutomationTestName string            `json:"automation_test_name"`
+		ID                 int64             `json:"id"`
 	}
+
 	results := []gatheredCase{}
 	processedIDs := map[int64]bool{}
 
@@ -255,6 +259,7 @@ func runGather(runIDOverride string) {
 		if processedIDs[caseID] {
 			continue
 		}
+
 		processedIDs[caseID] = true
 
 		tc, err := qaseClient.GetTestCase(context.Background(), projectID, caseID)
@@ -264,6 +269,7 @@ func runGather(runIDOverride string) {
 		}
 
 		paramMap := map[string][]string{}
+
 		for _, parameter := range tc.Parameters {
 			var items []v1.ParameterSingle
 			if parameter.TestCaseParameterSingle != nil {
@@ -271,11 +277,13 @@ func runGather(runIDOverride string) {
 			} else if parameter.TestCaseParameterGroup != nil {
 				items = append(items, parameter.TestCaseParameterGroup.Items...)
 			}
+
 			for _, item := range items {
 				val := []string{}
 				if item.Values != nil {
 					val = item.Values
 				}
+
 				paramMap[item.Title] = val
 			}
 		}
@@ -315,8 +323,10 @@ func generateCombinations(params map[string][]string) []map[string]string {
 		keys = append(keys, k)
 	}
 
-	var results []map[string]string
-	var backtrack func(index int, current map[string]string)
+	var (
+		results   []map[string]string
+		backtrack func(index int, current map[string]string)
+	)
 
 	backtrack = func(index int, current map[string]string) {
 		// Base case: if we have processed all keys, we have a complete combination.
@@ -326,7 +336,9 @@ func generateCombinations(params map[string][]string) []map[string]string {
 			for k, v := range current {
 				combo[k] = v
 			}
+
 			results = append(results, combo)
+
 			return
 		}
 
@@ -348,6 +360,7 @@ func generateCombinations(params map[string][]string) []map[string]string {
 	}
 
 	backtrack(0, make(map[string]string))
+
 	return results
 }
 
@@ -377,12 +390,14 @@ func reportMetrics(params map[string]string) {
 	// Report to Qase
 	status := qase.StatusPassed
 	thresholdsFailed := false
+
 	for _, t := range thresholds {
 		if !t.Pass {
 			thresholdsFailed = true
 			break
 		}
 	}
+
 	if thresholdsFailed {
 		status = qase.StatusExceededThresholds
 	} else if !overallPass {

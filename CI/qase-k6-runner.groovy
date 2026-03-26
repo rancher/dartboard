@@ -11,6 +11,7 @@ def kubeconfigContainerPath
 def baseURL
 def sanitizeCharacterRegex = "[^a-zA-Z0-9'_-]"
 def sanitizeK6EnvRegex = "[^a-zA-Z0-9_=,;&*-.\\n\\r]"
+def sanitizeK6ScriptPathRegex = "[^a-zA-Z0-9_./-]"
 
 pipeline {
   agent { label agentLabel }
@@ -205,12 +206,20 @@ pipeline {
               echo "Parameters: ${parameters}"
               echo "-------------------------------------------------------"
 
+                def safeScriptPath = (scriptPath ?: "").replaceAll(sanitizeK6ScriptPathRegex, "")
+                if (!safeScriptPath || safeScriptPath != scriptPath || !safeScriptPath.endsWith('.js') || safeScriptPath.contains('..')) {
+                  error("Invalid k6 script path for Case ${caseId}: ${scriptPath}")
+                }
+                if (!fileExists(safeScriptPath)) {
+                  error("k6 script not found for Case ${caseId}: ${safeScriptPath}")
+                }
+
               // Sanitize project name to prevent shell injection in filenames
               def safeProject = (params.QASE_TESTOPS_PROJECT ?: "").replaceAll(sanitizeCharacterRegex, "")
 
               // 1. Prepare Environment for this specific test case
               // Use index to ensure uniqueness for file names when multiple parameter combinations exist for the same case ID
-              def basename = sh(script: "basename ${scriptPath}", returnStdout: true).trim().replaceAll("\\.js", "")
+                def basename = safeScriptPath.tokenize('/').last().replaceAll("\\.js", "")
               def envFile = "k6-${basename}-${safeProject}-${caseId}-${index}.env"
               def k6ReportPrefix = "k6-${basename}-${safeProject}-${caseId}-${index}"
               def summaryLog = "k6-summary-${safeProject}-${caseId}-${index}-params.log"
@@ -234,7 +243,7 @@ pipeline {
 
               envContent += """
 K6_NO_USAGE_REPORT=true
-K6_TEST=${scriptPath}
+K6_TEST=${safeScriptPath}
 K6_REPORT_PREFIX=${k6ReportPrefix}
 BASE_URL=${baseURL ?: ''}
 KUBECONFIG=${kubeconfigContainerPath ?: ''}
