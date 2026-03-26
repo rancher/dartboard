@@ -13,11 +13,14 @@ import (
 const (
 	k6SummaryJsonFileEnvVar = "K6_SUMMARY_JSON_FILE"
 	k6SummaryHtmlFileEnvVar = "K6_SUMMARY_HTML_FILE"
+	// See https://grafana.com/docs/k6/latest/results-output/web-dashboard/
+	k6WebDashboardExportEnvVar = "K6_WEB_DASHBOARD_EXPORT"
 )
 
 var (
-	k6SummaryJsonFile = os.Getenv(k6SummaryJsonFileEnvVar)
-	k6SummaryHtmlFile = os.Getenv(k6SummaryHtmlFileEnvVar)
+	k6SummaryJsonFile        = os.Getenv(k6SummaryJsonFileEnvVar)
+	k6SummaryHtmlFile        = os.Getenv(k6SummaryHtmlFileEnvVar)
+	k6WebDashboardExportFile = os.Getenv(k6WebDashboardExportEnvVar)
 )
 
 // K6Summary represents the structure of the k6 summary JSON output.
@@ -37,13 +40,13 @@ type K6SummaryMetric struct {
 	Thresholds map[string]K6SummaryThreshold `json:"thresholds,omitempty"`
 }
 
-// K6SummaryThreshold represents a threshold with its pass/fail status. 
+// K6SummaryThreshold represents a threshold with its pass/fail status.
 type K6SummaryThreshold struct {
 	OK bool `json:"ok"`
 }
 
 func reportSummary(params map[string]string) {
-	logrus.Info("Running k6 QASE reporter")
+	logrus.Info("Running qase-k6-cli reporter")
 
 	if k6SummaryJsonFile == "" {
 		logrus.Fatalf("Missing required environment variable: %s", k6SummaryJsonFileEnvVar)
@@ -64,7 +67,18 @@ func reportSummary(params map[string]string) {
 
 	// Report to Qase
 	status := qase.StatusPassed
-	if !overallPass {
+	thresholdsFailed := false
+
+	for _, t := range thresholds {
+		if !t.Pass {
+			thresholdsFailed = true
+			break
+		}
+	}
+
+	if thresholdsFailed {
+		status = qase.StatusExceededThresholds
+	} else if !overallPass {
 		status = qase.StatusFailed
 	}
 
@@ -80,6 +94,15 @@ func reportSummary(params map[string]string) {
 		}
 	}
 
+	if k6WebDashboardExportFile != "" {
+		if _, err := os.Stat(k6WebDashboardExportFile); err == nil {
+			logrus.Infof("Found Web Dashboard report at %s, preparing for upload.", k6WebDashboardExportFile)
+			attachments = append(attachments, k6WebDashboardExportFile)
+		} else {
+			logrus.Warnf("Web Dashboard report file specified but not found at %s.", k6WebDashboardExportFile)
+		}
+	}
+
 	logrus.Infof("Reporting to Qase: Project=%s, Run=%d, Case=%d, Status=%s", projectID, runID, testCaseID, status)
 
 	// Upload attachments and get their hashes
@@ -87,6 +110,7 @@ func reportSummary(params map[string]string) {
 
 	if len(attachments) > 0 {
 		var files []*os.File
+
 		for _, filePath := range attachments {
 			file, err := os.Open(filePath)
 			if err != nil {
@@ -99,20 +123,21 @@ func reportSummary(params map[string]string) {
 			}(file, filePath)
 
 			files = append(files, file)
-
-			hashes, err := qaseClient.UploadAttachments(context.Background(), files)
-			if err != nil {
-				logrus.Fatalf("Failed to upload attachments to Qase: %v", err)
-			}
-
-			attachmentHashes = append(attachmentHashes, hashes...)
 		}
+
+		hashes, err := qaseClient.UploadAttachments(context.Background(), files)
+		if err != nil {
+			logrus.Fatalf("Failed to upload attachments to Qase: %v", err)
+		}
+
+		attachmentHashes = append(attachmentHashes, hashes...)
 	}
 
 	resultBody := v1.NewResultCreate(status)
 	resultBody.SetCaseId(testCaseID)
 	resultBody.SetComment(comment)
 	resultBody.SetAttachments(attachmentHashes)
+
 	if len(params) > 0 {
 		resultBody.SetParam(params)
 	}
