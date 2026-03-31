@@ -15,7 +15,7 @@ const clusterId = __ENV.CLUSTER || "local"
 const vus = __ENV.VUS || 2
 
 // Option setting
-const kubeconfig = k8s.loadKubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
+const kubeconfig = k8s.kubeconfig
 const baseUrl = kubeconfig["url"].replace(":6443", "")
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD

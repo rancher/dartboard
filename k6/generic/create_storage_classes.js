@@ -1,5 +1,5 @@
 import exec from 'k6/execution';
-import {loadKubeconfig} from '../generic/k8s.js'
+import * as k8s from '../generic/k8s.js'
 import { customHandleSummary } from '../generic/k6_utils.js';
 import { createStorageClass } from '../generic/generic_utils.js';
 
@@ -10,7 +10,7 @@ const clusterId = "local"
 const vus = __ENV.VUS || 2
 
 // Option setting
-const kubeconfig = loadKubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
+const kubeconfig = k8s.kubeconfig
 const baseUrl = kubeconfig["url"].replace(":6443", "")
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
