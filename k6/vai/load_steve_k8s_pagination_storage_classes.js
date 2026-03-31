@@ -3,15 +3,14 @@ import * as k8s from '../generic/k8s.js'
 import { login, getCookies } from '../rancher/rancher_utils.js';
 import http from 'k6/http';
 import { customHandleSummary } from '../generic/k6_utils.js';
-import {loadKubeconfig} from '../generic/k8s.js'
+
 
 
 // Parameters
 const vus = __ENV.VUS
 const perVuIterations = __ENV.PER_VU_ITERATIONS
 const token = __ENV.TOKEN
-const kubeconfig = loadKubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
-const baseUrl = kubeconfig["url"].replace(":6443", "")
+const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
 const clusterId = __ENV.CLUSTER || "local"
@@ -23,6 +22,12 @@ export const handleSummary = customHandleSummary;
 // Option setting
 export const options = {
     insecureSkipTLSVerify: true,
+    tlsAuth: [
+        {
+            cert: k8s.kubeconfig["cert"],
+            key: k8s.kubeconfig["key"],
+        },
+    ],
 
     scenarios: {
         list : {
@@ -44,32 +49,23 @@ function pause() {
 }
 
 export function setup() {
-  // if session cookie was specified, save it
+  var cookies = {}
+
   if (token) {
-    return { R_SESS: token }
+    cookies = { R_SESS: token }
+  } else if (username != "" && password != "") {
+
+    let loginRes = login(baseUrl, {}, username, password)
+
+    if (loginRes.status !== 200) {
+      fail(`could not login to cluster`)
+    }
+    cookies = getCookies(baseUrl)
+  } else {
+    fail("Must provide token or login credentials")
   }
 
-  // if credentials were specified, log in
-  if (username && password) {
-    const res = http.post(`${baseUrl}/v3-public/localProviders/local?action=login`, JSON.stringify({
-      "description": "UI session",
-      "responseType": "cookie",
-      "username": username,
-      "password": password
-    }))
-
-    check(res, {
-      'logging in returns status 200': (r) => r.status === 200,
-    })
-
-    pause()
-
-    const cookies = http.cookieJar().cookiesForURL(res.url)
-
-    return cookies
-  }
-
-  return {}
+  return cookies
 }
 
 export function list(cookies, filters = "") {

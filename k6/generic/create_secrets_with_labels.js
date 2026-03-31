@@ -15,8 +15,7 @@ const clusterId = __ENV.CLUSTER || "local"
 const vus = __ENV.VUS || 2
 
 // Option setting
-const kubeconfig = k8s.kubeconfig
-const baseUrl = kubeconfig["url"].replace(":6443", "")
+const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
 
@@ -26,8 +25,8 @@ export const options = {
     insecureSkipTLSVerify: true,
     tlsAuth: [
         {
-            cert: kubeconfig["cert"],
-            key: kubeconfig["key"],
+            cert: k8s.kubeconfig["cert"],
+            key: k8s.kubeconfig["key"],
         },
     ],
 
@@ -50,32 +49,23 @@ export const options = {
 };
 
 export function setup() {
-  // if session cookie was specified, save it
+  var cookies = {}
+
   if (token) {
-    return { R_SESS: token }
+    cookies = { R_SESS: token }
+  } else if (username != "" && password != "") {
+
+    let loginRes = login(baseUrl, {}, username, password)
+
+    if (loginRes.status !== 200) {
+      fail(`could not login to cluster`)
+    }
+    cookies = getCookies(baseUrl)
+  } else {
+    fail("Must provide token or login credentials")
   }
 
-  // if credentials were specified, log in
-  if (username && password) {
-    const res = http.post(`${baseUrl}/v3-public/localProviders/local?action=login`, JSON.stringify({
-      "description": "UI session",
-      "responseType": "cookie",
-      "username": username,
-      "password": password
-    }))
-
-    check(res, {
-      'logging in returns status 200': (r) => r.status === 200,
-    })
-
-    pause()
-
-    const cookies = http.cookieJar().cookiesForURL(res.url)
-
-    return cookies
-  }
-
-  return {}
+  return cookies
 }
 
 // create storage classes
