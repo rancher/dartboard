@@ -1,12 +1,13 @@
 import encoding from 'k6/encoding';
 import exec from 'k6/execution';
-import { createConfigMaps, createSecrets, createDeployments } from '../generic/generic_utils.js';
+import { createConfigMap, createSecret, createDeployment } from '../generic/generic_utils.js';
 import { login, getCookies } from '../rancher/rancher_utils.js';
 import {fail} from 'k6';
 import * as k8s from '../generic/k8s.js'
 import { customHandleSummary } from '../generic/k6_utils.js';
 
 // Parameters
+const token = __ENV.TOKEN
 const namespace = "scalability-test"
 const secretData = encoding.b64encode("a".repeat(10*1024))
 const configMapData = encoding.b64encode("a".repeat(10*1024))
@@ -17,8 +18,7 @@ const clusterId = __ENV.CLUSTER || "local"
 const vus = 5
 
 // Option setting
-const kubeconfig = k8s.kubeconfig(__ENV.KUBECONFIG, __ENV.CONTEXT)
-const baseUrl = kubeconfig["url"].replace(":6443", "")
+const baseUrl = __ENV.BASE_URL
 const username = __ENV.USERNAME
 const password = __ENV.PASSWORD
 
@@ -26,33 +26,27 @@ export const handleSummary = customHandleSummary;
 
 export const options = {
     insecureSkipTLSVerify: true,
-    tlsAuth: [
-        {
-            cert: kubeconfig["cert"],
-            key: kubeconfig["key"],
-        },
-    ],
 
     setupTimeout: '8h',
 
     scenarios: {
         createVaiResourcesSecrets: {
             executor: 'shared-iterations',
-            exec: 'createVaiResourcesSecrets',
+            exec: 'createVaiResourceSecret',
             vus: vus,
             iterations: secretCount,
             maxDuration: '1h',
         },
         createVaiResourcesConfigMaps: {
             executor: 'shared-iterations',
-            exec: 'createVaiResourcesConfigMaps',
+            exec: 'createVaiResourceConfigMap',
             vus: vus,
             iterations: configMapCount,
             maxDuration: '1h',
         },
         createVaiResourcesDeployments: {
             executor: 'shared-iterations',
-            exec: 'createVaiResourcesDeployments',
+            exec: 'createVaiResourceDeployment',
             vus: vus,
             iterations: deploymentCount,
             maxDuration: '1h',
@@ -66,21 +60,32 @@ export const options = {
 };
 
 export function setup() {
+  // if session cookie was specified, save it
+  if (token) {
+    return { R_SESS: token }
+  }
 
-    // log in
-    if (!login(baseUrl, {}, username, password)) {
-        fail(`could not login into cluster`)
-    }
-    const cookies = getCookies(baseUrl)
+  // if credentials were specified, log in
+  if (username && password) {
+    const res = http.post(`${baseUrl}/v3-public/localProviders/local?action=login`, JSON.stringify({
+      "description": "UI session",
+      "responseType": "cookie",
+      "username": username,
+      "password": password
+    }))
 
-    const del_url = clusterId === "local"?
-        `${baseUrl}/v1/namespaces/${namespace}` :
-        `${baseUrl}/k8s/clusters/${clusterId}/v1/namespaces/${namespace}`
+    check(res, {
+      'logging in returns status 200': (r) => r.status === 200,
+    })
 
-    // delete leftovers, if any
-    k8s.del(`${del_url}`)
+    pause()
 
-    // create empty namespace
+    const cookies = http.cookieJar().cookiesForURL(res.url)
+
+    return cookies
+  }
+
+       // create empty namespace
     const body = {
         "metadata": {
             "name": namespace,
@@ -93,24 +98,25 @@ export function setup() {
         `${baseUrl}/k8s/clusters/${clusterId}/v1/namespaces`
 
     k8s.create(`${create_url}`, body)
+    
 
-    return cookies
+  return {}
 }
 
 // create secrets
-export function createVaiResourcesSecrets(cookies) {
+export function createVaiResourceSecret(cookies) {
     const iter = exec.scenario.iterationInTest
-    createSecrets(baseUrl, cookies, secretData, clusterId, namespace, iter)
+    createSecret(baseUrl, cookies, secretData, clusterId, namespace, iter)
 }
 
 // create config maps
-export function createVaiResourcesConfigMaps(cookies) {
+export function createVaiResourceConfigMap(cookies) {
     const iter = exec.scenario.iterationInTest
-    createConfigMaps(baseUrl, cookies, configMapData, clusterId, namespace, iter)
+    createConfigMap(baseUrl, cookies, configMapData, clusterId, namespace, iter)
 }
 
 // create deployments
-export function createVaiResourcesDeployments(cookies) {
+export function createVaiResourceDeployment(cookies) {
     const iter = exec.scenario.iterationInTest
-    createDeployments(baseUrl, cookies, clusterId, namespace, iter)
+    createDeployment(baseUrl, cookies, clusterId, namespace, iter)
 }
