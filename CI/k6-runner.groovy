@@ -121,18 +121,47 @@ pipeline {
             testFileBasename = sh(script: "basename ${params.K6_TEST_FILE}", returnStdout: true).trim().replace('.js', '')
             env.K6_SUMMARY_LOG = "${testFileBasename}-k6-summary.log"
             def k6SummaryJsonFile = "${testFileBasename}-summary.json"
-            def k6ReportHtmlFile = "${testFileBasename}-report.html"
+            def k6ReportHtmlFile = "${testFileBasename}-summary.html"
+            def k6WebDashboardReport = "${testFileBasename}-web-dashboard.html"
 
 
             // Create the k6 environment file on the agent first.
-            // This avoids permission issues inside the container, as the container
-            // only needs to read/source the file, not create it.
+            // This avoids permission issues inside the container
+            def cleanEnvLines = []
+            if (params.K6_ENV) {
+                def rawEnvLines = params.K6_ENV.split('\n')
+                for (String line : rawEnvLines) {
+                    line = line.trim()
+                    if (!line || line.startsWith('#')) {
+                        continue
+                    }
+                    if (line.startsWith("export ")) {
+                        line = line.substring(7).trim()
+                    }
+                    def parts = line.split('=', 2)
+                    if (parts.length == 2) {
+                        def key = parts[0].trim()
+                        def val = parts[1].trim()
+                        // Strip surrounding quotes
+                        if (val.length() >= 2 && ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))) {
+                            val = val.substring(1, val.length() - 1)
+                        }
+                        // Escape single quotes for bash and wrap value in single quotes
+                        val = val.replace("'", "'\"'\"'")
+                        cleanEnvLines << "${key}='${val}'"
+                    }
+                }
+            }
+            def cleanEnv = cleanEnvLines.join('\n')
+
             def k6EnvContent = """
-BASE_URL=${baseURL}
-KUBECONFIG=${kubeconfigContainerPath ? kubeconfigContainerPath : ''}
-K6_TEST=${params.K6_TEST_FILE}
-K6_NO_USAGE_REPORT=true
-${params.K6_ENV}
+BASE_URL='${baseURL}'
+KUBECONFIG='${kubeconfigContainerPath ? kubeconfigContainerPath : ''}'
+K6_REPORT_PREFIX='./${testFileBasename}'
+K6_NO_USAGE_REPORT='true'
+K6_WEB_DASHBOARD='true'
+K6_WEB_DASHBOARD_EXPORT='./${k6WebDashboardReport}'
+${cleanEnv}
 """
             writeFile file: "./${env.K6_ENV_FILE}", text: k6EnvContent
 
@@ -204,8 +233,14 @@ ${params.K6_ENV}
             script {
                 def k6SummaryJsonFile = "${testFileBasename}-summary.json"
                 def k6ReportHtmlFile = "${testFileBasename}-summary.html"
+                def k6WebDashboardReport = "${testFileBasename}-web-dashboard.html"
                 withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
                   sh """
+                  
+                  echo "--- k6.env contents ---"
+                  cat ${env.K6_ENV_FILE}
+                  echo "-----------------------"
+
                   docker run --rm --name dartboard-qase-reporter \\
                       -v "${pwd()}:/app" \\
                       --workdir /app \\
@@ -218,13 +253,16 @@ ${params.K6_ENV}
                       -e QASE_TEST_CASE_NAME="${params.QASE_TEST_CASE_NAME}" \\
                       -e K6_SUMMARY_JSON_FILE="./${k6SummaryJsonFile}" \\
                       -e K6_SUMMARY_HTML_FILE="./${k6ReportHtmlFile}" \\
+                      -e K6_WEB_DASHBOARD_EXPORT="./${k6WebDashboardReport}" \\
                       ${env.IMAGE_NAME}:latest sh -c '''
                           echo "Reporting k6 results to Qase..."
-                          if command -v qasereporter-k6 >/dev/null 2>&1; then
+                          if command -v qase-k6-cli >/dev/null 2>&1; then
+                              set -o allexport
                               source "${env.K6_ENV_FILE}"
-                              qasereporter-k6
+                              set +o allexport
+                              qase-k6-cli report
                           else
-                              echo "qasereporter-k6 not found, skipping report."
+                              echo "qase-k6-cli not found, skipping report."
                               exit 1
                           fi
                       '''

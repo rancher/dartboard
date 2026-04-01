@@ -1,5 +1,5 @@
-ARG K6_VERSION="1.3.0"
-FROM golang:1.24-alpine3.22 AS builder
+ARG K6_VERSION="1.5.0"
+FROM golang:1.25-alpine3.23 AS builder
 # match whichever tagged version is used by the K6_VERSION docker image
 # see build layer at https://github.com/grafana/k6/blob/v${K6_VERSION}/Dockerfile
 
@@ -18,11 +18,11 @@ RUN go mod download && \
 RUN cd $WORKSPACE && \
     make && \
     mv ./dartboard /usr/local/bin/dartboard && \
-    mv ./qasereporter-k6/qasereporter-k6 /usr/local/bin/qasereporter-k6
+    mv ./qase-k6-cli/qase-k6-cli /usr/local/bin/qase-k6-cli
 
 FROM grafana/k6:${K6_VERSION}
 COPY --from=builder /usr/local/bin/dartboard /bin/dartboard
-COPY --from=builder /usr/local/bin/qasereporter-k6 /bin/qasereporter-k6
+COPY --from=builder /usr/local/bin/qase-k6-cli /bin/qase-k6-cli
 
 # Run the following commands as root user so that we can easily install some needed tools
 USER root
