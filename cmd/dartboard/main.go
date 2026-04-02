@@ -88,6 +88,52 @@ func main() {
 				Description: "runs `tofu destroy` and then deploys all the provisioned clusters",
 				Action:      subcommands.Redeploy,
 			},
+			{
+				Name:        "summarize",
+				Usage:       "Summarize the current deployment by capturing metrics, profiles, and resource counts",
+				Description: "runs `export-metrics`, `collect-profile`, and `resource-counts` against the deployed clusters",
+				Action:      subcommands.Summarize,
+								Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "metrics",
+						Aliases: []string{"m"},
+						Value:   false,
+						Usage:   "only include metrics in summary",
+					},
+					&cli.StringFlag{
+						Name:  "query",
+						Value: `{__name__!=""}`,
+						Usage: "prometheus expression for metrics query, defaults to all metrics",
+					},
+					&cli.StringFlag{
+						Name:  "start-time",
+						Value: "",
+						Usage: "start time for metrics export (RFC3339), defaults to 1hr ago",
+					},
+					&cli.StringFlag{
+						Name:  "end-time",
+						Value: "",
+						Usage: "end time for metrics export (RFC3339), defaults to current time",
+					},
+					&cli.IntFlag{
+						Name:  "step",
+						Value: 0,
+						Usage: "step/offset in seconds for metrics export, defaults to 3600 (1hr), max 7200 (2hrs)",
+					},
+					&cli.BoolFlag{
+						Name:    "counts",
+						Aliases: []string{"c"},
+						Value:   false,
+						Usage:   "only include current resource counts in summary",
+					},
+					&cli.BoolFlag{
+						Name:    "profiles",
+						Aliases: []string{"p"},
+						Value:   false,
+						Usage:   "only include current profiles in summary",
+					},
+				},
+			},
 		},
 	}
 
