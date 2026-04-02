@@ -321,7 +321,7 @@ EOF
                 -e AWS_ACCESS_KEY_ID \\
                 -e AWS_SECRET_ACCESS_KEY \\
                 -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
-                amazon/aws-cli s3 cp /artifacts "s3://${params.S3_BUCKET_NAME}/${finalProjectName}/" --recursive
+                amazon/aws-cli:2.34.22 s3 cp /artifacts "s3://${params.S3_BUCKET_NAME}/${finalProjectName}/" --recursive
             """, returnStatus: true
 
             // Clean up the temporary directory
@@ -350,8 +350,8 @@ EOF
         try {
           echo "Attempting to remove image: ${env.imageName}:latest"
           sh "docker rmi -f ${env.imageName}:latest"
-          echo "Attempting to remove image: amazon/aws-cli"
-          sh "docker rmi amazon/aws-cli"
+          echo "Attempting to remove image: amazon/aws-cli:2.34.22"
+          sh "docker rmi amazon/aws-cli:2.34.22"
         } catch (e) {
           echo "Could not remove a Docker image. It may have already been removed or was never present. Details: ${e.message}"
         }

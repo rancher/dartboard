@@ -9,7 +9,7 @@ metadata:
 spec:
   containers:
   - name: mimirtool
-    image: grafana/mimirtool:2.13.0
+    image: grafana/mimirtool:3.0.5
     command: ["/bin/sh", "-c"]
     args:
     - |
