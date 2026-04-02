@@ -132,12 +132,6 @@ func main() {
 						Value:   false,
 						Usage:   "only include current profiles in summary",
 					},
-					&cli.BoolFlag{
-						Name:    "all",
-						Aliases: []string{"a"},
-						Value:   false,
-						Usage:   "include all summaries (metrics, resource counts and profiles)",
-					},
 				},
 			},
 		},

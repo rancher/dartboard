@@ -50,6 +50,13 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.BlobToken == "" {
 		cfg.BlobToken = os.Getenv("BLOB_TOKEN")
 	}
+
+	// If intending to use blob storage, both URL and Token must be provided.
+	usingBlobURL := cfg.BlobURL != ""
+	usingBlobToken := cfg.BlobToken != ""
+	if usingBlobURL != usingBlobToken {
+		return fmt.Errorf("for blob storage upload, both BLOB_URL and BLOB_TOKEN environment variables must be set")
+	}
 	if cfg.LogLevel == "" {
 		cfg.LogLevel = "debug"
 	}
@@ -113,8 +120,8 @@ func collect(cfg Config) error {
 	appendToFile(filepath.Join(tmpDir, "timestamps.txt"), "Start: "+time.Now().Format(time.RFC3339)+"\n")
 
 	// Global Cluster Stats
-	shellExecToFile(filepath.Join(tmpDir, "top-pods.txt"), "kubectl", "top", "pods", "-A")
-	shellExecToFile(filepath.Join(tmpDir, "top-nodes.txt"), "kubectl", "top", "nodes")
+	execWriteOutput(filepath.Join(tmpDir, "top-pods.txt"), "kubectl", "top", "pods", "-A")
+	execWriteOutput(filepath.Join(tmpDir, "top-nodes.txt"), "kubectl", "top", "nodes")
 
 	// Collect App Specific Data
 	if cfg.App == "rancher" || cfg.App == "cattle-cluster-agent" {
@@ -125,10 +132,10 @@ func collect(cfg Config) error {
 
 	// Final Global Stats
 	techo("Getting leases")
-	shellExecToFile(filepath.Join(tmpDir, "leases.txt"), "kubectl", "get", "leases", "-n", "kube-system")
+	execWriteOutput(filepath.Join(tmpDir, "leases.txt"), "kubectl", "get", "leases", "-n", "kube-system")
 
 	techo("Getting pod details")
-	shellExecToFile(filepath.Join(tmpDir, "pods-wide.txt"), "kubectl", "get", "pods", "-A", "-o", "wide")
+	execWriteOutput(filepath.Join(tmpDir, "pods-wide.txt"), "kubectl", "get", "pods", "-A", "-o", "wide")
 
 	appendToFile(filepath.Join(tmpDir, "timestamps.txt"), "End:   "+time.Now().Format(time.RFC3339)+"\n")
 
@@ -175,7 +182,7 @@ func collectRancherLogic(cfg Config, tmpDir string) {
 		// Specific Rancher items
 		if cfg.App == "rancher" {
 			techo("Getting rancher-audit-logs for " + pod)
-			shellExecToFile(filepath.Join(tmpDir, pod+"-audit.log"), "kubectl", "logs", "--since=5m", "-n", cfg.Namespace, pod, "-c", "rancher-audit-log")
+			execWriteOutput(filepath.Join(tmpDir, pod+"-audit.log"), "kubectl", "logs", "--since=5m", "-n", cfg.Namespace, pod, "-c", "rancher-audit-log")
 
 			techo("Getting metrics for Rancher")
 			// Complex bash command inside exec needs careful wrapping
@@ -212,7 +219,7 @@ func collectFleetLogic(cfg Config, tmpDir string) {
 
 		outFile := filepath.Join(tmpDir, fmt.Sprintf("%s-%s-%s", pod, profile, time.Now().Format("2006-01-02T15_04_05")))
 		// For Fleet we curl LOCALHOST via port-forward
-		execLocalCurl(url, outFile)
+		downloadFile(url, outFile)
 	}
 
 	collectCommonLogsAndEvents(cfg, tmpDir, pod)
@@ -220,16 +227,16 @@ func collectFleetLogic(cfg Config, tmpDir string) {
 
 func collectCommonLogsAndEvents(cfg Config, tmpDir string, pod string) {
 	techo("Getting logs for " + pod)
-	shellExecToFile(filepath.Join(tmpDir, pod+".log"), "kubectl", "logs", "--since=5m", "-n", cfg.Namespace, pod, "-c", cfg.Container)
+	execWriteOutput(filepath.Join(tmpDir, pod+".log"), "kubectl", "logs", "--since=5m", "-n", cfg.Namespace, pod, "-c", cfg.Container)
 
 	techo("Getting previous logs for " + pod)
-	shellExecToFile(filepath.Join(tmpDir, pod+"-previous.log"), "kubectl", "logs", "-n", cfg.Namespace, pod, "-c", cfg.Container, "--previous=true")
+	execWriteOutput(filepath.Join(tmpDir, pod+"-previous.log"), "kubectl", "logs", "-n", cfg.Namespace, pod, "-c", cfg.Container, "--previous=true")
 
 	techo("Getting events for " + pod)
-	shellExecToFile(filepath.Join(tmpDir, pod+"-events.txt"), "kubectl", "get", "event", "--namespace", cfg.Namespace, "--field-selector", "involvedObject.name="+pod)
+	execWriteOutput(filepath.Join(tmpDir, pod+"-events.txt"), "kubectl", "get", "event", "--namespace", cfg.Namespace, "--field-selector", "involvedObject.name="+pod)
 
 	techo("Getting describe for " + pod)
-	shellExecToFile(filepath.Join(tmpDir, pod+"-describe.txt"), "kubectl", "describe", "pod", pod, "-n", cfg.Namespace)
+	execWriteOutput(filepath.Join(tmpDir, pod+"-describe.txt"), "kubectl", "describe", "pod", pod, "-n", cfg.Namespace)
 }
 
 // Helpers
@@ -262,7 +269,7 @@ func execKubectlCurl(cfg Config, pod, url, outFile string) {
 	}
 }
 
-func execLocalCurl(url, outFile string) {
+func downloadFile(url, outFile string) {
 	resp, err := http.Get(url)
 	if err != nil {
 		techo("Error fetching " + url + ": " + err.Error())
@@ -281,7 +288,7 @@ func execLocalCurl(url, outFile string) {
 	}
 }
 
-func shellExecToFile(filename string, name string, args ...string) {
+func execWriteOutput(filename string, name string, args ...string) {
 	cmd := exec.Command(name, args...)
 	out, _ := cmd.CombinedOutput() // Ignore error, just write what we got
 	if err := os.WriteFile(filename, out, 0644); err != nil {

@@ -98,15 +98,9 @@ func Summarize(cli *cli.Context) error {
 	metrics := cli.Bool("metrics")
 	counts := cli.Bool("counts")
 	profiles := cli.Bool("profiles")
-	allFlag := cli.Bool("all")
-
-	// If --all provided, enable everything
-	if allFlag {
-		metrics, counts, profiles = true, true, true
-	}
 
 	// If user didn't specify any of these flags, default to all
-	if !(cli.IsSet("metrics") || cli.IsSet("counts") || cli.IsSet("profiles") || cli.IsSet("all")) {
+	if !(cli.IsSet("metrics") || cli.IsSet("counts") || cli.IsSet("profiles")) {
 		metrics, counts, profiles = true, true, true
 	}
 

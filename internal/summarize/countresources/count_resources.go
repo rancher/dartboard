@@ -80,6 +80,9 @@ func Run(ctx context.Context, cfg Config) error {
 		// Count Resources
 		countCmd := exec.CommandContext(ctx, "kubectl", "get", resource, "-A", "--no-headers", "--ignore-not-found")
 		countOutput, err := countCmd.Output()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error counting resource %s: %v\n", resource, err)
+		}
 
 		var count int
 		if err == nil {
