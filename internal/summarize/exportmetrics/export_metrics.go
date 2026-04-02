@@ -105,6 +105,33 @@ func Run(ctx context.Context, cfg Config) error {
 				continue
 			}
 
+			// Unpack, navigate, clean
+			if err := runCmd(ctx, "tar", "xzf", localTar, "-C", exportDir); err != nil {
+				fmt.Printf(" - Failed to extract tarball: %v\n", err)
+				continue
+			}
+			extractedDir := filepath.Join(exportDir, "prometheus-export")
+			os.RemoveAll(filepath.Join(extractedDir, "wal"))
+
+			// Aggregate tsdb
+			items, err := os.ReadDir(extractedDir)
+			if err != nil {
+				fmt.Printf(" - Failed to read extracted directory: %v\n", err)
+				continue
+			}
+
+			if len(items) == 0 {
+				fmt.Println(" - No blocks to copy")
+			} else {
+				for _, item := range items {
+					os.Rename(filepath.Join(extractedDir, item.Name()), filepath.Join(exportDir, item.Name()))
+				}
+			}
+
+			// Cleanup
+			os.Remove(localTar)
+			os.RemoveAll(extractedDir)
+
 			// Success
 			err = nil
 			break
@@ -132,7 +159,9 @@ func Run(ctx context.Context, cfg Config) error {
 	finalPath, _ := filepath.Abs(exportDir)
 	fmt.Printf("\n\033[32mMetrics export complete!\033[0m\n")
 	fmt.Printf("Metrics saved to: %s\n", finalPath)
-	
+	fmt.Printf("View locally via: \n")
+	fmt.Printf("docker run --rm -ti -p 9090:9090 -v %s:/prometheus rancher/mirrored-prometheus-prometheus:v2.42.0 --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=1y --config.file=/dev/null\n", finalPath)
+
 	return nil
 }
 
