@@ -26,6 +26,82 @@ type Config struct {
 	OffsetSeconds int64
 }
 
+func exportTimeRange(ctx context.Context, cfg Config, exportDir string, rangeStart, currentTo int64) error {
+	fromStr := time.Unix(rangeStart, 0).UTC().Format(PromTimeFormat)
+	toStr := time.Unix(currentTo, 0).UTC().Format(PromTimeFormat)
+	ts2 := time.Unix(rangeStart, 0).UTC().Format(FilenameTimeFormat)
+
+	fmt.Printf("Exporting range: %s to %s\n", fromStr, toStr)
+
+	var err error
+	for attempt := 1; attempt <= 3; attempt++ {
+		if attempt > 1 {
+			fmt.Printf(" - Retrying... (Attempt %d/3)\n", attempt)
+			// Cleanup before retry
+			runCmd(ctx, "kubectl", "exec", "-n", Namespace, PodName, "--", "rm", "-rf", "prometheus-export")
+			time.Sleep(2 * time.Second)
+		}
+
+		// Remote Read
+		err = runCmd(ctx, "kubectl", "exec", "-n", Namespace, PodName, "--", "mimirtool", "remote-read", "export",
+			"--tsdb-path", "./prometheus-export",
+			"--address", "http://rancher-monitoring-prometheus:9090",
+			"--remote-read-path", "/api/v1/read",
+			"--to="+toStr, "--from="+fromStr, "--selector", cfg.Selector)
+		if err != nil {
+			fmt.Printf(" - Remote read failed: %v\n", err)
+			continue
+		}
+
+		// Tar in pod
+		err = runCmd(ctx, "kubectl", "exec", "-n", Namespace, PodName, "--", "tar", "zcf", "/tmp/prometheus-export.tar.gz", "./prometheus-export")
+		if err != nil {
+			fmt.Printf(" - Tar failed: %v\n", err)
+			continue
+		}
+
+		// Copy locally
+		localTar := filepath.Join(exportDir, fmt.Sprintf("prometheus-export-%s.tar.gz", ts2))
+		err = runCmd(ctx, "kubectl", "-n", Namespace, "cp", PodName+":/tmp/prometheus-export.tar.gz", localTar)
+		if err != nil {
+			fmt.Printf(" - Copy failed: %v\n", err)
+			continue
+		}
+
+		// Unpack, navigate, clean
+		if err = runCmd(ctx, "tar", "xzf", localTar, "-C", exportDir); err != nil {
+			fmt.Printf(" - Failed to extract tarball: %v\n", err)
+			continue
+		}
+		extractedDir := filepath.Join(exportDir, "prometheus-export")
+		os.RemoveAll(filepath.Join(extractedDir, "wal"))
+
+		// Aggregate tsdb
+		items, err := os.ReadDir(extractedDir)
+		if err != nil {
+			fmt.Printf(" - Failed to read extracted directory: %v\n", err)
+			continue
+		}
+
+		if len(items) == 0 {
+			fmt.Println(" - No blocks to copy")
+		} else {
+			for _, item := range items {
+				os.Rename(filepath.Join(extractedDir, item.Name()), filepath.Join(exportDir, item.Name()))
+			}
+		}
+
+		// Cleanup
+		os.Remove(localTar)
+		os.RemoveAll(extractedDir)
+
+		// Success
+		return nil
+	}
+
+	return fmt.Errorf("failed to export range %s to %s after 3 attempts", fromStr, toStr)
+}
+
 func Run(ctx context.Context, cfg Config) error {
 	// Ensure kubeconfig is set for subprocesses
 	if cfg.Kubeconfig != "" {
@@ -54,7 +130,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err := os.MkdirAll(exportDir, 0755); err != nil {
 		return fmt.Errorf("failed to create export directory %q: %w", exportDir, err)
 	}
-	
+
 	// Loop through time ranges
 	currentTo := cfg.ToSeconds
 	for currentTo > cfg.FromSeconds {
@@ -64,81 +140,8 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		rangeStart := currentTo - offset
-		fromStr := time.Unix(rangeStart, 0).UTC().Format(PromTimeFormat)
-		toStr := time.Unix(currentTo, 0).UTC().Format(PromTimeFormat)
-		ts2 := time.Unix(rangeStart, 0).UTC().Format(FilenameTimeFormat)
-
-		fmt.Printf("Exporting range: %s to %s\n", fromStr, toStr)
-
-		var err error
-		for attempt := 1; attempt <= 3; attempt++ {
-			if attempt > 1 {
-				fmt.Printf(" - Retrying... (Attempt %d/3)\n", attempt)
-				// Cleanup before retry
-				runCmd(ctx, "kubectl", "exec", "-n", Namespace, PodName, "--", "rm", "-rf", "prometheus-export")
-				time.Sleep(2 * time.Second)
-			}
-
-			// Remote Read
-			err = runCmd(ctx, "kubectl", "exec", "-n", Namespace, PodName, "--", "mimirtool", "remote-read", "export",
-				"--tsdb-path", "./prometheus-export",
-				"--address", "http://rancher-monitoring-prometheus:9090",
-				"--remote-read-path", "/api/v1/read",
-				"--to="+toStr, "--from="+fromStr, "--selector", cfg.Selector)
-			if err != nil {
-				fmt.Printf(" - Remote read failed: %v\n", err)
-				continue
-			}
-
-			// Tar in pod
-			err = runCmd(ctx, "kubectl", "exec", "-n", Namespace, PodName, "--", "tar", "zcf", "/tmp/prometheus-export.tar.gz", "./prometheus-export")
-			if err != nil {
-				fmt.Printf(" - Tar failed: %v\n", err)
-				continue
-			}
-
-			// Copy locally
-			localTar := filepath.Join(exportDir, fmt.Sprintf("prometheus-export-%s.tar.gz", ts2))
-			err = runCmd(ctx, "kubectl", "-n", Namespace, "cp", PodName+":/tmp/prometheus-export.tar.gz", localTar)
-			if err != nil {
-				fmt.Printf(" - Copy failed: %v\n", err)
-				continue
-			}
-
-			// Unpack, navigate, clean
-			if err := runCmd(ctx, "tar", "xzf", localTar, "-C", exportDir); err != nil {
-				fmt.Printf(" - Failed to extract tarball: %v\n", err)
-				continue
-			}
-			extractedDir := filepath.Join(exportDir, "prometheus-export")
-			os.RemoveAll(filepath.Join(extractedDir, "wal"))
-
-			// Aggregate tsdb
-			items, err := os.ReadDir(extractedDir)
-			if err != nil {
-				fmt.Printf(" - Failed to read extracted directory: %v\n", err)
-				continue
-			}
-
-			if len(items) == 0 {
-				fmt.Println(" - No blocks to copy")
-			} else {
-				for _, item := range items {
-					os.Rename(filepath.Join(extractedDir, item.Name()), filepath.Join(exportDir, item.Name()))
-				}
-			}
-
-			// Cleanup
-			os.Remove(localTar)
-			os.RemoveAll(extractedDir)
-
-			// Success
-			err = nil
-			break
-		}
-
-		if err != nil {
-			fmt.Printf("Failed to export range %s to %s after 3 attempts.\n", fromStr, toStr)
+		if err := exportTimeRange(ctx, cfg, exportDir, rangeStart, currentTo); err != nil {
+			fmt.Printf("%v\n", err)
 		}
 
 		// Cleanup pod files
