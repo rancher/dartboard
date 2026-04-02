@@ -32,7 +32,6 @@ func handleTimeInputs(cli *cli.Context) (int64, int64, int64, error) {
 	startTimeStr := cli.String("start-time")
 	endTimeStr := cli.String("end-time")
 	step := cli.Int("step")
-
 	var offsetSeconds int64
 	if step == 0 {
 		offsetSeconds = 3600 // 1 hour default
@@ -80,7 +79,6 @@ func handleTimeInputs(cli *cli.Context) (int64, int64, int64, error) {
 		toSeconds = time.Now().Unix()
 		fromSeconds = time.Now().Add(-1 * time.Hour).Unix()
 	}
-
 	return fromSeconds, toSeconds, offsetSeconds, nil
 }
 
@@ -149,7 +147,6 @@ func Summarize(cli *cli.Context) error {
 
 	if counts {
 		fmt.Println(">>> Running resource-counts...")
-
 		cfg := countresources.Config{
 			Kubeconfig: upstream.Kubeconfig,
 		}
@@ -160,7 +157,6 @@ func Summarize(cli *cli.Context) error {
 
 	if metrics {
 		fmt.Println(">>> Running export-metrics...")
-
 		cfg := exportmetrics.Config{
 			Kubeconfig: upstream.Kubeconfig,
 			Selector:   cli.String("query"),
@@ -170,7 +166,6 @@ func Summarize(cli *cli.Context) error {
 		if err != nil {
 			return err
 		}
-
 		cfg.FromSeconds = from
 		cfg.ToSeconds = to
 		cfg.OffsetSeconds = offset
