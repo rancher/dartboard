@@ -3,4 +3,4 @@ name: mimir
 description: Installs Mimir in monolithic mode
 type: application
 version: 0.1.0
-appVersion: "2.8.0"
+appVersion: "3.0.5"
