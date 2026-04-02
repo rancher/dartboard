@@ -13,7 +13,7 @@ gpgcheck=0
 EOF
 
 # Install PostgreSQL
-yum install -y postgresql15 postgresql15-server
+yum install -y postgresql15-15.16 postgresql15-server-15.16
 
 # use data disk if available (see mount_ephemeral.sh)
 if [ -d /data ]; then

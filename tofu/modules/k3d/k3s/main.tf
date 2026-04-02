@@ -1,10 +1,12 @@
 terraform {
   required_providers {
     k3d = {
-      source = "moio/k3d"
+      source  = "moio/k3d"
+      version = "0.0.12"
     }
     docker = {
-      source = "kreuzwerker/docker"
+      source  = "kreuzwerker/docker"
+      version = "3.9.0"
     }
   }
 }
@@ -13,7 +15,7 @@ terraform {
 
 resource "docker_image" "mariadb" {
   count        = var.datastore == "mariadb" ? 1 : 0
-  name         = "mariadb:10.10.2-jammy"
+  name         = "mariadb:10.11.16-jammy"
   keep_locally = true
 }
 
@@ -47,7 +49,7 @@ resource "docker_container" "mariadb" {
 
 resource "docker_image" "postgres" {
   count        = var.datastore == "postgres" ? 1 : 0
-  name         = "postgres:15.1-alpine"
+  name         = "postgres:15.16-alpine3.23"
   keep_locally = true
 }
 
