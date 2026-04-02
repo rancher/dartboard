@@ -1,5 +1,5 @@
 import { jUnit, textSummary } from '../lib/k6-summary-0.1.0.js';
-import { htmlReport } from '../lib/k6-reporter-3.0.1.js';
+import { htmlReport } from '../lib/k6-reporter-3.0.4.js';
 import { getPathBasename } from '../generic/generic_utils.js';
 
 export function sizeOfHeaders(headers) {
