@@ -21,7 +21,7 @@ verify_sha256() {
 
 	if command -v sha256sum >/dev/null 2>&1; then
 		# Extract hash and reconstruct checksum line with just the filename (strip any path prefixes)
-		awk -v archive="${archive}" '$0 ~ archive "$" { print $1 "  " archive }' "${checksums_file}" | sha256sum --check --status
+		awk -v archive="${archive}" '$0 ~ archive "$" { print $1 "  " archive }' "${checksums_file}" | sha256sum -c >/dev/null 2>&1
 		result=$?
 	elif command -v shasum >/dev/null 2>&1; then
 		local expected actual
