@@ -1,5 +1,5 @@
 ARG K6_VERSION="1.7.1"
-FROM golang:1.24.2-alpine3.23 AS builder
+FROM golang:1.24.2-alpine3.21 AS builder
 # match whichever tagged version is used by the K6_VERSION docker image
 # see build layer at https://github.com/grafana/k6/blob/v${K6_VERSION}/Dockerfile
 
