@@ -52,6 +52,7 @@ module "agent_nodes" {
   node_module           = var.node_module
   node_module_variables = var.node_module_variables
   network_config        = var.network_config
+  public                = var.public
 }
 
 resource "ssh_sensitive_resource" "first_server_installation" {
