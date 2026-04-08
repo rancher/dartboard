@@ -44,7 +44,7 @@ jobs:
           echo "${CHECKSUM} ${FILE}" | sha256sum -c
           tar -xf "${FILE}" goreleaser
 
-          if sudo -l &> /dev/null; then
+          if sudo -n true &> /dev/null; then
           	sudo install -m 755 goreleaser /usr/local/bin/goreleaser
           else
           	install -m 755 goreleaser /usr/local/bin/goreleaser
