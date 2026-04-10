@@ -1,10 +1,17 @@
 #!/usr/bin/env sh
+# Requires: git, curl, sha512sum, base64, od, tr, awk, an ssh agent and key with access to the repositories
 
 set -xe
+# renovate: datasource=github-tags depName=nodeca/js-yaml
 JS_YAML_VERSION=4.1.1
 JS_YAML_COMMIT_HASH=50968b862e75866ef90e626572fe0b2f97b55f9f
+
+# renovate-local: k6-summary
 K6_SUMMARY_VERSION=0.1.0
+# renovate-local: k6-summary=0.1.0
 K6_SUMMARY_SHA512="PLaveAq5D46LZM24/+vpLcreZegPXzHwemqd/DEpv0wrZpJ64JiyvQ/fj9M6kPqSJkX+5ML2dUJ7iJ7kYvxgZQ=="
+
+# renovate: datasource=github-tags depName=benc-uk/k6-reporter
 K6_REPORTER_VERSION=3.0.4
 K6_REPORTER_COMMIT_HASH=25058f7861695cb4fe6e0ecf6415ea489c489005
 
