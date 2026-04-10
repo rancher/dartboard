@@ -22,6 +22,11 @@ pipeline {
     ARTIFACTS_DIR       = 'deployment-artifacts'
     ACCESS_LOG          = 'access-details.log'
     KUBECONFIG_FILE     = 'upstream.yaml'
+
+    // renovate: datasource=docker depName=amazon/aws-cli
+    AWS_CLI_VERSION = '2.34.22'
+    // renovate: datasource=docker depName=amazon/aws-cli digestVersion=2.34.22
+    AWS_CLI_DIGEST = 'sha256:96516991f34382a7667f3e59db2262f209a86ab4ea371e22242f0898a4e9ffc8'
   }
 
   // No parameters block here—JJB YAML defines them
@@ -57,7 +62,7 @@ pipeline {
                     -e AWS_ACCESS_KEY_ID \\
                     -e AWS_SECRET_ACCESS_KEY \\
                     -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
-                    amazon/aws-cli:2.34.22 s3 cp "s3://${params.S3_BUCKET_NAME}/${params.DEPLOYMENT_ID}/" /artifacts/ --recursive
+                    amazon/aws-cli:${env.AWS_CLI_VERSION}@${env.AWS_CLI_DIGEST} s3 cp "s3://${params.S3_BUCKET_NAME}/${params.DEPLOYMENT_ID}/" /artifacts/ --recursive
 
                 # Unzip the config archive
                 config_zip=\$(find ${env.ARTIFACTS_DIR} -name '*_config.zip' | head -n 1)
@@ -188,7 +193,7 @@ ${params.K6_ENV}
                     -e AWS_ACCESS_KEY_ID \\
                     -e AWS_SECRET_ACCESS_KEY \\
                     -e AWS_S3_REGION="${params.S3_BUCKET_REGION}" \\
-                    amazon/aws-cli:2.34.22 s3 cp /artifacts/ "s3://${params.S3_BUCKET_NAME}/${s3BucketPath}" --recursive
+                    amazon/aws-cli:${env.AWS_CLI_VERSION}@${env.AWS_CLI_DIGEST} s3 cp /artifacts/ "s3://${params.S3_BUCKET_NAME}/${s3BucketPath}" --recursive
                 rm -rf ${s3UploadDir}
               """, returnStatus: true
             }
@@ -266,8 +271,8 @@ ${params.K6_ENV}
         try {
           echo "Attempting to remove image: ${env.IMAGE_NAME}:latest"
           sh "docker rmi -f ${env.IMAGE_NAME}:latest"
-          echo "Attempting to remove image: amazon/aws-cli:2.34.22"
-          sh "docker rmi amazon/aws-cli:2.34.22"
+          echo "Attempting to remove image: amazon/aws-cli:${env.AWS_CLI_VERSION}@${env.AWS_CLI_DIGEST}"
+          sh "docker rmi amazon/aws-cli:${env.AWS_CLI_VERSION}@${env.AWS_CLI_DIGEST}"
         } catch (e) {
           echo "Could not remove a Docker image. It may have already been removed or was never present. Details: ${e.message}"
         }
