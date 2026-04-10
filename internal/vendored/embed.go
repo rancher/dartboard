@@ -22,8 +22,7 @@ var sourceFS embed.FS
 
 // ExtractBinaries extracts embedded binaries at runtime
 func ExtractBinaries() error {
-
-	err := os.Mkdir(DestinationDir, 0755)
+	err := os.Mkdir(DestinationDir, 0o755)
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
@@ -40,10 +39,12 @@ func ExtractBinaries() error {
 
 		// skip existing
 		destFile := filepath.Join(".bin", strings.TrimPrefix(path, SourceDir+"/"))
+
 		_, err = os.Stat(destFile)
 		if err == nil {
 			return nil
 		}
+
 		if !os.IsNotExist(err) {
 			return fmt.Errorf("failed to check if file %v exists: %v", destFile, err)
 		}
@@ -54,7 +55,7 @@ func ExtractBinaries() error {
 			return fmt.Errorf("failed to read an embedded file %v: %v", path, err)
 		}
 
-		err = os.WriteFile(destFile, content, 0755)
+		err = os.WriteFile(destFile, content, 0o755)
 		if err != nil {
 			return fmt.Errorf("failed to write %v: %v", destFile, err)
 		}
