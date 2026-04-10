@@ -33,7 +33,8 @@ import (
 )
 
 const (
-	k6Image          = "grafana/k6:1.7.1"
+	// renovate: datasource=github-releases depName=grafana/k6 digestVersion=1.7.1
+	k6Image          = "grafana/k6:1.7.1@sha256:4fd3a694926b064d3491d9b02b01cde886583c4931f1223816e3d9a7bdfa7e0f"
 	K6Namespace      = "tester"
 	K6KubeSecretName = "kube"
 	mimirURL         = "http://mimir.tester:9009/mimir"
