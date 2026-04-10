@@ -65,6 +65,12 @@ kind: KubeletConfiguration
 maxPods: ${max_pods}
 EOF
 
+if [[ "${distro_version}" == *"+rke2"* ]]; then
+  echo "ERROR: distro_version ${distro_version} is an RKE2 release, but this is the generic/k3s module."
+  echo "Use the generic/rke2 module for this cluster (for example, downstream_cluster_distro_module: generic/rke2)."
+  exit 1
+fi
+
 # installation
 export INSTALL_K3S_VERSION=${distro_version}
 export INSTALL_K3S_EXEC=${exec}
@@ -93,4 +99,17 @@ done
 if [ $i -gt $MAX_RETRIES ]; then
     echo "Command failed after $MAX_RETRIES attempts."
     exit 1
+fi
+
+# Be explicit about service lifecycle. On some distros/images the installer may
+# complete without leaving k3s active even though the unit exists.
+systemctl daemon-reload
+systemctl enable k3s.service
+systemctl restart k3s.service
+
+if ! systemctl is-active --quiet k3s; then
+  echo "k3s service failed to become active after installation"
+  systemctl status k3s --no-pager -l || true
+  journalctl -u k3s --no-pager -n 200 || true
+  exit 1
 fi
