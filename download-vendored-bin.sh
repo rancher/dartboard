@@ -11,8 +11,8 @@ HELM_VERSION=4.1.3
 # renovate: datasource=github-release-attachments depName=k3d-io/k3d
 K3D_VERSION=5.8.3
 
-GOOS=`go env GOOS`
-GOARCH=`go env GOARCH`
+GOOS=$(go env GOOS)
+GOARCH=$(go env GOARCH)
 
 verify_sha256() {
 	local archive="$1"
@@ -78,14 +78,14 @@ OPENTOFU_ARCHIVE="${OPENTOFU_FILENAME}.zip"
 OPENTOFU_URL="https://github.com/opentofu/opentofu/releases/download/v${OPENTOFU_VERSION}/${OPENTOFU_ARCHIVE}"
 OPENTOFU_SHA256SUMS="tofu_${OPENTOFU_VERSION}_SHA256SUMS"
 OPENTOFU_SHA256SUMS_URL="https://github.com/opentofu/opentofu/releases/download/v${OPENTOFU_VERSION}/${OPENTOFU_SHA256SUMS}"
-curl --output ${OPENTOFU_ARCHIVE} --location --fail ${OPENTOFU_URL}
-curl --output ${OPENTOFU_SHA256SUMS} --location --fail ${OPENTOFU_SHA256SUMS_URL}
+curl --output "${OPENTOFU_ARCHIVE}" --location --fail "${OPENTOFU_URL}"
+curl --output "${OPENTOFU_SHA256SUMS}" --location --fail "${OPENTOFU_SHA256SUMS_URL}"
 verify_sha256 "${OPENTOFU_ARCHIVE}" "${OPENTOFU_SHA256SUMS}"
 rm -f "${OPENTOFU_SHA256SUMS}"
-mkdir ${OPENTOFU_FILENAME}
-unzip ${OPENTOFU_ARCHIVE} -d ${OPENTOFU_FILENAME}
-mv ${OPENTOFU_FILENAME}/tofu .
-rm -rf ${OPENTOFU_FILENAME}*
+mkdir "${OPENTOFU_FILENAME}"
+unzip "${OPENTOFU_ARCHIVE}" -d "${OPENTOFU_FILENAME}"
+mv "${OPENTOFU_FILENAME}/tofu" .
+rm -rf "${OPENTOFU_FILENAME}"*
 
 echo Downloading kubectl...
 if [[ "${GOARCH}" != "amd64" && "${GOARCH}" != "arm64" ]]; then
@@ -112,22 +112,22 @@ HELM_ARCHIVE="${HELM_FILENAME}.tar.gz"
 HELM_URL="https://get.helm.sh/${HELM_ARCHIVE}"
 HELM_SHA256SUM_FILE="${HELM_ARCHIVE}.sha256sum"
 HELM_SHA256SUM_URL="https://get.helm.sh/${HELM_SHA256SUM_FILE}"
-curl --output ${HELM_ARCHIVE} --location --fail ${HELM_URL}
-curl --output ${HELM_SHA256SUM_FILE} --location --fail ${HELM_SHA256SUM_URL}
+curl --output "${HELM_ARCHIVE}" --location --fail "${HELM_URL}"
+curl --output "${HELM_SHA256SUM_FILE}" --location --fail "${HELM_SHA256SUM_URL}"
 verify_sha256 "${HELM_ARCHIVE}" "${HELM_SHA256SUM_FILE}"
 rm -f "${HELM_SHA256SUM_FILE}"
-tar xvf ${HELM_ARCHIVE}
-mv ${GOOS}-${GOARCH}/helm .
-rm -rf ${HELM_ARCHIVE}*
-rm -rf ${GOOS}-${GOARCH}*
+tar xvf "${HELM_ARCHIVE}"
+mv "${GOOS}-${GOARCH}"/helm .
+rm -rf "${HELM_ARCHIVE}"*
+rm -rf "${GOOS}"-"${GOARCH}"*
 
 echo Downloading k3d...
 K3D_BINARY="k3d-${GOOS}-${GOARCH}"
 K3D_URL="https://github.com/k3d-io/k3d/releases/download/v${K3D_VERSION}/${K3D_BINARY}"
 K3D_CHECKSUMS="k3d-v${K3D_VERSION}-checksums.txt"
 K3D_CHECKSUMS_URL="https://github.com/k3d-io/k3d/releases/download/v${K3D_VERSION}/checksums.txt"
-curl --output ${K3D_BINARY} --location --fail ${K3D_URL}
+curl --output "${K3D_BINARY}" --location --fail "${K3D_URL}"
 curl --output ${K3D_CHECKSUMS} --location --fail ${K3D_CHECKSUMS_URL}
 verify_sha256 "${K3D_BINARY}" "${K3D_CHECKSUMS}"
 rm -f "${K3D_CHECKSUMS}"
-mv ${K3D_BINARY} k3d
+mv "${K3D_BINARY}" k3d
