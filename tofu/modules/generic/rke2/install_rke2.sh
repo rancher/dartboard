@@ -121,6 +121,12 @@ export PATH=\$PATH:/var/lib/rancher/rke2/bin/
 export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
 EOF
 
+if [[ "${distro_version}" == *"+k3s"* ]]; then
+  echo "ERROR: distro_version ${distro_version} is a K3s release, but this is the generic/rke2 module."
+  echo "Use the generic/k3s module for this cluster (for example, downstream_cluster_distro_module: generic/k3s)."
+  exit 1
+fi
+
 # installation
 export INSTALL_RKE2_VERSION=${distro_version}
 export INSTALL_RKE2_TYPE=${type}
@@ -154,6 +160,15 @@ if [ $i -gt $MAX_RETRIES ]; then
     exit 1
 fi
 
+# Be explicit about service lifecycle. On some distros/images the installer may
+# complete without leaving rke2 active even though the unit exists.
+systemctl daemon-reload
 systemctl enable rke2-${type}.service
 systemctl restart rke2-${type}.service
 
+if ! systemctl is-active --quiet rke2-${type}; then
+  echo "rke2 service failed to become active after installation"
+  systemctl status rke2-${type} --no-pager -l || true
+  journalctl -u rke2-${type} --no-pager -n 200 || true
+  exit 1
+fi

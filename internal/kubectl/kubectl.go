@@ -33,7 +33,8 @@ import (
 )
 
 const (
-	k6Image          = "grafana/k6:1.4.0"
+	// renovate: datasource=github-releases depName=grafana/k6 digestVersion=1.7.1
+	k6Image          = "grafana/k6:1.7.1@sha256:4fd3a694926b064d3491d9b02b01cde886583c4931f1223816e3d9a7bdfa7e0f"
 	K6Namespace      = "tester"
 	K6KubeSecretName = "kube"
 	mimirURL         = "http://mimir.tester:9009/mimir"
@@ -75,10 +76,12 @@ var (
 func collectFileEntries(root string, exts map[string]bool) ([]FileEntry, error) {
 	// Get valid path to root and ensure it exists
 	root = filepath.Clean(root)
+
 	info, err := os.Stat(root)
 	if err != nil {
 		return nil, fmt.Errorf("stat root %q: %w", root, err)
 	}
+
 	if !info.IsDir() {
 		return nil, fmt.Errorf("root %q is not a directory", root)
 	}
@@ -96,7 +99,9 @@ func collectFileEntries(root string, exts map[string]bool) ([]FileEntry, error) 
 	}
 
 	visited := map[string]bool{} // tracks visited resolved real paths to avoid cycles
+
 	var out []FileEntry
+
 	stack := []stackEntry{{virtualRel: "", realPath: resolvedRoot}}
 
 	for len(stack) > 0 {
@@ -115,9 +120,11 @@ func collectFileEntries(root string, exts map[string]bool) ([]FileEntry, error) 
 		if rp, err := filepath.EvalSymlinks(absReal); err == nil {
 			absRealResolved = rp
 		}
+
 		if visited[absRealResolved] {
 			continue
 		}
+
 		visited[absRealResolved] = true
 
 		entries, err := os.ReadDir(cur.realPath)
@@ -139,11 +146,13 @@ func collectFileEntries(root string, exts map[string]bool) ([]FileEntry, error) 
 					log.Printf("warning: broken symlink or cannot resolve %q: %v", entryRealPath, err)
 					continue
 				}
+
 				stat, err := os.Stat(target)
 				if err != nil {
 					log.Printf("warning: cannot stat symlink target %q: %v", target, err)
 					continue
 				}
+
 				if stat.IsDir() {
 					// push directory to stack to preserve virtualRel
 					stack = append(stack, stackEntry{virtualRel: virtualRel, realPath: target})
@@ -204,6 +213,7 @@ func getCachedEntries(root string, exts map[string]bool) ([]FileEntry, error) {
 	cacheOnce.Do(func() {
 		cachedEntries, cacheErr = collectFileEntries(root, exts)
 	})
+
 	return cachedEntries, cacheErr
 }
 
@@ -212,6 +222,7 @@ func Exec(kubepath string, output io.Writer, args ...string) error {
 	cmd := vendored.Command("kubectl", fullArgs...)
 
 	var errStream strings.Builder
+
 	cmd.Stderr = &errStream
 	cmd.Stdin = os.Stdin
 
@@ -222,6 +233,7 @@ func Exec(kubepath string, output io.Writer, args ...string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("error while running kubectl with params %v: %v", fullArgs, errStream.String())
 	}
+
 	return nil
 }
 
@@ -234,21 +246,26 @@ func WaitRancher(kubePath string) error {
 	if err != nil {
 		return err
 	}
+
 	err = WaitForReadyCondition(kubePath, "deployment", "rancher-webhook", "cattle-system", "available", 3)
 	if err != nil {
 		return err
 	}
+
 	err = WaitForReadyCondition(kubePath, "deployment", "fleet-controller", "cattle-fleet-system", "available", 5)
+
 	return err
 }
 
 func WaitForReadyCondition(kubePath, resource, name, namespace string, condition string, minutes int) error {
 	var err error
+
 	args := []string{"wait", resource, name}
 
 	if len(namespace) > 0 {
 		args = append(args, "--namespace", namespace)
 	}
+
 	args = append(args, "--for", fmt.Sprintf("condition=%s=true", condition), fmt.Sprintf("--timeout=%dm", minutes))
 
 	maxRetries := minutes * 30
@@ -271,13 +288,16 @@ func WaitForReadyCondition(kubePath, resource, name, namespace string, condition
 
 func GetRancherFQDNFromLoadBalancer(kubePath string) (string, error) {
 	ingress := map[string]string{}
+
 	err := Get(kubePath, "services", "", "", ".items[0].status.loadBalancer.ingress[0]", &ingress)
 	if err != nil {
 		return "", err
 	}
+
 	if ip, ok := ingress["ip"]; ok {
 		return ip + ".sslip.io", nil
 	}
+
 	if hostname, ok := ingress["hostname"]; ok {
 		return hostname, nil
 	}
@@ -287,6 +307,7 @@ func GetRancherFQDNFromLoadBalancer(kubePath string) (string, error) {
 
 func Get(kubePath string, kind string, name string, namespace string, jsonpath string, out any) error {
 	output := new(bytes.Buffer)
+
 	args := []string{
 		"get",
 		kind,
@@ -294,11 +315,13 @@ func Get(kubePath string, kind string, name string, namespace string, jsonpath s
 	if name != "" {
 		args = append(args, name)
 	}
+
 	if namespace != "" {
 		args = append(args, "--namespace", namespace)
 	} else {
 		args = append(args, "--all-namespaces")
 	}
+
 	args = append(args, "-o", fmt.Sprintf("jsonpath={%s}", jsonpath))
 
 	if err := Exec(kubePath, output, args...); err != nil {
@@ -314,6 +337,7 @@ func Get(kubePath string, kind string, name string, namespace string, jsonpath s
 
 func GetStatus(kubepath, kind, name, namespace string) (map[string]any, error) {
 	out := map[string]any{}
+
 	err := Get(kubepath, kind, name, namespace, ".status", &out)
 	if err != nil {
 		return nil, err
@@ -326,10 +350,12 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	// gather file entries
 	root := "./charts/k6-files/test-files"
 	exts := map[string]bool{".js": true, ".mjs": true, ".sh": true, ".env": true}
+
 	entries, err := getCachedEntries(root, exts)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	relTestPath := testPath
 	// get rel path to test file
 	for _, e := range entries {
@@ -341,12 +367,15 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 
 	// print what we are about to do
 	quotedArgs := []string{"run"}
+
 	for k, v := range envVars {
 		if k == "BASE_URL" {
 			v = localBaseURL
 		}
+
 		quotedArgs = append(quotedArgs, "-e", shellescape.Quote(fmt.Sprintf("%s=%s", k, v)))
 	}
+
 	quotedArgs = append(quotedArgs, shellescape.Quote(relTestPath))
 	log.Printf("Running equivalent of:\n./bin/k6 %s\n", strings.Join(quotedArgs, " "))
 
@@ -356,6 +385,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 		if err != nil {
 			return err
 		}
+
 		err = Exec(kubeconfig, nil, "--namespace="+K6Namespace, "create", "secret", "generic", K6KubeSecretName,
 			"--from-file=config="+path)
 		if err != nil {
@@ -367,13 +397,16 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	args := []string{"run"}
 	// ensure we get the complete summary
 	args = append(args, "--summary-mode=full")
+
 	for k, v := range envVars {
 		// substitute kubeconfig file path with path to secret
 		if k == "KUBECONFIG" {
 			v = "/kube/config"
 		}
+
 		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
 	}
+
 	for k, v := range tags {
 		args = append(args, "--tag", fmt.Sprintf("%s=%s", k, v))
 	}
@@ -398,6 +431,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 			"subPath":   e.Key,
 		})
 	}
+
 	if _, ok := envVars["KUBECONFIG"]; ok {
 		volumes = append(volumes, map[string]any{"name": K6KubeSecretName, "secret": map[string]string{"secretName": "kube"}})
 		volumeMounts = append(volumeMounts, map[string]string{"mountPath": "/kube", "name": K6KubeSecretName})
@@ -426,6 +460,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 			"volumes": volumes,
 		},
 	}
+
 	overrideJSON, err := json.Marshal(override)
 	if err != nil {
 		return err

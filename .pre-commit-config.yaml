@@ -1,12 +1,14 @@
+minimum_pre_commit_version: '4.4.0'
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c #v6.0.0
     hooks:
       - id: detect-aws-credentials
       - id: detect-private-key
       - id: check-yaml
       - id: trailing-whitespace
   - repo: https://github.com/golangci/golangci-lint
-    rev: v1.57.2
+    rev: 77a8601aa372eaab3ad2d7fa1dffa71f28005393 # v1.57.2
     hooks:
       - id: golangci-lint
