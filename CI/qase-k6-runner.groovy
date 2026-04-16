@@ -43,6 +43,14 @@ pipeline {
       }
     }
 
+    stage('Build Dartboard Image') {
+      steps {
+        dir('dartboard') {
+          sh "docker build -t ${env.IMAGE_NAME}:latest ."
+        }
+      }
+    }
+
     stage ('Get # of Test Cases') {
       steps {
         script {
@@ -132,14 +140,6 @@ pipeline {
               echo "Found kubeconfig at: ${kubeconfigPath}"
             }
           }
-        }
-      }
-    }
-
-    stage('Build Dartboard Image') {
-      steps {
-        dir('dartboard') {
-          sh "docker build -t ${env.IMAGE_NAME}:latest ."
         }
       }
     }
