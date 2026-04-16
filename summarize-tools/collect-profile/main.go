@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/rancher/dartboard/internal/summarize/collectprofiles"
+	collectprofile "github.com/rancher/dartboard/internal/summarize/collectprofiles"
 )
 
 func main() {

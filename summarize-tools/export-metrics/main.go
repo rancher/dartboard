@@ -11,11 +11,13 @@ import (
 )
 
 func main() {
-	var kubeconfigPath string
-	var selector string
-	var startStr string
-	var endStr string
-	var offset int64
+	var (
+		kubeconfigPath string
+		selector       string
+		startStr       string
+		endStr         string
+		offset         int64
+	)
 
 	flag.StringVar(&kubeconfigPath, "kubeconfig", "", "Path to kubeconfig file")
 	flag.StringVar(&selector, "selector", "", "Prometheus selector query")
@@ -37,20 +39,25 @@ func main() {
 	}
 
 	var fromSeconds, toSeconds int64
+
 	if startStr != "" {
 		t, err := time.Parse(exportmetrics.PromTimeFormat, startStr)
 		if err != nil {
 			log.Fatalf("Invalid start time format: %v", err)
 		}
+
 		fromSeconds = t.Unix()
 	}
+
 	if endStr != "" {
 		t, err := time.Parse(exportmetrics.PromTimeFormat, endStr)
 		if err != nil {
 			log.Fatalf("Invalid end time format: %v", err)
 		}
+
 		toSeconds = t.Unix()
 	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

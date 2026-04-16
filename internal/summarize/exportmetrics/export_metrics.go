@@ -34,6 +34,7 @@ func exportTimeRange(ctx context.Context, cfg Config, exportDir string, rangeSta
 	fmt.Printf("Exporting range: %s to %s\n", fromStr, toStr)
 
 	var err error
+
 	for attempt := 1; attempt <= 3; attempt++ {
 		if attempt > 1 {
 			fmt.Printf(" - Retrying... (Attempt %d/3)\n", attempt)
@@ -62,6 +63,7 @@ func exportTimeRange(ctx context.Context, cfg Config, exportDir string, rangeSta
 
 		// Copy locally
 		localTar := filepath.Join(exportDir, fmt.Sprintf("prometheus-export-%s.tar.gz", ts2))
+
 		err = runCmd(ctx, "kubectl", "-n", Namespace, "cp", PodName+":/tmp/prometheus-export.tar.gz", localTar)
 		if err != nil {
 			fmt.Printf(" - Copy failed: %v\n", err)
@@ -73,6 +75,7 @@ func exportTimeRange(ctx context.Context, cfg Config, exportDir string, rangeSta
 			fmt.Printf(" - Failed to extract tarball: %v\n", err)
 			continue
 		}
+
 		extractedDir := filepath.Join(exportDir, "prometheus-export")
 		os.RemoveAll(filepath.Join(extractedDir, "wal"))
 
@@ -122,12 +125,14 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Setup local directory
 	ts1 := time.Now().Format("2006-01-02")
+
 	kubeName := "cluster"
 	if cfg.Kubeconfig != "" {
 		kubeName = strings.Split(filepath.Base(cfg.Kubeconfig), ".")[0]
 	}
+
 	exportDir := fmt.Sprintf("metrics-%s-%s", kubeName, ts1)
-	if err := os.MkdirAll(exportDir, 0755); err != nil {
+	if err := os.MkdirAll(exportDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create export directory %q: %w", exportDir, err)
 	}
 
@@ -160,6 +165,7 @@ func Run(ctx context.Context, cfg Config) error {
 	runCmd(ctx, "kubectl", "delete", "pod", "-n", Namespace, PodName)
 
 	finalPath, _ := filepath.Abs(exportDir)
+
 	fmt.Printf("\n\033[32mMetrics export complete!\033[0m\n")
 	fmt.Printf("Metrics saved to: %s\n", finalPath)
 	fmt.Printf("View locally via: \n")
@@ -172,12 +178,15 @@ func parseConfig(ctx context.Context, cfg Config) Config {
 	if cfg.Selector == "" {
 		cfg.Selector = `{__name__!=""}`
 	}
+
 	if cfg.OffsetSeconds == 0 {
 		cfg.OffsetSeconds = 3600
 	}
+
 	if cfg.ToSeconds == 0 {
 		cfg.ToSeconds = time.Now().Unix()
 	}
+
 	if cfg.FromSeconds == 0 {
 		cfg.FromSeconds = time.Now().Add(-1 * time.Hour).Unix()
 	}
@@ -185,6 +194,7 @@ func parseConfig(ctx context.Context, cfg Config) Config {
 	// Logic for limiting offset based on Prometheus memory
 	if cfg.OffsetSeconds > 7200 {
 		cfg.OffsetSeconds = 7200
+
 		out, err := exec.CommandContext(ctx, "kubectl", "get", "statefulsets", "-n", Namespace, "prometheus-rancher-monitoring-prometheus", "-o", "jsonpath={.spec.template.spec.containers[0].resources.limits.memory}").Output()
 		if err == nil {
 			memStr := strings.TrimSuffix(string(out), "Mi")
@@ -196,11 +206,13 @@ func parseConfig(ctx context.Context, cfg Config) Config {
 
 	return cfg
 }
+
 func runMimirtool(ctx context.Context) error {
 	// Confirm access
 	if err := runCmd(ctx, "kubectl", "get", "all", "-A"); err != nil {
 		return fmt.Errorf("failed to access cluster: %w", err)
 	}
+
 	fmt.Println(" - Confirm kubeconfig access \033[32mPASS\033[0m")
 
 	// Cleanup old pod
@@ -212,13 +224,15 @@ func runMimirtool(ctx context.Context) error {
 	if err := runCmd(ctx, "kubectl", "apply", "-f", yamlPath); err != nil {
 		return fmt.Errorf("failed to apply mimirtool.yaml: %w", err)
 	}
-	
+
 	// Wait for pod to be ready
 	fmt.Println("Waiting for mimirtool pod to be ready...")
 	time.Sleep(10 * time.Second)
+
 	if err := runCmd(ctx, "kubectl", "wait", "--for=condition=Ready", "pod", "-n", Namespace, PodName, "--timeout=60s"); err != nil {
 		return fmt.Errorf("mimirtool pod not ready: %w", err)
 	}
+
 	fmt.Println(" - Confirm mimirtool pod is running \033[32mPASS\033[0m")
 
 	return nil
@@ -227,5 +241,6 @@ func runMimirtool(ctx context.Context) error {
 func runCmd(ctx context.Context, name string, args ...string) error {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Stderr = os.Stderr
+
 	return cmd.Run()
 }

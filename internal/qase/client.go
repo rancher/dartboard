@@ -135,6 +135,7 @@ func (c *CustomUnifiedClient) GetTestRun(ctx context.Context, projectCode string
 	if include != nil {
 		apiRunRequest = apiRunRequest.Include(*include)
 	}
+
 	resp, res, err := apiRunRequest.Execute()
 	logResponseBody(res, "GetTestRun")
 
@@ -268,6 +269,7 @@ func (c *CustomUnifiedClient) GetCustomFields(ctx context.Context) (*api_v1_clie
 
 	resp, res, err := c.V1Client.GetAPIClient().CustomFieldsAPI.GetCustomFields(authCtx).Execute()
 	logResponseBody(res, "GetCustomFields")
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get custom fields: %w", err)
 	}

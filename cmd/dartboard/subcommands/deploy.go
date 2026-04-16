@@ -122,9 +122,11 @@ func Deploy(cli *cli.Context) error {
 	if err = chartInstallRancherMonitoring(r, &upstream); err != nil {
 		return err
 	}
+
 	if err = updateMonitoringProject(&upstream); err != nil {
 		return err
 	}
+
 	if err = importDownstreamClusters(r, rancherImageTag, tf, clusters); err != nil {
 		return err
 	}
@@ -731,6 +733,7 @@ func importClustersDownstreamGetYAML(clusters map[string]tofu.Cluster, name stri
 
 func updateMonitoringProject(cluster *tofu.Cluster) error {
 	var b strings.Builder
+
 	args := []string{
 		"get", "namespace", "cattle-system",
 		"-o", "jsonpath={.metadata.annotations.field\\.cattle\\.io/projectId}",
@@ -738,6 +741,7 @@ func updateMonitoringProject(cluster *tofu.Cluster) error {
 	if err := kubectl.Exec(cluster.Kubeconfig, &b, args...); err != nil {
 		return fmt.Errorf("failed to read projectId from cattle-system: %w", err)
 	}
+
 	projID := strings.TrimSpace(b.String())
 	if projID == "" {
 		return fmt.Errorf("no projectId found")
