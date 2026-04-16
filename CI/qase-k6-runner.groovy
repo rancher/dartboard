@@ -51,10 +51,30 @@ pipeline {
       }
     }
 
-    stage ('Get # of Test Cases') {
+    stage('Gather Test Cases') {
       steps {
-        script {
-          dir('dartboard') {
+        dir('dartboard') {
+          script {
+            // Sanitize Run ID to be numeric only to prevent command injection
+            def safeRunID = (params.QASE_TESTOPS_RUN_ID ?: "").replaceAll("[^0-9]", "")
+            def safeProject = (params.QASE_TESTOPS_PROJECT ?: "").replaceAll(sanitizeCharacterRegex, "")
+
+            withEnv(["QASE_PROJECT=${safeProject}", "QASE_RUN_ID=${safeRunID}"]) {
+              withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
+                sh """
+                  docker run --rm --name dartboard-qase-gatherer \\
+                    -v "${pwd()}:/app" \\
+                    --user=\$(id -u) \\
+                    --workdir /app \\
+                    --entrypoint='' \\
+                    -e QASE_TESTOPS_API_TOKEN \\
+                    -e QASE_TESTOPS_PROJECT="\${QASE_PROJECT}" \\
+                    ${env.IMAGE_NAME}:latest qase-k6-cli gather -runID "\${QASE_RUN_ID}" > test_cases.json
+                """
+              }
+            }
+            sh "cat test_cases.json"
+            
             // Get the number of test cases using yq
             def countStr = sh(script: """
                 docker run --rm \\
@@ -139,34 +159,6 @@ pipeline {
               kubeconfigContainerPath = "/app/${env.KUBECONFIG_FILE}"
               echo "Found kubeconfig at: ${kubeconfigPath}"
             }
-          }
-        }
-      }
-    }
-
-    stage('Gather Test Cases') {
-      steps {
-        dir('dartboard') {
-          script {
-            // Sanitize Run ID to be numeric only to prevent command injection
-            def safeRunID = (params.QASE_TESTOPS_RUN_ID ?: "").replaceAll("[^0-9]", "")
-            def safeProject = (params.QASE_TESTOPS_PROJECT ?: "").replaceAll(sanitizeCharacterRegex, "")
-
-            withEnv(["QASE_PROJECT=${safeProject}", "QASE_RUN_ID=${safeRunID}"]) {
-              withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
-                sh """
-                  docker run --rm --name dartboard-qase-gatherer \\
-                    -v "${pwd()}:/app" \\
-                    --user=\$(id -u) \\
-                    --workdir /app \\
-                    --entrypoint='' \\
-                    -e QASE_TESTOPS_API_TOKEN \\
-                    -e QASE_TESTOPS_PROJECT="\${QASE_PROJECT}" \\
-                    ${env.IMAGE_NAME}:latest qase-k6-cli gather -runID "\${QASE_RUN_ID}" > test_cases.json
-                """
-              }
-            }
-            sh "cat test_cases.json"
           }
         }
       }
