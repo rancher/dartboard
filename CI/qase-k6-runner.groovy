@@ -12,6 +12,7 @@ def baseURL
 def sanitizeCharacterRegex = "[^a-zA-Z0-9'_-]"
 def sanitizeK6EnvRegex = "[^a-zA-Z0-9_=,;&*-.\\n\\r]"
 def sanitizeK6ScriptPathRegex = "[^a-zA-Z0-9_./-]"
+def numTestCases
 
 pipeline {
   agent { label agentLabel }
@@ -38,6 +39,31 @@ pipeline {
         script {
           def testRun = params.QASE_TESTOPS_PROJECT && params.QASE_TESTOPS_RUN_ID ? "${params.QASE_TESTOPS_PROJECT}-${params.QASE_TESTOPS_RUN_ID}": ''
           currentBuild.description = "${testRun}"
+        }
+      }
+    }
+
+    stage ('Get # of Test Cases') {
+      steps {
+        script {
+          dir('dartboard') {
+            // Get the number of test cases using yq
+            def countStr = sh(script: """
+                docker run --rm \\
+                    -v "${pwd()}:/app" \\
+                    --workdir /app \\
+                    --user=\$(id -u) \\
+                    --entrypoint='' \\
+                    ${env.IMAGE_NAME}:latest yq '. | length' test_cases.json
+            """, returnStdout: true).trim()
+
+            numTestCases = countStr.isInteger() ? countStr.toInteger() : 0
+
+            if (numTestCases == 0) {
+                echo "No test cases found with 'AutomationTestName' custom field in Run ID ${params.QASE_TESTOPS_RUN_ID}."
+                return
+            }
+          }
         }
       }
     }
@@ -150,25 +176,8 @@ pipeline {
       steps {
         dir('dartboard') {
           script {
-            // Get the number of test cases using yq
-            def countStr = sh(script: """
-                docker run --rm \\
-                    -v "${pwd()}:/app" \\
-                    --workdir /app \\
-                    --user=\$(id -u) \\
-                    --entrypoint='' \\
-                    ${env.IMAGE_NAME}:latest yq '. | length' test_cases.json
-            """, returnStdout: true).trim()
-
-            def count = countStr.isInteger() ? countStr.toInteger() : 0
-
-            if (count == 0) {
-                echo "No test cases found with 'AutomationTestName' custom field in Run ID ${params.QASE_TESTOPS_RUN_ID}."
-                return
-            }
-
             // Iterate over each gathered test case
-            for (int index = 0; index < count; index++) {
+            for (int index = 0; index < numTestCases; index++) {
               // Extract test case details using yq
               // We output ID, Title, ScriptPath, and then parameters as key=::=value lines
               def caseDataLines = sh(script: """
@@ -206,20 +215,20 @@ pipeline {
               echo "Parameters: ${parameters}"
               echo "-------------------------------------------------------"
 
-                def safeScriptPath = (scriptPath ?: "").replaceAll(sanitizeK6ScriptPathRegex, "")
-                if (!safeScriptPath || safeScriptPath != scriptPath || !safeScriptPath.endsWith('.js') || safeScriptPath.contains('..')) {
-                  error("Invalid k6 script path for Case ${caseId}: ${scriptPath}")
-                }
-                if (!fileExists(safeScriptPath)) {
-                  error("k6 script not found for Case ${caseId}: ${safeScriptPath}")
-                }
+              def safeScriptPath = (scriptPath ?: "").replaceAll(sanitizeK6ScriptPathRegex, "")
+              if (!safeScriptPath || safeScriptPath != scriptPath || !safeScriptPath.endsWith('.js') || safeScriptPath.contains('..')) {
+                error("Invalid k6 script path for Case ${caseId}: ${scriptPath}")
+              }
+              if (!fileExists(safeScriptPath)) {
+                error("k6 script not found for Case ${caseId}: ${safeScriptPath}")
+              }
 
               // Sanitize project name to prevent shell injection in filenames
               def safeProject = (params.QASE_TESTOPS_PROJECT ?: "").replaceAll(sanitizeCharacterRegex, "")
 
               // 1. Prepare Environment for this specific test case
               // Use index to ensure uniqueness for file names when multiple parameter combinations exist for the same case ID
-                def basename = safeScriptPath.tokenize('/').last().replaceAll("\\.js", "")
+              def basename = safeScriptPath.tokenize('/').last().replaceAll("\\.js", "")
               def envFile = "k6-${basename}-${safeProject}-${caseId}-${index}.env"
               def k6ReportPrefix = "k6-${basename}-${safeProject}-${caseId}-${index}"
               def summaryLog = "k6-summary-${safeProject}-${caseId}-${index}-params.log"
