@@ -21,7 +21,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/rancher/dartboard/internal/summarize/collectprofiles"
+	collectprofile "github.com/rancher/dartboard/internal/summarize/collectprofiles"
 	"github.com/rancher/dartboard/internal/summarize/countresources"
 	"github.com/rancher/dartboard/internal/summarize/exportmetrics"
 	"github.com/urfave/cli/v2"
@@ -32,6 +32,7 @@ func handleTimeInputs(cli *cli.Context) (int64, int64, int64, error) {
 	startTimeStr := cli.String("start-time")
 	endTimeStr := cli.String("end-time")
 	step := cli.Int("step")
+
 	var offsetSeconds int64
 	if step == 0 {
 		offsetSeconds = 3600 // 1 hour default
@@ -41,8 +42,10 @@ func handleTimeInputs(cli *cli.Context) (int64, int64, int64, error) {
 		offsetSeconds = int64(step)
 	}
 
-	var from, to time.Time
-	var err error
+	var (
+		from, to time.Time
+		err      error
+	)
 
 	if startTimeStr != "" {
 		from, err = time.Parse(exportmetrics.PromTimeFormat, startTimeStr)
@@ -77,6 +80,7 @@ func handleTimeInputs(cli *cli.Context) (int64, int64, int64, error) {
 		toSeconds = time.Now().Unix()
 		fromSeconds = time.Now().Add(-1 * time.Hour).Unix()
 	}
+
 	return fromSeconds, toSeconds, offsetSeconds, nil
 }
 
@@ -106,7 +110,7 @@ func Summarize(cli *cli.Context) error {
 
 	// Create top-level summary directory for this run so all tool outputs aggregate there
 	summaryDir := fmt.Sprintf("summarize-results-%s", time.Now().Format("2006-01-02"))
-	if err := os.MkdirAll(summaryDir, 0755); err != nil {
+	if err := os.MkdirAll(summaryDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create summary directory %s: %w", summaryDir, err)
 	}
 
@@ -115,9 +119,11 @@ func Summarize(cli *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to determine working directory: %w", err)
 	}
+
 	if err := os.Chdir(summaryDir); err != nil {
 		return fmt.Errorf("failed to change directory to %s: %w", summaryDir, err)
 	}
+
 	defer func() {
 		if err := os.Chdir(originalWd); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: failed to restore working directory: %v\n", err)
@@ -143,6 +149,7 @@ func Summarize(cli *cli.Context) error {
 
 	if counts {
 		fmt.Println(">>> Running resource-counts...")
+
 		cfg := countresources.Config{
 			Kubeconfig: upstream.Kubeconfig,
 		}
@@ -153,6 +160,7 @@ func Summarize(cli *cli.Context) error {
 
 	if metrics {
 		fmt.Println(">>> Running export-metrics...")
+
 		cfg := exportmetrics.Config{
 			Kubeconfig: upstream.Kubeconfig,
 			Selector:   cli.String("query"),
@@ -162,6 +170,7 @@ func Summarize(cli *cli.Context) error {
 		if err != nil {
 			return err
 		}
+
 		cfg.FromSeconds = from
 		cfg.ToSeconds = to
 		cfg.OffsetSeconds = offset

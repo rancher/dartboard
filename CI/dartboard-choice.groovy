@@ -218,36 +218,38 @@ pipeline {
 
               def tofuMainDirFromDart = sh(script: "docker exec ${runningContainerName} sh -c 'echo \"\$1\" | yq .tofu_main_directory' -- '${params.DART_FILE}'", returnStdout: true).trim()
 
-              // Unzip artifacts inside the service container
-              def restoreScript = """
-                  echo "Extracting downloaded artifacts..."
-                  artifactsDir="/dartboard/${artifactsDir}"
+              // Write the restore script to a file in the container and execute it,
+              // avoiding quoting issues when passing multi-line scripts with single quotes via sh -c.
+              def restoreScript = """#!/bin/sh
+set -e
+echo "Extracting downloaded artifacts..."
+artifactsDir="/dartboard/${artifactsDir}"
 
-                  tfstate_zip=\$(find \${artifactsDir} -name 'tfstate-*.zip' | head -n 1)
-                  if [ -n "\$tfstate_zip" ]; then
-                    echo "Extracting OpenTofu state archive: \$tfstate_zip"
-                    tfstateDir="${tofuMainDirFromDart}/terraform.tfstate.d/"
-                    echo "Ensuring OpenTofu state directory exists at \${tfstateDir}"
-                    mkdir -p "\${tfstateDir}"
-                    echo "Unzipping state into \${tfstateDir}"
-                    unzip -o "\$tfstate_zip" -d "\${tfstateDir}"
-                  else
-                    echo "Warning: No OpenTofu state zip file found in S3 artifacts."
-                  fi
+tfstate_zip=\$(find "\${artifactsDir}" -name "tfstate-*.zip" | head -n 1)
+if [ -n "\$tfstate_zip" ]; then
+  echo "Extracting OpenTofu state archive: \$tfstate_zip"
+  tfstateDir="${tofuMainDirFromDart}/terraform.tfstate.d/"
+  echo "Ensuring OpenTofu state directory exists at \${tfstateDir}"
+  mkdir -p "\${tfstateDir}"
+  echo "Unzipping state into \${tfstateDir}"
+  unzip -o "\$tfstate_zip" -d "\${tfstateDir}"
+else
+  echo "Warning: No OpenTofu state zip file found in S3 artifacts."
+fi
 
-                  config_zip=\$(find \${artifactsDir} -name '*_config.zip' | head -n 1)
-                  if [ -n "\$config_zip" ]; then
-                    configDirName=\$(basename "\$config_zip" .zip)
-                    configDestDir="${tofuMainDirFromDart}/\${configDirName}"
-                    echo "Extracting config archive: \$config_zip to \${configDestDir}"
-                    mkdir -p "\${configDestDir}"
-                    unzip -o "\$config_zip" -d "\${configDestDir}"
-                  else
-                    echo "Warning: No config zip file found in S3 artifacts."
-                  fi
-
-              """
-              sh "docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} sh -c '${restoreScript}'"
+config_zip=\$(find "\${artifactsDir}" -name "*_config.zip" | head -n 1)
+if [ -n "\$config_zip" ]; then
+  configDirName=\$(basename "\$config_zip" .zip)
+  configDestDir="${tofuMainDirFromDart}/\${configDirName}"
+  echo "Extracting config archive: \$config_zip to \${configDestDir}"
+  mkdir -p "\${configDestDir}"
+  unzip -o "\$config_zip" -d "\${configDestDir}"
+else
+  echo "Warning: No config zip file found in S3 artifacts."
+fi
+"""
+              writeFile file: "${artifactsDir}/restore.sh", text: restoreScript
+              sh "docker exec --user=\$(id -u) --workdir /dartboard ${runningContainerName} sh /dartboard/${artifactsDir}/restore.sh"
               sh "rm -rf ${artifactsDir}"
             }
           }

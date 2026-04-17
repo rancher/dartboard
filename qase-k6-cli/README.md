@@ -1,6 +1,6 @@
-# k6 Qase Reporter
+# Qase k6 CLI
 
-`qasereporter-k6` is a command-line tool that parses the output of a k6 test run and reports the results to a Qase test run.
+`qase-k6-cli` is a command-line tool that integrates k6 with Qase. It provides functionality to gather test case information from Qase and report k6 test results back to Qase.
 
 It supports two modes of operation for parsing k6 results:
 
@@ -10,17 +10,21 @@ It supports two modes of operation for parsing k6 results:
 
 ## Build
 
-You can build the reporter using the `make` target from the root of the `dartboard` repository:
+You can build the cli using the `make` target from the root of the `dartboard` repository:
 
 ```shell
-make qasereporter-k6
+make qase-k6-cli
 ```
 
-This will produce a `qasereporter-k6` binary inside the `qasereporter-k6/` directory.
+This will produce a `qase-k6-cli` binary inside the `qase-k6-cli/` directory.
 
 ## Usage
 
-The reporter is configured via environment variables and command-line flags.
+The tool is configured via environment variables and command-line flags and has two subcommands: `report` and `gather`.
+
+### Report
+
+Parses k6 metrics/summary and reports the result to Qase.
 
 ```shell
 # Example for Summary Mode
@@ -32,7 +36,7 @@ export QASE_TEST_CASE_NAME="My test case"
 export K6_SUMMARY_JSON_FILE="/path/to/summary.json"
 export K6_SUMMARY_HTML_FILE="/path/to/report.html" # Optional
 
-./qasereporter-k6
+./qase-k6-cli report
 
 # Example for Granular Mode
 export QASE_TESTOPS_API_TOKEN=TOKEN
@@ -42,7 +46,18 @@ export QASE_TEST_CASE_NAME="My k6 Test"
 export K6_OUTPUT_FILE="/path/to/k6-metrics-output.json"
 export K6_SUMMARY_HTML_FILE="/path/to/report.html" # Optional
 
-./qasereporter-k6 -granular
+./qase-k6-cli report -granular
+```
+
+### Gather
+
+Retrieves test cases from a Qase test run and outputs the 'AutomationTestName' custom field value for each case as JSON.
+
+```shell
+export QASE_TESTOPS_API_TOKEN=TOKEN
+export QASE_TESTOPS_PROJECT=PRJ
+
+./qase-k6-cli gather -runID 42
 ```
 
 ### Environment Variables
@@ -57,7 +72,7 @@ export K6_SUMMARY_HTML_FILE="/path/to/report.html" # Optional
 | `K6_SUMMARY_JSON_FILE`   | Path to the k6 summary JSON file. (Used in **Summary Mode**).                                             | For Summary Mode                 |
 | `K6_SUMMARY_HTML_FILE`   | (Optional) Path to the k6 HTML report file to be attached to the Qase result. (Used in **Summary Mode**). | No                               |
 | `K6_OUTPUT_FILE`         | Path to the k6 raw JSON output file. (Used in **Granular Mode**).                                         | For Granular Mode                |
-| `QASE_DEBUG`             | A string ("true" or "false") that enables or disables debug logs.                                          | No                               |
+| `QASE_DEBUG`             | A string ("true" or "false") that enables or disables debug logs.                                         | No                               |
 
 ### Command-line Flags
 

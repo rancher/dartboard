@@ -34,7 +34,7 @@ func Run(ctx context.Context, cfg Config) error {
 	outputDir := filepath.Join(parentDir, fmt.Sprintf("cr-outputs-%s", subDirDate))
 
 	// Create directories
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
@@ -63,6 +63,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Get List of Resources
 	cmd := exec.CommandContext(ctx, "kubectl", "api-resources", "--no-headers", "-o", "wide")
+
 	output, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("failed to get api-resources: %w", err)
@@ -71,20 +72,24 @@ func Run(ctx context.Context, cfg Config) error {
 	scanner := bufio.NewScanner(bytes.NewReader(output))
 	for scanner.Scan() {
 		line := scanner.Text()
+
 		fields := strings.Fields(line)
 		if len(fields) == 0 {
 			continue
 		}
+
 		resource := fields[0]
 
 		// Count Resources
 		countCmd := exec.CommandContext(ctx, "kubectl", "get", resource, "-A", "--no-headers", "--ignore-not-found")
+
 		countOutput, err := countCmd.Output()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error counting resource %s: %v\n", resource, err)
 		}
 
 		var count int
+
 		if err == nil {
 			// Count non-empty lines
 			lines := bytes.Split(countOutput, []byte{'\n'})

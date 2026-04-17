@@ -93,7 +93,7 @@ func main() {
 				Usage:       "Summarize the current deployment by capturing metrics, profiles, and resource counts",
 				Description: "runs `export-metrics`, `collect-profile`, and `resource-counts` against the deployed clusters",
 				Action:      subcommands.Summarize,
-								Flags: []cli.Flag{
+				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "metrics",
 						Aliases: []string{"m"},

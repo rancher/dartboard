@@ -15,7 +15,6 @@ import (
 type Config struct {
 	App          string
 	Profiles     string
-	Duration     int
 	LogLevel     string
 	Namespace    string
 	Container    string
@@ -23,6 +22,7 @@ type Config struct {
 	BlobURL      string
 	BlobToken    string
 	MainFilename string
+	Duration     int
 }
 
 func Run(ctx context.Context, cfg Config) error {
@@ -41,22 +41,27 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Prefix == "" {
 		cfg.Prefix = "rancher"
 	}
+
 	if cfg.MainFilename == "" {
 		cfg.MainFilename = fmt.Sprintf("profiles-%s.tar", time.Now().Format("2006-01-02_15_04"))
 	}
+
 	if cfg.BlobURL == "" {
 		cfg.BlobURL = os.Getenv("BLOB_URL")
 	}
+
 	if cfg.BlobToken == "" {
 		cfg.BlobToken = os.Getenv("BLOB_TOKEN")
 	}
 
 	// If intending to use blob storage, both URL and Token must be provided.
 	usingBlobURL := cfg.BlobURL != ""
+
 	usingBlobToken := cfg.BlobToken != ""
 	if usingBlobURL != usingBlobToken {
 		return fmt.Errorf("for blob storage upload, both BLOB_URL and BLOB_TOKEN environment variables must be set")
 	}
+
 	if cfg.LogLevel == "" {
 		cfg.LogLevel = "debug"
 	}
@@ -64,10 +69,13 @@ func Run(ctx context.Context, cfg Config) error {
 	// Set timezone to UTC
 	os.Setenv("TZ", "UTC")
 
-	var portForwardCmd *exec.Cmd
-	var err error
+	var (
+		portForwardCmd *exec.Cmd
+		err            error
+	)
 
 	// Ensure cleanup runs on exit
+
 	defer func() {
 		cleanup(cfg, portForwardCmd)
 	}()
@@ -84,6 +92,7 @@ func Run(ctx context.Context, cfg Config) error {
 	case "fleet-controller":
 		cfg.Container = "fleet-controller"
 		cfg.Namespace = "cattle-fleet-system"
+
 		portForwardCmd, err = startPortForward(cfg, 60601, 6060)
 		if err != nil {
 			return err
@@ -96,6 +105,7 @@ func Run(ctx context.Context, cfg Config) error {
 		} else {
 			cfg.Namespace = "cattle-fleet-system"
 		}
+
 		portForwardCmd, err = startPortForward(cfg, 60601, 6060)
 		if err != nil {
 			return err
@@ -110,7 +120,9 @@ func collect(cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
+
 	techo("Created " + tmpDir)
+
 	defer func() {
 		techo("Removing " + tmpDir)
 		os.RemoveAll(tmpDir)
@@ -167,6 +179,7 @@ func collectRancherLogic(cfg Config, tmpDir string) {
 		for _, profile := range profiles {
 			profile = strings.TrimSpace(profile)
 			techo(fmt.Sprintf("Getting %s profile for %s", profile, pod))
+
 			url := fmt.Sprintf("http://localhost:6060/debug/pprof/%s", profile)
 			if profile == "profile" {
 				url += fmt.Sprintf("?seconds=%d", cfg.Duration)
@@ -190,8 +203,9 @@ func collectRancherLogic(cfg Config, tmpDir string) {
 			outFile := filepath.Join(tmpDir, pod+"-metrics.txt")
 
 			cmd := exec.Command("kubectl", "exec", "-n", cfg.Namespace, pod, "-c", cfg.Container, "--", "bash", "-c", metricsCmd)
+
 			output, _ := cmd.CombinedOutput()
-			if err := os.WriteFile(outFile, output, 0644); err != nil {
+			if err := os.WriteFile(outFile, output, 0o644); err != nil {
 				techo(fmt.Sprintf("Failed to write metrics to %s: %v", outFile, err))
 			}
 		}
@@ -247,24 +261,30 @@ func getPodNames(cfg Config) []string {
 		techo("Error getting pods: " + err.Error())
 		return []string{}
 	}
+
 	lines := strings.Split(string(out), "\n")
+
 	var pods []string
+
 	for _, l := range lines {
 		if strings.TrimSpace(l) != "" {
 			pods = append(pods, strings.TrimSpace(l))
 		}
 	}
+
 	return pods
 }
 
 func execKubectlCurl(cfg Config, pod, url, outFile string) {
 	// kubectl exec -n NS pod -c container -- curl -s URL
 	cmd := exec.Command("kubectl", "exec", "-n", cfg.Namespace, pod, "-c", cfg.Container, "--", "curl", "-s", url)
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		techo("Error curling " + url + ": " + err.Error())
 	}
-	if err := os.WriteFile(outFile, out, 0644); err != nil {
+
+	if err := os.WriteFile(outFile, out, 0o644); err != nil {
 		techo("Error writing to " + outFile + ": " + err.Error())
 	}
 }
@@ -283,6 +303,7 @@ func downloadFile(url, outFile string) {
 		return
 	}
 	defer out.Close()
+
 	if _, err := io.Copy(out, resp.Body); err != nil {
 		techo("Error writing response body to " + outFile + ": " + err.Error())
 	}
@@ -290,18 +311,20 @@ func downloadFile(url, outFile string) {
 
 func execWriteOutput(filename string, name string, args ...string) {
 	cmd := exec.Command(name, args...)
+
 	out, _ := cmd.CombinedOutput() // Ignore error, just write what we got
-	if err := os.WriteFile(filename, out, 0644); err != nil {
+	if err := os.WriteFile(filename, out, 0o644); err != nil {
 		techo("Error writing to " + filename + ": " + err.Error())
 	}
 }
 
 func appendToFile(filename string, text string) {
-	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return
 	}
 	defer f.Close()
+
 	f.WriteString(text)
 }
 
@@ -311,6 +334,7 @@ func startPortForward(cfg Config, localPort, remotePort int) (*exec.Cmd, error) 
 		techo("No pods found to port-forward")
 		return nil, fmt.Errorf("no pods found")
 	}
+
 	pod := pods[0]
 
 	cmdStr := fmt.Sprintf("%d:%d", localPort, remotePort)
@@ -325,6 +349,7 @@ func startPortForward(cfg Config, localPort, remotePort int) (*exec.Cmd, error) 
 	// Give it a moment to establish
 	time.Sleep(2 * time.Second)
 	techo(fmt.Sprintf("Port forward started for %s %s", pod, cmdStr))
+
 	return cmd, nil
 }
 
@@ -341,6 +366,7 @@ func handleUploadOrAppend(cfg Config, srcPath, srcName string) {
 		techo("Uploading " + srcName)
 		// Use curl for upload to avoid complex Go http client setup for SAS tokens in a single file
 		fullURL := fmt.Sprintf("%s/%s?%s", cfg.BlobURL, srcName, cfg.BlobToken)
+
 		cmd := exec.Command("curl", "-H", "x-ms-blob-type: BlockBlob", "--upload-file", srcPath, fullURL)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			techo("Upload failed: " + string(out))
@@ -349,6 +375,7 @@ func handleUploadOrAppend(cfg Config, srcPath, srcName string) {
 		// Note: 'tar rf' appends. 'tar' needs to be available.
 		techo("Appending to " + cfg.MainFilename)
 		exec.Command("tar", "rf", cfg.MainFilename, srcPath).Run()
+
 		if err := os.Remove(srcPath); err != nil {
 			techo("Failed to remove " + srcPath + ": " + err.Error())
 		}
@@ -363,9 +390,11 @@ func cleanup(cfg Config, portForwardCmd *exec.Cmd) {
 		if err := portForwardCmd.Process.Kill(); err != nil {
 			techo("Error killing port-forward: " + err.Error())
 		}
+
 		if err := portForwardCmd.Wait(); err != nil {
 			techo("Error waiting for port-forward to exit: " + err.Error())
 		}
+
 		techo("Killing port-forward")
 	}
 }
