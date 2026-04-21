@@ -17,6 +17,7 @@ limitations under the License.
 package subcommands
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -27,6 +28,15 @@ import (
 	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/urfave/cli/v2"
 )
+
+// thresholdsExitError implements cli.ExitCoder so that urfave/cli propagates the exit code.
+type thresholdsExitError struct {
+	message string
+	code    int
+}
+
+func (e *thresholdsExitError) Error() string { return e.message }
+func (e *thresholdsExitError) ExitCode() int { return e.code }
 
 // TODO: Make this command idempotent. Get count (# of resources) matching some unique identifier.
 // Then rerun the appropriate script, passing in the index to leave off on.
@@ -48,6 +58,8 @@ func Load(cli *cli.Context) error {
 		return err
 	}
 
+	var thresholdsCrossed bool
+
 	// Create ConfigMaps and Secrets on Rancher and all the downstream clusters
 	for clusterName, clusterData := range clusters {
 		// NOTE: we may change the condition with 'cluster == "tester"', but better to stay on the safe side
@@ -56,17 +68,36 @@ func Load(cli *cli.Context) error {
 		}
 
 		if err := loadConfigMapAndSecrets(r, tester.Kubeconfig, clusterName, clusterData); err != nil {
-			return err
+			if errors.Is(err, kubectl.ErrK6ThresholdsCrossed) {
+				thresholdsCrossed = true
+			} else {
+				return err
+			}
 		}
 	}
 
 	// Create Users and Roles
 	if err := loadRolesAndUsers(r, tester.Kubeconfig, "upstream", clusters["upstream"]); err != nil {
-		return err
+		if errors.Is(err, kubectl.ErrK6ThresholdsCrossed) {
+			thresholdsCrossed = true
+		} else {
+			return err
+		}
 	}
 	// Create Projects
 	if err := loadProjects(r, tester.Kubeconfig, "upstream", clusters["upstream"]); err != nil {
-		return err
+		if errors.Is(err, kubectl.ErrK6ThresholdsCrossed) {
+			thresholdsCrossed = true
+		} else {
+			return err
+		}
+	}
+
+	if thresholdsCrossed {
+		return &thresholdsExitError{
+			message: "WARNING: k6 thresholds were crossed, but all iterations completed",
+			code:    kubectl.K6ThresholdsHaveFailed,
+		}
 	}
 
 	return nil

@@ -138,6 +138,11 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
+		if exitErr, ok := err.(cli.ExitCoder); ok {
+			log.Print(err)
+			os.Exit(exitErr.ExitCode())
+		}
+
 		log.Fatal(err)
 	}
 }

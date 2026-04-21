@@ -19,10 +19,12 @@ package kubectl
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -34,11 +36,16 @@ import (
 
 const (
 	// renovate: datasource=github-releases depName=grafana/k6 digestVersion=1.7.1
-	k6Image          = "grafana/k6:1.7.1@sha256:4fd3a694926b064d3491d9b02b01cde886583c4931f1223816e3d9a7bdfa7e0f"
-	K6Namespace      = "tester"
-	K6KubeSecretName = "kube"
-	mimirURL         = "http://mimir.tester:9009/mimir"
+	k6Image                    = "grafana/k6:1.7.1@sha256:4fd3a694926b064d3491d9b02b01cde886583c4931f1223816e3d9a7bdfa7e0f"
+	K6Namespace                = "tester"
+	K6KubeSecretName           = "kube"
+	mimirURL                   = "http://mimir.tester:9009/mimir"
+	K6ThresholdsHaveFailed int = 99 // https://github.com/grafana/k6/blob/b1f6210c447362235fe3cfbfc1a9ec78cee0824e/errext/exitcodes/codes.go#L18-L19
 )
+
+// ErrK6ThresholdsCrossed is returned when a k6 test completes all iterations
+// but one or more thresholds were crossed. Callers may treat this as a warning.
+var ErrK6ThresholdsCrossed = errors.New("k6 thresholds were crossed")
 
 type FileEntry struct {
 	RelPath string
@@ -231,7 +238,7 @@ func Exec(kubepath string, output io.Writer, args ...string) error {
 	}
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("error while running kubectl with params %v: %v", fullArgs, errStream.String())
+		return fmt.Errorf("error while running kubectl with params %v: %s: %w", fullArgs, errStream.String(), err)
 	}
 
 	return nil
@@ -418,7 +425,33 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	// Always disable color output for cleaner logs in CI
 	args = append(args, "--no-color")
 
-	// prepare volumes and volume mounts
+	overrideJSON, err := buildK6PodOverride(args, entries, envVars)
+	if err != nil {
+		return err
+	}
+
+	var output *os.File
+	if printLogs {
+		output = os.Stdout
+	}
+
+	err = Exec(kubeconfig, output, "run", "k6", "--image="+k6Image, "--namespace=tester", "--rm", "--stdin", "--restart=Never", "--overrides="+string(overrideJSON))
+	if err != nil {
+		// k6 exit code 99 means thresholds were crossed but all iterations completed.
+		// Treat this as a warning rather than a fatal error.
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == K6ThresholdsHaveFailed {
+			log.Printf("WARNING: k6 thresholds were crossed, but all iterations completed. Continuing.")
+			return ErrK6ThresholdsCrossed
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func buildK6PodOverride(args []string, entries []FileEntry, envVars map[string]string) ([]byte, error) {
 	volumes := []any{
 		map[string]any{"name": "k6-test-files", "configMap": map[string]string{"name": "k6-test-files"}},
 	}
@@ -437,7 +470,6 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 		volumeMounts = append(volumeMounts, map[string]string{"mountPath": "/kube", "name": K6KubeSecretName})
 	}
 
-	// prepare pod override map
 	override := map[string]any{
 		"apiVersion": "v1",
 		"spec": map[string]any{
@@ -461,20 +493,5 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 		},
 	}
 
-	overrideJSON, err := json.Marshal(override)
-	if err != nil {
-		return err
-	}
-
-	var output *os.File
-	if printLogs {
-		output = os.Stdout
-	}
-
-	err = Exec(kubeconfig, output, "run", "k6", "--image="+k6Image, "--namespace=tester", "--rm", "--stdin", "--restart=Never", "--overrides="+string(overrideJSON))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return json.Marshal(override)
 }
