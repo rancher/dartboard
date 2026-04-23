@@ -16,6 +16,7 @@ def runningContainerName
 def finalSSHKeyName
 def finalSSHPemKey
 def finalProjectName
+def K6ThresholdsHaveFailed = 99 // Custom exit code to indicate k6 thresholds were crossed but iterations completed
 
 pipeline {
   agent { label agentLabel }
@@ -315,7 +316,13 @@ EOF
                 sh dartboardCmd
               }
             } else {
-              sh dartboardCmd
+              def exitCode = sh(script: dartboardCmd, returnStatus: true)
+              if (exitCode == K6ThresholdsHaveFailed) {
+                echo "WARNING: k6 thresholds were crossed, but all iterations completed. Marking build as UNSTABLE."
+                currentBuild.result = 'UNSTABLE'
+              } else if (exitCode != 0) {
+                error("'dartboard ${command}' failed with exit code ${exitCode}")
+              }
             }
           }
         }
