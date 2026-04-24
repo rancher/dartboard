@@ -25,6 +25,119 @@ import (
 	cli "github.com/urfave/cli/v2"
 )
 
+func appCommands() []*cli.Command {
+	return []*cli.Command{
+		{
+			Name:        "apply",
+			Usage:       "Runs `tofu apply`",
+			Description: "runs `tofu apply` to prepare infrastructure and Kubernetes clusters for tests",
+			Action:      subcommands.Apply,
+		},
+		{
+			Name:        "deploy",
+			Usage:       "Deploys Rancher and other charts on top of clusters",
+			Description: "prepares the test environment installing all required charts",
+			Action:      subcommands.Deploy,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:        subcommands.ArgSkipApply,
+					Value:       false,
+					Usage:       "skip 'tofu apply', assume apply was already called",
+					DefaultText: "false",
+				},
+				&cli.BoolFlag{
+					Name:        subcommands.ArgSkipCharts,
+					Value:       false,
+					Usage:       "skip 'helm install' for all charts, assume charts have already been installed for upstream and tester clusters",
+					DefaultText: "false",
+				},
+				&cli.BoolFlag{
+					Name:        subcommands.ArgSkipRefresh,
+					Value:       false,
+					Usage:       "skip refresh phase for tofu resources, assume resources are refreshed and up-to-date",
+					DefaultText: "false",
+				},
+			},
+		},
+		{
+			Name:        "load",
+			Usage:       "Creates K8s resources on upstream and downstream clusters",
+			Description: "Loads ConfigMaps and Secrets on all the deployed K8s cluster; Roles, Users and Projects on the Rancher cluster",
+			Action:      subcommands.Load,
+		},
+		{
+			Name:        "get-access",
+			Usage:       "Retrieves information to access the deployed clusters",
+			Description: "print out links and access information for the deployed clusters",
+			Action:      subcommands.GetAccess,
+		},
+		{
+			Name:        "destroy",
+			Usage:       "Tears down the test environment (all the clusters)",
+			Description: "runs `tofu destroy` to destroy all the provisioned clusters",
+			Action:      subcommands.Destroy,
+		},
+		{
+			Name:        "reapply",
+			Usage:       "Tears down the test environment (all the clusters) and re-runs `tofu apply`",
+			Description: "runs `tofu destroy` and then `tofu apply`",
+			Action:      subcommands.Reapply,
+		},
+		{
+			Name:        "redeploy",
+			Usage:       "Tears down the test environment (all the clusters) and redeploys them from scratch",
+			Description: "runs `tofu destroy` and then deploys all the provisioned clusters",
+			Action:      subcommands.Redeploy,
+		},
+		{
+			Name:        "summarize",
+			Usage:       "Summarize the current deployment by capturing metrics, profiles, and resource counts",
+			Description: "runs `export-metrics`, `collect-profile`, and `resource-counts` against the deployed clusters",
+			Action:      subcommands.Summarize,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:    "metrics",
+					Aliases: []string{"m"},
+					Value:   false,
+					Usage:   "only include metrics in summary",
+				},
+				&cli.StringFlag{
+					Name:  "query",
+					Value: `{__name__!=""}`,
+					Usage: "prometheus expression for metrics query, defaults to all metrics",
+				},
+				&cli.StringFlag{
+					Name:  "start-time",
+					Value: "",
+					Usage: "start time for metrics export (RFC3339), defaults to 1hr ago",
+				},
+				&cli.StringFlag{
+					Name:  "end-time",
+					Value: "",
+					Usage: "end time for metrics export (RFC3339), defaults to current time",
+				},
+				&cli.IntFlag{
+					Name:  "step",
+					Value: 0,
+					Usage: "step/offset in seconds for metrics export, defaults to 3600 (1hr), max 7200 (2hrs)",
+				},
+				&cli.BoolFlag{
+					Name:    "counts",
+					Aliases: []string{"c"},
+					Value:   false,
+					Usage:   "only include current resource counts in summary",
+				},
+				&cli.BoolFlag{
+					Name:    "profiles",
+					Aliases: []string{"p"},
+					Value:   false,
+					Usage:   "only include current profiles in summary",
+				},
+			},
+		},
+	}
+}
+
 func main() {
 	app := &cli.App{
 		Usage:     "setup and test Rancher (at scale if needed)",
@@ -38,116 +151,7 @@ func main() {
 				EnvVars: []string{"DART"},
 			},
 		},
-		Commands: []*cli.Command{
-			{
-				Name:        "apply",
-				Usage:       "Runs `tofu apply`",
-				Description: "runs `tofu apply` to prepare infrastructure and Kubernetes clusters for tests",
-				Action:      subcommands.Apply,
-			},
-			{
-				Name:        "deploy",
-				Usage:       "Deploys Rancher and other charts on top of clusters",
-				Description: "prepares the test environment installing all required charts",
-				Action:      subcommands.Deploy,
-				Flags: []cli.Flag{
-					&cli.BoolFlag{
-						Name:        subcommands.ArgSkipApply,
-						Value:       false,
-						Usage:       "skip 'tofu apply', assume apply was already called",
-						DefaultText: "false",
-					},
-					&cli.BoolFlag{
-						Name:        subcommands.ArgSkipCharts,
-						Value:       false,
-						Usage:       "skip 'helm install' for all charts, assume charts have already been installed for upstream and tester clusters",
-						DefaultText: "false",
-					},
-					&cli.BoolFlag{
-						Name:        subcommands.ArgSkipRefresh,
-						Value:       false,
-						Usage:       "skip refresh phase for tofu resources, assume resources are refreshed and up-to-date",
-						DefaultText: "false",
-					},
-				},
-			},
-			{
-				Name:        "load",
-				Usage:       "Creates K8s resources on upstream and downstream clusters",
-				Description: "Loads ConfigMaps and Secrets on all the deployed K8s cluster; Roles, Users and Projects on the Rancher cluster",
-				Action:      subcommands.Load,
-			},
-			{
-				Name:        "get-access",
-				Usage:       "Retrieves information to access the deployed clusters",
-				Description: "print out links and access information for the deployed clusters",
-				Action:      subcommands.GetAccess,
-			},
-			{
-				Name:        "destroy",
-				Usage:       "Tears down the test environment (all the clusters)",
-				Description: "runs `tofu destroy` to destroy all the provisioned clusters",
-				Action:      subcommands.Destroy,
-			},
-			{
-				Name:        "reapply",
-				Usage:       "Tears down the test environment (all the clusters) and re-runs `tofu apply`",
-				Description: "runs `tofu destroy` and then `tofu apply`",
-				Action:      subcommands.Reapply,
-			},
-			{
-				Name:        "redeploy",
-				Usage:       "Tears down the test environment (all the clusters) and redeploys them from scratch",
-				Description: "runs `tofu destroy` and then deploys all the provisioned clusters",
-				Action:      subcommands.Redeploy,
-			},
-			{
-				Name:        "summarize",
-				Usage:       "Summarize the current deployment by capturing metrics, profiles, and resource counts",
-				Description: "runs `export-metrics`, `collect-profile`, and `resource-counts` against the deployed clusters",
-				Action:      subcommands.Summarize,
-				Flags: []cli.Flag{
-					&cli.BoolFlag{
-						Name:    "metrics",
-						Aliases: []string{"m"},
-						Value:   false,
-						Usage:   "only include metrics in summary",
-					},
-					&cli.StringFlag{
-						Name:  "query",
-						Value: `{__name__!=""}`,
-						Usage: "prometheus expression for metrics query, defaults to all metrics",
-					},
-					&cli.StringFlag{
-						Name:  "start-time",
-						Value: "",
-						Usage: "start time for metrics export (RFC3339), defaults to 1hr ago",
-					},
-					&cli.StringFlag{
-						Name:  "end-time",
-						Value: "",
-						Usage: "end time for metrics export (RFC3339), defaults to current time",
-					},
-					&cli.IntFlag{
-						Name:  "step",
-						Value: 0,
-						Usage: "step/offset in seconds for metrics export, defaults to 3600 (1hr), max 7200 (2hrs)",
-					},
-					&cli.BoolFlag{
-						Name:    "counts",
-						Aliases: []string{"c"},
-						Value:   false,
-						Usage:   "only include current resource counts in summary",
-					},
-					&cli.BoolFlag{
-						Name:    "profiles",
-						Aliases: []string{"p"},
-						Value:   false,
-						Usage:   "only include current profiles in summary",
-					},
-				},
-			},
-		},
+		Commands: appCommands(),
 	}
 
 	if err := app.Run(os.Args); err != nil {
