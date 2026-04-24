@@ -90,7 +90,7 @@ func Summarize(cli *cli.Context) error {
 		return err
 	}
 
-	clusters, err := tf.OutputClusters(cli.Context)
+	clusters, _, err := tf.ParseOutputs()
 	if err != nil {
 		return err
 	}
