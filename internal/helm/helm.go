@@ -78,22 +78,17 @@ func UninstallIfPresent(kubecfg, releaseName, namespace string) error {
 	}
 
 	cmd := vendored.Command("helm", args...)
-
 	var errStream strings.Builder
-
 	cmd.Stdout = os.Stdout
-
 	cmd.Stderr = &errStream
 	if err := cmd.Run(); err != nil {
 		errMsg := strings.TrimSpace(strings.ToLower(errStream.String()))
 		if strings.Contains(errMsg, "release: not found") || strings.Contains(errMsg, "release not loaded") {
 			return nil
 		}
-
 		if errMsg == "" {
 			return fmt.Errorf("failed to uninstall Helm release %q in namespace %q: %v", releaseName, namespace, err)
 		}
-
 		return fmt.Errorf("failed to uninstall Helm release %q in namespace %q: %s", releaseName, namespace, errMsg)
 	}
 
