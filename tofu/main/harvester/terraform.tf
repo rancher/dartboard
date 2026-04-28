@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">=1.8.1"
+  required_version = ">=1.8.2"
   required_providers {
     harvester = {
       source  = "harvester/harvester"
@@ -7,11 +7,7 @@ terraform {
     }
     tls = {
       source  = "hashicorp/tls"
-      version = "4.0.3"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "2.7.1"
+      version = "4.2.1"
     }
     ssh = {
       source  = "loafoe/ssh"
