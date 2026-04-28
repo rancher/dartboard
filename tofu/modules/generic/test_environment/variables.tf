@@ -80,10 +80,6 @@ variable "downstream_cluster_templates" {
     error_message = "Custom cluster templates must have at least one machine pool."
   }
   validation {
-    condition     = alltrue(flatten([for i, template in var.downstream_cluster_templates : template.is_custom_cluster ? length(template.machine_pools) > 0 ? contains([1, 3, 5], sum([for j, pool in template.machine_pools : pool.machine_pool_config.etcd ? pool.machine_pool_config.quantity : 0])) : false : true]))
-    error_message = "The number of etcd nodes per Custom cluster template must be one of [1, 3, 5]."
-  }
-  validation {
     condition     = alltrue(flatten([for i, template in var.downstream_cluster_templates : template.is_custom_cluster ? length(template.machine_pools) > 0 ? sum([for j, pool in template.machine_pools : pool.machine_pool_config.controlplane ? pool.machine_pool_config.quantity : 0]) > 0 : false : true]))
     error_message = "Custom cluster templates must have at least one controlplane node."
   }
