@@ -2,7 +2,6 @@ package actions
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -24,6 +23,8 @@ import (
 	"github.com/rancher/tests/actions/pipeline"
 	"github.com/rancher/tests/actions/provisioning"
 	"github.com/rancher/tests/actions/reports"
+
+	"github.com/sirupsen/logrus"
 
 	provv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,7 +50,7 @@ func SetupRancherClient(rancherConfig *rancher.Config, bootstrapPassword string,
 		Password: bootstrapPassword,
 	}
 
-	fmt.Printf("Rancher Config:\nHost: %s\nAdminPassword: %s\nAdminToken: %s\nInsecure: %t\n", rancherConfig.Host, rancherConfig.AdminPassword, rancherConfig.AdminToken, *rancherConfig.Insecure)
+	logrus.Debugf("Rancher Config: Host: %s AdminToken: %s Insecure: %t", rancherConfig.Host, rancherConfig.AdminToken, *rancherConfig.Insecure)
 
 	adminToken, err := shepherdtokens.GenerateUserToken(adminUser, rancherConfig.Host)
 	if err != nil {
@@ -147,11 +148,11 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 	br.seqCh <- struct{}{}
 
 	if cs.Provisioned {
-		fmt.Printf("Cluster %s has already been provisioned, skipping...\n", cs.Name)
+		logrus.Infof("Cluster %s has already been provisioned, skipping...", cs.Name)
 		return true, nil
 	}
 
-	fmt.Printf("Continuing with cluster provisioning...\n")
+	logrus.Info("Continuing with cluster provisioning...")
 
 	// switch {
 	// case strings.Contains(template.DistroVersio"k3s"):
@@ -179,7 +180,7 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 
 	br.seqCh <- struct{}{}
 
-	fmt.Printf("Cluster named %s was created.\n", clusterName)
+	logrus.Infof("Cluster named %s was created.", clusterName)
 
 	// Wait for the cluster to be ready
 	fiveMinuteTimeout := int64(shepherddefaults.FiveMinuteTimeout)
@@ -209,7 +210,7 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 
 	br.seqCh <- struct{}{}
 
-	fmt.Printf("Cluster named %s was provisioned.\n", clusterName)
+	logrus.Infof("Cluster named %s was provisioned.", clusterName)
 
 	return false, nil
 }
@@ -220,7 +221,7 @@ func ImportDownstreamClusters(r *dart.Dart, clusters []tofu.Cluster, rancherClie
 	}
 
 	if len(clusters) == 0 {
-		fmt.Printf("No importable Clusters were provided.\n")
+		logrus.Info("No importable Clusters were provided.")
 	}
 
 	err := ImportClustersInBatches(r, clusters, rancherClient, rancherConfig)
@@ -300,7 +301,7 @@ func performClusterImport(rancherClient *rancher.Client, cluster tofu.Cluster, i
 		return nil, fmt.Errorf("error while getting Cluster by Name %s in Namespace %s:\n%w", importCluster.Name, importCluster.Namespace, err)
 	}
 
-	fmt.Printf("Importing Cluster, ID:%s Name:%s\n", updatedCluster.Status.ClusterName, updatedCluster.Name)
+	logrus.Infof("Importing Cluster, ID:%s Name:%s", updatedCluster.Status.ClusterName, updatedCluster.Name)
 
 	err = shepherdclusters.ImportCluster(rancherClient, updatedCluster, restConfig)
 	if err != nil {
@@ -336,14 +337,14 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 
 	br.seqCh <- struct{}{}
 
-	fmt.Printf("Found existing ClusterStatus object for Cluster with name %s.\n", cluster.Name)
+	logrus.Infof("Found existing ClusterStatus object for Cluster with name %s.", cluster.Name)
 
 	if cs.Imported {
-		fmt.Printf("Cluster %s has already been imported, skipping...\n", cs.Name)
+		logrus.Infof("Cluster %s has already been imported, skipping...", cs.Name)
 		return true, nil
 	}
 
-	fmt.Printf("Continuing with cluster creation...\n")
+	logrus.Info("Continuing with cluster creation...")
 
 	importCluster := provv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -366,7 +367,7 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 
 		br.seqCh <- struct{}{}
 
-		fmt.Printf("Cluster named %s was created.\n", importCluster.Name)
+		logrus.Infof("Cluster named %s was created.", importCluster.Name)
 	}
 
 	updatedCluster, err := performClusterImport(rancherClient, cluster, &importCluster)
@@ -382,7 +383,7 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 
 	br.seqCh <- struct{}{}
 
-	fmt.Printf("Cluster named %s was imported.\n", updatedCluster.Name)
+	logrus.Infof("Cluster named %s was imported.", updatedCluster.Name)
 
 	podErrors := StatusPodsWithTimeout(rancherClient, updatedCluster.Status.ClusterName, shepherddefaults.OneMinuteTimeout)
 	if len(podErrors) > 0 {
@@ -407,10 +408,10 @@ func RegisterCustomClusters(r *dart.Dart, templates []tofu.CustomCluster,
 	for _, template := range templates {
 		yamlData, err := yaml.Marshal(template)
 		if err != nil {
-			log.Fatalf("Error marshaling YAML: %v", err)
+			logrus.Fatalf("Error marshaling YAML: %v", err)
 		}
 
-		fmt.Printf("\ntofu.CustomCluster:\n%s\n", string(yamlData))
+		logrus.Debugf("tofu.CustomCluster:\n%s", string(yamlData))
 	}
 
 	for _, template := range templates {
@@ -489,7 +490,7 @@ func createOrGetClusterObject[J JobDataTypes](br *SequencedBatchRunner[J], ranch
 	)
 
 	if !cs.Created {
-		fmt.Printf("Creating Cluster object for %s\n", cs.Name)
+		logrus.Infof("Creating Cluster object for %s", cs.Name)
 
 		clusterResp, err = CreateK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
 		if err != nil {
@@ -507,7 +508,7 @@ func createOrGetClusterObject[J JobDataTypes](br *SequencedBatchRunner[J], ranch
 
 		br.seqCh <- struct{}{}
 
-		fmt.Printf("Cluster named %s was created.\n", provCluster.Name)
+		logrus.Infof("Cluster named %s was created.", provCluster.Name)
 	} else {
 		clusterResp, err = GetK3SRKE2Cluster(rancherClient, rancherConfig, provCluster)
 		if err != nil {
@@ -522,7 +523,7 @@ func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J]
 	template tofu.CustomCluster, statuses map[string]*ClusterStatus,
 	rancherClient *rancher.Client, rancherConfig *rancher.Config,
 ) (skipped bool, err error) {
-	fmt.Printf("\nregisterCustomClusterWithRunner\n")
+	logrus.Debug("registerCustomClusterWithRunner")
 
 	clusterName := template.Name
 
@@ -539,11 +540,11 @@ func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J]
 	br.seqCh <- struct{}{}
 
 	if cs.Registered {
-		fmt.Printf("Cluster %s has already been registered, skipping...\n", cs.Name)
+		logrus.Infof("Cluster %s has already been registered, skipping...", cs.Name)
 		return true, nil
 	}
 
-	fmt.Printf("Continuing with cluster registration...\n")
+	logrus.Info("Continuing with cluster registration...")
 
 	provCluster := &provv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
@@ -577,7 +578,7 @@ func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J]
 		clusterObject, regErr = RegisterCustomCluster(rancherClient, clusterResp, provCluster, template.Nodes)
 		if regErr != nil {
 			if strings.Contains(regErr.Error(), "ssh: handshake failed") || strings.Contains(regErr.Error(), "ssh: unable to authenticate") {
-				fmt.Printf("SSH handshake failed for cluster %s, retrying... Error: %v\n", clusterName, regErr)
+				logrus.Warnf("SSH handshake failed for cluster %s, retrying... Error: %v", clusterName, regErr)
 				return false, nil
 			}
 
@@ -603,7 +604,7 @@ func registerCustomClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J]
 
 	br.seqCh <- struct{}{}
 
-	fmt.Printf("Cluster named %s was registered.\n", clusterName)
+	logrus.Infof("Cluster named %s was registered.", clusterName)
 
 	return false, nil
 }

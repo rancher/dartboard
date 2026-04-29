@@ -111,11 +111,11 @@ func (br *SequencedBatchRunner[J]) Run(batch []J,
 	// After finishing this batch:
 	if sleepAfter {
 		// If fewer than half were skipped, sleep briefly
-		logrus.Infof("Batch done: %d/%d skipped; sleeping before next batch.\n", numSkipped, len(batch))
+		logrus.Infof("Batch done: %d/%d skipped; sleeping before next batch.", numSkipped, len(batch))
 		time.Sleep(shepherddefaults.TwoMinuteTimeout)
 	} else {
 		// Otherwise, go straight into the next batch
-		fmt.Printf("Batch done: %d/%d skipped; continuing without sleep.\n", numSkipped, len(batch))
+		logrus.Infof("Batch done: %d/%d skipped; continuing without sleep.", numSkipped, len(batch))
 	}
 
 	// Clean up

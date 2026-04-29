@@ -77,7 +77,7 @@ func SaveClusterState(filePath string, statuses map[string]*ClusterStatus) error
 // If the file does not exist, it returns an empty map[string]*ClusterStatus without error.
 func LoadClusterState(filePath string) (map[string]*ClusterStatus, error) {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		fmt.Printf("Did not find existing Cluster state file at %s.\n Creating new Cluster state file and returning new empty map[string]*ClusterStatus\n", filePath)
+		logrus.Infof("Did not find existing Cluster state file at %s. Creating new Cluster state file and returning new empty map[string]*ClusterStatus", filePath)
 
 		if err := SaveClusterState(filePath, map[string]*ClusterStatus{}); err != nil {
 			return nil, fmt.Errorf("failed init Cluster state file: %w", err)
@@ -103,7 +103,7 @@ func LoadClusterState(filePath string) (map[string]*ClusterStatus, error) {
 
 func DestroyClusterState(filePath string) error {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		fmt.Printf("Did not find existing Cluster state file at %s.\n", filePath)
+		logrus.Infof("Did not find existing Cluster state file at %s.", filePath)
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("failed to os.Stat Cluster state file at %s during destroy: %w", filePath, err)
@@ -136,20 +136,20 @@ func FindClusterStatusByName(statuses map[string]*ClusterStatus, name string) *C
 func FindOrCreateStatusByName(statuses map[string]*ClusterStatus, name string) *ClusterStatus {
 	clusterStatus := FindClusterStatusByName(statuses, name)
 	if clusterStatus == nil {
-		fmt.Printf("Did not find existing ClusterStatus object for Cluster with name %s.\n", name)
+		logrus.Debugf("Did not find existing ClusterStatus object for Cluster with name %s.", name)
 
 		newClusterStatus := ClusterStatus{
 			Name: name,
 		}
 		statuses[name] = &newClusterStatus
 
-		logrus.Debugf("Created new ClusterStatus object. ClusterStatus.")
-		logrus.Debugf("\n%v\n", statuses)
+		logrus.Debugf("Created new ClusterStatus object.")
+		logrus.Debugf("%v", statuses)
 
 		return statuses[name]
 	}
 
-	fmt.Printf("Found ClusterStatus object named %s. ClusterStatus.", name)
+	logrus.Debugf("Found ClusterStatus object named %s.", name)
 
 	return clusterStatus
 }
