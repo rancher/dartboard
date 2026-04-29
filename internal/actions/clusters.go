@@ -205,7 +205,7 @@ func RegisterCustomCluster(client *rancher.Client, steveObject *v1.SteveAPIObjec
 	quantityPerPool := []int32{}
 	rolesPerPool := []string{}
 
-	fmt.Println("Building role oommand")
+	logrus.Info("Building role command")
 
 	for _, pool := range cluster.Spec.RKEConfig.MachinePools {
 		var finalRoleCommand string
@@ -336,9 +336,9 @@ func setupClusterVerification(client *rancher.Client, config *rancher.Config, cl
 		return nil, err
 	}
 
-	fmt.Printf("\nRELOGIN CLIENT: %v\n", client)
-	fmt.Printf("\nRANCHER CONFIG: %v\n", config)
-	fmt.Printf("\nCLUSTER OBJECT: %v\n", cluster)
+	logrus.Debugf("RELOGIN CLIENT: %v", client)
+	logrus.Debugf("RANCHER CONFIG: %v", config)
+	logrus.Debugf("CLUSTER OBJECT: %v", cluster)
 
 	adminClient, err := rancher.NewClientForConfig(client.RancherConfig.AdminToken, config, client.Session)
 	if err != nil {
@@ -492,7 +492,7 @@ func VerifyACE(client *rancher.Client, cluster *mgmtv3.Cluster) error {
 	}
 
 	for _, pod := range originalResp.Items {
-		fmt.Printf("Pod %s", pod.GetName())
+		logrus.Debugf("Pod %s", pod.GetName())
 	}
 
 	// each control plane has a context. For ACE, we should check these contexts
@@ -520,10 +520,10 @@ func VerifyACE(client *rancher.Client, cluster *mgmtv3.Cluster) error {
 			return err
 		}
 
-		fmt.Printf("Switched Context to %v", contextName)
+		logrus.Debugf("Switched Context to %s", contextName)
 
 		for _, pod := range resp.Items {
-			fmt.Printf("Pod %v", pod.GetName())
+			logrus.Debugf("Pod %s", pod.GetName())
 		}
 	}
 

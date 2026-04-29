@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -46,6 +45,27 @@ type chart struct {
 	namespace string
 	path      string
 }
+
+const (
+	// Chart names
+	chartNameK6Files              = "k6-files"
+	chartNameMimir                = "mimir"
+	chartNameGrafanaDashboards    = "grafana-dashboards"
+	chartNameGrafana              = "grafana"
+	chartNameCertManager          = "cert-manager"
+	chartNameRancher              = "rancher"
+	chartNameRancherIngress       = "rancher-ingress"
+	chartNameRancherMonitoringCRD = "rancher-monitoring-crd"
+	chartNameRancherMonitoring    = "rancher-monitoring"
+	chartNameCgroupsExporter      = "cgroups-exporter"
+
+	// Chart namespaces
+	nsDefault                = "default"
+	nsTester                 = "tester"
+	nsCertManager            = "cert-manager"
+	nsCattleSystem           = "cattle-system"
+	nsCattleMonitoringSystem = "cattle-monitoring-system"
+)
 
 func Deploy(cli *cli.Context) error {
 	// Tofu
@@ -104,12 +124,12 @@ func Deploy(cli *cli.Context) error {
 	rancherSession := session.NewSession()
 	rancherSession.CleanupEnabled = false
 
-	log.Printf("Setting up Rancher Client's Config")
+	logrus.Info("Setting up Rancher Client's Config")
 
 	rancherHost := strings.Split(upstreamAdd.Public.HTTPSURL, "://")[1]
 	rancherConfig := actions.NewRancherConfig(rancherHost, "", r.ChartVariables.AdminPassword, true)
 
-	log.Printf("Setting up Rancher Client")
+	logrus.Info("Setting up Rancher Client")
 
 	rancherClient, err := actions.SetupRancherClient(&rancherConfig, r.ChartVariables.AdminPassword, rancherSession)
 	if err != nil {
@@ -137,7 +157,7 @@ func Deploy(cli *cli.Context) error {
 			return err
 		}
 
-		log.Printf("Provisioning Downstream Clusters")
+		logrus.Info("Provisioning Downstream Clusters")
 
 		if err = actions.ProvisionDownstreamClusters(r, r.ClusterTemplates, rancherClient); err != nil {
 			return err
@@ -164,15 +184,15 @@ func applyTofuChanges(cli *cli.Context, tf *tofu.Tofu) error {
 
 // installTesterCharts installs required charts on the tester cluster
 func installTesterCharts(tester tofu.Cluster, r *dart.Dart) error {
-	if err := chartInstall(tester.Kubeconfig, chart{"k6-files", "tester", "k6-files"}, nil); err != nil {
+	if err := chartInstall(tester.Kubeconfig, chart{chartNameK6Files, nsTester, chartNameK6Files}, nil); err != nil {
 		return err
 	}
 
-	if err := chartInstall(tester.Kubeconfig, chart{"mimir", "tester", "mimir"}, nil); err != nil {
+	if err := chartInstall(tester.Kubeconfig, chart{chartNameMimir, nsTester, chartNameMimir}, nil); err != nil {
 		return err
 	}
 
-	if err := chartInstall(tester.Kubeconfig, chart{"grafana-dashboards", "tester", "grafana-dashboards"}, nil); err != nil {
+	if err := chartInstall(tester.Kubeconfig, chart{chartNameGrafanaDashboards, nsTester, chartNameGrafanaDashboards}, nil); err != nil {
 		return err
 	}
 
@@ -231,9 +251,9 @@ func importDownstreamClusters(r *dart.Dart, clusters map[string]tofu.Cluster, ra
 		return fmt.Errorf("error marshaling JSON: %w", err)
 	}
 
-	fmt.Println("Import Clusters:\n", string(jsonBytes))
+	logrus.Infof("Import Clusters: %s", string(jsonBytes))
 
-	log.Printf("Importing Downstream Clusters")
+	logrus.Info("Importing Downstream Clusters")
 
 	return actions.ImportDownstreamClusters(r, downstreamClusters, rancherClient, rancherConfig)
 }
@@ -244,7 +264,7 @@ func setupHarvesterAndProvision(r *dart.Dart, rancherClient *rancher.Client) err
 		return nil
 	}
 
-	log.Printf("Parsing Harvester's Kubeconfig")
+	logrus.Info("Parsing Harvester's Kubeconfig")
 
 	var (
 		kubeconfig *actions.Kubeconfig
@@ -258,19 +278,19 @@ func setupHarvesterAndProvision(r *dart.Dart, rancherClient *rancher.Client) err
 		}
 	}
 
-	log.Printf("Setting up Harvester Client's Config")
+	logrus.Info("Setting up Harvester Client's Config")
 
 	harvesterHost := strings.Split(kubeconfig.Clusters[0].Cluster.Server, "://")[1]
 	harvesterConfig := actions.NewHarvesterConfig(harvesterHost, kubeconfig.Users[0].User.Token, "", true)
 
-	log.Printf("Setting up Harvester Client")
+	logrus.Info("Setting up Harvester Client")
 
 	harvesterClient, err := actions.NewHarvesterImportClient(rancherClient, &harvesterConfig)
 	if err != nil {
 		return fmt.Errorf("error while setting up HarvesterImportClient with config %v: %w", harvesterConfig, err)
 	}
 
-	log.Printf("Importing Harvester Cluster into Rancher for provisioning")
+	logrus.Info("Importing Harvester Cluster into Rancher for provisioning")
 
 	return harvesterClient.ImportCluster()
 }
@@ -287,7 +307,7 @@ func chartInstall(kubeConf string, chart chart, vals map[string]any, extraArgs .
 		path = filepath.Join("charts", path)
 	}
 
-	log.Printf("Installing chart %q (%s)\n", namespace+"/"+name, path)
+	logrus.Infof("Installing chart %q (%s)", namespace+"/"+name, path)
 
 	if err = helm.Install(kubeConf, path, name, namespace, vals, extraArgs...); err != nil {
 		return fmt.Errorf("chart %s: %w", name, err)
@@ -298,8 +318,8 @@ func chartInstall(kubeConf string, chart chart, vals map[string]any, extraArgs .
 
 func chartInstallGrafana(r *dart.Dart, cluster *tofu.Cluster) error {
 	chartGrafana := chart{
-		name:      "grafana",
-		namespace: "tester",
+		name:      chartNameGrafana,
+		namespace: nsTester,
 		path:      fmt.Sprintf("https://github.com/grafana/helm-charts/releases/download/grafana-%[1]s/grafana-%[1]s.tgz", r.ChartVariables.TesterGrafanaVersion),
 	}
 
@@ -317,8 +337,8 @@ func chartInstallGrafana(r *dart.Dart, cluster *tofu.Cluster) error {
 
 func chartInstallCertManager(r *dart.Dart, cluster *tofu.Cluster) error {
 	chartCertManager := chart{
-		name:      "cert-manager",
-		namespace: "cert-manager",
+		name:      chartNameCertManager,
+		namespace: nsCertManager,
 		path:      fmt.Sprintf("https://charts.jetstack.io/charts/cert-manager-v%s.tgz", r.ChartVariables.CertManagerVersion),
 	}
 
@@ -347,8 +367,8 @@ func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Clu
 	}
 
 	chartRancher := chart{
-		name:      "rancher",
-		namespace: "cattle-system",
+		name:      chartNameRancher,
+		namespace: nsCattleSystem,
 		path:      rancherRepo + r.ChartVariables.RancherVersion + ".tgz",
 	}
 
@@ -392,10 +412,9 @@ func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Clu
 		extraArgs = append(extraArgs, "-f", p)
 	}
 
-	fmt.Printf("\n\nRANCHER CHART VALS:\n")
-
+	logrus.Debug("RANCHER CHART VALS:")
 	for key, value := range chartVals {
-		fmt.Printf("\t%s = %v\n", key, value)
+		logrus.Debugf("\t%s = %v", key, value)
 	}
 
 	return chartInstall(cluster.Kubeconfig, chartRancher, chartVals, extraArgs...)
@@ -416,9 +435,9 @@ func writeValuesFile(content string) (string, error) {
 
 func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 	chartRancherIngress := chart{
-		name:      "rancher-ingress",
-		namespace: "default",
-		path:      "rancher-ingress",
+		name:      chartNameRancherIngress,
+		namespace: nsDefault,
+		path:      chartNameRancherIngress,
 	}
 
 	clusterAdd, err := getAppAddressFor(*cluster)
@@ -437,7 +456,7 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 	// rancher-ingress release to avoid leaving behind an invalid Ingress
 	// manifest, then return without installing.
 	if len(sans) == 0 {
-		log.Printf("No additional SANs needed, uninstalling chart %q if present\n", chartRancherIngress.namespace+"/"+chartRancherIngress.name)
+		logrus.Infof("No additional SANs needed, uninstalling chart %q if present", chartRancherIngress.namespace+"/"+chartRancherIngress.name)
 
 		if err := helm.UninstallIfPresent(cluster.Kubeconfig, chartRancherIngress.name, chartRancherIngress.namespace); err != nil {
 			return fmt.Errorf("chart %s: uninstall: %w", chartRancherIngress.name, err)
@@ -467,8 +486,8 @@ func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
 
 	chartRancherMonitoringCRDRoute := "assets/rancher-monitoring-crd/rancher-monitoring-crd"
 	chartRancherMonitoringCRD := chart{
-		name:      "rancher-monitoring-crd",
-		namespace: "cattle-monitoring-system",
+		name:      chartNameRancherMonitoringCRD,
+		namespace: nsCattleMonitoringSystem,
 		path:      fmt.Sprintf("%s/%s-%s.tgz", chartPath, chartRancherMonitoringCRDRoute, r.ChartVariables.RancherMonitoringVersion),
 	}
 
@@ -490,8 +509,8 @@ func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
 
 	chartRancherMonitoringRoute := "assets/rancher-monitoring/rancher-monitoring"
 	chartRancherMonitoring := chart{
-		name:      "rancher-monitoring",
-		namespace: "cattle-monitoring-system",
+		name:      chartNameRancherMonitoring,
+		namespace: nsCattleMonitoringSystem,
 		path:      fmt.Sprintf("%s/%s-%s.tgz", chartPath, chartRancherMonitoringRoute, r.ChartVariables.RancherMonitoringVersion),
 	}
 
@@ -519,10 +538,10 @@ func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
 	if strings.Contains(osImages, "suse linux micro") || strings.Contains(osImages, "opensuse leap micro") {
 		vals["mountHostSys"] = false
 
-		log.Printf("Disabling mountHostSys for cgroups-exporter due to detected OS: %s", b.String())
+		logrus.Infof("Disabling mountHostSys for cgroups-exporter due to detected OS: %s", b.String())
 	}
 
-	return chartInstall(cluster.Kubeconfig, chart{"cgroups-exporter", "cattle-monitoring-system", "cgroups-exporter"}, vals)
+	return chartInstall(cluster.Kubeconfig, chart{chartNameCgroupsExporter, nsCattleMonitoringSystem, chartNameCgroupsExporter}, vals)
 }
 
 func getRancherMonitoringValsJSON(reserveNodeForMonitoring bool, mimirURL string) map[string]any {
@@ -723,7 +742,7 @@ func updateMonitoringProject(cluster *tofu.Cluster) error {
 	var b strings.Builder
 
 	args := []string{
-		"get", "namespace", "cattle-system",
+		"get", "namespace", nsCattleSystem,
 		"-o", "jsonpath={.metadata.annotations.field\\.cattle\\.io/projectId}",
 	}
 	if err := kubectl.Exec(cluster.Kubeconfig, &b, args...); err != nil {
@@ -735,8 +754,8 @@ func updateMonitoringProject(cluster *tofu.Cluster) error {
 		return fmt.Errorf("no projectId found")
 	}
 
-	if err := kubectl.Exec(cluster.Kubeconfig, log.Writer(),
-		"annotate", "namespace", "cattle-monitoring-system",
+	if err := kubectl.Exec(cluster.Kubeconfig, os.Stdout,
+		"annotate", "namespace", nsCattleMonitoringSystem,
 		"field.cattle.io/projectId="+projID, "--overwrite"); err != nil {
 		return fmt.Errorf("failed to annotate cattle-monitoring-system: %w", err)
 	}
