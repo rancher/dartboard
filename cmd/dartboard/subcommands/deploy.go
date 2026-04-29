@@ -413,6 +413,7 @@ func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Clu
 	}
 
 	logrus.Debug("RANCHER CHART VALS:")
+
 	for key, value := range chartVals {
 		logrus.Debugf("\t%s = %v", key, value)
 	}
