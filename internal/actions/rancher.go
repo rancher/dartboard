@@ -154,15 +154,6 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 
 	logrus.Info("Continuing with cluster provisioning...")
 
-	// switch {
-	// case strings.Contains(template.DistroVersio"k3s"):
-	// 	template.DistroVersion = []string{template.DistroVersion}
-	// case strings.Contains(template.DistroVersio"rke2"):
-	// 	template.DistroVersion = []string{template.DistroVersion}
-	// default:
-	// 	return false, fmt.Errorf("error while parsing kubernetes version for version %v", template.DistroVersion)
-	// }
-
 	nodeProvider := CreateProvider(template.ClusterConfig.Provider)
 	templateClusterConfig := ConvertConfigToClusterConfig(template.ClusterConfig)
 
