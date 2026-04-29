@@ -26,7 +26,7 @@ import (
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/kubectl"
 	"github.com/rancher/dartboard/internal/tofu"
-	"github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v2"
 )
 
 // thresholdsExitError implements cli.ExitCoder so that urfave/cli propagates the exit code.
@@ -47,7 +47,7 @@ func Load(cli *cli.Context) error {
 		return err
 	}
 
-	clusters, err := tf.OutputClusters(cli.Context)
+	clusters, _, err := tf.ParseOutputs()
 	if err != nil {
 		return err
 	}
