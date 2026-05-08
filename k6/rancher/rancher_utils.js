@@ -330,7 +330,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
       'querying clusters works': (r) => r.status === 200,
     })
     if (response.status !== 200) {
-      fail(`cluster ${name} lookup by id ${clusterId} failed with status ${response.status}`)
+      fail(`cluster ${name} lookup by id ${clusterId} failed with status ${response.status}; body=${response.body}`)
     }
   } else {
     response = http.get(
@@ -345,12 +345,14 @@ export function createImportedCluster(baseUrl, cookies, name) {
     check(response, {
       'querying clusters works': (r) => r.status === 200,
       'querying clusters includes requested cluster': (r) => {
-        if (r.status !== 200) {
+        try {
+          const data = JSON.parse(r.body).data || []
+          // Rancher versions can surface the requested cluster name on either name, displayName, or spec.displayName.
+          return data.some((c) => c.name === name || c.displayName === name || c.spec?.displayName === name)
+        } catch (e) {
+          console.error(`failed to parse clusters list response while looking up ${name}: ${e}; body=${r.body}`)
           return false
         }
-        const data = JSON.parse(r.body).data || []
-        // Rancher versions can surface the requested cluster name on either name, displayName, or spec.displayName.
-        return data.some((c) => c.name === name || c.displayName === name || c.spec?.displayName === name)
       },
     })
   }
