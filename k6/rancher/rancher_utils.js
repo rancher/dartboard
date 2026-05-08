@@ -312,7 +312,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
     try {
       clusterId = JSON.parse(response.body).id
     } catch (e) {
-      console.warn(`failed to parse imported cluster create response: ${e}`)
+      console.error(`failed to parse imported cluster create response body for cluster ${name}: ${e}; body=${response.body}`)
     }
   }
 
@@ -330,7 +330,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
       'querying clusters works': (r) => r.status === 200,
     })
     if (response.status !== 200) {
-      fail(`cluster ${name} not found`)
+      fail(`cluster ${name} lookup by id ${clusterId} failed with status ${response.status}`)
     }
   } else {
     response = http.get(
