@@ -349,6 +349,7 @@ export function createImportedCluster(baseUrl, cookies, name) {
           return false
         }
         const data = JSON.parse(r.body).data || []
+        // Rancher versions can surface the requested cluster name on either name, displayName, or spec.displayName.
         return data.some((c) => c.name === name || c.displayName === name || c.spec?.displayName === name)
       },
     })
