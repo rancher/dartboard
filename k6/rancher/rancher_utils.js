@@ -289,8 +289,8 @@ export function createImportedCluster(baseUrl, cookies, name) {
   })
 
   response = http.post(
-    `${baseUrl}/v1/provisioning.cattle.io.clusters`,
-    JSON.stringify({ "type": "provisioning.cattle.io.cluster", "metadata": { "namespace": "fleet-default", "name": name }, "spec": {} }),
+    `${baseUrl}/v3/clusters`,
+    JSON.stringify({ "type": "cluster", "name": name }),
     {
       headers: {
         accept: 'application/json',
@@ -301,26 +301,57 @@ export function createImportedCluster(baseUrl, cookies, name) {
   )
 
   check(response, {
-    'creating an imported cluster works': (r) => r.status === 201 || r.status === 409,
+    'creating an imported cluster works': (r) => r.status === 201 || r.status === 409 || r.status === 422,
   })
-  if (response.status === 409) {
+  if (response.status === 409 || response.status === 422) {
     console.warn(`cluster ${name} already exists`)
   }
 
-  response = http.get(
-    `${baseUrl}/v1/provisioning.cattle.io.clusters/fleet-default/${name}`,
-    {
-      headers: {
-        accept: 'application/json',
-      },
-      cookies: cookies,
+  let clusterId = null
+  if (response.status === 201) {
+    try {
+      clusterId = JSON.parse(response.body).id
+    } catch (e) {
+      console.warn(`failed to parse imported cluster create response: ${e}`)
     }
-  )
-  check(response, {
-    'querying clusters works': (r) => r.status === 200,
-  })
-  if (!response.status === 200) {
-    fail(`cluster ${name} not found`)
+  }
+
+  if (clusterId) {
+    response = http.get(
+      `${baseUrl}/v3/clusters/${clusterId}`,
+      {
+        headers: {
+          accept: 'application/json',
+        },
+        cookies: cookies,
+      }
+    )
+    check(response, {
+      'querying clusters works': (r) => r.status === 200,
+    })
+    if (response.status !== 200) {
+      fail(`cluster ${name} not found`)
+    }
+  } else {
+    response = http.get(
+      `${baseUrl}/v3/clusters`,
+      {
+        headers: {
+          accept: 'application/json',
+        },
+        cookies: cookies,
+      }
+    )
+    check(response, {
+      'querying clusters works': (r) => r.status === 200,
+      'querying clusters includes requested cluster': (r) => {
+        if (r.status !== 200) {
+          return false
+        }
+        const data = JSON.parse(r.body).data || []
+        return data.some((c) => c.name === name || c.displayName === name || c.spec?.displayName === name)
+      },
+    })
   }
 
   response = http.get(`${baseUrl}/v1/cluster.x-k8s.io.machinedeployments`, {
