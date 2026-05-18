@@ -248,23 +248,27 @@ func Apply(kubePath, filePath string) error {
 	return Exec(kubePath, log.Writer(), "apply", "-f", filePath)
 }
 
+func Create(kubePath string, filePath string) interface{} {
+	return Exec(kubePath, log.Writer(), "create", "-f", filePath)
+}
+
 func WaitRancher(kubePath string) error {
-	err := WaitForReadyCondition(kubePath, "deployment", "rancher", "cattle-system", "available", 20)
+	err := WaitFor(kubePath, "deployment", "rancher", "cattle-system", "condition=available=true", 20)
 	if err != nil {
 		return err
 	}
 
-	err = WaitForReadyCondition(kubePath, "deployment", "rancher-webhook", "cattle-system", "available", 3)
+	err = WaitFor(kubePath, "deployment", "rancher-webhook", "cattle-system", "condition=available=true", 3)
 	if err != nil {
 		return err
 	}
 
-	err = WaitForReadyCondition(kubePath, "deployment", "fleet-controller", "cattle-fleet-system", "available", 5)
+	err = WaitFor(kubePath, "deployment", "fleet-controller", "cattle-fleet-system", "condition=available=true", 5)
 
 	return err
 }
 
-func WaitForReadyCondition(kubePath, resource, name, namespace string, condition string, minutes int) error {
+func WaitFor(kubePath, resource, name, namespace string, condition string, minutes int) error {
 	var err error
 
 	args := []string{"wait", resource, name}
@@ -273,7 +277,7 @@ func WaitForReadyCondition(kubePath, resource, name, namespace string, condition
 		args = append(args, "--namespace", namespace)
 	}
 
-	args = append(args, "--for", fmt.Sprintf("condition=%s=true", condition), fmt.Sprintf("--timeout=%dm", minutes))
+	args = append(args, "--for", condition, fmt.Sprintf("--timeout=%dm", minutes))
 
 	maxRetries := minutes * 30
 	for i := 1; i < maxRetries; i++ {
@@ -335,6 +339,13 @@ func Get(kubePath string, kind string, name string, namespace string, jsonpath s
 		return fmt.Errorf("failed to kubectl get %v: %w", name, err)
 	}
 
+	// if out is a string pointer, just set the value directly without json unmarshaling
+	if strPtr, ok := out.(*string); ok {
+		*strPtr = output.String()
+		return nil
+	}
+
+	// otherwise, unmarshal the output as JSON
 	if err := json.Unmarshal(output.Bytes(), out); err != nil {
 		return fmt.Errorf("cannot unmarshal kubectl data for %v: %w\n%s", name, err, output.String())
 	}

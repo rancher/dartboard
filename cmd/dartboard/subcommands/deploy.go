@@ -18,6 +18,7 @@ package subcommands
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -618,19 +619,19 @@ func importDownstreamClusterDo(r *dart.Dart, rancherImageTag string, tf *tofu.To
 		return
 	}
 
-	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
-		"clusters.management.cattle.io", clusterID, "", "ready", 10); err != nil {
+	if err := kubectl.WaitFor(clusters["upstream"].Kubeconfig,
+		"clusters.management.cattle.io", clusterID, "", "condition=ready=true", 10); err != nil {
 		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
 		return
 	}
 
-	if err := kubectl.WaitForReadyCondition(clusters["upstream"].Kubeconfig,
-		"cluster.fleet.cattle.io", clusterName, "fleet-default", "ready", 10); err != nil {
+	if err := kubectl.WaitFor(clusters["upstream"].Kubeconfig,
+		"cluster.fleet.cattle.io", clusterID, "fleet-default", "condition=ready=true", 10); err != nil {
 		errCh <- fmt.Errorf("%s import failed: %w", clusterName, err)
 		return
 	}
 
-	err = kubectl.WaitForReadyCondition(downstream.Kubeconfig, "deployment", "rancher-webhook", "cattle-system", "available", 15)
+	err = kubectl.WaitFor(downstream.Kubeconfig, "deployment", "rancher-webhook", "cattle-system", "condition=available=true", 15)
 	if err != nil {
 		errCh <- fmt.Errorf("%s waiting for rancher-webhook failed: %w", clusterName, err)
 		return
@@ -663,17 +664,48 @@ func importDownstreamClustersRancherSetup(r *dart.Dart, clusters map[string]tofu
 		}
 	}
 
-	importedClusterNames := strings.Join(downstreamClusters, ",")
-
 	envVars := map[string]string{
-		"BASE_URL":               upstreamAdd.Public.HTTPSURL,
-		"BOOTSTRAP_PASSWORD":     "admin",
-		"PASSWORD":               r.ChartVariables.AdminPassword,
-		"IMPORTED_CLUSTER_NAMES": importedClusterNames,
+		"BASE_URL":           upstreamAdd.Public.HTTPSURL,
+		"BOOTSTRAP_PASSWORD": "admin",
+		"PASSWORD":           r.ChartVariables.AdminPassword,
 	}
 
 	if err = kubectl.K6run(tester.Kubeconfig, "rancher/rancher_setup.js", envVars, nil, true, upstreamAdd.Local.HTTPSURL, false); err != nil {
 		return err
+	}
+
+	yamlFile, err := os.CreateTemp("", "dartboard-imported-clusters-*.yaml")
+	if err != nil {
+		return fmt.Errorf("creating temp file for imported clusters: %w", err)
+	}
+
+	encoder := json.NewEncoder(yamlFile)
+
+	for _, clusterName := range downstreamClusters {
+		managementCluster := map[string]any{
+			"apiVersion": "management.cattle.io/v3",
+			"kind":       "Cluster",
+			"metadata": map[string]any{
+				"generateName": "c-",
+			},
+			"spec": map[string]any{
+				"displayName": clusterName,
+			},
+		}
+
+		err := encoder.Encode(managementCluster)
+		if err != nil {
+			return fmt.Errorf("encoding management cluster for %s: %w", clusterName, err)
+		}
+	}
+
+	err = yamlFile.Sync()
+	if err != nil {
+		return fmt.Errorf("syncing temp file for imported clusters: %w", err)
+	}
+
+	if err := kubectl.Create(upstream.Kubeconfig, yamlFile.Name()); err != nil {
+		return fmt.Errorf("applying imported clusters YAML: %e", err)
 	}
 
 	return nil
@@ -689,13 +721,18 @@ func importClustersDownstreamGetYAML(clusters map[string]tofu.Cluster, name stri
 		return
 	}
 
-	if status, err = kubectl.GetStatus(upstream.Kubeconfig, "clusters.provisioning.cattle.io", name, "fleet-default"); err != nil {
+	jsonPath := fmt.Sprintf(".items[?(@.spec.displayName==\"%s\")].metadata.name", name)
+
+	out := new(string)
+	if err = kubectl.Get(upstream.Kubeconfig, "clusters.management.cattle.io", "", "", jsonPath, out); err != nil {
 		return
 	}
 
-	clusterID, ok := status["clusterName"].(string)
-	if !ok {
-		err = fmt.Errorf("error accessing fleet-default/%s clusters: no valid 'clusterName' in 'Status'", name)
+	clusterID = strings.Split(*out, " ")[0]
+
+	err = kubectl.WaitFor(upstream.Kubeconfig, "clusterregistrationtokens.management.cattle.io", "default-token", clusterID, "create", 1)
+	if err != nil {
+		err = fmt.Errorf("%s waiting for clusterregistrationtoken failed: %w", clusterID, err)
 		return
 	}
 
