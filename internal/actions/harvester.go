@@ -51,6 +51,9 @@ func NewHarvesterImportClient(rancherClient *rancher.Client, harvesterConfig *ha
 	return &h, nil
 }
 
+// ImportCluster imports the Harvester cluster into Rancher and sets up the necessary credentials for it.
+// Note: This function currently only registers the Harvester cluster with Rancher. Additional steps may
+// be needed to fully set up the cluster in Rancher, such as generating a kubeconfig and creating cloud credentials.
 func (h *HarvesterImportClient) ImportCluster() error {
 	harvesterInRancherID, err := harvesteraction.RegisterHarvesterWithRancher(h.client, h.harvesterClient)
 	if err != nil {
@@ -60,22 +63,6 @@ func (h *HarvesterImportClient) ImportCluster() error {
 	logrus.Info(harvesterInRancherID)
 
 	h.clusterID = harvesterInRancherID
-
-	// cluster, err := h.client.Management.Cluster.ByID(harvesterInRancherID)
-	// if err != nil {
-	// 	return fmt.Errorf("error while getting Harvester's Rancher Cluster ID: %v", err)
-	// }
-
-	// kubeConfig, err := h.client.Management.Cluster.ActionGenerateKubeconfig(cluster)
-	// if err != nil {
-	// 	return fmt.Errorf("error while generating Harvester's Rancher Cluster kubeconfig: %v", err)
-	// }
-
-	// var harvesterCredentialConfig cloudcredentials.HarvesterCredentialConfig
-
-	// harvesterCredentialConfig.ClusterID = harvesterInRancherID
-	// harvesterCredentialConfig.ClusterType = "imported"
-	// harvesterCredentialConfig.KubeconfigContent = kubeConfig.Config
 
 	return nil
 }
