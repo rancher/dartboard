@@ -57,6 +57,10 @@ func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
 		return nil, nil, err
 	}
 
+	if d.TofuWorkspace == "" {
+		d.TofuWorkspace = "default"
+	}
+
 	tofuWorkspaceStatePath := fmt.Sprintf("%s/%s_config", d.TofuMainDirectory, d.TofuWorkspace)
 
 	absPath, err := filepath.Abs(tofuWorkspaceStatePath)

@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
@@ -64,6 +65,10 @@ func SaveClusterState(filePath string, statuses map[string]*ClusterStatus) error
 	data, err := yaml.Marshal(statuses)
 	if err != nil {
 		return fmt.Errorf("failed to marshal Cluster state: %w", err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+		return fmt.Errorf("failed to create Cluster state directory: %w", err)
 	}
 
 	if err := os.WriteFile(filePath, data, 0o644); err != nil {

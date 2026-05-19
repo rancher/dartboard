@@ -213,6 +213,7 @@ func ImportDownstreamClusters(r *dart.Dart, clusters []tofu.Cluster, rancherClie
 
 	if len(clusters) == 0 {
 		logrus.Info("No importable Clusters were provided.")
+		return nil
 	}
 
 	err := ImportClustersInBatches(r, clusters, rancherClient, rancherConfig)
