@@ -55,6 +55,12 @@ variable "bastion_host_instance_type" {
   default     = "t4g.large"
 }
 
+variable "bastion_volume_size" {
+  description = "Size of the EBS volume for the bastion host in GB"
+  type        = number
+  default     = 30
+}
+
 # Variables for existing VPC configuration
 variable "existing_vpc_name" {
   description = "Name of existing VPC to use. If null, a new VPC will be created"
