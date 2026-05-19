@@ -2,6 +2,7 @@
 
 tofu_main_directory: ./tofu/main/harvester
 tofu_parallelism: 100 # Harvester tolerates high values well
+cluster_batch_size: 1
 
 tofu_variables:
   project_name: st

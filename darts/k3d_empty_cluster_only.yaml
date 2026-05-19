@@ -4,6 +4,7 @@
 # Deploys a single upstream cluster
 
 tofu_main_directory: ./tofu/main/k3d
+cluster_batch_size: 1
 
 tofu_variables:
 
