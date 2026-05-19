@@ -496,7 +496,7 @@ module "bastion" {
   node_module_variables = {
     ami : var.bastion_host_ami
     instance_type : var.bastion_host_instance_type
-    root_volume_size_gb : 30
+    root_volume_size_gb : var.bastion_volume_size
   }
   network_config = {
     availability_zone : var.availability_zone

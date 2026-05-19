@@ -110,3 +110,9 @@ variable "bastion_host_instance_type" {
   type        = string
   default     = "t4g.large"
 }
+
+variable "bastion_volume_size" {
+  description = "Size of the EBS volume for the bastion host in GB"
+  type        = number
+  default     = 30
+}

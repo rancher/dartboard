@@ -101,15 +101,38 @@ if [ $i -gt $MAX_RETRIES ]; then
     exit 1
 fi
 
+service_name="k3s"
+if [ "${exec}" = "agent" ]; then
+  service_name="k3s-agent"
+fi
+
 # Be explicit about service lifecycle. On some distros/images the installer may
 # complete without leaving k3s active even though the unit exists.
 systemctl daemon-reload
-systemctl enable k3s.service
-systemctl restart k3s.service
+systemctl enable "$${service_name}.service"
 
-if ! systemctl is-active --quiet k3s; then
+# Use try-restart to safely restart without failing if service is already running
+# If service is not active, try to start it
+if systemctl is-active --quiet "$${service_name}"; then
+  systemctl try-restart "$${service_name}.service" || true
+else
+  systemctl start "$${service_name}.service" || true
+fi
+
+# Wait for service to be active with retries
+WAIT_ATTEMPTS=10
+WAIT_DELAY=2
+for (( attempt=1; attempt<=WAIT_ATTEMPTS; attempt++ )); do
+  if systemctl is-active --quiet "$${service_name}"; then
+    break
+  fi
+  echo "Waiting for $${service_name} to become active (attempt $$attempt/$$WAIT_ATTEMPTS)..."
+  sleep "$$WAIT_DELAY"
+done
+
+if ! systemctl is-active --quiet "$${service_name}"; then
   echo "k3s service failed to become active after installation"
-  systemctl status k3s --no-pager -l || true
-  journalctl -u k3s --no-pager -n 200 || true
+  systemctl status "$${service_name}" --no-pager -l || true
+  journalctl -u "$${service_name}" --no-pager -n 200 || true
   exit 1
 fi

@@ -59,7 +59,7 @@ func Images(image string) ([]string, error) {
 
 			err := json.Unmarshal([]byte(line), &img)
 			if err != nil {
-				return nil, fmt.Errorf("error unmarshalling JSON output from docker images: %w", err)
+				return nil, fmt.Errorf("error unmarshaling JSON output from docker images: %w", err)
 			}
 
 			images = append(images, img.Repository+":"+img.Tag)

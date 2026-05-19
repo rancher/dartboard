@@ -2,6 +2,7 @@
 
 tofu_main_directory: ./tofu/main/aws
 tofu_parallelism: 10
+cluster_batch_size: 1
 
 tofu_variables:
   project_name: st
