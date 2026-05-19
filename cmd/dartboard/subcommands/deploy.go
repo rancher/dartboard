@@ -126,7 +126,7 @@ func Deploy(cli *cli.Context) error {
 
 	logrus.Info("Setting up Rancher Client's Config")
 
-	rancherHost := strings.Split(upstreamAdd.Public.HTTPSURL, "://")[1]
+	rancherHost := strings.Split(upstreamAdd.Local.HTTPSURL, "://")[1]
 	rancherConfig := actions.NewRancherConfig(rancherHost, "", r.ChartVariables.AdminPassword, true)
 
 	logrus.Info("Setting up Rancher Client")
