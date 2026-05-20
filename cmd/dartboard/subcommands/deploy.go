@@ -462,6 +462,7 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 		if err := helm.UninstallIfPresent(cluster.Kubeconfig, chartRancherIngress.name, chartRancherIngress.namespace); err != nil {
 			return fmt.Errorf("chart %s: uninstall: %w", chartRancherIngress.name, err)
 		}
+
 		return nil
 	}
 
