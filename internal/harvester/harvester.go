@@ -11,7 +11,6 @@ import (
 	harvclient "github.com/harvester/harvester/pkg/generated/clientset/versioned"
 	randGen "github.com/matoous/go-nanoid/v2"
 	"github.com/minio/pkg/wildcard"
-	"github.com/rancher/dartboard/internal/actions"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
@@ -499,6 +498,8 @@ func createSingleVM(c *harvclient.Clientset, k *kubeclient.Clientset, vmTemplate
 		return err
 	}
 
+	running := true
+
 	vm := &VMv1.VirtualMachine{
 		ObjectMeta: k8smetav1.ObjectMeta{
 			Name:      vmName,
@@ -510,7 +511,7 @@ func createSingleVM(c *harvclient.Clientset, k *kubeclient.Clientset, vmTemplate
 			Labels: vmLabels,
 		},
 		Spec: VMv1.VirtualMachineSpec{
-			Running:  actions.NewTrue(),
+			Running:  &running,
 			Template: vmTemplate,
 		},
 	}
