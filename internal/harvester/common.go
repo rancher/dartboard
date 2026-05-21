@@ -4,7 +4,6 @@ import "k8s.io/apimachinery/pkg/api/resource"
 
 // HandleCPUOverCommitment calculates the CPU Request based on the CPU Limit and the CPU Overcommitment setting.
 func HandleCPUOverCommitment(overCommitSettingMap map[string]int, cpuNumber int64) resource.Quantity {
-	// cpuQuantity := resource.NewQuantity(cpuNumber, resource.DecimalSI)
 	cpuOvercommit := overCommitSettingMap["cpu"]
 	if cpuOvercommit <= 0 {
 		cpuOvercommit = 100 // default value
@@ -17,7 +16,6 @@ func HandleCPUOverCommitment(overCommitSettingMap map[string]int, cpuNumber int6
 
 // HandleMemoryOverCommitment calculates the memory Request based on the memory Limit and the memory Overcommitment setting.
 func HandleMemoryOverCommitment(overCommitSettingMap map[string]int, memory string) resource.Quantity {
-	// cpuQuantity := resource.NewQuantity(cpuNumber, resource.DecimalSI)
 	memoryRequest := resource.MustParse(memory)
 	memoryValue := memoryRequest.Value()
 
