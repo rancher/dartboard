@@ -200,14 +200,67 @@ func createRegistrationCommand(command, publicIP, privateIP string, machinePool 
 	return command
 }
 
-// RegisterCustomCluster registers a non-rke1 cluster using a 3rd party client for its nodes
-func RegisterCustomCluster(client *rancher.Client, steveObject *v1.SteveAPIObject, cluster *apisV1.Cluster, nodes []tofu.Node) (*v1.SteveAPIObject, error) {
+// firstNonEmpty returns the first non-empty string from the provided values, or an empty string if all are empty
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			return trimmed
+		}
+	}
+
+	return ""
+}
+
+func preferredRegistrationAddresses(node tofu.Node) (string, string) {
+	publicAddress := firstNonEmpty(node.PublicIP, node.PublicHostName)
+	privateAddress := firstNonEmpty(node.PrivateIP, node.PrivateHostName)
+
+	return publicAddress, privateAddress
+}
+
+func preferredSSHAddress(node tofu.Node) string {
+	return firstNonEmpty(node.PublicIP, node.PublicHostName, node.PrivateIP, node.PrivateHostName)
+}
+
+// validateCustomClusterNode checks that the node has the necessary information to be registered to a custom cluster,
+// such as a name, reachable address, and SSH credentials
+func validateCustomClusterNode(node tofu.Node) error {
+	if strings.TrimSpace(node.Name) == "" {
+		return fmt.Errorf("custom cluster node has empty name")
+	}
+
+	if preferredSSHAddress(node) == "" {
+		return fmt.Errorf("node %s has no reachable address; expected one of public_ip/public_name/private_ip/private_name", node.Name)
+	}
+
+	if strings.TrimSpace(node.SSHUser) == "" {
+		return fmt.Errorf("node %s has empty ssh_user", node.Name)
+	}
+
+	if strings.TrimSpace(node.SSHKeyPath) == "" {
+		return fmt.Errorf("node %s has empty ssh_key_path", node.Name)
+	}
+
+	return nil
+}
+
+func buildCustomClusterPoolPlan(cluster *apisV1.Cluster) ([]int32, []string, int, error) {
 	quantityPerPool := []int32{}
 	rolesPerPool := []string{}
+	totalNodesNeeded := 0
+
+	if cluster.Spec.RKEConfig == nil {
+		return nil, nil, 0, fmt.Errorf("cluster %s has nil rkeConfig", cluster.Name)
+	}
 
 	logrus.Info("Building role command")
 
 	for _, pool := range cluster.Spec.RKEConfig.MachinePools {
+		if pool.Quantity == nil {
+			return nil, nil, 0, fmt.Errorf("cluster %s has a machine pool with nil quantity", cluster.Name)
+		}
+
 		var finalRoleCommand string
 		if pool.ControlPlaneRole {
 			finalRoleCommand += " --controlplane"
@@ -223,28 +276,49 @@ func RegisterCustomCluster(client *rancher.Client, steveObject *v1.SteveAPIObjec
 
 		quantityPerPool = append(quantityPerPool, *pool.Quantity)
 		rolesPerPool = append(rolesPerPool, finalRoleCommand)
+		totalNodesNeeded += int(*pool.Quantity)
 	}
 
+	return quantityPerPool, rolesPerPool, totalNodesNeeded, nil
+}
+
+func validateCustomClusterNodeCount(nodes []tofu.Node, totalNodesNeeded int) error {
+	if len(nodes) < totalNodesNeeded {
+		return fmt.Errorf("insufficient custom cluster nodes: need %d, got %d", totalNodesNeeded, len(nodes))
+	}
+
+	if len(nodes) > totalNodesNeeded {
+		logrus.Warnf("received %d extra custom nodes; only first %d will be used", len(nodes)-totalNodesNeeded, totalNodesNeeded)
+	}
+
+	return nil
+}
+
+func customClusterRegistrationWatch(client *rancher.Client, steveObject *v1.SteveAPIObject, cluster *apisV1.Cluster) (watch.Interface, string, error) {
 	customCluster, err := client.Steve.SteveType(etcdsnapshot.ProvisioningSteveResouceType).ByID(steveObject.ID)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	clusterStatus := &apisV1.ClusterStatus{}
 
 	err = v1.ConvertToK8sType(customCluster.Status, clusterStatus)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	token, err := tokenregistration.GetRegistrationToken(client, clusterStatus.ClusterName)
 	if err != nil {
-		return nil, err
+		return nil, "", err
+	}
+
+	if strings.TrimSpace(token.InsecureNodeCommand) == "" {
+		return nil, "", fmt.Errorf("registration token command is empty for cluster %s", clusterStatus.ClusterName)
 	}
 
 	kubeProvisioningClient, err := client.GetKubeAPIProvisioningClient()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	result, err := kubeProvisioningClient.Clusters(cluster.Namespace).Watch(context.TODO(), metav1.ListOptions{
@@ -252,41 +326,52 @@ func RegisterCustomCluster(client *rancher.Client, steveObject *v1.SteveAPIObjec
 		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 	})
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	checkFunc := shepherdclusters.IsProvisioningClusterReady
+	return result, token.InsecureNodeCommand, nil
+}
 
-	var command string
-
+func registerCustomClusterNodes(cluster *apisV1.Cluster, nodes []tofu.Node, quantityPerPool []int32, rolesPerPool []string, nodeCommand string) error {
 	totalNodesObserved := 0
 
 	for poolIndex, poolRole := range rolesPerPool {
 		for nodeIndex := range int(quantityPerPool[poolIndex]) {
 			node := nodes[totalNodesObserved+nodeIndex]
 
+			if err := validateCustomClusterNode(node); err != nil {
+				return err
+			}
+
+			publicAddress, privateAddress := preferredRegistrationAddresses(node)
+
 			logrus.Infof("Execute Registration Command for node named %s", node.Name)
 			logrus.Infof("Linux pool detected, using bash...")
 
-			command = fmt.Sprintf("%s %s", token.InsecureNodeCommand, poolRole)
-			command = createRegistrationCommand(command, node.PublicIP, node.PrivateIP, cluster.Spec.RKEConfig.MachinePools[poolIndex])
+			command := fmt.Sprintf("%s %s", nodeCommand, poolRole)
+			command = createRegistrationCommand(command, publicAddress, privateAddress, cluster.Spec.RKEConfig.MachinePools[poolIndex])
 			logrus.Infof("Node command: %s", command)
 
 			nodeSSHKey, err := tofu.ReadBytesFromPath(node.SSHKeyPath)
 			if err != nil {
-				return nil, fmt.Errorf("error getting node's SSH Key from %s: %w", node.SSHKeyPath, err)
+				return fmt.Errorf("error getting node's SSH Key from %s: %w", node.SSHKeyPath, err)
+			}
+
+			sshAddress := preferredSSHAddress(node)
+			if strings.TrimSpace(node.PublicIP) == "" {
+				logrus.Warnf("Node %s has no public IP, using %s for SSH", node.Name, sshAddress)
 			}
 
 			shepherdNode := shepherdnodes.Node{
-				PublicIPAddress:  node.PublicIP,
-				PrivateIPAddress: node.PrivateIP,
+				PublicIPAddress:  sshAddress,
+				PrivateIPAddress: privateAddress,
 				SSHUser:          node.SSHUser,
 				SSHKey:           nodeSSHKey,
 			}
 
 			output, err := shepherdNode.ExecuteCommand(command)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			logrus.Info(output)
@@ -295,7 +380,32 @@ func RegisterCustomCluster(client *rancher.Client, steveObject *v1.SteveAPIObjec
 		totalNodesObserved += int(quantityPerPool[poolIndex])
 	}
 
-	err = wait.WatchWait(result, checkFunc)
+	return nil
+}
+
+// RegisterCustomCluster registers a non-rke1 cluster using a 3rd party client for its nodes
+func RegisterCustomCluster(client *rancher.Client, steveObject *v1.SteveAPIObject, cluster *apisV1.Cluster, nodes []tofu.Node) (*v1.SteveAPIObject, error) {
+	quantityPerPool, rolesPerPool, totalNodesNeeded, err := buildCustomClusterPoolPlan(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	err = validateCustomClusterNodeCount(nodes, totalNodesNeeded)
+	if err != nil {
+		return nil, err
+	}
+
+	result, nodeCommand, err := customClusterRegistrationWatch(client, steveObject, cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	err = registerCustomClusterNodes(cluster, nodes, quantityPerPool, rolesPerPool, nodeCommand)
+	if err != nil {
+		return nil, err
+	}
+
+	err = wait.WatchWait(result, shepherdclusters.IsProvisioningClusterReady)
 	if err != nil {
 		return nil, err
 	}

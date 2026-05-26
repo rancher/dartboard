@@ -19,9 +19,6 @@ type ClusterStatus struct {
 	Provisioned bool   `yaml:"provisioned"`
 	Registered  bool   `yaml:"registered"`
 	Stage       Stage  `yaml:"stage"`
-	// // Only one of the following should be included
-	// tofu.Cluster         `yaml:"cluster,omitempty"`          //For Imported Clusters
-	// dart.ClusterTemplate `yaml:"cluster_template,omitempty"` //For Provisioned Clusters
 }
 
 const ClustersStateFile = "clusters_state.yaml"

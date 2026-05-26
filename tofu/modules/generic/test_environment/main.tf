@@ -111,4 +111,5 @@ module "nodes" {
   node_module           = var.node_module
   node_module_variables = local.nodes[count.index].node_module_variables
   network_config        = var.network_config
+  public                = local.nodes[count.index].public_ip
 }
