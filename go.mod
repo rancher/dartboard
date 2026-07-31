@@ -68,7 +68,7 @@ require (
 	github.com/minio/pkg v1.7.5
 	github.com/qase-tms/qase-go/pkg/qase-go v1.0.7
 	github.com/qase-tms/qase-go/qase-api-client v1.2.10
-	github.com/qase-tms/qase-go/qase-api-v2-client v1.1.5
+	github.com/qase-tms/qase-go/qase-api-v2-client v1.1.7
 	github.com/rancher/rancher/pkg/apis v0.0.0
 	github.com/rancher/shepherd v0.0.0-20251203195144-c9f6483abe67
 	github.com/rancher/tests/actions v0.0.0-20251111162746-32a475483166
