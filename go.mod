@@ -73,7 +73,7 @@ require (
 	github.com/rancher/shepherd v0.0.0-20251203195144-c9f6483abe67
 	github.com/rancher/tests/actions v0.0.0-20251111162746-32a475483166
 	github.com/rancher/tests/interoperability v0.0.0-00010101000000-000000000000
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	github.com/urfave/cli/v2 v2.27.6
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
