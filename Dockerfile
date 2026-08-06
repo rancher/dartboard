@@ -5,7 +5,7 @@ ARG K6_IMAGE_DIGEST="sha256:4fd3a694926b064d3491d9b02b01cde886583c4931f1223816e3
 # renovate: datasource=docker depName=golang
 ARG GOLANG_VERSION="1.26.4-alpine3.22"
 # renovate: datasource=docker depName=golang digestVersion=1.25.10-alpine3.22
-ARG GOLANG_IMAGE_DIGEST="sha256:26b4d7113039cd51356bd7930ecafd1031d2975dc3b6940ec8ed09457e17cf95"
+ARG GOLANG_IMAGE_DIGEST="sha256:727cfc3c40be55cd1bc9a4a059406b28a059857e3be752aa9d09531e12c20c56"
 FROM golang:${GOLANG_VERSION}@${GOLANG_IMAGE_DIGEST} AS builder
 # match whichever tagged version is used by the K6_VERSION docker image
 # see build layer at https://github.com/grafana/k6/blob/v${K6_VERSION}/Dockerfile
