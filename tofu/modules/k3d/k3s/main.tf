@@ -15,7 +15,7 @@ terraform {
 
 resource "docker_image" "mariadb" {
   count        = var.datastore == "mariadb" ? 1 : 0
-  name         = "mariadb:10.11.18-jammy"
+  name         = "mariadb:11.3.2-jammy"
   keep_locally = true
 }
 
