@@ -424,8 +424,8 @@ github.com/prometheus/common v0.66.1 h1:h5E0h5/Y8niHc5DlaLlWLArTQI7tMrsfQjHV+d9Z
 github.com/prometheus/common v0.66.1/go.mod h1:gcaUsgf3KfRSwHY4dIMXLPV0K/Wg1oZ8+SbZk/HH/dA=
 github.com/prometheus/procfs v0.17.0 h1:FuLQ+05u4ZI+SS/w9+BWEM2TXiHKsUQ9TADiRH7DuK0=
 github.com/prometheus/procfs v0.17.0/go.mod h1:oPQLaDAMRbA+u8H5Pbfq+dl3VDAvHxMUOVhe0wYB2zw=
-github.com/qase-tms/qase-go/pkg/qase-go v1.0.7 h1:WBWnLTn6XSxD5JcPiIAw6nmcjLM7kS5EwgJuoPQ7qnk=
-github.com/qase-tms/qase-go/pkg/qase-go v1.0.7/go.mod h1:I9AU24ez6V5DWMTrQQLuemW7FTK0Mrqlj98ewG6TINY=
+github.com/qase-tms/qase-go/pkg/qase-go v1.2.0 h1:xO0uJiCqDi2/i+LG0ona9xjScHCECRxtAk7M5JNXiAA=
+github.com/qase-tms/qase-go/pkg/qase-go v1.2.0/go.mod h1:VEnLPuEfvHk1uSJ4uGv351qn0NLt2Ww2EWYg7Dm3+M8=
 github.com/qase-tms/qase-go/qase-api-client v1.2.10 h1:4iMWEA2JTE7zcd3fOAFxzgIFlBY2OTfrILqPALgZpp8=
 github.com/qase-tms/qase-go/qase-api-client v1.2.10/go.mod h1:Za2AZQxuqkyc09vqHSlnceLjc40zFAAXMwhPPAMptMo=
 github.com/qase-tms/qase-go/qase-api-v2-client v1.1.7 h1:xaN9f+6L2rAlcOw5Er9cn/ZBpbMOlk+bF1VWyMJWAds=
