@@ -24,7 +24,7 @@ import (
 	collectprofile "github.com/rancher/dartboard/internal/summarize/collectprofiles"
 	"github.com/rancher/dartboard/internal/summarize/countresources"
 	"github.com/rancher/dartboard/internal/summarize/exportmetrics"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 func handleTimeInputs(cli *cli.Context) (int64, int64, int64, error) {
