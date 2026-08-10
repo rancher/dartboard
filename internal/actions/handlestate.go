@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // ClusterStatus holds the state of each cluster.
