@@ -3,7 +3,7 @@ terraform {
   required_providers {
     docker = {
       source  = "kreuzwerker/docker"
-      version = "3.9.0"
+      version = "4.5.0"
     }
     k3d = {
       source  = "moio/k3d"
