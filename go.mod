@@ -17,7 +17,7 @@ replace (
 	github.com/rancher/tests/actions => github.com/git-ival/rancher-tests/actions v0.0.0-20251223194020-57770a8f364f
 	github.com/rancher/tests/interoperability => github.com/git-ival/rancher-tests/interoperability v0.0.0-20251223194020-57770a8f364f
 
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.69.0
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.70.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.69.0
 	go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.45.0
 	go.opentelemetry.io/otel/metric => go.opentelemetry.io/otel/metric v1.28.0
