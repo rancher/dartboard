@@ -23,7 +23,7 @@ replace (
 	go.opentelemetry.io/otel/metric => go.opentelemetry.io/otel/metric v1.45.0
 	go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.45.0
 	go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.45.0
-	go.opentelemetry.io/proto/otlp => go.opentelemetry.io/proto/otlp v1.3.1
+	go.opentelemetry.io/proto/otlp => go.opentelemetry.io/proto/otlp v1.11.0
 
 	helm.sh/helm/v3 => github.com/rancher/helm/v3 v3.16.1-rancher1
 	k8s.io/api => k8s.io/api v0.34.1
