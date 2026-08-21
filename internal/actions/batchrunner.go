@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"sync"
@@ -12,6 +13,8 @@ import (
 	shepherddefaults "github.com/rancher/shepherd/extensions/defaults"
 	"github.com/sirupsen/logrus"
 )
+
+var errBatchFailed = errors.New("batch failed")
 
 var maxWorkers = runtime.GOMAXPROCS(0) * 2
 
@@ -89,27 +92,13 @@ func (br *SequencedBatchRunner[J]) Run(batch []J,
 
 	close(br.Jobs)
 
-	// Reset skip count for this batch
-	numSkipped := 0
-	sleepAfter := false
-	// Collect results
-	for range batch {
-		res := <-br.Results
-		if res.err != nil {
-			// Clean up in case of error
-			br.Wait()
-			return fmt.Errorf("error during batch run: %w", res.err)
-		}
-
-		if res.skipped {
-			numSkipped++
-		}
-		// Decide whether to sleep before propagating error
-		sleepAfter = numSkipped < len(batch)/2
-	}
+	numSkipped, batchErr := collectBatchResults(br.Results, len(batch))
+	sleepAfter := numSkipped < len(batch)/2
 
 	// After finishing this batch:
-	if sleepAfter {
+	if batchErr != nil {
+		logrus.Errorf("Batch completed with failures: %v", batchErr)
+	} else if sleepAfter {
 		// If fewer than half were skipped, sleep briefly
 		logrus.Infof("Batch done: %d/%d skipped; sleeping before next batch.", numSkipped, len(batch))
 		time.Sleep(shepherddefaults.TwoMinuteTimeout)
@@ -120,8 +109,26 @@ func (br *SequencedBatchRunner[J]) Run(batch []J,
 
 	// Clean up
 	br.Wait()
+	return batchErr
+}
 
-	return nil
+func collectBatchResults(results <-chan jobResult, count int) (int, error) {
+	numSkipped := 0
+	var jobErrs []error
+	for range count {
+		result := <-results
+		if result.err != nil {
+			jobErrs = append(jobErrs, result.err)
+			continue
+		}
+		if result.skipped {
+			numSkipped++
+		}
+	}
+	if len(jobErrs) == 0 {
+		return numSkipped, nil
+	}
+	return numSkipped, fmt.Errorf("%w with %d job errors: %w", errBatchFailed, len(jobErrs), errors.Join(jobErrs...))
 }
 
 func (br *SequencedBatchRunner[J]) Wait() {
@@ -191,8 +198,6 @@ func (br *SequencedBatchRunner[J]) worker(statuses map[string]*ClusterStatus,
 
 		br.Results <- jobResult{skipped: skipped, err: err}
 
-		if err != nil {
-			return
-		}
+		// Continue draining Jobs after failures so Run receives one result per job.
 	}
 }
