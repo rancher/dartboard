@@ -11,6 +11,8 @@ module "network" {
   ssh_bastion_host     = var.ssh_bastion_host
   ssh_bastion_user     = var.ssh_bastion_user
   ssh_bastion_key_path = var.ssh_bastion_key_path
+  images_by_name       = local.images_by_name
+  ssh_keys_by_name     = local.ssh_keys_by_name
 }
 
 resource "harvester_image" "created" {
@@ -25,8 +27,8 @@ resource "harvester_image" "created" {
 module "test_environment" {
   source                           = "../../modules/generic/test_environment"
   project_name                     = var.project_name
-	upstream_cluster                 = var.upstream_cluster
-	upstream_cluster_pre_existing    = var.upstream_cluster_pre_existing
+  upstream_cluster                 = var.upstream_cluster
+  upstream_cluster_pre_existing    = var.upstream_cluster_pre_existing
   upstream_cluster_distro_module   = var.upstream_cluster_distro_module
   downstream_cluster_templates     = var.downstream_cluster_templates
   downstream_cluster_distro_module = var.downstream_cluster_distro_module

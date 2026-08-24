@@ -21,8 +21,8 @@ module "network" {
 module "test_environment" {
   source                           = "../../modules/generic/test_environment"
   project_name                     = var.project_name
-	upstream_cluster                 = var.upstream_cluster
-	upstream_cluster_pre_existing    = var.upstream_cluster_pre_existing
+  upstream_cluster                 = var.upstream_cluster
+  upstream_cluster_pre_existing    = var.upstream_cluster_pre_existing
   upstream_cluster_distro_module   = var.upstream_cluster_distro_module
   downstream_cluster_templates     = var.downstream_cluster_templates
   downstream_cluster_distro_module = var.downstream_cluster_distro_module

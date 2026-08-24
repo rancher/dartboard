@@ -39,14 +39,14 @@ resource "harvester_virtualmachine" "this" {
       size = "${disk.value.size}Gi"
       bus  = disk.value.bus
       image = index(var.node_module_variables.disks, disk.value) == 0 ? (
-        var.node_module_variables.image_name != null && var.node_module_variables.image_namespace != null ? data.harvester_image.this[0].id : var.node_module_variables.image_id
+        var.node_module_variables.image_name != null && var.node_module_variables.image_id == null ? var.network_config.images_by_name["${local.image_namespace}/${var.node_module_variables.image_name}"] : var.node_module_variables.image_id
       ) : null
       boot_order  = index(var.node_module_variables.disks, disk.value) + 1 //boot_order starts at 1, while the index() function is 0-based
       auto_delete = true
     }
   }
 
-  ssh_keys = compact([var.network_config.ssh_public_key_id, try(data.harvester_ssh_key.shared[0].id, null)])
+  ssh_keys = local.ssh_key_ids
 
   # Default "USB Tablet" config for VNC usage
   input {
@@ -62,7 +62,7 @@ resource "harvester_virtualmachine" "this" {
   // Allow for more than the default time for VM destruction
   timeouts {
     delete = "15m"
-    create = "5m"
+    create = "15m"
   }
 }
 

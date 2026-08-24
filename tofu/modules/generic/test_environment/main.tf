@@ -17,7 +17,7 @@ locals {
 }
 
 module "upstream_postgres" {
-	count  = var.upstream_cluster != null && var.upstream_cluster.postgres_node_variables != {} ? 1 : 0
+  count  = var.upstream_cluster != null && var.upstream_cluster.postgres_node_variables != {} ? 1 : 0
   source = "../postgres"
 
   name                  = "upstream-postgres"
@@ -28,7 +28,7 @@ module "upstream_postgres" {
 }
 
 module "upstream_cluster" {
-	count                       = var.upstream_cluster != null ? 1 : 0
+  count                       = var.upstream_cluster != null ? 1 : 0
   source                      = "../../${var.upstream_cluster_distro_module}"
   project_name                = var.project_name
   name                        = "upstream"

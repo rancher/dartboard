@@ -4,9 +4,9 @@ variable "upstream_cluster" {
 }
 
 variable "upstream_cluster_pre_existing" {
-	type = any
-	default = null
-	nullable = true
+  type     = any
+  default  = null
+  nullable = true
 }
 
 variable "upstream_cluster_distro_module" {
