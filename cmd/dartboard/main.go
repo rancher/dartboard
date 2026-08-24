@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/rancher/dartboard/cmd/dartboard/subcommands"
-	cli "github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v3"
 )
 
 func appCommands() []*cli.Command {
