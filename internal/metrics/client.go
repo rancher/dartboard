@@ -11,6 +11,7 @@ You may obtain a copy of the License at
 package metrics
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -62,6 +63,9 @@ type matrixEntry struct {
 // QueryRange runs an /api/v1/query_range request and returns one Series per
 // matrix entry. Empty result sets are returned as an empty slice (no error).
 func (c *Client) QueryRange(promQL string, start, end time.Time, step time.Duration) ([]Series, error) {
+	return c.QueryRangeContext(context.Background(), promQL, start, end, step)
+}
+func (c *Client) QueryRangeContext(ctx context.Context, promQL string, start, end time.Time, step time.Duration) ([]Series, error) {
 	q := url.Values{}
 	q.Set("query", promQL)
 	q.Set("start", strconv.FormatFloat(float64(start.UnixNano())/1e9, 'f', -1, 64))
@@ -69,7 +73,11 @@ func (c *Client) QueryRange(promQL string, start, end time.Time, step time.Durat
 	q.Set("step", strconv.FormatFloat(step.Seconds(), 'f', -1, 64))
 
 	endpoint := c.baseURL + "/api/v1/query_range?" + q.Encode()
-	resp, err := c.http.Get(endpoint)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("query_range GET failed: %w", err)
 	}

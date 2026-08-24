@@ -22,11 +22,11 @@ import (
 )
 
 const (
-	ArgStart  = "start"
-	ArgEnd    = "end"
-	ArgLast   = "last"
-	ArgStep   = "step"
-	ArgOutput = "output"
+	ArgMetricsStart  = "start"
+	ArgMetricsEnd    = "end"
+	ArgMetricsLast   = "last"
+	ArgMetricsStep   = "step"
+	ArgMetricsOutput = "output"
 
 	prometheusNamespace = "cattle-monitoring-system"
 	prometheusService   = "svc/rancher-monitoring-prometheus"
@@ -56,7 +56,7 @@ func CollectMetrics(c *cli.Context) error {
 	outDir := resolveOutputDir(c, d.TofuWorkspace)
 
 	logrus.Infof("port-forwarding to %s/%s in upstream cluster", prometheusNamespace, prometheusService)
-	localPort, stop, err := kubectl.PortForward(upstream.Kubeconfig, prometheusNamespace, prometheusService, prometheusPort)
+	localPort, stop, err := kubectl.PortForward(c.Context, upstream.Kubeconfig, prometheusNamespace, prometheusService, prometheusPort)
 	if err != nil {
 		return fmt.Errorf("port-forward to upstream Prometheus: %w", err)
 	}
@@ -65,47 +65,47 @@ func CollectMetrics(c *cli.Context) error {
 	promURL := fmt.Sprintf("http://127.0.0.1:%d", localPort)
 	logrus.Infof("collecting metrics from %s for window %s..%s (step %s)", promURL, start.Format(time.RFC3339), end.Format(time.RFC3339), step)
 
-	return metrics.Collect(promURL, c.String(ArgDart), d.TofuWorkspace, start, end, step, outDir)
+	return metrics.Collect(c.Context, promURL, c.String(ArgDart), d.TofuWorkspace, start, end, step, outDir)
 }
 
 func resolveWindow(c *cli.Context) (time.Time, time.Time, time.Duration, error) {
-	step, err := time.ParseDuration(c.String(ArgStep))
+	step, err := time.ParseDuration(c.String(ArgMetricsStep))
 	if err != nil {
-		return time.Time{}, time.Time{}, 0, fmt.Errorf("invalid --%s: %w", ArgStep, err)
+		return time.Time{}, time.Time{}, 0, fmt.Errorf("invalid --%s: %w", ArgMetricsStep, err)
 	}
 
 	var end time.Time
-	if s := c.String(ArgEnd); s != "" {
+	if s := c.String(ArgMetricsEnd); s != "" {
 		end, err = time.Parse(time.RFC3339, s)
 		if err != nil {
-			return time.Time{}, time.Time{}, 0, fmt.Errorf("invalid --%s (want RFC3339): %w", ArgEnd, err)
+			return time.Time{}, time.Time{}, 0, fmt.Errorf("invalid --%s (want RFC3339): %w", ArgMetricsEnd, err)
 		}
 	} else {
 		end = time.Now().UTC()
 	}
 
 	var start time.Time
-	if s := c.String(ArgStart); s != "" {
+	if s := c.String(ArgMetricsStart); s != "" {
 		start, err = time.Parse(time.RFC3339, s)
 		if err != nil {
-			return time.Time{}, time.Time{}, 0, fmt.Errorf("invalid --%s (want RFC3339): %w", ArgStart, err)
+			return time.Time{}, time.Time{}, 0, fmt.Errorf("invalid --%s (want RFC3339): %w", ArgMetricsStart, err)
 		}
 	} else {
-		last, err := time.ParseDuration(c.String(ArgLast))
+		last, err := time.ParseDuration(c.String(ArgMetricsLast))
 		if err != nil {
-			return time.Time{}, time.Time{}, 0, fmt.Errorf("invalid --%s: %w", ArgLast, err)
+			return time.Time{}, time.Time{}, 0, fmt.Errorf("invalid --%s: %w", ArgMetricsLast, err)
 		}
 		start = end.Add(-last)
 	}
 
 	if !end.After(start) {
-		return time.Time{}, time.Time{}, 0, fmt.Errorf("--%s must be after --%s", ArgEnd, ArgStart)
+		return time.Time{}, time.Time{}, 0, fmt.Errorf("--%s must be after --%s", ArgMetricsEnd, ArgMetricsStart)
 	}
 	return start, end, step, nil
 }
 
 func resolveOutputDir(c *cli.Context, workspace string) string {
-	if s := c.String(ArgOutput); s != "" {
+	if s := c.String(ArgMetricsOutput); s != "" {
 		return s
 	}
 	suffix := time.Now().UTC().Format("20060102-150405")

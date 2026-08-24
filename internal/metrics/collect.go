@@ -11,6 +11,7 @@ You may obtain a copy of the License at
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,7 +23,7 @@ import (
 // Collect runs every query in Catalog() against promURL over [start, end] at
 // step resolution and writes CSVs + summary.json + manifest.json under outDir.
 // dartFile and workspace are recorded in the manifest for traceability.
-func Collect(promURL, dartFile, workspace string, start, end time.Time, step time.Duration, outDir string) error {
+func Collect(ctx context.Context, promURL, dartFile, workspace string, start, end time.Time, step time.Duration, outDir string) error {
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return fmt.Errorf("create output dir %s: %w", outDir, err)
 	}
@@ -43,7 +44,7 @@ func Collect(promURL, dartFile, workspace string, start, end time.Time, step tim
 
 	for _, q := range queries {
 		logrus.Infof("collecting %s/%s", q.Group, q.Name)
-		series, err := client.QueryRange(q.PromQL, start, end, step)
+		series, err := client.QueryRangeContext(ctx, q.PromQL, start, end, step)
 		if err != nil {
 			logrus.Warnf("query %s failed: %v", q.Name, err)
 			continue
