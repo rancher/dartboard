@@ -92,6 +92,12 @@ func Deploy(cli *cli.Context) error {
 	}
 
 	upstream := clusters["upstream"]
+	if upstream.Kubeconfig == "" {
+		return fmt.Errorf("upstream cluster output is empty")
+	}
+	// Keep the resolved output available to registration helpers regardless of
+	// whether OpenTofu created it or passed through an existing cluster.
+	r.UpstreamCluster = &upstream
 	rancherVersion := r.ChartVariables.RancherVersion
 
 	rancherImageTag := "v" + rancherVersion
