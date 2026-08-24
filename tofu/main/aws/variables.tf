@@ -29,6 +29,12 @@ variable "upstream_cluster" {
   type        = any
 }
 
+variable "upstream_cluster_pre_existing" {
+	type = any
+	default = null
+	nullable = true
+}
+
 variable "upstream_cluster_distro_module" {
   description = "Name of the module to use for the upstream cluster"
   default     = "generic/k3s"

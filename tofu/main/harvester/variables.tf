@@ -32,7 +32,14 @@ variable "ssh_bastion_key_path" {
 
 variable "upstream_cluster" {
   description = "Upstream cluster configuration. See tofu/modules/generic/test_environment/variables.tf for details"
-  type        = any
+	type        = any
+	default     = null
+}
+
+variable "upstream_cluster_pre_existing" {
+	type = any
+	default = null
+	nullable = true
 }
 
 variable "upstream_cluster_distro_module" {

@@ -1,6 +1,6 @@
 output "clusters" {
   value = merge({
-    "upstream" : module.upstream_cluster.config,
+		"upstream" : var.upstream_cluster != null ? module.upstream_cluster[0].config : var.upstream_cluster_pre_existing,
     "tester" : var.tester_cluster != null ? module.tester_cluster[0].config : null,
     },
     { for i, cluster in local.downstream_clusters : cluster.name => module.downstream_clusters[i].config },
