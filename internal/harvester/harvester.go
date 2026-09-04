@@ -12,7 +12,7 @@ import (
 	randGen "github.com/matoous/go-nanoid/v2"
 	"github.com/minio/pkg/wildcard"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 	v1 "k8s.io/api/core/v1"
 	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
