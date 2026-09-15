@@ -22,7 +22,7 @@ module "server_nodes" {
 
 resource "ssh_sensitive_resource" "node_installation" {
   count        = var.server_count
-  host         = module.server_nodes[count.index].private_name
+  host         = module.server_nodes[count.index].private_ip
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
   bastion_host = var.network_config.ssh_bastion_host
@@ -37,7 +37,7 @@ resource "ssh_sensitive_resource" "node_installation" {
       server_name  = module.server_nodes[count.index].private_name
       server_ip    = module.server_nodes[count.index].private_ip
       etcd_names   = formatlist("%s-%s", "${var.project_name}-${var.name}", range(0, var.server_count))
-      server_names = [for node in module.server_nodes : node.private_name]
+      server_ips   = [for node in module.server_nodes : node.private_ip]
     })
     destination = "/root/install_etcd.sh"
     permissions = "0700"
