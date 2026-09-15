@@ -17,6 +17,7 @@ limitations under the License.
 package subcommands
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 
@@ -78,6 +79,9 @@ func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	if err := injectPreExistingUpstream(d); err != nil {
+		return nil, nil, err
+	}
 
 	tf, err := tofu.New(d.TofuVariables, d.TofuMainDirectory, d.TofuWorkspace, d.TofuParallelism, true)
 	if err != nil {
@@ -85,6 +89,59 @@ func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
 	}
 
 	return tf, d, nil
+}
+
+func injectPreExistingUpstream(d *dart.Dart) error {
+	if d.UpstreamCluster == nil {
+		return nil
+	}
+	if d.UpstreamCluster.Kubeconfig == "" {
+		return fmt.Errorf("pre-existing upstream_cluster requires kubeconfig")
+	}
+	addresses := d.UpstreamCluster.AppAddresses
+	if addresses.Public.Name == "" && addresses.Private.Name == "" && addresses.Tunnel.Name == "" {
+		return fmt.Errorf("pre-existing upstream_cluster requires a public, private, or tunnel app address for Rancher")
+	}
+
+	encoded, err := json.Marshal(d.UpstreamCluster)
+	if err != nil {
+		return fmt.Errorf("marshal pre-existing upstream: %w", err)
+	}
+	var value map[string]any
+	if err := json.Unmarshal(encoded, &value); err != nil {
+		return fmt.Errorf("convert pre-existing upstream: %w", err)
+	}
+	if d.TofuVariables == nil {
+		d.TofuVariables = map[string]any{}
+	}
+	// Omitting the root upstream_cluster variable lets its null default disable
+	// the generated upstream module. The pass-through output becomes upstream.
+	delete(d.TofuVariables, "upstream_cluster")
+	d.TofuVariables["upstream_cluster_pre_existing"] = removeNilValues(value)
+	return nil
+}
+
+func removeNilValues(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		cleaned := make(map[string]any, len(typed))
+		for key, child := range typed {
+			if child != nil {
+				cleaned[key] = removeNilValues(child)
+			}
+		}
+		return cleaned
+	case []any:
+		cleaned := make([]any, 0, len(typed))
+		for _, child := range typed {
+			if child != nil {
+				cleaned = append(cleaned, removeNilValues(child))
+			}
+		}
+		return cleaned
+	default:
+		return value
+	}
 }
 
 // printAccessDetails prints to console addresses and kubeconfig file paths of a cluster for user convenience
