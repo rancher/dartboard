@@ -1,6 +1,7 @@
 package vendored
 
 import (
+	"context"
 	"log"
 	"os/exec"
 	"path/filepath"
@@ -18,8 +19,11 @@ func Command(name string, args ...string) *exec.Cmd {
 	for i, arg := range args {
 		quotedArgs[i] = shellescape.Quote(arg)
 	}
-
 	log.Printf("Running command: \n%s %s\n", vendoredName, strings.Join(quotedArgs, " "))
 
 	return exec.Command(vendoredName, args...)
+}
+
+func CommandContext(ctx context.Context, name string, args ...string) *exec.Cmd {
+	return exec.CommandContext(ctx, filepath.Join(".bin", name), args...)
 }

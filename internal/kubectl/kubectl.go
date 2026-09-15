@@ -18,11 +18,13 @@ package kubectl
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -229,7 +231,6 @@ func Exec(kubepath string, output io.Writer, args ...string) error {
 	cmd := vendored.Command("kubectl", fullArgs...)
 
 	var errStream strings.Builder
-
 	cmd.Stderr = &errStream
 	cmd.Stdin = os.Stdin
 
@@ -238,10 +239,50 @@ func Exec(kubepath string, output io.Writer, args ...string) error {
 	}
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("error while running kubectl with params %v: %s: %w", fullArgs, errStream.String(), err)
+		return fmt.Errorf("error while running kubectl with params %v: %v", fullArgs, errStream.String())
 	}
-
 	return nil
+}
+
+func PortForward(ctx context.Context, kubeconfig, namespace, target string, remotePort int) (int, func(), error) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, nil, err
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	_ = listener.Close()
+	cmd := vendored.CommandContext(ctx, "kubectl", "--kubeconfig="+kubeconfig, "port-forward", "--namespace="+namespace, target, fmt.Sprintf("%d:%d", port, remotePort))
+	cmd.Stdout, cmd.Stderr = log.Writer(), log.Writer()
+	if err := cmd.Start(); err != nil {
+		return 0, nil, err
+	}
+	var once sync.Once
+	stop := func() {
+		once.Do(func() {
+			if cmd.Process != nil {
+				_ = cmd.Process.Kill()
+			}
+			_ = cmd.Wait()
+		})
+	}
+	deadline := time.NewTimer(10 * time.Second)
+	defer deadline.Stop()
+	for {
+		conn, e := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), 500*time.Millisecond)
+		if e == nil {
+			_ = conn.Close()
+			return port, stop, nil
+		}
+		select {
+		case <-ctx.Done():
+			stop()
+			return 0, nil, ctx.Err()
+		case <-deadline.C:
+			stop()
+			return 0, nil, fmt.Errorf("port-forward timeout")
+		case <-time.After(200 * time.Millisecond):
+		}
+	}
 }
 
 func Apply(kubePath, filePath string) error {
@@ -249,30 +290,25 @@ func Apply(kubePath, filePath string) error {
 }
 
 func WaitRancher(kubePath string) error {
-	err := WaitForReadyCondition(kubePath, "deployment", "rancher", "cattle-system", "available", 20)
+	err := WaitForReadyCondition(kubePath, "deployment", "rancher", "cattle-system", "available", 60)
 	if err != nil {
 		return err
 	}
-
-	err = WaitForReadyCondition(kubePath, "deployment", "rancher-webhook", "cattle-system", "available", 3)
+	err = WaitForReadyCondition(kubePath, "deployment", "rancher-webhook", "cattle-system", "available", 60)
 	if err != nil {
 		return err
 	}
-
-	err = WaitForReadyCondition(kubePath, "deployment", "fleet-controller", "cattle-fleet-system", "available", 5)
-
+	err = WaitForReadyCondition(kubePath, "deployment", "fleet-controller", "cattle-fleet-system", "available", 60)
 	return err
 }
 
 func WaitForReadyCondition(kubePath, resource, name, namespace string, condition string, minutes int) error {
 	var err error
-
 	args := []string{"wait", resource, name}
 
 	if len(namespace) > 0 {
 		args = append(args, "--namespace", namespace)
 	}
-
 	args = append(args, "--for", fmt.Sprintf("condition=%s=true", condition), fmt.Sprintf("--timeout=%dm", minutes))
 
 	maxRetries := minutes * 30
@@ -295,16 +331,13 @@ func WaitForReadyCondition(kubePath, resource, name, namespace string, condition
 
 func GetRancherFQDNFromLoadBalancer(kubePath string) (string, error) {
 	ingress := map[string]string{}
-
 	err := Get(kubePath, "services", "", "", ".items[0].status.loadBalancer.ingress[0]", &ingress)
 	if err != nil {
 		return "", err
 	}
-
 	if ip, ok := ingress["ip"]; ok {
 		return ip + ".sslip.io", nil
 	}
-
 	if hostname, ok := ingress["hostname"]; ok {
 		return hostname, nil
 	}
@@ -314,7 +347,6 @@ func GetRancherFQDNFromLoadBalancer(kubePath string) (string, error) {
 
 func Get(kubePath string, kind string, name string, namespace string, jsonpath string, out any) error {
 	output := new(bytes.Buffer)
-
 	args := []string{
 		"get",
 		kind,
@@ -322,13 +354,11 @@ func Get(kubePath string, kind string, name string, namespace string, jsonpath s
 	if name != "" {
 		args = append(args, name)
 	}
-
 	if namespace != "" {
 		args = append(args, "--namespace", namespace)
 	} else {
 		args = append(args, "--all-namespaces")
 	}
-
 	args = append(args, "-o", fmt.Sprintf("jsonpath={%s}", jsonpath))
 
 	if err := Exec(kubePath, output, args...); err != nil {
@@ -344,7 +374,6 @@ func Get(kubePath string, kind string, name string, namespace string, jsonpath s
 
 func GetStatus(kubepath, kind, name, namespace string) (map[string]any, error) {
 	out := map[string]any{}
-
 	err := Get(kubepath, kind, name, namespace, ".status", &out)
 	if err != nil {
 		return nil, err
@@ -374,12 +403,10 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 
 	// print what we are about to do
 	quotedArgs := []string{"run"}
-
 	for k, v := range envVars {
 		if k == "BASE_URL" {
 			v = localBaseURL
 		}
-
 		quotedArgs = append(quotedArgs, "-e", shellescape.Quote(fmt.Sprintf("%s=%s", k, v)))
 	}
 
@@ -392,7 +419,6 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 		if err != nil {
 			return err
 		}
-
 		err = Exec(kubeconfig, nil, "--namespace="+K6Namespace, "create", "secret", "generic", K6KubeSecretName,
 			"--from-file=config="+path)
 		if err != nil {
@@ -410,10 +436,8 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 		if k == "KUBECONFIG" {
 			v = "/kube/config"
 		}
-
 		args = append(args, "-e", fmt.Sprintf("%s=%s", k, v))
 	}
-
 	for k, v := range tags {
 		args = append(args, "--tag", fmt.Sprintf("%s=%s", k, v))
 	}
@@ -422,6 +446,7 @@ func K6run(kubeconfig, testPath string, envVars, tags map[string]string, printLo
 	if record {
 		args = append(args, "-o", "experimental-prometheus-rw")
 	}
+
 	// Always disable color output for cleaner logs in CI
 	args = append(args, "--no-color")
 
@@ -470,6 +495,7 @@ func buildK6PodOverride(args []string, entries []FileEntry, envVars map[string]s
 		volumeMounts = append(volumeMounts, map[string]string{"mountPath": "/kube", "name": K6KubeSecretName})
 	}
 
+	// prepare pod override map
 	override := map[string]any{
 		"apiVersion": "v1",
 		"spec": map[string]any{
@@ -492,6 +518,5 @@ func buildK6PodOverride(args []string, entries []FileEntry, envVars map[string]s
 			"volumes": volumes,
 		},
 	}
-
 	return json.Marshal(override)
 }
