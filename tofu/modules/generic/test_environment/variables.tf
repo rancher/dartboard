@@ -39,6 +39,15 @@ variable "upstream_cluster" {
 
     node_module_variables = any // Node module-specific variables
   })
+  default  = null
+  nullable = true
+}
+
+variable "upstream_cluster_pre_existing" {
+  description = "Existing upstream cluster emitted when upstream_cluster is null"
+  type        = any
+  default     = null
+  nullable    = true
 }
 
 variable "upstream_cluster_distro_module" {
