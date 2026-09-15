@@ -65,6 +65,7 @@ variable "ssh_bastion_host" {
 
 variable "ssh_bastion_user" {
   description = "User name to connect to the SSH bastion host"
+  type        = string
   default     = null
 }
 

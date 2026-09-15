@@ -3,7 +3,7 @@ terraform {
   required_providers {
     harvester = {
       source  = "harvester/harvester"
-      version = "0.6.7"
+      version = "1.6.0"
     }
     tls = {
       source  = "hashicorp/tls"

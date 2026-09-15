@@ -15,7 +15,8 @@ output "config" {
     ssh_bastion_host : var.ssh_bastion_host
     ssh_bastion_user : var.ssh_bastion_user
     ssh_bastion_key_path : var.ssh_bastion_key_path
-    images_by_name : var.images_by_name
+
     ssh_keys_by_name : var.ssh_keys_by_name
+    images_by_name : var.images_by_name
   }
 }
