@@ -8,11 +8,13 @@ output "private_name" {
 }
 
 output "private_ip" {
-  value = aws_instance.instance.private_ip
+  depends_on = [null_resource.host_configuration]
+  value      = aws_instance.instance.private_ip
 }
 
 output "public_ip" {
-  value = aws_instance.instance.public_ip
+  depends_on = [null_resource.host_configuration]
+  value      = aws_instance.instance.public_ip
 }
 
 output "public_name" {

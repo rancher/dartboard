@@ -21,7 +21,7 @@ module "server_node" {
 resource "ssh_resource" "install_postgres" {
   depends_on = [module.server_node]
 
-  host         = module.server_node.private_name
+  host         = module.server_node.private_ip
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
   bastion_host = var.network_config.ssh_bastion_host

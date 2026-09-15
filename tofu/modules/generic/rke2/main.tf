@@ -56,7 +56,7 @@ module "agent_nodes" {
 
 resource "ssh_sensitive_resource" "first_server_installation" {
   count        = var.server_count > 0 ? 1 : 0
-  host         = module.server_nodes[0].private_name
+  host         = module.server_nodes[0].private_ip
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
   bastion_host = var.network_config.ssh_bastion_host
@@ -110,7 +110,7 @@ resource "ssh_resource" "additional_server_installation" {
   depends_on = [ssh_sensitive_resource.first_server_installation]
   count      = max(0, var.server_count - 1)
 
-  host         = module.server_nodes[count.index + 1].private_name
+  host         = module.server_nodes[count.index + 1].private_ip
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
   bastion_host = var.network_config.ssh_bastion_host
@@ -130,7 +130,7 @@ resource "ssh_resource" "additional_server_installation" {
       sans           = local.sans
       type           = "server"
       token          = ssh_sensitive_resource.first_server_installation[0].result
-      server_url     = "https://${module.server_nodes[0].private_name}:9345"
+      server_url     = "https://${module.server_nodes[0].private_ip}:9345"
       labels         = []
       taints         = []
 
@@ -156,7 +156,7 @@ resource "ssh_resource" "agent_installation" {
   depends_on = [ssh_sensitive_resource.first_server_installation]
   count      = var.agent_count
 
-  host         = module.agent_nodes[count.index].private_name
+  host         = module.agent_nodes[count.index].private_ip
   private_key  = file(var.ssh_private_key_path)
   user         = var.ssh_user
   bastion_host = var.network_config.ssh_bastion_host
@@ -173,10 +173,10 @@ resource "ssh_resource" "agent_installation" {
     content = templatefile("${path.module}/install_rke2.sh", {
       get_rke2_path  = local.get_rke2_path
       distro_version = var.distro_version,
-      sans           = concat([module.agent_nodes[count.index].private_name], local.sans)
+      sans           = concat([module.agent_nodes[count.index].private_name, module.agent_nodes[count.index].private_ip], local.sans)
       type           = "agent"
       token          = ssh_sensitive_resource.first_server_installation[0].result
-      server_url     = "https://${module.server_nodes[0].private_name}:9345"
+      server_url     = "https://${module.server_nodes[0].private_ip}:9345"
       labels = var.reserve_node_for_monitoring && count.index == 0 ? [
         { key : "monitoring", value : "true" }
       ] : []
@@ -204,7 +204,7 @@ resource "ssh_resource" "agent_installation" {
 
 locals {
   get_rke2_path            = "/tmp/get_rke2.sh"
-  local_kubernetes_api_url = var.create_tunnels ? "https://${var.sans[0]}:${var.local_kubernetes_api_port}" : "https://${module.server_nodes[0].public_name}:6443"
+  local_kubernetes_api_url = var.create_tunnels ? "https://${var.sans[0]}:${var.local_kubernetes_api_port}" : "https://${module.server_nodes[0].public_ip}:6443"
   public_sans              = concat(module.server_nodes[*].public_name, module.server_nodes[*].public_ip)
   sans                     = distinct(concat(var.sans, var.public ? local.public_sans : [], module.server_nodes[*].private_ip, module.server_nodes[*].private_name))
 }

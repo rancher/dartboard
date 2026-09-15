@@ -16,9 +16,9 @@ resource "local_file" "ssh_script" {
     ssh -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" \
       -i ${var.ssh_private_key_path} \
       %{if var.network_config.ssh_bastion_host != null~}
-      -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${var.ssh_private_key_path} -W %h:%p ${var.network_config.ssh_bastion_user}@${var.network_config.ssh_bastion_host}" ${var.ssh_user}@${module.host.private_name} \
+      -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${var.ssh_private_key_path} -W %h:%p ${var.network_config.ssh_bastion_user}@${var.network_config.ssh_bastion_host}" ${var.ssh_user}@${module.host.private_ip} \
       %{else~}
-      ${var.ssh_user}@${module.host.public_name} \
+      ${var.ssh_user}@${module.host.public_ip} \
       %{endif~}
       $@
   EOT
@@ -32,8 +32,8 @@ resource "local_file" "open_tunnels" {
     ssh_bastion_host     = var.network_config.ssh_bastion_host
     ssh_bastion_user     = var.network_config.ssh_bastion_user
     ssh_tunnels          = var.ssh_tunnels
-    private_name         = module.host.private_name
-    public_name          = module.host.public_name
+    private_ip           = module.host.private_ip
+    public_ip            = module.host.public_ip
     ssh_user             = var.ssh_user
     ssh_private_key_path = var.ssh_private_key_path
   })
