@@ -4,6 +4,35 @@ set -xe
 
 arch=`uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/'`
 mkdir -p /tmp/rke2-artifacts
+
+verify_sha256_from_manifest() {
+  local archive="$1"
+  local checksums_file="$2"
+  local expected actual
+
+  expected=$(awk -v archive="$archive" '$2 == archive { print $1; exit }' "$checksums_file")
+  if [ -z "$expected" ]; then
+    echo "SHA256 verification FAILED for $archive: no matching entry in $checksums_file" >&2
+    exit 1
+  fi
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual=$(sha256sum "$archive" | awk '{print $1}')
+  elif command -v shasum >/dev/null 2>&1; then
+    actual=$(shasum -a 256 "$archive" | awk '{print $1}')
+  else
+    echo "No SHA256 tool found (expected sha256sum or shasum)" >&2
+    exit 1
+  fi
+
+  if [[ "$actual" == "$expected" ]]; then
+    echo "SHA256 verification succeeded for $archive"
+  else
+    echo "SHA256 verification FAILED for $archive" >&2
+    exit 1
+  fi
+}
+
 pushd /tmp/rke2-artifacts
   version=$(echo "${distro_version}" | sed 's/+/%2B/g')
   wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-core.linux-"$arch".tar.gz
@@ -11,6 +40,10 @@ pushd /tmp/rke2-artifacts
   wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-calico.linux-"$arch".tar.gz
   wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2.linux-"$arch".tar.gz
   wget -c https://prime.ribs.rancher.io/rke2/"$version"/sha256sum-"$arch".txt
+  verify_sha256_from_manifest "rke2-images-core.linux-$arch.tar.gz" "sha256sum-$arch.txt"
+  verify_sha256_from_manifest "rke2-images-canal.linux-$arch.tar.gz" "sha256sum-$arch.txt"
+  verify_sha256_from_manifest "rke2-images-calico.linux-$arch.tar.gz" "sha256sum-$arch.txt"
+  verify_sha256_from_manifest "rke2.linux-$arch.tar.gz" "sha256sum-$arch.txt"
 popd
 
 # use data disk if available (see mount_ephemeral.sh)

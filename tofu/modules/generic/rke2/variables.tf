@@ -12,7 +12,7 @@ variable "name" {
 variable "distro_version" {
   description = "RKE2 version"
   type        = string
-  default     = "v1.24.4+rke2r1"
+  default     = "v1.37.0+rke2r1"
 }
 
 variable "server_count" {
