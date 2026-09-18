@@ -4,6 +4,35 @@ set -xe
 
 arch=`uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/'`
 mkdir -p /tmp/rke2-artifacts
+
+verify_sha256_from_manifest() {
+  local archive="$1"
+  local checksums_file="$2"
+  local expected actual
+
+  expected=$(awk -v archive="$${archive}" '$2 == archive { print $1; exit }' "$${checksums_file}")
+  if [ -z "$${expected}" ]; then
+    echo "SHA256 verification FAILED for $${archive}: no matching entry in $${checksums_file}" >&2
+    exit 1
+  fi
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual=$(sha256sum "$${archive}" | awk '{print $1}')
+  elif command -v shasum >/dev/null 2>&1; then
+    actual=$(shasum -a 256 "$${archive}" | awk '{print $1}')
+  else
+    echo "No SHA256 tool found (expected sha256sum or shasum)" >&2
+    exit 1
+  fi
+
+  if [[ "$${actual}" == "$${expected}" ]]; then
+    echo "SHA256 verification succeeded for $${archive}"
+  else
+    echo "SHA256 verification FAILED for $${archive}" >&2
+    exit 1
+  fi
+}
+
 pushd /tmp/rke2-artifacts
   version=$(echo "${distro_version}" | sed 's/+/%2B/g')
   wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-core.linux-"$arch".tar.gz
@@ -11,6 +40,10 @@ pushd /tmp/rke2-artifacts
   wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2-images-calico.linux-"$arch".tar.gz
   wget -c https://prime.ribs.rancher.io/rke2/"$version"/rke2.linux-"$arch".tar.gz
   wget -c https://prime.ribs.rancher.io/rke2/"$version"/sha256sum-"$arch".txt
+  verify_sha256_from_manifest "rke2-images-core.linux-$arch.tar.gz" "sha256sum-$arch.txt"
+  verify_sha256_from_manifest "rke2-images-canal.linux-$arch.tar.gz" "sha256sum-$arch.txt"
+  verify_sha256_from_manifest "rke2-images-calico.linux-$arch.tar.gz" "sha256sum-$arch.txt"
+  verify_sha256_from_manifest "rke2.linux-$arch.tar.gz" "sha256sum-$arch.txt"
 popd
 
 # use data disk if available (see mount_ephemeral.sh)
@@ -131,6 +164,35 @@ fi
 export INSTALL_RKE2_VERSION=${distro_version}
 export INSTALL_RKE2_TYPE=${type}
 
+# renovate: datasource=github-tags depName=rancher/rke2
+INSTALL_RKE2_SCRIPT_TAG="v1.37.0+rke2r1"
+INSTALL_RKE2_COMMIT_HASH=37af8f9f73a0e95c36295142a63fdcb218cd34e2
+# renovate: datasource=github-tags depName=rancher/rke2 digestVersion=v1.37.0+rke2r1
+INSTALL_RKE2_SHA256=42983c86d1da64a92061d83afb57630cedd69241989f1b0673f3db6c3d92ee6b
+verify_sha256() {
+	local file="$1"
+	local checksum="$2"
+	local expected actual
+
+	expected=$(tr -d '\r\n' <<< "${checksum}")
+
+	if command -v sha256sum >/dev/null 2>&1; then
+		actual=$(sha256sum "${file}" | awk '{print $1}')
+	elif command -v shasum >/dev/null 2>&1; then
+		actual=$(shasum -a 256 "${file}" | awk '{print $1}')
+	else
+		echo "No SHA256 tool found (expected sha256sum or shasum)" >&2
+		exit 1
+	fi
+
+	if [[ "${actual}" == "${expected}" ]]; then
+		echo "SHA256 verification succeeded for ${file}"
+	else
+		echo "SHA256 verification FAILED for ${file}" >&2
+		exit 1
+	fi
+}
+
 MAX_RETRIES=5
 RETRY_DELAY=5 # seconds
 # Default to a failure status
@@ -140,11 +202,15 @@ for (( i=1; i<=MAX_RETRIES; i++ )); do
       cat ${get_rke2_path} > install.sh
       status=$?
   else
-      curl -sfL https://get.rke2.io --output install.sh
+      git clone https://github.com/rancher/rke2.git /tmp/rke2
+      cd /tmp/rke2
+      git checkout "$INSTALL_RKE2_COMMIT_HASH"
+      verify_sha256 "/tmp/rke2/install.sh" "$INSTALL_RKE2_SHA256"
+      chmod +x "/tmp/rke2/install.sh"
       status=$?
   fi
 
-  sudo -s INSTALL_RKE2_ARTIFACT_PATH=/tmp/rke2-artifacts sh install.sh
+  sudo -s INSTALL_RKE2_ARTIFACT_PATH=/tmp/rke2-artifacts sh /tmp/rke2/install.sh
   status=$?
 
   if [ $status -eq 0 ]; then

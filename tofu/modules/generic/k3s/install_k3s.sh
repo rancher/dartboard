@@ -75,6 +75,35 @@ fi
 export INSTALL_K3S_VERSION=${distro_version}
 export INSTALL_K3S_EXEC=${exec}
 
+# renovate: datasource=github-tags depName=k3s-io/k3s
+INSTALL_K3S_SCRIPT_TAG="v1.37.0+k3s1"
+INSTALL_K3S_COMMIT_HASH=bb7cf0657bafdfbb4349d1740810442d09c2248a
+# renovate: datasource=github-tags depName=k3s-io/k3s digestVersion=v1.37.0+k3s1
+INSTALL_K3S_SHA256=ed01f89fd977bf20ac1516bbebf8370bf3ddbaa55dac8aba610956a4c78cc00b
+verify_sha256() {
+	local file="$1"
+	local checksum="$2"
+	local expected actual
+
+	expected=$(tr -d '\r\n' <<< "$${checksum}")
+
+	if command -v sha256sum >/dev/null 2>&1; then
+		actual=$(sha256sum "$${file}" | awk '{print $1}')
+	elif command -v shasum >/dev/null 2>&1; then
+		actual=$(shasum -a 256 "$${file}" | awk '{print $1}')
+	else
+		echo "No SHA256 tool found (expected sha256sum or shasum)" >&2
+		exit 1
+	fi
+
+	if [[ "$${actual}" == "$${expected}" ]]; then
+		echo "SHA256 verification succeeded for $${file}"
+	else
+		echo "SHA256 verification FAILED for $${file}" >&2
+		exit 1
+	fi
+}
+
 MAX_RETRIES=5
 RETRY_DELAY=5 # seconds
 # Default to a failure status
@@ -84,9 +113,16 @@ for (( i=1; i<=MAX_RETRIES; i++ )); do
       sh /tmp/get_k3s.sh
       status=$?
   else
-      curl -sfL https://get.k3s.io | sh -
+      git clone https://github.com/k3s-io/k3s.git /tmp/k3s
+      cd /tmp/k3s
+      git checkout "$INSTALL_K3S_COMMIT_HASH"
+      verify_sha256 "/tmp/k3s/install.sh" "$INSTALL_K3S_SHA256"
+      chmod +x "/tmp/k3s/install.sh"
       status=$?
   fi
+
+  sudo -s INSTALL_K3S_ARTIFACT_PATH=/tmp/k3s-artifacts sh /tmp/k3s/install.sh
+  status=$?
 
   if [ $status -eq 0 ]; then
         break # Exit the loop if the script run was successful
