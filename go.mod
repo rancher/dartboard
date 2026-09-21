@@ -174,7 +174,7 @@ require (
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
-	github.com/opencontainers/runc v1.2.3 // indirect
+	github.com/opencontainers/runc v1.3.6 // indirect
 	github.com/openshift/custom-resource-status v1.1.2 // indirect
 	github.com/ovn-org/libovsdb v0.7.0 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
