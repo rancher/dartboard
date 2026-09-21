@@ -509,6 +509,7 @@ module "bastion" {
     ssh_key_name : aws_key_pair.key_pair.key_name
     ssh_bastion_host : null
     ssh_bastion_user : null
+    ssh_bastion_key_path : null
   }
 
   depends_on = [

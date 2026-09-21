@@ -74,7 +74,7 @@ resource "null_resource" "host_configuration" {
 
     bastion_host        = var.network_config.ssh_bastion_host
     bastion_user        = var.network_config.ssh_bastion_user
-    bastion_private_key = file(var.ssh_private_key_path)
+    bastion_private_key = var.network_config.ssh_bastion_key_path != null ? file(var.network_config.ssh_bastion_key_path) : file(var.ssh_private_key_path)
     timeout             = "120s"
   }
 

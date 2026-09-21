@@ -7,6 +7,12 @@ terraform {
   }
 }
 
+locals {
+  // Fall back to the node key when the network module does not define a
+  // dedicated bastion key, so providers without one keep working.
+  bastion_private_key = try(var.network_config.ssh_bastion_key_path, null) != null ? file(var.network_config.ssh_bastion_key_path) : file(var.ssh_private_key_path)
+}
+
 module "server_nodes" {
   count                 = var.server_count
   source                = "../node"
@@ -21,13 +27,14 @@ module "server_nodes" {
 }
 
 resource "ssh_sensitive_resource" "node_installation" {
-  count        = var.server_count
-  host         = module.server_nodes[count.index].private_ip
-  private_key  = file(var.ssh_private_key_path)
-  user         = var.ssh_user
-  bastion_host = var.network_config.ssh_bastion_host
-  bastion_user = var.network_config.ssh_user
-  timeout      = "600s"
+  count               = var.server_count
+  host                = module.server_nodes[count.index].private_ip
+  private_key         = file(var.ssh_private_key_path)
+  user                = var.ssh_user
+  bastion_host        = var.network_config.ssh_bastion_host
+  bastion_user        = var.network_config.ssh_bastion_user
+  bastion_private_key = local.bastion_private_key
+  timeout             = "600s"
 
   file {
     content = templatefile("${path.module}/install_etcd.sh", {

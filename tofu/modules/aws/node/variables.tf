@@ -62,6 +62,8 @@ variable "network_config" {
     vpc_security_group_id: ID of the security group to connect to
     ssh_key_name: Name of the SSH key used to access the host
     ssh_bastion_host: Public name of the SSH bastion host. null for publicly accessible instances
+    ssh_bastion_user: User name for the SSH bastion host's OS
+    ssh_bastion_key_path: Path of the private SSH key used to reach the bastion host
   EOT
   type = object({
     availability_zone : string,
@@ -74,5 +76,6 @@ variable "network_config" {
     ssh_key_name : string,
     ssh_bastion_host : string,
     ssh_bastion_user : string,
+    ssh_bastion_key_path : optional(string),
   })
 }

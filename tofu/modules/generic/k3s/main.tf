@@ -55,13 +55,14 @@ module "agent_nodes" {
 }
 
 resource "ssh_sensitive_resource" "first_server_installation" {
-  count        = var.server_count > 0 ? 1 : 0
-  host         = module.server_nodes[0].private_ip
-  private_key  = file(var.ssh_private_key_path)
-  user         = var.ssh_user
-  bastion_host = var.network_config.ssh_bastion_host
-  bastion_user = var.network_config.ssh_bastion_user
-  timeout      = "600s"
+  count               = var.server_count > 0 ? 1 : 0
+  host                = module.server_nodes[0].private_ip
+  private_key         = file(var.ssh_private_key_path)
+  user                = var.ssh_user
+  bastion_host        = var.network_config.ssh_bastion_host
+  bastion_user        = var.network_config.ssh_bastion_user
+  bastion_private_key = local.bastion_private_key
+  timeout             = "600s"
 
   file {
     content     = data.http.get_k3s.response_body
@@ -112,12 +113,13 @@ resource "ssh_resource" "additional_server_installation" {
   depends_on = [ssh_sensitive_resource.first_server_installation]
   count      = max(0, var.server_count - 1)
 
-  host         = module.server_nodes[count.index + 1].private_ip
-  private_key  = file(var.ssh_private_key_path)
-  user         = var.ssh_user
-  bastion_host = var.network_config.ssh_bastion_host
-  bastion_user = var.network_config.ssh_bastion_user
-  timeout      = "600s"
+  host                = module.server_nodes[count.index + 1].private_ip
+  private_key         = file(var.ssh_private_key_path)
+  user                = var.ssh_user
+  bastion_host        = var.network_config.ssh_bastion_host
+  bastion_user        = var.network_config.ssh_bastion_user
+  bastion_private_key = local.bastion_private_key
+  timeout             = "600s"
 
   file {
     content     = data.http.get_k3s.response_body
@@ -160,12 +162,13 @@ resource "ssh_resource" "agent_installation" {
   depends_on = [ssh_sensitive_resource.first_server_installation]
   count      = var.agent_count
 
-  host         = module.agent_nodes[count.index].private_ip
-  private_key  = file(var.ssh_private_key_path)
-  user         = var.ssh_user
-  bastion_host = var.network_config.ssh_bastion_host
-  bastion_user = var.network_config.ssh_bastion_user
-  timeout      = "600s"
+  host                = module.agent_nodes[count.index].private_ip
+  private_key         = file(var.ssh_private_key_path)
+  user                = var.ssh_user
+  bastion_host        = var.network_config.ssh_bastion_host
+  bastion_user        = var.network_config.ssh_bastion_user
+  bastion_private_key = local.bastion_private_key
+  timeout             = "600s"
 
   file {
     content     = data.http.get_k3s.response_body
@@ -209,6 +212,9 @@ resource "ssh_resource" "agent_installation" {
 }
 
 locals {
+  // Fall back to the node key when the network module does not define a
+  // dedicated bastion key, so providers without one keep working.
+  bastion_private_key      = try(var.network_config.ssh_bastion_key_path, null) != null ? file(var.network_config.ssh_bastion_key_path) : file(var.ssh_private_key_path)
   get_k3s_path             = "/tmp/get_k3s.sh"
   local_kubernetes_api_url = var.create_tunnels ? "https://${var.sans[0]}:${var.local_kubernetes_api_port}" : "https://${module.server_nodes[0].public_ip}:6443"
   public_sans              = concat(module.server_nodes[*].public_name, module.server_nodes[*].public_ip)
