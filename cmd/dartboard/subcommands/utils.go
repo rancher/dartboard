@@ -23,7 +23,7 @@ import (
 	"github.com/rancher/dartboard/internal/docker"
 	"github.com/rancher/dartboard/internal/k3d"
 	"github.com/rancher/dartboard/internal/vendored"
-	cli "github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v3"
 
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/kubectl"
