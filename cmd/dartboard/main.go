@@ -27,113 +27,189 @@ import (
 
 func appCommands() []*cli.Command {
 	return []*cli.Command{
-		{
-			Name:        "apply",
-			Usage:       "Runs `tofu apply`",
-			Description: "runs `tofu apply` to prepare infrastructure and Kubernetes clusters for tests",
-			Action:      subcommands.Apply,
-		},
-		{
-			Name:        "deploy",
-			Usage:       "Deploys Rancher and other charts on top of clusters",
-			Description: "prepares the test environment installing all required charts",
-			Action:      subcommands.Deploy,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:        subcommands.ArgSkipApply,
-					Value:       false,
-					Usage:       "skip 'tofu apply', assume apply was already called",
-					DefaultText: "false",
-				},
-				&cli.BoolFlag{
-					Name:        subcommands.ArgSkipCharts,
-					Value:       false,
-					Usage:       "skip 'helm install' for all charts, assume charts have already been installed for upstream and tester clusters",
-					DefaultText: "false",
-				},
-				&cli.BoolFlag{
-					Name:        subcommands.ArgSkipRefresh,
-					Value:       false,
-					Usage:       "skip refresh phase for tofu resources, assume resources are refreshed and up-to-date",
-					DefaultText: "false",
-				},
+		applyCommand(),
+		deployCommand(),
+		loadCommand(),
+		getAccessCommand(),
+		destroyCommand(),
+		reapplyCommand(),
+		redeployCommand(),
+		collectMetricsCommand(),
+		summarizeCommand(),
+		collectProfilesCommand(),
+		collectLogsCommand(),
+	}
+}
+
+func applyCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "apply",
+		Usage:       "Runs `tofu apply`",
+		Description: "runs `tofu apply` to prepare infrastructure and Kubernetes clusters for tests",
+		Action:      subcommands.Apply,
+	}
+}
+
+func deployCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "deploy",
+		Usage:       "Deploys Rancher and other charts on top of clusters",
+		Description: "prepares the test environment installing all required charts",
+		Action:      subcommands.Deploy,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:        subcommands.ArgSkipApply,
+				Value:       false,
+				Usage:       "skip 'tofu apply', assume apply was already called",
+				DefaultText: "false",
+			},
+			&cli.BoolFlag{
+				Name:        subcommands.ArgSkipCharts,
+				Value:       false,
+				Usage:       "skip 'helm install' for all charts, assume charts have already been installed for upstream and tester clusters",
+				DefaultText: "false",
+			},
+			&cli.BoolFlag{
+				Name:        subcommands.ArgSkipRefresh,
+				Value:       false,
+				Usage:       "skip refresh phase for tofu resources, assume resources are refreshed and up-to-date",
+				DefaultText: "false",
 			},
 		},
-		{
-			Name:        "load",
-			Usage:       "Creates K8s resources on upstream and downstream clusters",
-			Description: "Loads ConfigMaps and Secrets on all the deployed K8s cluster; Roles, Users and Projects on the Rancher cluster",
-			Action:      subcommands.Load,
+	}
+}
+
+func loadCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "load",
+		Usage:       "Creates K8s resources on upstream and downstream clusters",
+		Description: "Loads ConfigMaps and Secrets on all the deployed K8s cluster; Roles, Users and Projects on the Rancher cluster",
+		Action:      subcommands.Load,
+	}
+}
+
+func getAccessCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "get-access",
+		Usage:       "Retrieves information to access the deployed clusters",
+		Description: "print out links and access information for the deployed clusters",
+		Action:      subcommands.GetAccess,
+	}
+}
+
+func destroyCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "destroy",
+		Usage:       "Tears down the test environment (all the clusters)",
+		Description: "runs `tofu destroy` to destroy all the provisioned clusters",
+		Action:      subcommands.Destroy,
+	}
+}
+
+func reapplyCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "reapply",
+		Usage:       "Tears down the test environment (all the clusters) and re-runs `tofu apply`",
+		Description: "runs `tofu destroy` and then `tofu apply`",
+		Action:      subcommands.Reapply,
+	}
+}
+
+func redeployCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "redeploy",
+		Usage:       "Tears down the test environment (all the clusters) and redeploys them from scratch",
+		Description: "runs `tofu destroy` and then deploys all the provisioned clusters",
+		Action:      subcommands.Redeploy,
+	}
+}
+
+func collectMetricsCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "collect-metrics",
+		Usage:       "Collect scaling metrics from upstream Prometheus",
+		Description: "port-forwards to rancher-monitoring Prometheus and exports curated range queries as CSV and JSON",
+		Action:      subcommands.CollectMetrics,
+		Flags: []cli.Flag{
+			&cli.StringFlag{Name: subcommands.ArgMetricsStart, Usage: "RFC3339 start (default: end minus last)"},
+			&cli.StringFlag{Name: subcommands.ArgMetricsEnd, Usage: "RFC3339 end (default: now)"},
+			&cli.StringFlag{Name: subcommands.ArgMetricsLast, Value: "1h", Usage: "lookback when start is omitted"},
+			&cli.StringFlag{Name: subcommands.ArgMetricsStep, Value: "30s", Usage: "Prometheus query_range step"},
+			&cli.StringFlag{Name: subcommands.ArgMetricsOutput, Usage: "output directory"},
 		},
-		{
-			Name:        "get-access",
-			Usage:       "Retrieves information to access the deployed clusters",
-			Description: "print out links and access information for the deployed clusters",
-			Action:      subcommands.GetAccess,
-		},
-		{
-			Name:        "destroy",
-			Usage:       "Tears down the test environment (all the clusters)",
-			Description: "runs `tofu destroy` to destroy all the provisioned clusters",
-			Action:      subcommands.Destroy,
-		},
-		{
-			Name:        "reapply",
-			Usage:       "Tears down the test environment (all the clusters) and re-runs `tofu apply`",
-			Description: "runs `tofu destroy` and then `tofu apply`",
-			Action:      subcommands.Reapply,
-		},
-		{
-			Name:        "redeploy",
-			Usage:       "Tears down the test environment (all the clusters) and redeploys them from scratch",
-			Description: "runs `tofu destroy` and then deploys all the provisioned clusters",
-			Action:      subcommands.Redeploy,
-		},
-		{
-			Name:        "summarize",
-			Usage:       "Summarize the current deployment by capturing metrics, profiles, and resource counts",
-			Description: "runs `export-metrics`, `collect-profile`, and `resource-counts` against the deployed clusters",
-			Action:      subcommands.Summarize,
-			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:    "metrics",
-					Aliases: []string{"m"},
-					Value:   false,
-					Usage:   "only include metrics in summary",
-				},
-				&cli.StringFlag{
-					Name:  "query",
-					Value: `{__name__!=""}`,
-					Usage: "prometheus expression for metrics query, defaults to all metrics",
-				},
-				&cli.StringFlag{
-					Name:  "start-time",
-					Value: "",
-					Usage: "start time for metrics export (RFC3339), defaults to 1hr ago",
-				},
-				&cli.StringFlag{
-					Name:  "end-time",
-					Value: "",
-					Usage: "end time for metrics export (RFC3339), defaults to current time",
-				},
-				&cli.IntFlag{
-					Name:  "step",
-					Value: 0,
-					Usage: "step/offset in seconds for metrics export, defaults to 3600 (1hr), max 7200 (2hrs)",
-				},
-				&cli.BoolFlag{
-					Name:    "counts",
-					Aliases: []string{"c"},
-					Value:   false,
-					Usage:   "only include current resource counts in summary",
-				},
-				&cli.BoolFlag{
-					Name:    "profiles",
-					Aliases: []string{"p"},
-					Value:   false,
-					Usage:   "only include current profiles in summary",
-				},
+	}
+}
+
+func summarizeCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "summarize",
+		Usage:       "Summarize the current deployment by capturing metrics, profiles, and resource counts",
+		Description: "runs `export-metrics`, `collect-profile`, and `resource-counts` against the deployed clusters",
+		Action:      subcommands.Summarize,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:    "metrics",
+				Aliases: []string{"m"},
+				Value:   false,
+				Usage:   "only include metrics in summary",
 			},
+			&cli.StringFlag{
+				Name:  "query",
+				Value: `{__name__!=""}`,
+				Usage: "prometheus expression for metrics query, defaults to all metrics",
+			},
+			&cli.StringFlag{
+				Name:  "start-time",
+				Value: "",
+				Usage: "start time for metrics export (RFC3339), defaults to 1hr ago",
+			},
+			&cli.StringFlag{
+				Name:  "end-time",
+				Value: "",
+				Usage: "end time for metrics export (RFC3339), defaults to current time",
+			},
+			&cli.IntFlag{
+				Name:  "step",
+				Value: 0,
+				Usage: "step/offset in seconds for metrics export, defaults to 3600 (1hr), max 7200 (2hrs)",
+			},
+			&cli.BoolFlag{
+				Name:    "counts",
+				Aliases: []string{"c"},
+				Value:   false,
+				Usage:   "only include current resource counts in summary",
+			},
+			&cli.BoolFlag{
+				Name:    "profiles",
+				Aliases: []string{"p"},
+				Value:   false,
+				Usage:   "only include current profiles in summary",
+			},
+		},
+	}
+}
+
+func collectProfilesCommand() *cli.Command {
+	return &cli.Command{
+		Name: "collect-profiles", Usage: "Collect Rancher pprof profiles over time", Action: subcommands.CollectProfiles,
+		Flags: []cli.Flag{
+			&cli.StringFlag{Name: subcommands.ArgDiagnosticsFor, Value: "10m"},
+			&cli.StringFlag{Name: subcommands.ArgDiagnosticsInterval, Value: "120s"},
+			&cli.StringFlag{Name: subcommands.ArgProfiles, Value: "goroutine,heap,profile"},
+			&cli.StringFlag{Name: subcommands.ArgCPUDuration, Value: "30s"},
+			&cli.StringFlag{Name: subcommands.ArgDiagnosticsOutput},
+		},
+	}
+}
+
+func collectLogsCommand() *cli.Command {
+	return &cli.Command{
+		Name: "collect-logs", Usage: "Collect Rancher-family logs over time", Action: subcommands.CollectLogs,
+		Flags: []cli.Flag{
+			&cli.StringFlag{Name: subcommands.ArgDiagnosticsFor, Value: "10m"},
+			&cli.StringFlag{Name: subcommands.ArgDiagnosticsInterval, Value: "60s"},
+			&cli.StringFlag{Name: subcommands.ArgApps, Value: "rancher"},
+			&cli.StringFlag{Name: subcommands.ArgDiagnosticsOutput},
 		},
 	}
 }
