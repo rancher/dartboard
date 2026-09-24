@@ -28,7 +28,7 @@ ExecStart=/usr/bin/etcd \
   --advertise-client-urls http://${server_ip}:2379 \
   --initial-advertise-peer-urls http://${server_ip}:2380 \
   --initial-cluster-token ${etcd_token} \
-  --initial-cluster ${join(",", formatlist("%s=http://%s:2380", etcd_names, server_names))} \
+  --initial-cluster ${join(",", formatlist("%s=http://%s:2380", etcd_names, server_ips))} \
   --initial-cluster-state new \
   --data-dir /var/lib/etcd
 
