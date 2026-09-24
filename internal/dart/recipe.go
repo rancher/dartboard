@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rancher/dartboard/internal/tofu"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -22,6 +23,9 @@ type Dart struct {
 	TestVariables          TestVariables     `yaml:"test_variables"`
 	TofuParallelism        int               `yaml:"tofu_parallelism"`
 	ClusterBatchSize       int               `yaml:"cluster_batch_size"`
+	// UpstreamCluster describes existing upstream infrastructure. When set,
+	// Dartboard passes it through OpenTofu instead of creating an upstream.
+	UpstreamCluster *tofu.Cluster `yaml:"upstream_cluster,omitempty"`
 }
 
 type ClusterTemplate struct {
