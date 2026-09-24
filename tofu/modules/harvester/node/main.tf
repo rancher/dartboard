@@ -68,7 +68,7 @@ resource "harvester_virtualmachine" "this" {
 
 resource "null_resource" "host_configuration" {
   connection {
-    host        = local.public_network_interfaces[0].ip_address
+    host        = local.node_ip
     private_key = var.ssh_private_key_path != null ? file(var.ssh_private_key_path) : null
     user        = var.ssh_user
 
