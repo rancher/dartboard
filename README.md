@@ -34,6 +34,26 @@ There is some manual configuration required in order to use an existing AWS VPC 
 
 Once these resources are manually setup, you can set the `existing_vpc_name` tofu variable in your Dart file and deploy as you normally would.
 
+### "Bring Your Own" Upstream Cluster
+
+Dartboard can use existing upstream Kubernetes infrastructure instead of creating an upstream cluster through OpenTofu. Dartboard can still install and configure Rancher on that cluster and use it for downstream registration.
+
+To use an existing upstream cluster, configure the `upstream_cluster` top-level field in your Dart YAML file with the path to your kubeconfig and the relevant application addresses. Providing this configuration prevents the automatic generation of the upstream OpenTofu module.
+
+**Example Configuration:**
+
+```yaml
+upstream_cluster:
+  name: upstream
+  kubeconfig: /path/to/upstream.yaml
+  context: upstream
+  app_addresses:
+    public:
+      name: rancher.example.com
+      http_port: 80
+      https_port: 443
+```
+
 ## Installation
 
 Download and unpack a [release](https://github.com/rancher/dartboard/releases/), it's a self-contained binary.
