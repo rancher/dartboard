@@ -1,3 +1,9 @@
+locals {
+  // Fall back to the node key when the network module does not define a
+  // dedicated bastion key, so providers without one keep working.
+  ssh_bastion_key_path = try(var.network_config.ssh_bastion_key_path, null) != null ? var.network_config.ssh_bastion_key_path : var.ssh_private_key_path
+}
+
 module "host" {
   source                = "../../${var.node_module}"
   project_name          = var.project_name
@@ -16,7 +22,7 @@ resource "local_file" "ssh_script" {
     ssh -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" \
       -i ${var.ssh_private_key_path} \
       %{if var.network_config.ssh_bastion_host != null~}
-      -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${var.ssh_private_key_path} -W %h:%p ${var.network_config.ssh_bastion_user}@${var.network_config.ssh_bastion_host}" ${var.ssh_user}@${module.host.private_ip} \
+      -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${local.ssh_bastion_key_path} -W %h:%p ${var.network_config.ssh_bastion_user}@${var.network_config.ssh_bastion_host}" ${var.ssh_user}@${module.host.private_ip} \
       %{else~}
       ${var.ssh_user}@${module.host.public_ip} \
       %{endif~}
@@ -31,6 +37,7 @@ resource "local_file" "open_tunnels" {
   content = templatefile("${path.module}/open-tunnels-to.sh", {
     ssh_bastion_host     = var.network_config.ssh_bastion_host
     ssh_bastion_user     = var.network_config.ssh_bastion_user
+    ssh_bastion_key_path = local.ssh_bastion_key_path
     ssh_tunnels          = var.ssh_tunnels
     private_ip           = module.host.private_ip
     public_ip            = module.host.public_ip

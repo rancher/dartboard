@@ -117,6 +117,7 @@ module "bastion" {
     ssh_public_key_path : var.ssh_public_key_path,
     ssh_bastion_host : null,
     ssh_bastion_user : null,
+    ssh_bastion_key_path : null,
     storage_account_uri : null,
   }
 }

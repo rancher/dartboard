@@ -84,6 +84,7 @@ variable "network_config" {
     ssh_public_key_path: Path to the SSH public key
     ssh_bastion_host: Public name of the SSH bastion host
     ssh_bastion_user: User name for the SSH bastion host's OS
+    ssh_bastion_key_path: Path of the private SSH key used to reach the bastion host
     storage_account_uri: Storage account URI to attach to the VM to enable Boot Diagnostics
   EOT
   type = object({
@@ -94,6 +95,7 @@ variable "network_config" {
     ssh_public_key_path : string,
     ssh_bastion_host : string,
     ssh_bastion_user : string,
+    ssh_bastion_key_path : optional(string),
     storage_account_uri : string,
   })
 }

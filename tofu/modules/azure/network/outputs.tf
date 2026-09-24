@@ -7,6 +7,7 @@ output "config" {
     ssh_public_key_path : var.ssh_public_key_path,
     ssh_bastion_host : module.bastion.public_name,
     ssh_bastion_user : var.ssh_bastion_user,
+    ssh_bastion_key_path : var.ssh_private_key_path,
     storage_account_uri : azurerm_storage_account.storage_account.primary_blob_endpoint,
   }
 }
