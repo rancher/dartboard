@@ -174,21 +174,21 @@ verify_sha256() {
 	local checksum="$2"
 	local expected actual
 
-	expected=$(tr -d '\r\n' <<< "${checksum}")
+	expected=$(tr -d '\r\n' <<< "$${checksum}")
 
 	if command -v sha256sum >/dev/null 2>&1; then
-		actual=$(sha256sum "${file}" | awk '{print $1}')
+		actual=$(sha256sum "$${file}" | awk '{print $1}')
 	elif command -v shasum >/dev/null 2>&1; then
-		actual=$(shasum -a 256 "${file}" | awk '{print $1}')
+		actual=$(shasum -a 256 "$${file}" | awk '{print $1}')
 	else
 		echo "No SHA256 tool found (expected sha256sum or shasum)" >&2
 		exit 1
 	fi
 
-	if [[ "${actual}" == "${expected}" ]]; then
-		echo "SHA256 verification succeeded for ${file}"
+	if [[ "$${actual}" == "$${expected}" ]]; then
+		echo "SHA256 verification succeeded for $${file}"
 	else
-		echo "SHA256 verification FAILED for ${file}" >&2
+		echo "SHA256 verification FAILED for $${file}" >&2
 		exit 1
 	fi
 }
