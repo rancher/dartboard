@@ -20,5 +20,10 @@ locals {
     ip_address     = network.ip_address
     } if var.network_config.public && !strcontains(tostring(network.ip_address), ":")
   ]
+  // Exactly one of the two lists above is populated, depending on
+  // network_config.public. Select from the populated one so that every
+  // consumer (SSH connection, outputs) agrees on a single address.
+  node_ip = var.network_config.public ? local.public_network_interfaces[0].ip_address : local.private_network_interfaces[0].ip_address
+
   image_namespace = replace(lower(var.node_module_variables.image_namespace != null ? var.node_module_variables.image_namespace : var.network_config.namespace), "/[^a-z0-9-]/", "-") # Convert to valid Kubernetes name
 }
