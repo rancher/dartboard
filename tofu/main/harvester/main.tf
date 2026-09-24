@@ -11,6 +11,8 @@ module "network" {
   ssh_bastion_host     = var.ssh_bastion_host
   ssh_bastion_user     = var.ssh_bastion_user
   ssh_bastion_key_path = var.ssh_bastion_key_path
+  images_by_name       = local.images_by_name
+  ssh_keys_by_name     = local.ssh_keys_by_name
 }
 
 resource "harvester_image" "created" {

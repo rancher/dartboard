@@ -1,3 +1,4 @@
+
 variable "project_name" {
   description = "A prefix for names of objects created by this module"
   type        = string
@@ -34,7 +35,7 @@ variable "network_details" {
     vlan_id             = 100
     name                = "vmnet-shared"
     namespace           = "default"
-    interace_type       = "bridge"
+    interface_type      = "bridge"
     public              = true
     wait_for_lease      = true
   }
@@ -64,6 +65,7 @@ variable "ssh_bastion_host" {
 
 variable "ssh_bastion_user" {
   description = "User name to connect to the SSH bastion host"
+  type        = string
   default     = null
 }
 
@@ -71,4 +73,12 @@ variable "ssh_bastion_key_path" {
   description = "Path of private ssh key used to access the bastion host to access Harvester"
   type        = string
   default     = null
+}
+
+variable "images_by_name" {
+  default = null
+}
+
+variable "ssh_keys_by_name" {
+  default = null
 }
