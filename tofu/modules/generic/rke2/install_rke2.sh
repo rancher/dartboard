@@ -199,18 +199,19 @@ RETRY_DELAY=5 # seconds
 status=1
 for (( i=1; i<=MAX_RETRIES; i++ )); do
   if [ -f "${get_rke2_path}" ]; then
-      cat ${get_rke2_path} > install.sh
-      status=$?
+    installer_path="${get_rke2_path}"
+    status=$?
   else
       git clone https://github.com/rancher/rke2.git /tmp/rke2
       cd /tmp/rke2
       git checkout "$INSTALL_RKE2_COMMIT_HASH"
       verify_sha256 "/tmp/rke2/install.sh" "$INSTALL_RKE2_SHA256"
       chmod +x "/tmp/rke2/install.sh"
-      status=$?
+    installer_path="/tmp/rke2/install.sh"
+    status=$?
   fi
 
-  sudo -s INSTALL_RKE2_ARTIFACT_PATH=/tmp/rke2-artifacts sh /tmp/rke2/install.sh
+  sudo env INSTALL_RKE2_ARTIFACT_PATH=/tmp/rke2-artifacts INSTALL_RKE2_VERSION="$${INSTALL_RKE2_VERSION}" INSTALL_RKE2_TYPE="$${INSTALL_RKE2_TYPE}" sh "$${installer_path}"
   status=$?
 
   if [ $status -eq 0 ]; then

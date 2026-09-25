@@ -110,18 +110,19 @@ RETRY_DELAY=5 # seconds
 status=1
 for (( i=1; i<=MAX_RETRIES; i++ )); do
   if [ -f "${get_k3s_path}" ]; then
-      sh /tmp/get_k3s.sh
-      status=$?
+    installer_path="${get_k3s_path}"
+    status=$?
   else
       git clone https://github.com/k3s-io/k3s.git /tmp/k3s
       cd /tmp/k3s
       git checkout "$INSTALL_K3S_COMMIT_HASH"
       verify_sha256 "/tmp/k3s/install.sh" "$INSTALL_K3S_SHA256"
       chmod +x "/tmp/k3s/install.sh"
-      status=$?
+    installer_path="/tmp/k3s/install.sh"
+    status=$?
   fi
 
-  sudo -s INSTALL_K3S_ARTIFACT_PATH=/tmp/k3s-artifacts sh /tmp/k3s/install.sh
+  sudo env INSTALL_K3S_ARTIFACT_PATH=/tmp/k3s-artifacts INSTALL_K3S_VERSION="$${INSTALL_K3S_VERSION}" INSTALL_K3S_EXEC="$${INSTALL_K3S_EXEC}" sh "$${installer_path}"
   status=$?
 
   if [ $status -eq 0 ]; then
