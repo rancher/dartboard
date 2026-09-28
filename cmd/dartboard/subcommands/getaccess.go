@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/rancher/dartboard/internal/tofu"
-	cli "github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v3"
 )
 
 func GetAccess(cli *cli.Context) error {
