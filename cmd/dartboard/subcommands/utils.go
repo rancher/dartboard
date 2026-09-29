@@ -163,6 +163,29 @@ func printAccessDetails(r *dart.Dart, name string, cluster tofu.Cluster, rancher
 	fmt.Println()
 }
 
+func getUpstreamDistroVersion(r *dart.Dart) string {
+	vars := r.TofuVariables
+	if upstream, ok := r.TofuVariables["upstream_cluster"].(map[string]any); ok {
+		vars = upstream
+	}
+
+	if dv, _ := vars["distro_version"].(string); dv != "" {
+		return dv
+	}
+
+	return ""
+}
+
+func countUpstreamNodes(r *dart.Dart) (server any, agent any) {
+	vars := r.TofuVariables
+	if upstream, ok := r.TofuVariables["upstream_cluster"].(map[string]any); ok {
+		vars = upstream
+	}
+
+	server, agent = vars["server_count"], vars["agent_count"]
+	return server, agent
+}
+
 // getAppAddressFor returns local cluster address data, public cluster address data and an error
 func getAppAddressFor(cluster tofu.Cluster) (clusterAddresses, error) {
 	add := cluster.AppAddresses
