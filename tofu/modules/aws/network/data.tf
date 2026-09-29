@@ -16,8 +16,6 @@ data "aws_internet_gateway" "existing" {
   }
 }
 
-# Discover existing VPC subnets without case-sensitive tag filters, then match
-# normalized tags in locals.
 data "aws_subnets" "existing" {
   count = local.create_vpc ? 0 : 1
 

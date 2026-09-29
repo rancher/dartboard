@@ -11,7 +11,6 @@ resource "aws_vpc" "main" {
   }
 }
 
-# Update locals to use coalescing for resource selection
 locals {
   vpc_id              = coalesce(one(aws_vpc.main[*].id), one(data.aws_vpc.existing[*].id))
   vpc_cidr_block      = coalesce(one(aws_vpc.main[*].cidr_block), one(data.aws_vpc.existing[*].cidr_block))
@@ -29,22 +28,22 @@ locals {
   existing_public_subnet_id = one([
     for subnet_id, subnet in local.existing_subnets : subnet_id
     if subnet.availability_zone == var.availability_zone &&
-    lookup(subnet.tags, "tier", "") == "public" &&
-    strcontains(lookup(subnet.tags, "name", ""), "public")
+    (lookup(subnet.tags, "tier", "") == "public" ||
+    strcontains(lookup(subnet.tags, "name", ""), "public"))
   ])
   existing_private_subnet_id = one([
     for subnet_id, subnet in local.existing_subnets : subnet_id
     if subnet.availability_zone == var.availability_zone &&
-    lookup(subnet.tags, "tier", "") == "private" &&
-    strcontains(lookup(subnet.tags, "name", ""), "private")
+    (lookup(subnet.tags, "tier", "") == "private" ||
+    strcontains(lookup(subnet.tags, "name", ""), "private"))
   ])
   existing_secondary_private_subnet_id = one([
     for subnet_id, subnet in local.existing_subnets : subnet_id
     if var.secondary_availability_zone != null &&
     subnet.availability_zone == var.secondary_availability_zone &&
-    lookup(subnet.tags, "tier", "") == "secondaryprivate" &&
-    strcontains(lookup(subnet.tags, "name", ""), "secondary") &&
-    strcontains(lookup(subnet.tags, "name", ""), "private")
+    (lookup(subnet.tags, "tier", "") == "secondaryprivate" ||
+    (strcontains(lookup(subnet.tags, "name", ""), "secondary") &&
+    strcontains(lookup(subnet.tags, "name", ""), "private")))
   ])
 
   public_subnet_id            = coalesce(one(aws_subnet.public[*].id), local.existing_public_subnet_id)
