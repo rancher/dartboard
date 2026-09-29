@@ -42,7 +42,7 @@ locals {
     if var.secondary_availability_zone != null &&
     subnet.availability_zone == var.secondary_availability_zone &&
     (lookup(subnet.tags, "tier", "") == "secondaryprivate" ||
-    ((strcontains(lookup(subnet.tags, "name", ""), "secondary") &&
+      ((strcontains(lookup(subnet.tags, "name", ""), "secondary") &&
     strcontains(lookup(subnet.tags, "name", ""), "private"))))
   ])
 
