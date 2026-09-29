@@ -75,6 +75,7 @@ fi
 export INSTALL_K3S_VERSION=${distro_version}
 export INSTALL_K3S_EXEC=${exec}
 
+# ONLY used for verifying the integrity of the install script
 # renovate: datasource=github-tags depName=k3s-io/k3s
 INSTALL_K3S_SCRIPT_TAG="v1.37.0+k3s1"
 INSTALL_K3S_COMMIT_HASH=bb7cf0657bafdfbb4349d1740810442d09c2248a

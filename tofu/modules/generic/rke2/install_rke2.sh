@@ -164,6 +164,7 @@ fi
 export INSTALL_RKE2_VERSION=${distro_version}
 export INSTALL_RKE2_TYPE=${type}
 
+# ONLY used for verifying the integrity of the install script
 # renovate: datasource=github-tags depName=rancher/rke2
 INSTALL_RKE2_SCRIPT_TAG="v1.37.0+rke2r1"
 INSTALL_RKE2_COMMIT_HASH=37af8f9f73a0e95c36295142a63fdcb218cd34e2
