@@ -42,8 +42,8 @@ locals {
     if var.secondary_availability_zone != null &&
     subnet.availability_zone == var.secondary_availability_zone &&
     (lookup(subnet.tags, "tier", "") == "secondaryprivate" ||
-    (strcontains(lookup(subnet.tags, "name", ""), "secondary") &&
-    strcontains(lookup(subnet.tags, "name", ""), "private")))
+    ((strcontains(lookup(subnet.tags, "name", ""), "secondary") &&
+    strcontains(lookup(subnet.tags, "name", ""), "private"))))
   ])
 
   public_subnet_id            = coalesce(one(aws_subnet.public[*].id), local.existing_public_subnet_id)
