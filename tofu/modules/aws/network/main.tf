@@ -11,15 +11,44 @@ resource "aws_vpc" "main" {
   }
 }
 
-# Update locals to use coalescing for resource selection
 locals {
   vpc_id              = coalesce(one(aws_vpc.main[*].id), one(data.aws_vpc.existing[*].id))
   vpc_cidr_block      = coalesce(one(aws_vpc.main[*].cidr_block), one(data.aws_vpc.existing[*].cidr_block))
   internet_gateway_id = coalesce(one(aws_internet_gateway.main[*].id), one(data.aws_internet_gateway.existing[*].id))
 
-  public_subnet_id            = coalesce(one(aws_subnet.public[*].id), one(data.aws_subnet.public[*].id))
-  private_subnet_id           = coalesce(one(aws_subnet.private[*].id), one(data.aws_subnet.private[*].id))
-  secondary_private_subnet_id = (local.create_vpc && var.secondary_availability_zone != null) ? aws_subnet.secondary_private[0].id : (!local.create_vpc && var.secondary_availability_zone != null) ? data.aws_subnet.secondary_private[0].id : null
+  existing_subnets = {
+    for subnet_id, subnet in data.aws_subnet.existing : subnet_id => {
+      availability_zone = subnet.availability_zone
+      tags = {
+        for key, value in subnet.tags : lower(key) => lower(value)
+      }
+    }
+  }
+
+  existing_public_subnet_id = one([
+    for subnet_id, subnet in local.existing_subnets : subnet_id
+    if subnet.availability_zone == var.availability_zone &&
+    (lookup(subnet.tags, "tier", "") == "public" ||
+    strcontains(lookup(subnet.tags, "name", ""), "public"))
+  ])
+  existing_private_subnet_id = one([
+    for subnet_id, subnet in local.existing_subnets : subnet_id
+    if subnet.availability_zone == var.availability_zone &&
+    (lookup(subnet.tags, "tier", "") == "private" ||
+    strcontains(lookup(subnet.tags, "name", ""), "private"))
+  ])
+  existing_secondary_private_subnet_id = one([
+    for subnet_id, subnet in local.existing_subnets : subnet_id
+    if var.secondary_availability_zone != null &&
+    subnet.availability_zone == var.secondary_availability_zone &&
+    (lookup(subnet.tags, "tier", "") == "secondaryprivate" ||
+      ((strcontains(lookup(subnet.tags, "name", ""), "secondary") &&
+    strcontains(lookup(subnet.tags, "name", ""), "private"))))
+  ])
+
+  public_subnet_id            = coalesce(one(aws_subnet.public[*].id), local.existing_public_subnet_id)
+  private_subnet_id           = coalesce(one(aws_subnet.private[*].id), local.existing_private_subnet_id)
+  secondary_private_subnet_id = (local.create_vpc && var.secondary_availability_zone != null) ? aws_subnet.secondary_private[0].id : (!local.create_vpc && var.secondary_availability_zone != null) ? local.existing_secondary_private_subnet_id : null
 
   create_vpc = var.existing_vpc_name == null
   myip       = "${chomp(data.http.myip.response_body)}/32"
