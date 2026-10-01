@@ -3,7 +3,6 @@
 {{- range $path, $_ := .Files.Glob "test-files/**.{js,mjs,ts}" }}
   {{- $key := (trimPrefix "test-files/" $path) | replace "/" "__" }}
   {{- $_ := set $data $key ($files.Get $path) }}
-  {{- end }}
 {{- end }}
 apiVersion: v1
 kind: ConfigMap
