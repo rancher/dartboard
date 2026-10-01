@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Requires: git, curl, sha512sum, base64, od, tr, awk, an ssh agent and key with access to the repositories
+# Requires: git, curl, sha512sum, base64, od, tr, awk, node, npm, an ssh agent and key with access to the repositories
 
 set -xe
 # renovate: datasource=github-tags depName=nodeca/js-yaml
@@ -65,10 +65,36 @@ verify_sha256() {
 # Clone js-yaml at specific commit and extract file
 tmpdir=$(mktemp -d)
 trap "rm -rf $tmpdir" EXIT
-git clone --quiet --depth 1 git@github.com:nodeca/js-yaml.git "$tmpdir/js-yaml"
-(cd "$tmpdir/js-yaml" && git fetch --quiet origin "$JS_YAML_COMMIT_HASH" && git checkout --quiet "$JS_YAML_COMMIT_HASH")
-verify_sha256 "$tmpdir/js-yaml/bin/js-yaml.mjs" "$JS_YAML_SHA256"
-cp "$tmpdir/js-yaml/bin/js-yaml.mjs" js-yaml-${JS_YAML_VERSION}.mjs
+git clone --quiet --depth 1 --branch "${JS_YAML_VERSION}" https://github.com/nodeca/js-yaml.git "$tmpdir/js-yaml" 2>/dev/null || \
+(git clone --quiet git@github.com:nodeca/js-yaml.git "$tmpdir/js-yaml" && cd "$tmpdir/js-yaml" && git checkout --quiet "${JS_YAML_COMMIT_HASH}")
+
+if [ -n "$JS_YAML_COMMIT_HASH" ]; then
+    actual_commit=$(git -C "$tmpdir/js-yaml" rev-parse HEAD)
+    if [ "$actual_commit" != "$JS_YAML_COMMIT_HASH" ]; then
+        echo "Commit hash verification FAILED for js-yaml: expected $JS_YAML_COMMIT_HASH, got $actual_commit" >&2
+        exit 1
+    fi
+    echo "Commit hash verification succeeded for js-yaml ($actual_commit)"
+fi
+
+if [ -n "$JS_YAML_SHA256" ]; then
+    if [ -f "$tmpdir/js-yaml/bin/js-yaml.mjs" ]; then
+        verify_sha256 "$tmpdir/js-yaml/bin/js-yaml.mjs" "$JS_YAML_SHA256"
+	else 
+		echo "Error: js-yaml.mjs not found for SHA256 verification" >&2
+		exit 1
+    fi
+fi
+
+# Build k6-compatible standalone ESM bundle
+(cd "$tmpdir/js-yaml" && (npm ci --silent 2>/dev/null || npm install --silent))
+(cd "$tmpdir/js-yaml" && (npm run build 2>/dev/null || npm run dist))
+
+bundle_file="$tmpdir/js-yaml/dist/js-yaml.mjs"
+[ -f "$bundle_file" ] || bundle_file="$tmpdir/js-yaml/dist/browser/js-yaml.esm.min.mjs"
+[ -f "$bundle_file" ] || { echo "Error: Could not find built distribution bundle in $tmpdir/js-yaml/dist/" >&2; exit 1; }
+
+cp "$bundle_file" "js-yaml-${JS_YAML_VERSION}.js"
 
 curl -o k6-summary-${K6_SUMMARY_VERSION}.js https://jslib.k6.io/k6-summary/${K6_SUMMARY_VERSION}/index.js
 # Verify checksums for k6-summary
@@ -84,4 +110,3 @@ git clone --quiet --depth 1 git@github.com:benc-uk/k6-reporter.git "$tmpdir/k6-r
 (cd "$tmpdir/k6-reporter" && git fetch --quiet origin "$K6_REPORTER_COMMIT_HASH" && git checkout --quiet "$K6_REPORTER_COMMIT_HASH")
 verify_sha256 "$tmpdir/k6-reporter/dist/bundle.js" "$K6_REPORTER_SHA256"
 cp "$tmpdir/k6-reporter/dist/bundle.js" k6-reporter-${K6_REPORTER_VERSION}.js
-
