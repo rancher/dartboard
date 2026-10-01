@@ -1,7 +1,7 @@
 import { check, fail, sleep } from 'k6';
 import http from 'k6/http'
 import { retryUntilExpected } from "../rancher/rancher_utils.js";
-import * as YAML from '../lib/js-yaml-4.1.1.mjs'
+import * as YAML from '../lib/js-yaml-5.4.2.js'
 
 export const baseProjectsPath = "v1/management.cattle.io.projects"
 export const normanProjectsPath = "v3/projects"

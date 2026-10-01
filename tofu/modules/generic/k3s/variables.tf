@@ -12,7 +12,7 @@ variable "name" {
 variable "distro_version" {
   description = "k3s version"
   type        = string
-  default     = "v1.23.10+k3s1"
+  default     = "v1.37.0+k3s1"
 }
 
 variable "server_count" {
