@@ -1,8 +1,10 @@
 {{- $files := .Files }}
 {{- $data := dict }}
 {{- range $path, $_ := .Files.Glob "test-files/**.{js,mjs,ts}" }}
+  {{- if and $path (not (contains "/node_modules/" $path)) (not (hasSuffix ".d.ts" $path)) }}
   {{- $key := (trimPrefix "test-files/" $path) | replace "/" "__" }}
   {{- $_ := set $data $key ($files.Get $path) }}
+  {{- end }}
 {{- end }}
 apiVersion: v1
 kind: ConfigMap
