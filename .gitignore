@@ -39,3 +39,4 @@ queries.active
 /.bin
 
 dist/
+node_modules/

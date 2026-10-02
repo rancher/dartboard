@@ -17,7 +17,27 @@ const baseUrl = __ENV.BASE_URL
 
 export const handleSummary = customHandleSummary;
 
-export const options = {
+const scenarios = {};
+if (configMapCount > 0) {
+    scenarios.createConfigMaps = {
+        executor: 'shared-iterations',
+        exec: 'createConfigMaps',
+        vus: vus,
+        iterations: configMapCount,
+        maxDuration: '1h',
+    };
+}
+if (secretCount > 0) {
+    scenarios.createSecrets = {
+        executor: 'shared-iterations',
+        exec: 'createSecrets',
+        vus: vus,
+        iterations: secretCount,
+        maxDuration: '1h',
+    };
+}
+
+const testOptions = {
     insecureSkipTLSVerify: true,
     tlsAuth: [
         {
@@ -28,26 +48,16 @@ export const options = {
 
     setupTimeout: '8h',
 
-    scenarios: {
-        createConfigMaps: {
-            executor: 'shared-iterations',
-            exec: 'createConfigMaps',
-            vus: vus,
-            iterations: configMapCount,
-            maxDuration: '1h',
-        },
-        createSecrets: {
-            executor: 'shared-iterations',
-            exec: 'createSecrets',
-            vus: vus,
-            iterations: secretCount,
-            maxDuration: '1h',
-        },
-    },
     thresholds: {
         checks: ['rate>0.99']
     }
+};
+
+if (Object.keys(scenarios).length > 0) {
+    testOptions.scenarios = scenarios;
 }
+
+export const options = testOptions;
 
 // Custom metrics
 const resourceMetric = new Gauge('test_resources')
@@ -55,6 +65,10 @@ const resourceMetric = new Gauge('test_resources')
 // Test functions, in order of execution
 
 export function setup() {
+    if (configMapCount === 0 && secretCount === 0) {
+        return;
+    }
+
     // delete leftovers, if any
     k8s.del(`${baseUrl}/api/v1/namespaces/${namespace}`)
 
@@ -94,3 +108,5 @@ export function createSecrets() {
     k8s.create(`${baseUrl}/api/v1/namespaces/${namespace}/secrets`, body)
     resourceMetric.add(configMapCount + secretCount)
 }
+
+export default function() {}
