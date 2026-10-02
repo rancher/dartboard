@@ -1,11 +1,7 @@
 import { check, sleep } from 'k6';
 import encoding from 'k6/encoding';
 import http from 'k6/http';
-<<<<<<< Updated upstream
 import * as YAML from '../lib/js-yaml-5.4.2.js'
-=======
-import * as YAML from '../lib/js-yaml-5.4.2.mjs'
->>>>>>> Stashed changes
 
 import { URL } from '../lib/url-1.0.0.js';
 
