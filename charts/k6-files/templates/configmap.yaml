@@ -1,7 +1,7 @@
 {{- $files := .Files }}
 {{- $data := dict }}
 {{- range $path, $_ := .Files.Glob "test-files/**.{js,mjs,ts}" }}
-  {{- if and $path (not (contains "/node_modules/" $path)) (not (hasSuffix ".d.ts" $path)) }}
+  {{- if and $path (not (contains "/node_modules/" $path)) (not (hasSuffix ".d.ts" $path)) (ne (base $path) "package.json") (ne (base $path) "package-lock.json") }}
   {{- $key := (trimPrefix "test-files/" $path) | replace "/" "__" }}
   {{- $_ := set $data $key ($files.Get $path) }}
   {{- end }}
