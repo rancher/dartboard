@@ -21,10 +21,12 @@ module "upstream_postgres" {
   source = "../postgres"
 
   name                  = "upstream-postgres"
+  project_name          = var.project_name
   network_config        = var.network_config
   node_module           = var.node_module
   node_module_variables = var.upstream_cluster.postgres_node_variables
   ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
 }
 
 module "upstream_etcd" {
@@ -32,10 +34,12 @@ module "upstream_etcd" {
   source = "../etcd"
 
   name                  = "upstream-etcd"
+  project_name          = var.project_name
   network_config        = var.network_config
   node_module           = var.node_module
   node_module_variables = var.upstream_cluster.etcd_node_variables
   ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
   etcd_version          = try(var.upstream_cluster.etcd_node_variables.etcd_version, null)
 }
 
