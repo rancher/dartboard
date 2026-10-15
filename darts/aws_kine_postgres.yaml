@@ -19,7 +19,7 @@ tofu_variables:
   upstream_cluster:
     server_count: 3
     agent_count: 1
-    distro_version: v1.32.4+rke2r1
+    distro_version: v1.37.1+rke2r1
     public_ip: false
     reserve_node_for_monitoring: true
     enable_audit_log: false
@@ -37,7 +37,7 @@ tofu_variables:
   tester_cluster:
     server_count: 1
     agent_count: 0
-    distro_version: v1.26.9+k3s1
+    distro_version: v1.37.1+k3s1
     public_ip: false
     reserve_node_for_monitoring: false
     enable_audit_log: false
@@ -52,7 +52,7 @@ tofu_variables:
       server_count: 1
       agent_count: 0
       is_custom_cluster: false
-      distro_version: v1.26.9+k3s1
+      distro_version: v1.37.1+k3s1
       public_ip: false
       reserve_node_for_monitoring: false
       enable_audit_log: false
