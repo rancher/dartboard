@@ -36,6 +36,7 @@ module "upstream_etcd" {
   node_module           = var.node_module
   node_module_variables = var.upstream_cluster.etcd_node_variables
   ssh_private_key_path  = var.ssh_private_key_path
+  etcd_version          = try(var.upstream_cluster.etcd_node_variables.etcd_version, null)
 }
 
 module "upstream_cluster" {
