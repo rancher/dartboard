@@ -7,7 +7,13 @@ variable "project_name" {
 variable "etcd_version" {
   description = "etcd version"
   type        = string
-  default     = "v3.7.1"
+  default     = "v3.7.1" # change below shasum when updating this
+}
+
+variable "etcd_shasum" {
+  description = "shasum of the corresponding version of the etcd amd64 release tarball"
+  type        = string
+  default     = "e8cd3fa8064c98137c5dbd78b76f969417ace84efb83c481041d7a52ffdd8fb9" # for version 3.7.1
 }
 
 variable "name" {

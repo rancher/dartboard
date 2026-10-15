@@ -39,6 +39,7 @@ resource "ssh_sensitive_resource" "node_installation" {
   file {
     content = templatefile("${path.module}/install_etcd.sh", {
       etcd_version = var.etcd_version,
+      etcd_shasum  = var.etcd_shasum,
       etcd_token   = "${var.project_name}-${var.name}-token"
       etcd_name    = "${var.project_name}-${var.name}-${count.index}"
       server_name  = module.server_nodes[count.index].private_name

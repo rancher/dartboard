@@ -33,6 +33,7 @@ tofu_variables:
       ami: ami-085386e29e44dacd7 # Amazon Linux 2 Kernel 5.10 AMI 2.0.20250428.0 x86_64 HVM gp2
       root_volume_size_gb: 50
       etcd_version: v3.6.15 # default is 3.7.1
+      etcd_shasum: b51d86e6bff2168de5ba8cd631c0fe6c785c7a1b32b083079f5677d6b7e2772c
   upstream_cluster_distro_module: generic/rke2
 
   tester_cluster:
