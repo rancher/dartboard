@@ -36,6 +36,7 @@ variable "upstream_cluster" {
     enable_audit_log            = bool                  // Enable audit log for the cluster
     create_tunnels              = optional(bool, false) // Whether ssh tunnels to the downstream cluster's first server node should be created. Default false
     postgres_node_variables     = optional(any, {})     // Node module-specific variables for the Postgres-backed Kine
+    etcd_node_variables         = optional(any, {})     // Node module-specific variables for the external etcd-internal-default cluster
 
     node_module_variables = any // Node module-specific variables
   })

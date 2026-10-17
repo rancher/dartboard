@@ -40,6 +40,6 @@ fi
 
 echo "Waiting for the RKE2 ingress controller to be up..."
 kubectl rollout status daemonset \
-  rke2-ingress-nginx-controller \
+  rke2-traefik \
   -n kube-system \
   --timeout 600s
