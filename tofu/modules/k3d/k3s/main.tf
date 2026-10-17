@@ -49,7 +49,7 @@ resource "docker_container" "mariadb" {
 
 resource "docker_image" "postgres" {
   count        = var.datastore == "postgres" ? 1 : 0
-  name         = "postgres:15.16-alpine3.23"
+  name         = "postgres:18.6-alpine3.23"
   keep_locally = true
 }
 
