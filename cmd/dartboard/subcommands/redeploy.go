@@ -16,7 +16,7 @@ limitations under the License.
 
 package subcommands
 
-import cli "github.com/urfave/cli/v2"
+import cli "github.com/urfave/cli/v3"
 
 func Redeploy(c *cli.Context) error {
 	err := Destroy(c)
