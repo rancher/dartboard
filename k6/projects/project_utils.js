@@ -21,7 +21,7 @@ export function cleanupMatchingProjects(baseUrl, cookies, namePrefix) {
    }, 
    cookies: cookies })
   check(res, {
-    'GET /v3/projects returns status 200': (r) => r.status === 200,
+    [`GET ${normanProjectsPath} returns status 200`]: (r) => r.status === 200,
   })
   if (res.status !== 200) return false
   JSON.parse(res.body)["data"].filter(r => r["name"].startsWith(namePrefix)).forEach(r => {
@@ -31,7 +31,7 @@ export function cleanupMatchingProjects(baseUrl, cookies, namePrefix) {
       deletedAll = false
     }
     check(res, {
-      'DELETE /v3/projects returns status 200': (r) => r.status === 200 || r.status === 204,
+      [`DELETE ${normanProjectsPath} returns status 200`]: (r) => r.status === 200 || r.status === 204,
     })
   })
   return deletedAll
@@ -39,9 +39,9 @@ export function cleanupMatchingProjects(baseUrl, cookies, namePrefix) {
 
 export function getProject(baseUrl, cookies, id) {
   let res = http.get(`${baseUrl}/${baseProjectsPath}`, { cookies: cookies, tag: projectsTag })
-  let criteria = []
-  criteria[`GET /${baseProjectsPath} returns status 200`] = (r) => r.status === 200
-  check(res, criteria)
+  check(res, {
+    [`GET ${baseProjectsPath} returns status 200`]: (r) => r.status === 200,
+  })
   let projectArray = JSON.parse(res.body)["data"].filter(r => r["id"] == id)
   return { res: res, project: projectArray[0] }
 }
@@ -49,7 +49,7 @@ export function getProject(baseUrl, cookies, id) {
 export function getProjects(baseUrl, cookies) {
   let res = http.get(`${baseUrl}/${baseProjectsPath}`, { cookies: cookies, tags: projectsTag })
   check(res, {
-    'GET /v1/management.cattle.io.projects returns status 200': (r) => r.status === 200,
+    [`GET ${baseProjectsPath} returns status 200`]: (r) => r.status === 200,
   })
   let projectArray = JSON.parse(res.body)["data"]
   return { res: res, projectArray: projectArray }
@@ -58,7 +58,7 @@ export function getProjects(baseUrl, cookies) {
 export function getNormanProjects(baseUrl, cookies) {
   let res = http.get(`${baseUrl}/${normanProjectsPath}`, { cookies: cookies, tags: normanProjectsTag })
   check(res, {
-    'GET /v3/projects returns status 200': (r) => r.status === 200,
+    [`GET ${normanProjectsPath} returns status 200`]: (r) => r.status === 200,
   })
   let projectArray = JSON.parse(res.body)["data"]
   return { res: res, projectArray: projectArray }
@@ -77,7 +77,7 @@ export function createNormanProject(baseUrl, cookies, body) {
     }
   )
   check(res, {
-    'Project post returns 201 (created)': (r) => r.status === 201,
+    [`POST ${normanProjectsPath} returns 201 (created)`]: (r) => r.status === 201,
   })
   return res
 }
@@ -86,7 +86,7 @@ export function deleteNormanProject(baseUrl, cookies, id) {
   let res = http.del(`${baseUrl}/${normanProjectsPath}/${id}`, null, { cookies: cookies, tags: normanProjectTag })
 
   check(res, {
-    'DELETE /v3/projects returns status 200': (r) => r.status === 200 || r.status === 204,
+    [`DELETE ${normanProjectsPath} returns status 200`]: (r) => r.status === 200 || r.status === 204,
   })
   return res
 }
@@ -126,7 +126,7 @@ export function updateProject(baseUrl, cookies, project) {
     }
   )
   check(res, {
-    'PUT /v3/projects/<Project ID> returns status 200': (r) => r.status === 200,
+    [`PUT ${normanProjectsPath} returns status 200`]: (r) => r.status === 200,
   })
   return res
 }
