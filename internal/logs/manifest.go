@@ -22,22 +22,24 @@ type Manifest struct {
 	GeneratedAt time.Time           `json:"generated_at"`
 	Start       time.Time           `json:"start"`
 	End         time.Time           `json:"end"`
-	For         time.Duration       `json:"for_seconds"`
-	Interval    time.Duration       `json:"interval_seconds"`
-	Apps        []string            `json:"apps"`
-	Pods        map[string][]string `json:"pods"` // app -> pod names
-	Snapshots   int                 `json:"snapshots"`
+	Pods        map[string][]string `json:"pods"`
 	DartFile    string              `json:"dart_file,omitempty"`
 	Workspace   string              `json:"tofu_workspace,omitempty"`
 	Kubeconfig  string              `json:"kubeconfig,omitempty"`
+	Apps        []string            `json:"apps"`
+	For         time.Duration       `json:"for_seconds"`
+	Interval    time.Duration       `json:"interval_seconds"`
+	Snapshots   int                 `json:"snapshots"`
 }
 
 // WriteManifest writes the run-level manifest.
 func WriteManifest(outDir string, m Manifest) error {
 	path := filepath.Join(outDir, "manifest.json")
+
 	body, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return err
 	}
+
 	return os.WriteFile(path, body, 0o644)
 }

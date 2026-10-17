@@ -109,25 +109,31 @@ func (br *SequencedBatchRunner[J]) Run(batch []J,
 
 	// Clean up
 	br.Wait()
+
 	return batchErr
 }
 
 func collectBatchResults(results <-chan jobResult, count int) (int, error) {
 	numSkipped := 0
+
 	var jobErrs []error
+
 	for range count {
 		result := <-results
 		if result.err != nil {
 			jobErrs = append(jobErrs, result.err)
 			continue
 		}
+
 		if result.skipped {
 			numSkipped++
 		}
 	}
+
 	if len(jobErrs) == 0 {
 		return numSkipped, nil
 	}
+
 	return numSkipped, fmt.Errorf("%w with %d job errors: %w", errBatchFailed, len(jobErrs), errors.Join(jobErrs...))
 }
 

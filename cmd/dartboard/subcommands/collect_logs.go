@@ -53,9 +53,11 @@ func resolveLogsOutputDir(c *cli.Context, workspace string) string {
 	if s := c.String(ArgDiagnosticsOutput); s != "" {
 		return s
 	}
+
 	suffix := time.Now().UTC().Format("20060102-150405")
 	if workspace == "" {
 		return filepath.Join(".", "logs-"+suffix)
 	}
+
 	return filepath.Join(".", "logs-"+workspace+"-"+suffix)
 }

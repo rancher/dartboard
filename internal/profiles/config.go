@@ -28,9 +28,9 @@ var allowedProfileTypes = map[string]struct{}{
 
 // Config holds the parsed flags that drive a single collect-profiles run.
 type Config struct {
+	Profiles    []string
 	For         time.Duration
 	Interval    time.Duration
-	Profiles    []string
 	CPUDuration time.Duration
 }
 
@@ -42,18 +42,22 @@ func ParseConfig(forStr, intervalStr, profilesCSV, cpuDurationStr string) (Confi
 	if err != nil {
 		return cfg, fmt.Errorf("invalid --for: %w", err)
 	}
+
 	if d <= 0 {
 		return cfg, fmt.Errorf("--for must be positive")
 	}
+
 	cfg.For = d
 
 	iv, err := time.ParseDuration(intervalStr)
 	if err != nil {
 		return cfg, fmt.Errorf("invalid --interval: %w", err)
 	}
+
 	if iv <= 0 {
 		return cfg, fmt.Errorf("--interval must be positive")
 	}
+
 	cfg.Interval = iv
 
 	if cfg.For < cfg.Interval {
@@ -64,23 +68,29 @@ func ParseConfig(forStr, intervalStr, profilesCSV, cpuDurationStr string) (Confi
 	if err != nil {
 		return cfg, fmt.Errorf("invalid --cpu-duration: %w", err)
 	}
+
 	if cpuD <= 0 {
 		return cfg, fmt.Errorf("--cpu-duration must be positive")
 	}
+
 	cfg.CPUDuration = cpuD
 
 	parts := strings.Split(profilesCSV, ",")
+
 	cfg.Profiles = make([]string, 0, len(parts))
 	for _, p := range parts {
 		p = strings.TrimSpace(p)
 		if p == "" {
 			continue
 		}
+
 		if _, ok := allowedProfileTypes[p]; !ok {
 			return cfg, fmt.Errorf("invalid profile type %q (allowed: goroutine, heap, threadcreate, block, mutex, profile)", p)
 		}
+
 		cfg.Profiles = append(cfg.Profiles, p)
 	}
+
 	if len(cfg.Profiles) == 0 {
 		return cfg, fmt.Errorf("--profiles must contain at least one type")
 	}

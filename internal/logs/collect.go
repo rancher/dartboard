@@ -57,12 +57,15 @@ func Collect(kubeconfig, dartFile, workspace string, cfg Config, outDir string) 
 	deadline := start.Add(cfg.For)
 
 	var live []discovered
+
 	snapshots := 0
+
 	defer func() {
 		pods := map[string][]string{}
 		for _, d := range live {
 			pods[d.App] = d.Pods
 		}
+
 		manifestErr := WriteManifest(outDir, Manifest{
 			GeneratedAt: time.Now().UTC(),
 			Start:       start,
@@ -79,17 +82,21 @@ func Collect(kubeconfig, dartFile, workspace string, cfg Config, outDir string) 
 		if manifestErr != nil {
 			logrus.Warnf("failed to write manifest: %v", manifestErr)
 		}
+
 		logrus.Infof("logs collected to %s (%d snapshots)", outDir, snapshots)
 	}()
 
 	const discoverInterval = 20 * time.Second
+
 	for {
 		live = discoverAll(kubeconfig, cfg.Apps)
 		if anyPods(live) {
 			break
 		}
+
 		logrus.Infof("no pods yet for any selected app (%s); retrying in %s",
 			strings.Join(cfg.Apps, ","), discoverInterval)
+
 		select {
 		case <-ctx.Done():
 			logrus.Warnf("interrupted before any pods discovered; writing empty manifest")
@@ -107,8 +114,10 @@ func Collect(kubeconfig, dartFile, workspace string, cfg Config, outDir string) 
 			logrus.Warnf("app %s: no pods found; will be skipped this run", d.App)
 			continue
 		}
+
 		logrus.Infof("app %s: found %d pod(s) in %s: %s", d.App, len(d.Pods), d.Namespace, strings.Join(d.Pods, ", "))
 	}
+
 	logrus.Infof("collecting logs every %s until %s (total %s)", cfg.Interval, deadline.Format(time.RFC3339), cfg.For)
 
 	ticker := time.NewTicker(cfg.Interval)
@@ -131,10 +140,12 @@ func Collect(kubeconfig, dartFile, workspace string, cfg Config, outDir string) 
 			if !t.Before(deadline) {
 				return nil
 			}
+
 			if err := snapshot(ctx, kubeconfig, outDir, live, cfg.Interval); err != nil {
 				logrus.Warnf("snapshot failed: %v", err)
 				continue
 			}
+
 			snapshots++
 		}
 	}
@@ -145,36 +156,45 @@ func Collect(kubeconfig, dartFile, workspace string, cfg Config, outDir string) 
 // finished or the context is cancelled.
 func snapshot(ctx context.Context, kubeconfig, outDir string, live []discovered, since time.Duration) error {
 	ts := time.Now().UTC().Format("2006-01-02T15-04-05Z")
+
 	snapDir := filepath.Join(outDir, "snapshot-"+ts)
 	if err := os.MkdirAll(snapDir, 0o755); err != nil {
 		return fmt.Errorf("create snapshot dir %s: %w", snapDir, err)
 	}
+
 	logrus.Infof("snapshot %s", ts)
 
 	sinceArg := fmt.Sprintf("%ds", int(math.Ceil(since.Seconds())))
 
 	var wg sync.WaitGroup
+
 	for _, d := range live {
 		if len(d.Pods) == 0 {
 			continue
 		}
+
 		appDir := filepath.Join(snapDir, d.App)
 		if err := os.MkdirAll(appDir, 0o755); err != nil {
 			logrus.Warnf("create app dir %s: %v", appDir, err)
 			continue
 		}
+
 		for _, pod := range d.Pods {
 			wg.Add(1)
 			go func(d discovered, pod string) {
 				defer wg.Done()
+
 				if ctx.Err() != nil {
 					return
 				}
+
 				collectPod(kubeconfig, appDir, d, pod, sinceArg)
 			}(d, pod)
 		}
 	}
+
 	wg.Wait()
+
 	return nil
 }
 
@@ -220,6 +240,7 @@ func writeKubectl(kubeconfig, outPath string, args ...string) {
 		return
 	}
 	defer f.Close()
+
 	if err := kubectl.Exec(kubeconfig, f, args...); err != nil {
 		logrus.Debugf("kubectl %s: %v", strings.Join(args, " "), err)
 	}
@@ -235,9 +256,11 @@ func discoverAll(kubeconfig string, apps []string) []discovered {
 		if !ok {
 			continue // ParseConfig should have caught this
 		}
+
 		ns, pods := discoverPodsInNamespaces(kubeconfig, spec)
 		out = append(out, discovered{App: app, Spec: spec, Namespace: ns, Pods: pods})
 	}
+
 	return out
 }
 
@@ -248,35 +271,43 @@ func discoverPodsInNamespaces(kubeconfig string, spec appSpec) (string, []string
 	var lastNS string
 	for _, ns := range spec.Namespaces {
 		lastNS = ns
+
 		pods, err := listPods(kubeconfig, ns, spec.Label)
 		if err != nil {
 			logrus.Debugf("list pods %s -l %s: %v", ns, spec.Label, err)
 			continue
 		}
+
 		if len(pods) > 0 {
 			return ns, pods
 		}
 	}
+
 	return lastNS, nil
 }
 
 // listPods returns the names of all pods matching label in namespace.
 func listPods(kubeconfig, namespace, label string) ([]string, error) {
 	var buf bytes.Buffer
+
 	err := kubectl.Exec(kubeconfig, &buf,
 		"get", "pods", "-n", namespace, "-l", label, "-o", "name",
 	)
 	if err != nil {
 		return nil, err
 	}
+
 	var pods []string
+
 	for _, line := range strings.Split(strings.TrimSpace(buf.String()), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
+
 		pods = append(pods, strings.TrimPrefix(line, "pod/"))
 	}
+
 	return pods, nil
 }
 
@@ -287,5 +318,6 @@ func anyPods(live []discovered) bool {
 			return true
 		}
 	}
+
 	return false
 }

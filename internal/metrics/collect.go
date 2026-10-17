@@ -33,6 +33,7 @@ func Collect(ctx context.Context, promURL, dartFile, workspace string, start, en
 		if err != nil {
 			return fmt.Errorf("read dart %s: %w", dartFile, err)
 		}
+
 		if err := os.WriteFile(filepath.Join(outDir, "dart.yaml"), body, 0o644); err != nil {
 			return fmt.Errorf("snapshot dart: %w", err)
 		}
@@ -44,21 +45,25 @@ func Collect(ctx context.Context, promURL, dartFile, workspace string, start, en
 
 	for _, q := range queries {
 		logrus.Infof("collecting %s/%s", q.Group, q.Name)
+
 		series, err := client.QueryRangeContext(ctx, q.PromQL, start, end, step)
 		if err != nil {
 			logrus.Warnf("query %s failed: %v", q.Name, err)
 			continue
 		}
+
 		summary, err := WriteSeriesCSV(outDir, q, series)
 		if err != nil {
 			return fmt.Errorf("write %s csv: %w", q.Name, err)
 		}
+
 		all[q.Name] = summary
 	}
 
 	if err := WriteSummary(outDir, all); err != nil {
 		return fmt.Errorf("write summary: %w", err)
 	}
+
 	if err := WriteManifest(outDir, Manifest{
 		GeneratedAt: time.Now().UTC(),
 		PromURL:     promURL,
@@ -73,5 +78,6 @@ func Collect(ctx context.Context, promURL, dartFile, workspace string, start, en
 	}
 
 	logrus.Infof("metrics collected to %s", outDir)
+
 	return nil
 }

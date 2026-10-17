@@ -295,6 +295,20 @@ func PortForward(ctx context.Context, kubeconfig, namespace, target string, remo
 	}
 }
 
+func Version(kubePath string, out any) error {
+	output := new(bytes.Buffer)
+
+	if err := Exec(kubePath, output, "version", "-o", "json"); err != nil {
+		return fmt.Errorf("failed to get kubectl version output: %w", err)
+	}
+
+	if err := json.Unmarshal(output.Bytes(), out); err != nil {
+		return fmt.Errorf("cannot parse kubernetes version for cluster with kubePath %s: %w\n%s", kubePath, err, output.String())
+	}
+
+	return nil
+}
+
 func Apply(kubePath, filePath string) error {
 	return Exec(kubePath, log.Writer(), "apply", "-f", filePath)
 }
@@ -342,6 +356,40 @@ func WaitForReadyCondition(kubePath, resource, name, namespace string, condition
 	}
 
 	return err
+}
+
+func GetK8sVersion(kubePath string) (string, error) {
+	var versionOutput struct {
+		ServerVersion struct {
+			GitVersion string `json:"gitVersion"`
+		} `json:"serverVersion"`
+	}
+	if err := Version(kubePath, &versionOutput); err != nil {
+		return "", err
+	}
+
+	if versionOutput.ServerVersion.GitVersion != "" {
+		return versionOutput.ServerVersion.GitVersion, nil
+	}
+
+	return "", fmt.Errorf("cannot determine Kubernetes version")
+}
+
+func GetK8sDistro(kubePath string) (string, error) {
+	version, err := GetK8sVersion(kubePath)
+	if err != nil {
+		return "", err
+	}
+
+	if strings.Contains(version, "rke2") {
+		return "rke2", nil
+	}
+
+	if strings.Contains(version, "k3s") {
+		return "k3s", nil
+	}
+
+	return "", fmt.Errorf("cannot determine Kubernetes distro")
 }
 
 func GetRancherFQDNFromLoadBalancer(kubePath string) (string, error) {
