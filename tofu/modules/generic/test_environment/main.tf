@@ -41,6 +41,7 @@ module "upstream_etcd" {
   ssh_private_key_path  = var.ssh_private_key_path
   ssh_user              = var.ssh_user
   etcd_version          = try(var.upstream_cluster.etcd_node_variables.etcd_version, null)
+  etcd_shasum           = try(var.upstream_cluster.etcd_node_variables.etcd_shasum, null)
 }
 
 module "upstream_cluster" {
