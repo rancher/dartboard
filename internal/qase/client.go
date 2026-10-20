@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/qase-tms/qase-go/pkg/qase-go/clients"
@@ -144,6 +145,47 @@ func (c *CustomUnifiedClient) GetTestRun(ctx context.Context, projectCode string
 	}
 
 	return resp.Result, nil
+}
+
+// GetRunResultStatusCounts returns the number of results in a run for each status.
+func (c *CustomUnifiedClient) GetRunResultStatusCounts(ctx context.Context, projectCode string, runID int64) (map[string]int64, error) {
+	logrus.Debugf("Getting result statuses for test run %d in project %s", runID, projectCode)
+
+	authCtx := context.WithValue(ctx, api_v1_client.ContextAPIKeys, map[string]api_v1_client.APIKey{
+		"TokenAuth": {Key: c.Config.TestOps.API.Token},
+	})
+
+	const pageSize int32 = 100
+	statusCounts := make(map[string]int64)
+
+	for offset := int32(0); ; offset += pageSize {
+		resp, res, err := c.V1Client.GetAPIClient().ResultsAPI.GetResults(authCtx, projectCode).
+			Run(strconv.FormatInt(runID, 10)).
+			Offset(offset).
+			Limit(pageSize).
+			Execute()
+		logResponseBody(res, "GetRunResultStatusCounts")
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to get results for test run %d: %w", runID, err)
+		}
+
+		resultList, ok := resp.GetResultOk()
+		if !ok {
+			return nil, fmt.Errorf("result list for test run %d did not include result data", runID)
+		}
+
+		entities := resultList.GetEntities()
+		for _, result := range entities {
+			statusCounts[result.GetStatus()]++
+		}
+
+		if len(entities) < int(pageSize) {
+			break
+		}
+	}
+
+	return statusCounts, nil
 }
 
 // GetTestCase retrieves a Qase test case by its ID.
