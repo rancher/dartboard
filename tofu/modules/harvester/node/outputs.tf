@@ -7,19 +7,23 @@ output "id" {
 }
 
 output "private_name" {
-  value = "${var.network_config.public ? local.public_network_interfaces[0].ip_address : local.private_network_interfaces[0].ip_address}.sslip.io"
+  depends_on = [null_resource.host_configuration]
+  value      = "${local.node_ip}.sslip.io"
 }
 
 output "private_ip" {
-  value = var.network_config.public ? local.public_network_interfaces[0].ip_address : local.private_network_interfaces[0].ip_address
+  depends_on = [null_resource.host_configuration]
+  value      = local.node_ip
 }
 
 output "public_name" {
-  value = "${var.network_config.public ? local.public_network_interfaces[0].ip_address : local.private_network_interfaces[0].ip_address}.sslip.io"
+  depends_on = [null_resource.host_configuration]
+  value      = "${local.node_ip}.sslip.io"
 }
 
 output "public_ip" {
-  value = var.network_config.public ? local.public_network_interfaces[0].ip_address : local.private_network_interfaces[0].ip_address
+  depends_on = [null_resource.host_configuration]
+  value      = local.node_ip
 }
 
 output "ssh_user" {
