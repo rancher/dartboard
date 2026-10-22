@@ -65,7 +65,7 @@ require (
 	al.essio.dev/pkg/shellescape v1.6.0
 	github.com/harvester/harvester v1.8.0
 	github.com/matoous/go-nanoid/v2 v2.1.0
-	github.com/minio/pkg v1.7.5
+	github.com/minio/pkg/v3 v3.11.0
 	github.com/qase-tms/qase-go/pkg/qase-go v1.2.0
 	github.com/qase-tms/qase-go/qase-api-client v1.2.10
 	github.com/qase-tms/qase-go/qase-api-v2-client v1.1.7
