@@ -19,9 +19,9 @@ import (
 // appSpec describes how to discover and pull logs from one Rancher-family app.
 type appSpec struct {
 	Label             string
-	Namespaces        []string // ordered probe list; first namespace with pods wins
 	Container         string
-	AuditLogContainer string // empty when the app has no audit-log sidecar
+	AuditLogContainer string
+	Namespaces        []string
 }
 
 // supportedApps mirrors the choices the continuous_profiling.sh script supports.
@@ -51,9 +51,9 @@ var supportedApps = map[string]appSpec{
 
 // Config holds the parsed flags that drive a single collect-logs run.
 type Config struct {
+	Apps     []string
 	For      time.Duration
 	Interval time.Duration
-	Apps     []string // validated subset of supportedApps keys; preserves user order
 }
 
 // ParseConfig validates the raw CLI flag strings into a Config.
@@ -64,18 +64,22 @@ func ParseConfig(forStr, intervalStr, appsCSV string) (Config, error) {
 	if err != nil {
 		return cfg, fmt.Errorf("invalid --for: %w", err)
 	}
+
 	if d <= 0 {
 		return cfg, fmt.Errorf("--for must be positive")
 	}
+
 	cfg.For = d
 
 	iv, err := time.ParseDuration(intervalStr)
 	if err != nil {
 		return cfg, fmt.Errorf("invalid --interval: %w", err)
 	}
+
 	if iv <= 0 {
 		return cfg, fmt.Errorf("--interval must be positive")
 	}
+
 	cfg.Interval = iv
 
 	if cfg.For < cfg.Interval {
@@ -85,20 +89,25 @@ func ParseConfig(forStr, intervalStr, appsCSV string) (Config, error) {
 	parts := strings.Split(appsCSV, ",")
 	cfg.Apps = make([]string, 0, len(parts))
 	seen := map[string]struct{}{}
+
 	for _, a := range parts {
 		a = strings.TrimSpace(a)
 		if a == "" {
 			continue
 		}
+
 		if _, ok := supportedApps[a]; !ok {
 			return cfg, fmt.Errorf("invalid app %q (allowed: rancher, cattle-cluster-agent, fleet-controller, fleet-agent)", a)
 		}
+
 		if _, dup := seen[a]; dup {
 			continue
 		}
+
 		seen[a] = struct{}{}
 		cfg.Apps = append(cfg.Apps, a)
 	}
+
 	if len(cfg.Apps) == 0 {
 		cfg.Apps = []string{"rancher"}
 	}

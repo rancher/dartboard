@@ -53,9 +53,11 @@ func CollectMetrics(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
 	outDir := resolveOutputDir(c, d.TofuWorkspace)
 
 	logrus.Infof("port-forwarding to %s/%s in upstream cluster", prometheusNamespace, prometheusService)
+
 	localPort, stop, err := kubectl.PortForward(c.Context, upstream.Kubeconfig, prometheusNamespace, prometheusService, prometheusPort)
 	if err != nil {
 		return fmt.Errorf("port-forward to upstream Prometheus: %w", err)
@@ -95,12 +97,14 @@ func resolveWindow(c *cli.Context) (time.Time, time.Time, time.Duration, error) 
 		if err != nil {
 			return time.Time{}, time.Time{}, 0, fmt.Errorf("invalid --%s: %w", ArgMetricsLast, err)
 		}
+
 		start = end.Add(-last)
 	}
 
 	if !end.After(start) {
 		return time.Time{}, time.Time{}, 0, fmt.Errorf("--%s must be after --%s", ArgMetricsEnd, ArgMetricsStart)
 	}
+
 	return start, end, step, nil
 }
 
@@ -108,9 +112,11 @@ func resolveOutputDir(c *cli.Context, workspace string) string {
 	if s := c.String(ArgMetricsOutput); s != "" {
 		return s
 	}
+
 	suffix := time.Now().UTC().Format("20060102-150405")
 	if workspace == "" {
 		return filepath.Join(".", "metrics-"+suffix)
 	}
+
 	return filepath.Join(".", "metrics-"+workspace+"-"+suffix)
 }
