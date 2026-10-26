@@ -13,12 +13,12 @@ export const putNamespaceTag = { url: `/v1/namespaces/<Namespace ID>` }
 export function cleanupMatchingNamespaces(baseUrl, cookies, namePrefix) {
   let res = http.get(`${baseUrl}/${baseNamespacesPath}`, { cookies: cookies })
   check(res, {
-    '/v1/management.cattle.io.namespaces returns status 200': (r) => r.status === 200,
+    [`${baseNamespacesPath} returns status 200`]: (r) => r.status === 200,
   })
   JSON.parse(res.body)["data"].filter(r => r["metadata"]["name"].startsWith(namePrefix)).forEach(r => {
     res = http.del(`${baseUrl}/${baseNamespacesPath}/${r["id"]}`, { cookies: cookies })
     check(res, {
-      'DELETE /v3/namespaces returns status 200': (r) => r.status === 200,
+      [`DELETE ${baseNamespacesPath} returns status 200`]: (r) => r.status === 200,
     })
   })
 }
@@ -26,7 +26,7 @@ export function cleanupMatchingNamespaces(baseUrl, cookies, namePrefix) {
 export function getNamespace(baseUrl, cookies, id) {
   let res = http.get(`${baseUrl}/${baseNamespacesPath}`, { cookies: cookies, tag: namespacesTag })
   let criteria = []
-  criteria[`GET /${baseNamespacesPath} returns status 200`] = (r) => r.status === 200
+  criteria[`GET ${baseNamespacesPath} returns status 200`] = (r) => r.status === 200
   check(res, criteria)
   namespaceArray = JSON.parse(res.body)["data"].filter(r => r["id"] == id)
   return { res: res, namespace: namespaceArray[0] }
@@ -35,7 +35,7 @@ export function getNamespace(baseUrl, cookies, id) {
 export function getNamespaces(baseUrl, cookies) {
   let res = http.get(`${baseUrl}/${baseNamespacesPath}`, { cookies: cookies, tags: namespacesTag })
   check(res, {
-    'GET /v1/management.cattle.io.namespaces returns status 200': (r) => r.status === 200,
+    [`GET ${baseNamespacesPath} returns status 200`]: (r) => r.status === 200,
   })
   let namespaceArray = JSON.parse(res.body)["data"]
   return { res: res, namespaceArray: namespaceArray }
@@ -54,7 +54,7 @@ export function createNamespace(baseUrl, body, cookies) {
     }
   )
   check(res, {
-    'Namespace post returns 201 (created)': (r) => r.status === 201,
+    [`POST ${baseNamespacesPath} returns 201 (created)`]: (r) => r.status === 201,
   })
   return res
 }
@@ -63,7 +63,7 @@ export function deleteNamespace(baseUrl, cookies, id) {
   let res = http.del(`${baseUrl}/${baseNamespacesPath}/${id}`, null, { cookies: cookies, tags: namespaceTag })
 
   check(res, {
-    'DELETE /v3/namespaces returns status 200': (r) => r.status === 200 || r.status === 204,
+    [`DELETE ${baseNamespacesPath} returns status 200`]: (r) => r.status === 200 || r.status === 204,
   })
   return res
 }
@@ -94,7 +94,7 @@ export function updateNamespace(baseUrl, cookies, namespace) {
     }
   )
   check(res, {
-    'PUT /v3/namespaces/<Namespace ID> returns status 200': (r) => r.status === 200,
+    [`PUT ${baseNamespacesPath} returns status 200`]: (r) => r.status === 200,
   })
   return res
 }
