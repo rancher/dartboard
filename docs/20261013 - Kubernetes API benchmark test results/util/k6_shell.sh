@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-cd $(dirname $0)/..
+cd "$(dirname "$0")/../../.."
 
 TOFU_MAIN_DIRECTORY=./tofu/main/aws
 if [ -n "${DART:-}" ]; then
