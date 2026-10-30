@@ -58,7 +58,7 @@ chart_variables:
   rancher_monitoring_dashboards_version: 110.0.1+up0.1.4
   cert_manager_version: 1.19.1
   tester_grafana_version: 6.56.5
-  rancher_version: 2.13.0
+  rancher_version: 2.15.2
   # rancher_chart_repo_override: # URL override defining where to pull Rancher's helm chart from
   force_prime_registry: false
   # extra_environment_variables:
