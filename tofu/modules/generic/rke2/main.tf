@@ -104,6 +104,7 @@ resource "ssh_sensitive_resource" "first_server_installation" {
   commands = [
     "sudo /tmp/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)",
     "sudo /tmp/wait_for_k8s.sh",
+    "sudo /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml rollout status daemonset ${local.rke2_ingress_daemonset} -n kube-system --timeout 600s",
     "sudo cat /var/lib/rancher/rke2/server/node-token",
   ]
 }
@@ -216,6 +217,16 @@ locals {
   local_kubernetes_api_url = var.create_tunnels ? "https://${var.sans[0]}:${var.local_kubernetes_api_port}" : "https://${module.server_nodes[0].public_ip}:6443"
   public_sans              = concat(module.server_nodes[*].public_name, module.server_nodes[*].public_ip)
   sans                     = distinct(concat(var.sans, var.public ? local.public_sans : [], module.server_nodes[*].private_ip, module.server_nodes[*].private_name))
+  rke2_ingress_daemonset = (
+    can(regex("^v?([0-9]+)\\.([0-9]+)", var.distro_version)) &&
+    (
+      tonumber(regex("^v?([0-9]+)\\.([0-9]+)", var.distro_version)[0]) > 1 ||
+      (
+        tonumber(regex("^v?([0-9]+)\\.([0-9]+)", var.distro_version)[0]) == 1 &&
+        tonumber(regex("^v?([0-9]+)\\.([0-9]+)", var.distro_version)[1]) >= 36
+      )
+    )
+  ) ? "rke2-traefik" : "rke2-ingress-nginx-controller"
 }
 
 resource "local_file" "kubeconfig" {

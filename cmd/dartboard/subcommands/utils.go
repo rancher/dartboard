@@ -79,6 +79,7 @@ func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if err := injectPreExistingUpstream(d); err != nil {
 		return nil, nil, err
 	}
@@ -95,9 +96,11 @@ func injectPreExistingUpstream(d *dart.Dart) error {
 	if d.UpstreamCluster == nil {
 		return nil
 	}
+
 	if d.UpstreamCluster.Kubeconfig == "" {
 		return fmt.Errorf("pre-existing upstream_cluster requires kubeconfig")
 	}
+
 	addresses := d.UpstreamCluster.AppAddresses
 	if addresses.Public.Name == "" && addresses.Private.Name == "" && addresses.Tunnel.Name == "" {
 		return fmt.Errorf("pre-existing upstream_cluster requires a public, private, or tunnel app address for Rancher")
@@ -107,10 +110,12 @@ func injectPreExistingUpstream(d *dart.Dart) error {
 	if err != nil {
 		return fmt.Errorf("marshal pre-existing upstream: %w", err)
 	}
+
 	var value map[string]any
 	if err := json.Unmarshal(encoded, &value); err != nil {
 		return fmt.Errorf("convert pre-existing upstream: %w", err)
 	}
+
 	if d.TofuVariables == nil {
 		d.TofuVariables = map[string]any{}
 	}
@@ -118,6 +123,7 @@ func injectPreExistingUpstream(d *dart.Dart) error {
 	// the generated upstream module. The pass-through output becomes upstream.
 	delete(d.TofuVariables, "upstream_cluster")
 	d.TofuVariables["upstream_cluster_pre_existing"] = removeNilValues(value)
+
 	return nil
 }
 
@@ -130,6 +136,7 @@ func removeNilValues(value any) any {
 				cleaned[key] = removeNilValues(child)
 			}
 		}
+
 		return cleaned
 	case []any:
 		cleaned := make([]any, 0, len(typed))
@@ -138,6 +145,7 @@ func removeNilValues(value any) any {
 				cleaned = append(cleaned, removeNilValues(child))
 			}
 		}
+
 		return cleaned
 	default:
 		return value

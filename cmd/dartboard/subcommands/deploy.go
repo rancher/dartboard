@@ -57,6 +57,8 @@ const (
 	chartNameRancherIngress       = "rancher-ingress"
 	chartNameRancherMonitoringCRD = "rancher-monitoring-crd"
 	chartNameRancherMonitoring    = "rancher-monitoring"
+	chartNameKubePrometheusStack  = "kube-prometheus-stack"
+	chartNameMonitoringDashboards = "rancher-monitoring-dashboards"
 	chartNameCgroupsExporter      = "cgroups-exporter"
 
 	// Chart namespaces
@@ -309,7 +311,7 @@ func chartInstall(kubeConf string, chart chart, vals map[string]any, extraArgs .
 	path := chart.path
 
 	// Pull from local `charts/` dir if not using remote chart
-	if !strings.HasPrefix(path, "http") {
+	if !strings.HasPrefix(path, "http") && !strings.HasPrefix(path, "oci") {
 		path = filepath.Join("charts", path)
 	}
 
@@ -347,8 +349,42 @@ func chartInstallCertManager(r *dart.Dart, cluster *tofu.Cluster) error {
 		namespace: nsCertManager,
 		path:      fmt.Sprintf("https://charts.jetstack.io/charts/cert-manager-v%s.tgz", r.ChartVariables.CertManagerVersion),
 	}
+	chartValues := map[string]any{"installCRDs": true}
 
-	return chartInstall(cluster.Kubeconfig, chartCertManager, map[string]any{"installCRDs": true})
+	var extraArgs []string
+
+	if certManagerSupportsOCI(r.ChartVariables.CertManagerVersion) {
+		chartCertManager.path = "oci://quay.io/jetstack/charts/cert-manager"
+
+		extraArgs = []string{"--version=v" + r.ChartVariables.CertManagerVersion}
+		if certManagerSupportsCRDsValue(r.ChartVariables.CertManagerVersion) {
+			chartValues = map[string]any{"crds": map[string]any{"enabled": true}}
+		}
+	}
+
+	return chartInstall(cluster.Kubeconfig, chartCertManager, chartValues, extraArgs...)
+}
+
+func certManagerSupportsOCI(version string) bool {
+	major, minor, ok := certManagerMajorMinor(version)
+	return ok && (major > 1 || (major == 1 && minor >= 12))
+}
+
+func certManagerSupportsCRDsValue(version string) bool {
+	major, minor, ok := certManagerMajorMinor(version)
+	return ok && (major > 1 || (major == 1 && minor >= 15))
+}
+
+func certManagerMajorMinor(version string) (int, int, bool) {
+	parts := strings.Split(version, ".")
+	if len(parts) < 2 {
+		return 0, 0, false
+	}
+
+	major, majorErr := strconv.Atoi(parts[0])
+	minor, minorErr := strconv.Atoi(parts[1])
+
+	return major, minor, majorErr == nil && minorErr == nil
 }
 
 func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Cluster) error {
@@ -481,8 +517,19 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 }
 
 func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
+	rancherMajorVersion, _, _ := strings.Cut(r.ChartVariables.RancherVersion, ".")
+	major, _ := strconv.Atoi(rancherMajorVersion)
 	rancherMinorVersion := strings.Join(strings.Split(r.ChartVariables.RancherVersion, ".")[0:2], ".")
 
+	minor, _ := strconv.Atoi(strings.Split(rancherMinorVersion, ".")[1])
+	if !r.ChartVariables.ForceKubePrometheusStack && (major < 2 || (major == 2 && minor < 15)) {
+		return chartInstallLegacyRancherMonitoring(r, cluster, rancherMinorVersion)
+	}
+
+	return chartInstallKubePrometheusStack(r, cluster)
+}
+
+func chartInstallLegacyRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster, rancherMinorVersion string) error {
 	const chartPrefix = "https://github.com/rancher/charts/raw/release-v"
 
 	chartPath := fmt.Sprintf("%s%s", chartPrefix, rancherMinorVersion)
@@ -531,6 +578,69 @@ func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
 	chartVals = getRancherMonitoringValsJSON(cluster.ReserveNodeForMonitoring, mimirURL)
 
 	return chartInstall(cluster.Kubeconfig, chartRancherMonitoring, chartVals)
+}
+
+func chartInstallKubePrometheusStack(r *dart.Dart, cluster *tofu.Cluster) error {
+	if err := helm.UninstallIfPresent(cluster.Kubeconfig, chartNameRancherMonitoring, nsCattleMonitoringSystem); err != nil {
+		return fmt.Errorf("uninstall legacy %s: %w", chartNameRancherMonitoring, err)
+	}
+
+	kubePrometheusStack := chart{
+		name:      chartNameKubePrometheusStack,
+		namespace: nsCattleMonitoringSystem,
+		path:      "oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack",
+	}
+
+	clusterAdd, err := getAppAddressFor(*cluster)
+	if err != nil {
+		return fmt.Errorf("chart %s: %w", kubePrometheusStack.name, err)
+	}
+
+	distro, err := kubectl.GetK8sDistro(cluster.Kubeconfig)
+	if err != nil {
+		return fmt.Errorf("failed to get Kubernetes distro: %w", err)
+	}
+
+	stackValues := getKubePrometheusStackVals(cluster.ReserveNodeForMonitoring, strings.Contains(distro, "k3s"), r.ChartVariables.EnableIPv6, r.ChartVariables.GrafanaAdminPassword, clusterAdd.Public.HTTPURL+"/mimir/api/v1/push")
+	if err := chartInstall(cluster.Kubeconfig, kubePrometheusStack, stackValues, "--version="+r.ChartVariables.KubePrometheusStackVersion); err != nil {
+		return err
+	}
+
+	chartPath := "https://github.com/rancher/charts/raw/refs/heads/release-v2.15"
+	if r.ChartVariables.RancherAppsRepoOverride != "" {
+		chartPath = r.ChartVariables.RancherAppsRepoOverride
+	}
+
+	dashboards := chart{
+		name:      chartNameMonitoringDashboards,
+		namespace: nsCattleMonitoringSystem,
+		path:      monitoringDashboardsChartPath(chartPath, r.ChartVariables.MonitoringDashboardsVersion),
+	}
+
+	dashboardValues := getMonitoringDashboardsValues(cluster.ReserveNodeForMonitoring, r.ChartVariables.EnableIPv6)
+	if err := chartInstall(cluster.Kubeconfig, dashboards, dashboardValues); err != nil {
+		return err
+	}
+
+	fmt.Printf("Grafana admin password (admin): %s\n", kubePrometheusStackGrafanaPasswordCommand())
+
+	return nil
+}
+
+func kubePrometheusStackGrafanaPasswordCommand() string {
+	return "kubectl -n cattle-monitoring-system get secret kube-prometheus-stack-grafana -o jsonpath='{.data.admin-password}' | openssl base64 -d -A; echo"
+}
+
+func getMonitoringDashboardsValues(reserveNodeForMonitoring, enableIPv6 bool) map[string]any {
+	return map[string]any{
+		"global":            map[string]any{"clusterId": "local", "clusterName": "local", "systemDefaultRegistry": "", "disableProxyIPv6": !enableIPv6, "cattle": map[string]any{"clusterId": "local", "clusterName": "local", "systemDefaultRegistry": ""}},
+		"monitoringProxy":   monitoringSchedulingValues(reserveNodeForMonitoring),
+		"alertmanagerProxy": map[string]any{"enabled": false},
+	}
+}
+
+func monitoringDashboardsChartPath(chartPath, version string) string {
+	return fmt.Sprintf("%s/assets/rancher-monitoring-dashboards/rancher-monitoring-dashboards-%s.tgz", chartPath, version)
 }
 
 func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
@@ -590,46 +700,16 @@ func getRancherMonitoringValsJSON(reserveNodeForMonitoring bool, mimirURL string
 				"retentionSize":      "50GiB",
 				"scrapeInterval":     "1m",
 
-				"additionalScrapeConfigs": []any{
-					map[string]any{
-						"job_name":     "node-cgroups-exporter",
-						"honor_labels": false,
-						"kubernetes_sd_configs": []any{map[string]any{
-							"role": "node",
-						}},
-						"scheme": "http",
-						"relabel_configs": []any{
-							map[string]any{
-								"action": "labelmap",
-								"regex":  "__meta_kubernetes_node_label_(.+)",
-							},
-							map[string]any{
-								"source_labels": []any{"__address__"},
-								"action":        "replace",
-								"target_label":  "__address__",
-								"regex":         "([^:;]+):(\\d+)",
-								"replacement":   "${1}:9753",
-							},
-							map[string]any{
-								"source_labels": []any{"__meta_kubernetes_node_name"},
-								"action":        "keep",
-								"regex":         ".*",
-							},
-							map[string]any{
-								"source_labels": []any{"__meta_kubernetes_node_name"},
-								"action":        "replace",
-								"target_label":  "node",
-								"regex":         "(.*)",
-								"replacement":   "${1}",
-							},
-						},
-					},
-				},
+				"additionalScrapeConfigs": getCgroupsScrapeConfig(),
 
 				"remoteWrite": remoteWrite,
 			},
 		},
 		"prometheus-adapter": monitoringRestrictions,
+		"prometheus-node-exporter": map[string]any{
+			"nodeSelector": map[string]any{"kubernetes.io/os": "linux"},
+			"tolerations":  []any{map[string]any{"operator": "Exists"}},
+		},
 		"kube-state-metrics": monitoringRestrictions,
 		"prometheusOperator": monitoringRestrictions,
 		"global": map[string]any{
@@ -641,6 +721,138 @@ func getRancherMonitoringValsJSON(reserveNodeForMonitoring bool, mimirURL string
 		},
 		"systemDefaultRegistry": "",
 	}
+}
+
+func getKubePrometheusStackVals(reserveNodeForMonitoring, k3sServer, enableIPv6 bool, grafanaAdminPassword, mimirURL string) map[string]any {
+	nodeSelector := map[string]any{}
+	tolerations := []any{}
+
+	if reserveNodeForMonitoring {
+		nodeSelector["monitoring"] = "true"
+
+		tolerations = append(tolerations, map[string]any{"key": "monitoring", "operator": "Exists", "effect": "NoSchedule"})
+	}
+
+	remoteWrite := []any{}
+	if mimirURL != "" {
+		remoteWrite = append(remoteWrite, map[string]any{
+			"url": mimirURL,
+			"writeRelabelConfigs": []any{map[string]any{
+				"sourceLabels": []any{"__name__"},
+				"regex":        "(node_namespace_pod_container|node_cpu|node_load|node_memory|node_network_receive_bytes_total|container_network_receive_bytes_total|cgroups_).*",
+				"action":       "keep",
+			}},
+		})
+	}
+
+	serviceIPDualStack := map[string]any{
+		"enabled":        enableIPv6,
+		"ipFamilies":     []any{"IPv4"},
+		"ipFamilyPolicy": "SingleStack",
+	}
+	if enableIPv6 {
+		serviceIPDualStack["ipFamilies"] = []any{"IPv6", "IPv4"}
+		serviceIPDualStack["ipFamilyPolicy"] = "PreferDualStack"
+	}
+
+	values := map[string]any{
+		"alertmanager": map[string]any{"enabled": false, "service": map[string]any{"ipDualStack": serviceIPDualStack}},
+		"grafana": map[string]any{
+			"nodeSelector": nodeSelector,
+			"tolerations":  tolerations,
+			"persistence":  map[string]any{"enabled": false},
+			"grafana.ini": map[string]any{
+				"security":       map[string]any{"allow_embedding": true},
+				"auth":           map[string]any{"disable_login_form": false},
+				"auth.anonymous": map[string]any{"enabled": true, "org_role": "Viewer"},
+				"dashboards":     map[string]any{"default_home_dashboard_path": "/tmp/dashboards/rancher-default-home.json"},
+				"users":          map[string]any{"auto_assign_org_role": "Viewer"},
+			},
+		},
+		"prometheus": map[string]any{"prometheusSpec": map[string]any{
+			"evaluationInterval": "1m",
+			"scrapeInterval":     "1m",
+			"nodeSelector":       nodeSelector,
+			"tolerations":        tolerations,
+			"resources":          map[string]any{"limits": map[string]any{"memory": "10000Mi"}},
+			"retentionSize":      "50GiB",
+			"serviceMonitorSelectorNilUsesHelmValues": false,
+			"podMonitorSelectorNilUsesHelmValues":     false,
+			"additionalScrapeConfigs":                 getCgroupsScrapeConfig(),
+			"remoteWrite":                             remoteWrite,
+		}, "service": map[string]any{"ipDualStack": serviceIPDualStack}, "servicePerReplica": map[string]any{"ipDualStack": serviceIPDualStack}, "thanosService": map[string]any{"ipDualStack": serviceIPDualStack}},
+		"kubeControllerManager": map[string]any{"enabled": false, "service": map[string]any{"ipDualStack": serviceIPDualStack}},
+		"coreDns":               map[string]any{"service": map[string]any{"ipDualStack": serviceIPDualStack}},
+		"kubeDns":               map[string]any{"service": map[string]any{"ipDualStack": serviceIPDualStack}},
+		"kubeEtcd":              map[string]any{"enabled": false, "service": map[string]any{"ipDualStack": serviceIPDualStack}},
+		"kubeScheduler":         map[string]any{"enabled": false, "service": map[string]any{"ipDualStack": serviceIPDualStack}},
+		"kubeProxy":             map[string]any{"enabled": false, "service": map[string]any{"ipDualStack": serviceIPDualStack}},
+		"prometheusOperator": map[string]any{
+			"nodeSelector": nodeSelector,
+			"tolerations":  tolerations,
+			"service":      map[string]any{"ipDualStack": serviceIPDualStack},
+			"admissionWebhooks": map[string]any{
+				"patch": map[string]any{"nodeSelector": nodeSelector, "tolerations": tolerations},
+				"deployment": map[string]any{
+					"nodeSelector": nodeSelector,
+					"tolerations":  tolerations,
+					"service":      map[string]any{"ipDualStack": serviceIPDualStack},
+				},
+			},
+		},
+		"prometheus-node-exporter": map[string]any{
+			"hostRootFsMount": map[string]any{"enabled": false},
+			"nodeSelector":    map[string]any{"kubernetes.io/os": "linux"},
+			"tolerations":     []any{map[string]any{"operator": "Exists"}},
+			"service":         map[string]any{"ipDualStack": serviceIPDualStack},
+		},
+		"kube-state-metrics": map[string]any{
+			"nodeSelector": nodeSelector,
+			"tolerations":  tolerations,
+			"service":      map[string]any{"ipDualStack": serviceIPDualStack},
+		},
+		"thanosRuler": map[string]any{"service": map[string]any{"ipDualStack": serviceIPDualStack}},
+		"global": map[string]any{
+			"cattle": map[string]any{
+				"clusterId":             "local",
+				"clusterName":           "local",
+				"systemDefaultRegistry": "",
+			},
+		},
+		"systemDefaultRegistry": "",
+		"k3sServer":             k3sServer,
+	}
+	if grafanaAdminPassword != "" {
+		values["grafana"].(map[string]any)["adminPassword"] = grafanaAdminPassword
+	}
+
+	return values
+}
+
+func monitoringSchedulingValues(reserveNodeForMonitoring bool) map[string]any {
+	if !reserveNodeForMonitoring {
+		return map[string]any{}
+	}
+
+	return map[string]any{
+		"nodeSelector": map[string]any{"monitoring": "true"},
+		"tolerations":  []any{map[string]any{"key": "monitoring", "operator": "Exists", "effect": "NoSchedule"}},
+	}
+}
+
+func getCgroupsScrapeConfig() []any {
+	return []any{map[string]any{
+		"job_name":              "node-cgroups-exporter",
+		"honor_labels":          false,
+		"kubernetes_sd_configs": []any{map[string]any{"role": "node"}},
+		"scheme":                "http",
+		"relabel_configs": []any{
+			map[string]any{"action": "labelmap", "regex": "__meta_kubernetes_node_label_(.+)"},
+			map[string]any{"source_labels": []any{"__address__"}, "action": "replace", "target_label": "__address__", "regex": "([^:;]+):(\\d+)", "replacement": "${1}:9753"},
+			map[string]any{"source_labels": []any{"__meta_kubernetes_node_name"}, "action": "keep", "regex": ".*"},
+			map[string]any{"source_labels": []any{"__meta_kubernetes_node_name"}, "action": "replace", "target_label": "node", "regex": "(.*)", "replacement": "${1}"},
+		},
+	}}
 }
 
 func getGrafanaValsJSON(r *dart.Dart, name, url, ingressClass string) map[string]any {

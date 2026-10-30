@@ -73,7 +73,11 @@ chart_variables:
   rancher_replicas: 3
   downstream_rancher_monitoring: false
   admin_password: adminadminadmin
-  rancher_monitoring_version: 110.0.2+up80.9.1-rancher.22 # see https://github.com/rancher/charts/tree/release-v2.15/assets/rancher-monitoring-crd
+  # grafana_admin_password: adminadminadmin
+  force_kube_prometheus_stack: false
+  enable_ipv6: false
+  kube_prometheus_stack_version: 92.1.0
+  rancher_monitoring_dashboards_version: 110.0.1+up0.1.4
   cert_manager_version: 1.12.17
   tester_grafana_version: 6.56.5
   rancher_version: 2.15.2

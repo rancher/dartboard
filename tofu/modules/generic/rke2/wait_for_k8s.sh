@@ -37,9 +37,3 @@ if [ $i -gt $MAX_ATTEMPTS ]; then
   journalctl -u rke2-server -u rke2-agent --no-pager -n 200 || true
   exit 1
 fi
-
-echo "Waiting for the RKE2 ingress controller to be up..."
-kubectl rollout status daemonset \
-  rke2-traefik \
-  -n kube-system \
-  --timeout 600s

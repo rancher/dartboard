@@ -22,8 +22,8 @@ import (
 )
 
 type Client struct {
-	baseURL string
 	http    *http.Client
+	baseURL string
 }
 
 func NewClient(baseURL string) *Client {
@@ -65,6 +65,7 @@ type matrixEntry struct {
 func (c *Client) QueryRange(promQL string, start, end time.Time, step time.Duration) ([]Series, error) {
 	return c.QueryRangeContext(context.Background(), promQL, start, end, step)
 }
+
 func (c *Client) QueryRangeContext(ctx context.Context, promQL string, start, end time.Time, step time.Duration) ([]Series, error) {
 	q := url.Values{}
 	q.Set("query", promQL)
@@ -73,10 +74,12 @@ func (c *Client) QueryRangeContext(ctx context.Context, promQL string, start, en
 	q.Set("step", strconv.FormatFloat(step.Seconds(), 'f', -1, 64))
 
 	endpoint := c.baseURL + "/api/v1/query_range?" + q.Encode()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
+
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("query_range GET failed: %w", err)
@@ -87,6 +90,7 @@ func (c *Client) QueryRangeContext(ctx context.Context, promQL string, start, en
 	if err != nil {
 		return nil, fmt.Errorf("read query_range body: %w", err)
 	}
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("query_range HTTP %d: %s", resp.StatusCode, string(body))
 	}
@@ -95,9 +99,11 @@ func (c *Client) QueryRangeContext(ctx context.Context, promQL string, start, en
 	if err := json.Unmarshal(body, &pr); err != nil {
 		return nil, fmt.Errorf("decode query_range response: %w", err)
 	}
+
 	if pr.Status != "success" {
 		return nil, fmt.Errorf("prometheus error %s: %s", pr.ErrorType, pr.Error)
 	}
+
 	if pr.Data.ResultType != "matrix" {
 		return nil, fmt.Errorf("expected matrix result, got %q", pr.Data.ResultType)
 	}
@@ -108,26 +114,32 @@ func (c *Client) QueryRangeContext(ctx context.Context, promQL string, start, en
 		if err := json.Unmarshal(raw, &m); err != nil {
 			return nil, fmt.Errorf("decode matrix entry: %w", err)
 		}
+
 		samples := make([]Sample, 0, len(m.Values))
 		for _, v := range m.Values {
 			ts, ok := v[0].(float64)
 			if !ok {
 				continue
 			}
+
 			valStr, ok := v[1].(string)
 			if !ok {
 				continue
 			}
+
 			f, err := strconv.ParseFloat(valStr, 64)
 			if err != nil {
 				continue
 			}
+
 			samples = append(samples, Sample{
 				Timestamp: time.Unix(0, int64(ts*1e9)).UTC(),
 				Value:     f,
 			})
 		}
+
 		out = append(out, Series{Labels: m.Metric, Samples: samples})
 	}
+
 	return out, nil
 }

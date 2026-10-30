@@ -55,6 +55,7 @@ func Collect(kubeconfig, dartFile, workspace string, cfg Config, outDir string) 
 	deadline := start.Add(cfg.For)
 
 	var pods []string
+
 	snapshots := 0
 	defer func() {
 		manifestErr := WriteManifest(outDir, Manifest{
@@ -74,22 +75,26 @@ func Collect(kubeconfig, dartFile, workspace string, cfg Config, outDir string) 
 		if manifestErr != nil {
 			logrus.Warnf("failed to write manifest: %v", manifestErr)
 		}
+
 		logrus.Infof("profiles collected to %s (%d snapshots)", outDir, snapshots)
 	}()
 
 	const discoverInterval = 20 * time.Second
+
 	for {
 		p, derr := discoverRancherPods(kubeconfig)
 		if derr == nil && len(p) > 0 {
 			pods = p
 			break
 		}
+
 		if derr != nil {
 			logrus.Debugf("discover Rancher pods (will retry): %v", derr)
 		} else {
 			logrus.Infof("no Rancher pods yet in %s (label %s); retrying in %s",
 				rancherNamespace, rancherLabel, discoverInterval)
 		}
+
 		select {
 		case <-ctx.Done():
 			logrus.Warnf("interrupted before any Rancher pods discovered; writing empty manifest")
@@ -101,6 +106,7 @@ func Collect(kubeconfig, dartFile, workspace string, cfg Config, outDir string) 
 			}
 		}
 	}
+
 	logrus.Infof("found %d Rancher pod(s): %s", len(pods), strings.Join(pods, ", "))
 	logrus.Infof("collecting profiles every %s until %s (total %s)", cfg.Interval, deadline.Format(time.RFC3339), cfg.For)
 
@@ -123,10 +129,12 @@ func Collect(kubeconfig, dartFile, workspace string, cfg Config, outDir string) 
 			if !t.Before(deadline) {
 				return nil
 			}
+
 			if err := snapshot(ctx, kubeconfig, outDir, pods, cfg); err != nil {
 				logrus.Warnf("snapshot failed: %v", err)
 				continue
 			}
+
 			snapshots++
 		}
 	}
@@ -137,28 +145,35 @@ func Collect(kubeconfig, dartFile, workspace string, cfg Config, outDir string) 
 // finished or the context is cancelled.
 func snapshot(ctx context.Context, kubeconfig, outDir string, pods []string, cfg Config) error {
 	ts := time.Now().UTC().Format("2006-01-02T15-04-05Z")
+
 	snapDir := filepath.Join(outDir, "snapshot-"+ts)
 	if err := os.MkdirAll(snapDir, 0o755); err != nil {
 		return fmt.Errorf("create snapshot dir %s: %w", snapDir, err)
 	}
+
 	logrus.Infof("snapshot %s", ts)
 
 	var wg sync.WaitGroup
+
 	for _, pod := range pods {
 		for _, profile := range cfg.Profiles {
 			wg.Add(1)
 			go func(pod, profile string) {
 				defer wg.Done()
+
 				if ctx.Err() != nil {
 					return
 				}
+
 				if err := fetchProfile(kubeconfig, snapDir, pod, profile, cfg.CPUDuration); err != nil {
 					logrus.Warnf("fetch %s from %s: %v", profile, pod, err)
 				}
 			}(pod, profile)
 		}
 	}
+
 	wg.Wait()
+
 	return nil
 }
 
@@ -171,6 +186,7 @@ func fetchProfile(kubeconfig, snapDir, pod, profile string, cpuDuration time.Dur
 	}
 
 	outPath := filepath.Join(snapDir, fmt.Sprintf("%s-%s.pprof", pod, profile))
+
 	f, err := os.Create(outPath)
 	if err != nil {
 		return fmt.Errorf("create %s: %w", outPath, err)
@@ -186,19 +202,24 @@ func fetchProfile(kubeconfig, snapDir, pod, profile string, cpuDuration time.Dur
 // discoverRancherPods returns the names of all Rancher pods in cattle-system.
 func discoverRancherPods(kubeconfig string) ([]string, error) {
 	var buf bytes.Buffer
+
 	err := kubectl.Exec(kubeconfig, &buf,
 		"get", "pods", "-n", rancherNamespace, "-l", rancherLabel, "-o", "name",
 	)
 	if err != nil {
 		return nil, err
 	}
+
 	var pods []string
+
 	for _, line := range strings.Split(strings.TrimSpace(buf.String()), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
+
 		pods = append(pods, strings.TrimPrefix(line, "pod/"))
 	}
+
 	return pods, nil
 }

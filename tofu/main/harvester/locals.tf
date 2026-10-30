@@ -1,9 +1,21 @@
 locals {
-  node_module_variables = setunion(
-    var.downstream_cluster_templates[*].node_module_variables,
-    var.tester_cluster != null ? [var.tester_cluster.node_module_variables] : [],
-    var.upstream_cluster != null ? [var.upstream_cluster.node_module_variables] : []
+  node_module_variables_json = setunion(
+    toset([
+      for value in var.downstream_cluster_templates[*].node_module_variables :
+      jsonencode(value)
+    ]),
+    var.tester_cluster != null ? toset([
+      jsonencode(var.tester_cluster.node_module_variables)
+    ]) : toset([]),
+    var.upstream_cluster != null ? toset([
+      jsonencode(var.upstream_cluster.node_module_variables)
+    ]) : toset([])
   )
+
+  node_module_variables = [
+    for value in local.node_module_variables_json :
+    jsondecode(value)
+  ]
 
   imageNames = toset([
     for i, node_module_variables in local.node_module_variables : join("/", [node_module_variables.image_namespace != null ? node_module_variables.image_namespace : var.namespace], [node_module_variables.image_name])
