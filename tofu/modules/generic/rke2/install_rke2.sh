@@ -108,6 +108,9 @@ tls-san:
 %{ endfor ~}
 kubelet-arg:
 - "--config=/etc/rancher/rke2/kubelet-custom.config"
+%{ if datastore_endpoint != null ~}
+datastore-endpoint: "${datastore_endpoint}"
+%{ endif ~}
 kube-controller-manager-arg: "node-cidr-mask-size=${node_cidr_mask_size}"
 system-default-registry: registry.rancher.com
 EOF

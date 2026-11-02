@@ -5,9 +5,15 @@ variable "project_name" {
 }
 
 variable "etcd_version" {
-  description = "etcd version"
+  description = "etcd version (e.g. '3.7' for latest supported 3.7 patch, or exact 'v3.7.2')"
   type        = string
-  default     = "v3.7.1"
+  default     = "3.7"
+}
+
+variable "etcd_shasum" {
+  description = "shasum of the corresponding version of the etcd amd64 release tarball. Required when etcd_version is an exact version."
+  type        = string
+  default     = null
 }
 
 variable "name" {

@@ -21,10 +21,27 @@ module "upstream_postgres" {
   source = "../postgres"
 
   name                  = "upstream-postgres"
+  project_name          = var.project_name
   network_config        = var.network_config
   node_module           = var.node_module
   node_module_variables = var.upstream_cluster.postgres_node_variables
   ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
+}
+
+module "upstream_etcd" {
+  count  = var.upstream_cluster.etcd_node_variables != {} ? 1 : 0
+  source = "../etcd"
+
+  name                  = "upstream-etcd"
+  project_name          = var.project_name
+  network_config        = var.network_config
+  node_module           = var.node_module
+  node_module_variables = var.upstream_cluster.etcd_node_variables
+  ssh_private_key_path  = var.ssh_private_key_path
+  ssh_user              = var.ssh_user
+  etcd_version          = try(var.upstream_cluster.etcd_node_variables.etcd_version, null)
+  etcd_shasum           = try(var.upstream_cluster.etcd_node_variables.etcd_shasum, null)
 }
 
 module "upstream_cluster" {
@@ -49,7 +66,7 @@ module "upstream_cluster" {
   node_module               = var.node_module
   network_config            = var.network_config
   node_module_variables     = var.upstream_cluster.node_module_variables
-  datastore_endpoint        = var.upstream_cluster.postgres_node_variables != {} ? module.upstream_postgres[0].datastore_endpoint : null
+  datastore_endpoint        = var.upstream_cluster.postgres_node_variables != {} ? module.upstream_postgres[0].datastore_endpoint : var.upstream_cluster.etcd_node_variables != {} ? module.upstream_etcd[0].datastore_endpoint : null
 }
 
 module "tester_cluster" {

@@ -2,11 +2,8 @@
 
 set -xe
 
-# renovate: datasource=github-releases depName=etcd-io/etcd
-ETCD_VER=${etcd_version}
-# renovate: datasource=github-releases depName=etcd-io/etcd digestVersion=v3.7.1
-ETCD_SHA256_LINUX_AMD64="e8cd3fa8064c98137c5dbd78b76f969417ace84efb83c481041d7a52ffdd8fb9"
-DOWNLOAD_URL=https://github.com/etcd-io/etcd/releases/download
+DOWNLOAD_SHASUM="${etcd_shasum}"
+DOWNLOAD_URL="https://github.com/etcd-io/etcd/releases/download/${etcd_version}/etcd-${etcd_version}-linux-amd64.tar.gz"
 
 verify_sha256_digest() {
 	local archive="$1"
@@ -32,14 +29,14 @@ verify_sha256_digest() {
 	fi
 }
 
-rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
+rm -f "/tmp/etcd.tar.gz"
 rm -rf /tmp/etcd-download-test && mkdir -p /tmp/etcd-download-test
 
-curl -L $DOWNLOAD_URL/$ETCD_VER/etcd-$ETCD_VER-linux-amd64.tar.gz -o /tmp/etcd-$ETCD_VER-linux-amd64.tar.gz
-verify_sha256_digest "/tmp/etcd-$ETCD_VER-linux-amd64.tar.gz" <(echo "$ETCD_SHA256_LINUX_AMD64  /tmp/etcd-$ETCD_VER-linux-amd64.tar.gz")
-tar xzvf /tmp/etcd-$ETCD_VER-linux-amd64.tar.gz -C /usr/bin --strip-components=1 --no-same-owner
+curl -L "$DOWNLOAD_URL" -o /tmp/etcd.tar.gz
+verify_sha256_digest "/tmp/etcd.tar.gz" <(echo "$DOWNLOAD_SHASUM  /tmp/etcd.tar.gz")
+tar xzvf /tmp/etcd.tar.gz -C /usr/bin --strip-components=1 --no-same-owner
 
-rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
+rm -f /tmp/etcd.tar.gz
 
 # use data disk if available (see mount_ephemeral.sh)
 if [ -d /data ]; then

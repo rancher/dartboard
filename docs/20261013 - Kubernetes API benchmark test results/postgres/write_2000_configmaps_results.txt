@@ -1,0 +1,25 @@
+     ✓ POST returns status 201 or 409
+
+     █ setup
+
+       ✓ DELETE returns status 200 or 404
+       ✓ POST returns status 201 or 409
+
+   ✓ checks.........................: 100.00% ✓ 2026       ✗ 0     
+     data_received..................: 1.1 MB  118 kB/s
+     data_sent......................: 373 kB  40 kB/s
+     http_req_blocked...............: avg=99.14µs  min=200ns   med=465ns    max=15.31ms p(90)=600ns    p(95)=680ns   
+     http_req_connecting............: avg=38.15µs  min=0s      med=0s       max=6.8ms   p(90)=0s       p(95)=0s      
+     http_req_duration..............: avg=9.47ms   min=3.18ms  med=8.77ms   max=28.75ms p(90)=13.38ms  p(95)=16.85ms 
+       { expected_response:true }...: avg=9.51ms   min=3.75ms  med=8.79ms   max=28.75ms p(90)=13.39ms  p(95)=16.86ms 
+     http_req_failed................: 0.69%   ✓ 14         ✗ 2012  
+     http_req_receiving.............: avg=488.01µs min=22.46µs med=306.78µs max=6.25ms  p(90)=1.15ms   p(95)=1.53ms  
+     http_req_sending...............: avg=108.06µs min=44.44µs med=87.05µs  max=3.11ms  p(90)=143.46µs p(95)=184.25µs
+     http_req_tls_handshaking.......: avg=56.24µs  min=0s      med=0s       max=8.07ms  p(90)=0s       p(95)=0s      
+     http_req_waiting...............: avg=8.88ms   min=2.94ms  med=8.18ms   max=28.09ms p(90)=12.69ms  p(95)=16.04ms 
+     http_reqs......................: 2026    216.426267/s
+     iteration_duration.............: avg=9.85ms   min=3.93ms  med=9ms      max=37.22ms p(90)=13.64ms  p(95)=17.38ms 
+     iterations.....................: 2010    214.717076/s
+     test_resources.................: 2010    min=2010     max=2010
+     vus............................: 10      min=0        max=10  
+     vus_max........................: 20      min=20       max=20  

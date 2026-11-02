@@ -89,6 +89,7 @@ resource "ssh_sensitive_resource" "first_server_installation" {
       request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
+      datastore_endpoint     = var.datastore_endpoint
     })
     destination = "/tmp/install_rke2.sh"
     permissions = "0700"
@@ -145,6 +146,7 @@ resource "ssh_resource" "additional_server_installation" {
       request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
+      datastore_endpoint     = var.datastore_endpoint
     })
     destination = "/tmp/install_rke2.sh"
     permissions = "0700"
@@ -196,6 +198,7 @@ resource "ssh_resource" "agent_installation" {
       request_header_ca_cert = tls_self_signed_cert.request_header_ca_cert.cert_pem
       max_pods               = var.max_pods
       node_cidr_mask_size    = var.node_cidr_mask_size
+      datastore_endpoint     = var.datastore_endpoint
     })
     destination = "/tmp/install_rke2.sh"
     permissions = "0700"
