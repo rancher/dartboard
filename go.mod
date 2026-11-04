@@ -61,6 +61,15 @@ replace (
 	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.10.6
 )
 
+// Temporarily replace unmaintained module, while transitive dependencies catch up
+// https://github.com/rancher/rancher/issues/56157
+//
+// NOTE: go does not allow setting the same version used directly, so these version are now $((latest-1))
+replace (
+	gopkg.in/yaml.v2 => go.yaml.in/yaml/v2 v2.4.2
+	gopkg.in/yaml.v3 => go.yaml.in/yaml/v3 v3.0.3
+)
+
 require (
 	al.essio.dev/pkg/shellescape v1.6.0
 	github.com/harvester/harvester v1.8.0
