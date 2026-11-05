@@ -33,7 +33,7 @@ import (
 	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/rancher/shepherd/clients/rancher"
 	"github.com/rancher/shepherd/pkg/session"
-	cli "github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v3"
 
 	"github.com/sirupsen/logrus"
 

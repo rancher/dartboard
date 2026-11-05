@@ -18,7 +18,7 @@ import (
 	"github.com/rancher/dartboard/internal/kubectl"
 	"github.com/rancher/dartboard/internal/metrics"
 	"github.com/sirupsen/logrus"
-	cli "github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v3"
 )
 
 const (
