@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/rancher/dartboard/internal/actions"
-	cli "github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v3"
 )
 
 func Destroy(cli *cli.Context) error {

@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/rancher/dartboard/internal/profiles"
-	cli "github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v3"
 )
 
 const (
