@@ -289,8 +289,8 @@ export function createImportedCluster(baseUrl, cookies, name) {
   })
 
   response = http.post(
-    `${baseUrl}/v1/provisioning.cattle.io.clusters`,
-    JSON.stringify({ "type": "provisioning.cattle.io.cluster", "metadata": { "namespace": "fleet-default", "name": name }, "spec": {} }),
+    `${baseUrl}/v3/clusters`,
+    JSON.stringify({ "type": "cluster", "name": name }),
     {
       headers: {
         accept: 'application/json',
@@ -301,26 +301,60 @@ export function createImportedCluster(baseUrl, cookies, name) {
   )
 
   check(response, {
-    'creating an imported cluster works': (r) => r.status === 201 || r.status === 409,
+    'creating an imported cluster works': (r) => r.status === 201 || r.status === 409 || r.status === 422,
   })
-  if (response.status === 409) {
+  if (response.status === 409 || response.status === 422) {
     console.warn(`cluster ${name} already exists`)
   }
 
-  response = http.get(
-    `${baseUrl}/v1/provisioning.cattle.io.clusters/fleet-default/${name}`,
-    {
-      headers: {
-        accept: 'application/json',
-      },
-      cookies: cookies,
+  let clusterId = null
+  if (response.status === 201) {
+    try {
+      clusterId = JSON.parse(response.body).id
+    } catch (e) {
+      console.error(`failed to parse imported cluster create response body for cluster ${name}: ${e}; body=${response.body}`)
     }
-  )
-  check(response, {
-    'querying clusters works': (r) => r.status === 200,
-  })
-  if (!response.status === 200) {
-    fail(`cluster ${name} not found`)
+  }
+
+  if (clusterId) {
+    response = http.get(
+      `${baseUrl}/v3/clusters/${clusterId}`,
+      {
+        headers: {
+          accept: 'application/json',
+        },
+        cookies: cookies,
+      }
+    )
+    check(response, {
+      'querying clusters works': (r) => r.status === 200,
+    })
+    if (response.status !== 200) {
+      fail(`cluster ${name} lookup by id ${clusterId} failed with status ${response.status}; body=${response.body}`)
+    }
+  } else {
+    response = http.get(
+      `${baseUrl}/v3/clusters`,
+      {
+        headers: {
+          accept: 'application/json',
+        },
+        cookies: cookies,
+      }
+    )
+    check(response, {
+      'querying clusters works': (r) => r.status === 200,
+      'querying clusters includes requested cluster': (r) => {
+        try {
+          const data = JSON.parse(r.body).data || []
+          // Rancher versions can surface the requested cluster name on either name, displayName, or spec.displayName.
+          return data.some((c) => c.name === name || c.displayName === name || c.spec?.displayName === name)
+        } catch (e) {
+          console.error(`failed to parse clusters list response while looking up ${name}: ${e}; body=${r.body}`)
+          return false
+        }
+      },
+    })
   }
 
   response = http.get(`${baseUrl}/v1/cluster.x-k8s.io.machinedeployments`, {
