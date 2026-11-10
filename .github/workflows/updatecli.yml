@@ -1,0 +1,70 @@
+name: "updatecli"
+
+on:
+  schedule:
+    # Runs weekly on Mondays at 12:00 UTC
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Select which updatecli workflow to run or `all` to run all updates.'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'vendored-binaries'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  updatecli:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install updatecli
+        uses: updatecli/updatecli-action@e63dd5570becd9cc73bbba5c7c2f6ffc0e07e047 # v2.82.0
+
+      - name: Delete leftover updatecli branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr list \
+            --search "is:closed is:pr head:updatecli_" \
+            --json headRefName \
+            --jq ".[].headRefName" | sort -u > closed_prs_branches.txt
+          gh pr list \
+            --search "is:open is:pr head:updatecli_" \
+            --json headRefName \
+            --jq ".[].headRefName" | sort -u > open_prs_branches.txt
+          for branch in $(comm -23 closed_prs_branches.txt open_prs_branches.txt); do
+            if (git ls-remote --exit-code --heads origin "${branch}"); then
+              echo "Deleting leftover updatecli branch - ${branch}";
+              git push origin --delete "${branch}";
+            fi
+          done
+
+      - name: Apply updatecli
+        env:
+          UPDATECLI_GITHUB_ACTOR: ${{ github.actor }}
+          UPDATECLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" = "schedule" ]] ||
+             ([[ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]] && [[ "${{ inputs.target }}" = "all" ]]);
+          then
+            echo "Running updatecli on all targets"
+            updatecli apply --clean --values updatecli/values.d/values.yaml \
+                                    --config updatecli/updatecli.d/
+          elif [[ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]];
+          then
+            echo "Running updatecli on ${{ inputs.target }} target"
+            updatecli apply --clean --values updatecli/values.d/values.yaml \
+                                    --config "updatecli/updatecli.d/update-${{ inputs.target }}/"
+          else
+            echo "Invalid event name or target"
+          fi

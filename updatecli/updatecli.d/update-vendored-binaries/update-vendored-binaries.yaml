@@ -1,0 +1,186 @@
+name: '{{ .vendored_binaries.manifest }}'
+pipelineid: '{{ .vendored_binaries.pipelineid }}'
+
+scms:
+  default:
+    kind: github
+    spec:
+      owner: '{{ .scm.owner }}'
+      repository: '{{ .scm.repo }}'
+      branch: '{{ .scm.branch }}'
+      user: '{{ .scm.user }}'
+      email: '{{ .scm.email }}'
+      username: '{{ .scm.username }}'
+      token: '{{ requiredEnv .scm.token }}'
+      commitusingapi: {{ .scm.commitusingapi }}
+      commitmessage:
+        squash: {{ .scm.commitmessage.squash }}
+        type: '{{ .vendored_binaries.commitmessage.type }}'
+        scope: '{{ .vendored_binaries.commitmessage.scope }}'
+        title: 'Bump vendored binaries versions'
+
+actions:
+  vendored-binaries-pr:
+    kind: github/pullrequest
+    scmid: 'default'
+    spec:
+      labels:
+        - 'dependencies'
+      mergemethod: '{{ .scm.mergemethod }}'
+      title: 'Bump vendored binaries versions'
+      description: |
+        Automated update of vendored binary versions in `download-vendored-bin.sh`.
+
+        Updates:
+        - OpenTofu: `{{ source "opentofu-current" }}` → `{{ source "opentofu-latest" }}`
+        - kubectl: `{{ source "kubectl-current" }}` → `{{ source "kubectl-latest" }}`
+        - Helm: `{{ source "helm-current" }}` → `{{ source "helm-latest" }}`
+        - k3d: `{{ source "k3d-current" }}` → `{{ source "k3d-latest" }}`
+
+sources:
+  # Current versions from download-vendored-bin.sh
+  opentofu-current:
+    name: 'Get current OpenTofu version'
+    kind: file
+    scmid: 'default'
+    spec:
+      file: 'download-vendored-bin.sh'
+      matchpattern: 'OPENTOFU_VERSION=\d+\.\d+\.\d+'
+    transformers:
+      - find: '\d+\.\d+\.\d+'
+
+  kubectl-current:
+    name: 'Get current kubectl version'
+    kind: file
+    scmid: 'default'
+    spec:
+      file: 'download-vendored-bin.sh'
+      matchpattern: 'KUBECTL_VERSION=\d+\.\d+\.\d+'
+    transformers:
+      - find: '\d+\.\d+\.\d+'
+
+  helm-current:
+    name: 'Get current Helm version'
+    kind: file
+    scmid: 'default'
+    spec:
+      file: 'download-vendored-bin.sh'
+      matchpattern: 'HELM_VERSION=\d+\.\d+\.\d+'
+    transformers:
+      - find: '\d+\.\d+\.\d+'
+
+  k3d-current:
+    name: 'Get current k3d version'
+    kind: file
+    scmid: 'default'
+    spec:
+      file: 'download-vendored-bin.sh'
+      matchpattern: 'K3D_VERSION=\d+\.\d+\.\d+'
+    transformers:
+      - find: '\d+\.\d+\.\d+'
+
+  # Latest versions from GitHub releases
+  opentofu-latest:
+    name: 'Get latest OpenTofu version'
+    kind: githubrelease
+    spec:
+      owner: '{{ .repos.opentofu.owner }}'
+      repository: '{{ .repos.opentofu.repo }}'
+      key: tagname
+      typefilter:
+        release: true
+      username: '{{ .scm.username }}'
+      token: '{{ requiredEnv .scm.token }}'
+      versionfilter:
+        kind: semver
+    transformers:
+      - trimprefix: 'v'
+
+  kubectl-latest:
+    name: 'Get latest kubectl version'
+    kind: githubrelease
+    spec:
+      owner: '{{ .repos.kubectl.owner }}'
+      repository: '{{ .repos.kubectl.repo }}'
+      key: tagname
+      typefilter:
+        release: true
+      username: '{{ .scm.username }}'
+      token: '{{ requiredEnv .scm.token }}'
+      versionfilter:
+        kind: semver
+    transformers:
+      - trimprefix: 'v'
+
+  helm-latest:
+    name: 'Get latest Helm version'
+    kind: githubrelease
+    spec:
+      owner: '{{ .repos.helm.owner }}'
+      repository: '{{ .repos.helm.repo }}'
+      key: tagname
+      typefilter:
+        release: true
+      username: '{{ .scm.username }}'
+      token: '{{ requiredEnv .scm.token }}'
+      versionfilter:
+        kind: semver
+    transformers:
+      - trimprefix: 'v'
+
+  k3d-latest:
+    name: 'Get latest k3d version'
+    kind: githubrelease
+    spec:
+      owner: '{{ .repos.k3d.owner }}'
+      repository: '{{ .repos.k3d.repo }}'
+      key: tagname
+      typefilter:
+        release: true
+      username: '{{ .scm.username }}'
+      token: '{{ requiredEnv .scm.token }}'
+      versionfilter:
+        kind: semver
+    transformers:
+      - trimprefix: 'v'
+
+targets:
+  update-opentofu-version:
+    name: 'Update OpenTofu version to {{ source "opentofu-latest" }}'
+    kind: file
+    scmid: 'default'
+    sourceid: 'opentofu-latest'
+    spec:
+      file: 'download-vendored-bin.sh'
+      matchpattern: 'OPENTOFU_VERSION=\d+\.\d+\.\d+'
+      replacepattern: 'OPENTOFU_VERSION={{ source "opentofu-latest" }}'
+
+  update-kubectl-version:
+    name: 'Update kubectl version to {{ source "kubectl-latest" }}'
+    kind: file
+    scmid: 'default'
+    sourceid: 'kubectl-latest'
+    spec:
+      file: 'download-vendored-bin.sh'
+      matchpattern: 'KUBECTL_VERSION=\d+\.\d+\.\d+'
+      replacepattern: 'KUBECTL_VERSION={{ source "kubectl-latest" }}'
+
+  update-helm-version:
+    name: 'Update Helm version to {{ source "helm-latest" }}'
+    kind: file
+    scmid: 'default'
+    sourceid: 'helm-latest'
+    spec:
+      file: 'download-vendored-bin.sh'
+      matchpattern: 'HELM_VERSION=\d+\.\d+\.\d+'
+      replacepattern: 'HELM_VERSION={{ source "helm-latest" }}'
+
+  update-k3d-version:
+    name: 'Update k3d version to {{ source "k3d-latest" }}'
+    kind: file
+    scmid: 'default'
+    sourceid: 'k3d-latest'
+    spec:
+      file: 'download-vendored-bin.sh'
+      matchpattern: 'K3D_VERSION=\d+\.\d+\.\d+'
+      replacepattern: 'K3D_VERSION={{ source "k3d-latest" }}'

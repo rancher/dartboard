@@ -1,0 +1,43 @@
+version: 2
+updates:
+  # Go modules dependencies
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Docker base images
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # OpenTofu/Terraform providers - AWS
+  - package-ecosystem: "terraform"
+    directory: "/tofu/main/aws"
+    schedule:
+      interval: "weekly"
+
+  # OpenTofu/Terraform providers - Azure
+  - package-ecosystem: "terraform"
+    directory: "/tofu/main/azure"
+    schedule:
+      interval: "weekly"
+
+  # OpenTofu/Terraform providers - K3D
+  - package-ecosystem: "terraform"
+    directory: "/tofu/main/k3d"
+    schedule:
+      interval: "weekly"
+
+  # OpenTofu/Terraform providers - Harvester
+  - package-ecosystem: "terraform"
+    directory: "/tofu/main/harvester"
+    schedule:
+      interval: "weekly"
