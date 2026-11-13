@@ -1,5 +1,4 @@
 provider "azurerm" {
-  skip_provider_registration = true
   features {
     resource_group {
       # destroy resource group even if they contain stale resources
