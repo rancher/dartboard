@@ -10,7 +10,7 @@ import (
 	"github.com/harvester/harvester/pkg/apis/harvesterhci.io/v1beta1"
 	harvclient "github.com/harvester/harvester/pkg/generated/clientset/versioned"
 	randGen "github.com/matoous/go-nanoid/v2"
-	"github.com/minio/pkg/wildcard"
+	"github.com/minio/pkg/v3/wildcard"
 	"github.com/sirupsen/logrus"
 	"go.yaml.in/yaml/v3"
 	v1 "k8s.io/api/core/v1"
