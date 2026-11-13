@@ -1,7 +1,7 @@
 # renovate: datasource=docker depName=grafana/k6
 ARG K6_VERSION="2.3.0"
 # renovate: datasource=docker depName=grafana/k6 digestVersion=2.3.0
-ARG K6_IMAGE_DIGEST="sha256:9c2dee7f8ed74d317e4027c06a10f169b625638189de8d4555d0b3486a5aeb34"
+ARG K6_IMAGE_DIGEST="sha256:2dd4756ec6e14e62778916e1eb850108e4b499304c02df56760fa0bdb0fba0b8"
 # renovate: datasource=docker depName=golang
 ARG GOLANG_VERSION="1.27.1-alpine3.24"
 # renovate: datasource=docker depName=golang digestVersion=1.27.1-alpine3.24
