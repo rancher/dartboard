@@ -9,6 +9,9 @@ if (params.JENKINS_AGENT_LABEL) {
 
 def kubeconfigContainerPath
 def baseURL
+def rancherVersion
+def kubernetesVersion
+def accessLogLink
 def sanitizeCharacterRegex = "[^a-zA-Z0-9'_-]"
 def sanitizeK6EnvRegex = "[^a-zA-Z0-9_=,;&*-.\\n\\r]"
 def sanitizeK6ScriptPathRegex = "[^a-zA-Z0-9_./-]"
@@ -22,6 +25,7 @@ pipeline {
     ARTIFACTS_DIR       = 'deployment-artifacts'
     ACCESS_LOG          = 'access-details.log'
     KUBECONFIG_FILE     = 'upstream.yaml'
+    QASE_RUNSTATS_FILE  = 'qase-runstats.env'
     // renovate: datasource=docker depName=amazon/aws-cli
     AWS_CLI_VERSION     = '2.34.22'
     // renovate: datasource=docker depName=amazon/aws-cli digestVersion=2.34.22
@@ -137,6 +141,10 @@ pipeline {
             // Extract FQDN and set environment variables for the next stage
             def accessLogPath = "./${env.ARTIFACTS_DIR}/${env.ACCESS_LOG}"
             if (fileExists(accessLogPath)) {
+              def deployBuild = params.DEPLOYMENT_ID.tokenize('-').last()
+              def deployJob = params.DEPLOYMENT_ID.replaceAll("-${deployBuild}\$", "")
+              accessLogLink = env.BUILD_URL.replace("job/${env.JOB_NAME.split('/').last()}/${env.BUILD_NUMBER}/", "job/${deployJob}/${deployBuild}/") + "artifact/dartboard/${env.ACCESS_LOG}"
+              echo "Found access log, artifact link: ${accessLogLink}"
               def accessLogContent = readFile(accessLogPath)
               // See https://docs.groovy-lang.org/next/html/groovy-jdk/java/util/regex/Matcher.html
               def matcher = accessLogContent =~ /(?m)^\s*Rancher UI:\s*(https?:\/\/[^ :]+)/
@@ -146,6 +154,17 @@ pipeline {
                 echo "Found Rancher URL: ${baseURL}"
               } else {
                 echo "Warning: Could not find 'Rancher UI' in ${env.ACCESS_LOG}"
+              }
+
+              def rMatch = accessLogContent =~ /(?m)^\s*Rancher Version:\s*(\S+)/
+              if (rMatch.find()) {
+                rancherVersion = rMatch.group(1).trim()
+                echo "Found Rancher Version: ${rancherVersion}"
+              }
+              def kMatch = accessLogContent =~ /(?m)^\s*Kubernetes Version:\s*(\S+)/
+              if (kMatch.find()) {
+                kubernetesVersion = kMatch.group(1).trim()
+                echo "Found Kubernetes Version: ${kubernetesVersion}"
               }
             }
 
@@ -338,13 +357,64 @@ ${safeK6Env}
   post {
     always {
       script {
+        // Generate Qase run stats before archiving artifacts
+        try {
+          def safeRunID = (params.QASE_TESTOPS_RUN_ID ?: "").replaceAll("[^0-9]", "")
+          def safeProject = (params.QASE_TESTOPS_PROJECT ?: "").replaceAll(sanitizeCharacterRegex, "")
+
+          if (safeRunID && safeProject) {
+            dir('dartboard') {
+              withEnv(["QASE_PROJECT=${safeProject}", "QASE_RUN_ID=${safeRunID}"]) {
+                withCredentials([string(credentialsId: "QASE_AUTOMATION_TOKEN", variable: "QASE_TESTOPS_API_TOKEN")]) {
+                  sh """
+                    docker run --rm --name dartboard-qase-runstats \
+                      -v "${pwd()}:/app" \
+                      --workdir /app \
+                      --user=\$(id -u) \
+                      --entrypoint='' \
+                      -e QASE_TESTOPS_API_TOKEN \
+                      -e QASE_TESTOPS_PROJECT="\${QASE_PROJECT}" \
+                      -e QASE_TESTOPS_RUN_ID="\${QASE_RUN_ID}" \
+                      -e QASE_DEBUG=true \\
+                      ${env.IMAGE_NAME}:latest qase-k6-cli runstats -runID "\${QASE_RUN_ID}" > ${env.QASE_RUNSTATS_FILE}
+                  """
+                }
+              }
+              echo "Qase run stats (${env.QASE_RUNSTATS_FILE}):"
+              sh "cat ${env.QASE_RUNSTATS_FILE}"
+            }
+          } else {
+            echo "Skipping Qase run stats: QASE_TESTOPS_PROJECT or QASE_TESTOPS_RUN_ID is invalid."
+          }
+        } catch (Exception e) {
+          echo "Failed to generate Qase run stats: ${e.message}"
+        }
+
+        def runstatsContent = fileExists("dartboard/${env.QASE_RUNSTATS_FILE}") ? readFile("dartboard/${env.QASE_RUNSTATS_FILE}") : ""
+        def envData = []
+        if (baseURL) {
+          envData.add("RANCHER_URL='${baseURL}'")
+        }
+        if (rancherVersion) {
+          envData.add("RANCHER_VERSION='${rancherVersion}'")
+        }
+        if (kubernetesVersion) {
+          envData.add("KUBERNETES_VERSION='${kubernetesVersion}'")
+        }
+        if (accessLogLink) {
+          envData.add("ACCESS_LOG_URL='${accessLogLink}'")
+        }
+        def extraStats = envData.join('\n')
+        writeFile file: "dartboard/${env.QASE_RUNSTATS_FILE}", text: "${runstatsContent}\n${extraStats}".trim() + "\n"
+
         echo "Archiving k6 test results..."
         archiveArtifacts artifacts: """
           dartboard/*.json,
           dartboard/*.log,
           dartboard/*.html,
           dartboard/*.xml,
-        """.trim(), fingerprint: true
+          dartboard/${env.QASE_RUNSTATS_FILE}
+        """.trim(), fingerprint: true, allowEmptyArchive: true
 
         // The k6 container is run with --rm, so it should clean itself up.
         // But if the job is aborted, the container might be left running.
@@ -368,6 +438,12 @@ ${safeK6Env}
           echo "Could not remove containers matching 'dartboard-qase-reporter'. Details: ${e.message}"
         }
         try {
+          echo "Attempting to remove container: dartboard-qase-runstats"
+          sh "docker rm -f dartboard-qase-runstats"
+        } catch (e) {
+          echo "Could not remove container 'dartboard-qase-runstats'. Details: ${e.message}"
+        }
+        try {
           echo "Attempting to remove image: ${env.IMAGE_NAME}:latest"
           sh "docker rmi -f ${env.IMAGE_NAME}:latest"
           echo "Attempting to remove image: amazon/aws-cli:${env.AWS_CLI_VERSION}@${env.AWS_CLI_DIGEST}"
@@ -389,6 +465,7 @@ ${safeK6Env}
           echo "Removing all non-artifact files and directories..."
           find . -mindepth 1 -maxdepth 1 \\
             -not -name '*.html' -not -name '*.json' -not -name '*.log' -not -name '*.xml' \\
+            -not -name "${env.QASE_RUNSTATS_FILE}" \\
             -exec rm -rf {} +
         """
       }

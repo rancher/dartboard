@@ -101,8 +101,9 @@ func main() {
 		fmt.Println("Subcommands:")
 		fmt.Println("  report\tParses k6 metrics/summary and reports the result to Qase.")
 		fmt.Println("  gather\tRetrieves test cases from a Qase test run and outputs the 'AutomationTestName' custom field value for each case.")
+		fmt.Println("  runstats\tFetches aggregate pass/fail stats for a Qase test run.")
 		fmt.Println()
-		logrus.Fatal("expected 'report' or 'gather' subcommands")
+		logrus.Fatal("expected 'report', 'gather', or 'runstats' subcommands")
 	}
 
 	switch os.Args[1] {
@@ -117,6 +118,11 @@ func main() {
 		runIDGather := gatherCmd.String("runID", "", "Qase test run ID to gather test cases from.")
 		gatherCmd.Parse(os.Args[2:])
 		runGather(*runIDGather)
+	case "runstats":
+		runstatsCmd := flag.NewFlagSet("runstats", flag.ExitOnError)
+		runIDRunstats := runstatsCmd.String("runID", "", "Qase test run ID to retrieve stats for.")
+		runstatsCmd.Parse(os.Args[2:])
+		getRunStats(*runIDRunstats)
 	default:
 		logrus.Fatalf("Unknown subcommand: %s", os.Args[1])
 	}
