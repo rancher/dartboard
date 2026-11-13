@@ -83,8 +83,8 @@ require (
 	github.com/rancher/tests/actions v0.0.0-20251111162746-32a475483166
 	github.com/rancher/tests/interoperability v0.0.0-00010101000000-000000000000
 	github.com/sirupsen/logrus v1.9.4
-	github.com/urfave/cli/v2 v2.27.7
-	go.yaml.in/yaml/v3 v3.0.4
+	github.com/urfave/cli/v3 v3.14.0
+	go.yaml.in/yaml/v3 v3.0.5
 	k8s.io/api v0.34.5
 	k8s.io/apimachinery v0.34.5
 	k8s.io/client-go v12.0.0+incompatible
@@ -116,7 +116,6 @@ require (
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/creasty/defaults v1.5.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
@@ -222,10 +221,9 @@ require (
 	github.com/spf13/cast v1.9.2 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
+	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
-	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.12 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.14 // indirect
 	go.etcd.io/etcd/client/v2 v2.305.21 // indirect
@@ -254,7 +252,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/validator.v2 v2.0.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.34.3 // indirect
 	k8s.io/apiserver v0.34.3 // indirect
 	k8s.io/cli-runtime v0.34.2 // indirect
