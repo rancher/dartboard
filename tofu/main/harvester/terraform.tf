@@ -3,11 +3,11 @@ terraform {
   required_providers {
     harvester = {
       source  = "harvester/harvester"
-      version = "1.6.0"
+      version = "1.9.0"
     }
     tls = {
       source  = "hashicorp/tls"
-      version = "4.2.1"
+      version = "4.4.2"
     }
     ssh = {
       source  = "loafoe/ssh"

@@ -6,7 +6,7 @@ terraform {
     }
     docker = {
       source  = "kreuzwerker/docker"
-      version = "3.9.0"
+      version = "4.6.0"
     }
   }
 }
@@ -15,7 +15,7 @@ terraform {
 
 resource "docker_image" "mariadb" {
   count        = var.datastore == "mariadb" ? 1 : 0
-  name         = "mariadb:10.11.18-jammy"
+  name         = "mariadb:11.3.2-jammy"
   keep_locally = true
 }
 
@@ -49,7 +49,7 @@ resource "docker_container" "mariadb" {
 
 resource "docker_image" "postgres" {
   count        = var.datastore == "postgres" ? 1 : 0
-  name         = "postgres:15.16-alpine3.23"
+  name         = "postgres:18.7-alpine3.23"
   keep_locally = true
 }
 
