@@ -410,8 +410,8 @@ github.com/qase-tms/qase-go/pkg/qase-go v1.2.0 h1:xO0uJiCqDi2/i+LG0ona9xjScHCECR
 github.com/qase-tms/qase-go/pkg/qase-go v1.2.0/go.mod h1:VEnLPuEfvHk1uSJ4uGv351qn0NLt2Ww2EWYg7Dm3+M8=
 github.com/qase-tms/qase-go/qase-api-client v1.2.13 h1:vSWthc8eJuIsO0WFMEve9ozEJWz3NLo/tXq1bwrMDFM=
 github.com/qase-tms/qase-go/qase-api-client v1.2.13/go.mod h1:Za2AZQxuqkyc09vqHSlnceLjc40zFAAXMwhPPAMptMo=
-github.com/qase-tms/qase-go/qase-api-v2-client v1.1.7 h1:xaN9f+6L2rAlcOw5Er9cn/ZBpbMOlk+bF1VWyMJWAds=
-github.com/qase-tms/qase-go/qase-api-v2-client v1.1.7/go.mod h1:qyIUXyT9ein6Ii2+IUW3R0eXWAJzVj44II05RRMR+wg=
+github.com/qase-tms/qase-go/qase-api-v2-client v1.1.8 h1:+p64TAMF9/RSYBMtPBIU3ZbAGXKVxWrNDiKJLTEsSzA=
+github.com/qase-tms/qase-go/qase-api-v2-client v1.1.8/go.mod h1:qyIUXyT9ein6Ii2+IUW3R0eXWAJzVj44II05RRMR+wg=
 github.com/rancher/aks-operator v1.13.0-rc.4 h1:tc7p2gZmRg4c6VBwWTQJYwmh1hlN68kftjoBIdGCnqw=
 github.com/rancher/aks-operator v1.13.0-rc.4/go.mod h1:1ZjZB6zGHK+NGchN9KLplq+xPxRRi+q6Uzet5bjFwxo=
 github.com/rancher/ali-operator v1.13.0-rc.2 h1:a0biHGez+Np9XybJVh3yKN4RGPdaCzfM6D6cAXJac6o=
