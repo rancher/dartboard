@@ -17,6 +17,7 @@ limitations under the License.
 package subcommands
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -33,7 +34,7 @@ import (
 	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/rancher/shepherd/clients/rancher"
 	"github.com/rancher/shepherd/pkg/session"
-	cli "github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v3"
 
 	"github.com/sirupsen/logrus"
 
@@ -69,9 +70,9 @@ const (
 	nsCattleMonitoringSystem = "cattle-monitoring-system"
 )
 
-func Deploy(cli *cli.Context) error {
+func Deploy(ctx context.Context, cli *cli.Command) error {
 	// Tofu
-	tf, r, err := prepare(cli)
+	tf, r, err := prepare(ctx, cli)
 	if err != nil {
 		return err
 	}
@@ -172,11 +173,11 @@ func Deploy(cli *cli.Context) error {
 		}
 	}
 
-	return GetAccess(cli)
+	return GetAccess(ctx, cli)
 }
 
 // applyTofuChanges applies or outputs Terraform/Tofu changes
-func applyTofuChanges(cli *cli.Context, tf *tofu.Tofu) error {
+func applyTofuChanges(cli *cli.Command, tf *tofu.Tofu) error {
 	skipRefresh := cli.Bool(ArgSkipRefresh)
 
 	if !cli.Bool(ArgSkipApply) {

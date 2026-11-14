@@ -17,6 +17,7 @@ limitations under the License.
 package subcommands
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -24,7 +25,7 @@ import (
 	"github.com/rancher/dartboard/internal/docker"
 	"github.com/rancher/dartboard/internal/k3d"
 	"github.com/rancher/dartboard/internal/vendored"
-	cli "github.com/urfave/cli/v2"
+	cli "github.com/urfave/cli/v3"
 
 	"github.com/rancher/dartboard/internal/dart"
 	"github.com/rancher/dartboard/internal/kubectl"
@@ -50,7 +51,7 @@ type clusterAddresses struct {
 }
 
 // prepare prepares tofu for execution and parses a dart file from the command line context
-func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
+func prepare(ctx context.Context, cli *cli.Command) (*tofu.Tofu, *dart.Dart, error) {
 	dartPath := cli.String(ArgDart)
 
 	d, err := dart.Parse(dartPath)

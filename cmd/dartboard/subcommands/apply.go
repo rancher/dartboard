@@ -16,10 +16,14 @@ limitations under the License.
 
 package subcommands
 
-import cli "github.com/urfave/cli/v2"
+import (
+	"context"
 
-func Apply(cli *cli.Context) error {
-	tf, _, err := prepare(cli)
+	cli "github.com/urfave/cli/v3"
+)
+
+func Apply(ctx context.Context, cli *cli.Command) error {
+	tf, _, err := prepare(ctx, cli)
 	if err != nil {
 		return err
 	}
@@ -34,5 +38,5 @@ func Apply(cli *cli.Context) error {
 		return err
 	}
 
-	return GetAccess(cli)
+	return GetAccess(ctx, cli)
 }
