@@ -230,6 +230,7 @@ func main() {
 		},
 		Commands: appCommands(),
 	}
+
 	ctx := context.Background()
 	if err := app.Run(ctx, os.Args); err != nil {
 		if exitErr, ok := err.(cli.ExitCoder); ok {
