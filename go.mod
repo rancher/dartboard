@@ -72,7 +72,7 @@ replace (
 
 require (
 	al.essio.dev/pkg/shellescape v1.6.0
-	github.com/harvester/harvester v1.9.0
+	github.com/harvester/harvester v1.8.0
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/minio/pkg/v3 v3.11.0
 	github.com/qase-tms/qase-go/pkg/qase-go v1.2.0
@@ -88,7 +88,7 @@ require (
 	k8s.io/api v0.34.5
 	k8s.io/apimachinery v0.34.5
 	k8s.io/client-go v12.0.0+incompatible
-	kubevirt.io/api v1.9.1
+	kubevirt.io/api v1.7.0
 )
 
 require (
@@ -110,7 +110,7 @@ require (
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/cisco-open/operator-tools v0.37.0 // indirect
 	github.com/containerd/cgroups/v3 v3.0.5 // indirect
-	github.com/containerd/containerd v1.7.36 // indirect
+	github.com/containerd/containerd v1.7.28 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
@@ -165,7 +165,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7 // indirect
-	github.com/k8snetworkplumbingwg/whereabouts v0.9.4 // indirect
+	github.com/k8snetworkplumbingwg/whereabouts v0.9.3 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/kube-logging/logging-operator v0.0.0-20250424202944-7e1f9aad6e21 // indirect
 	github.com/kube-logging/logging-operator/pkg/sdk v0.12.0 // indirect
@@ -246,9 +246,9 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
-	google.golang.org/grpc v1.83.2 // indirect
+	google.golang.org/grpc v1.81.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
+	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/validator.v2 v2.0.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -263,12 +263,12 @@ require (
 	k8s.io/kubectl v0.34.1 // indirect
 	k8s.io/kubernetes v1.34.2 // indirect
 	k8s.io/pod-security-admission v0.34.1 // indirect
-	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5 // indirect
+	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
 	kubevirt.io/containerized-data-importer-api v1.64.0 // indirect
 	kubevirt.io/controller-lifecycle-operator-sdk/api v0.2.4 // indirect
 	sigs.k8s.io/cli-utils v0.37.2 // indirect
 	sigs.k8s.io/cluster-api v1.10.6 // indirect
-	sigs.k8s.io/controller-runtime v0.22.4 // indirect
+	sigs.k8s.io/controller-runtime v0.22.3 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kustomize/api v0.20.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.20.1 // indirect
