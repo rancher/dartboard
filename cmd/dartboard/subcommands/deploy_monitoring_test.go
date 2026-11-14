@@ -9,23 +9,29 @@ import (
 func TestMonitoringNodeExporterAndReservedNodeScheduling(t *testing.T) {
 	for _, reserved := range []bool{false, true} {
 		legacy := getRancherMonitoringValsJSON(reserved, "")
+
 		stack := getKubePrometheusStackVals(reserved, false, false, "", "")
 		for _, values := range []map[string]any{legacy, stack} {
 			exporter := values["prometheus-node-exporter"].(map[string]any)
 			if !reflect.DeepEqual(exporter["nodeSelector"], map[string]any{"kubernetes.io/os": "linux"}) {
 				t.Fatalf("reserved=%t: node exporter must cover all Linux nodes: %#v", reserved, exporter)
 			}
+
 			if !reflect.DeepEqual(exporter["tolerations"], []any{map[string]any{"operator": "Exists"}}) {
 				t.Fatalf("reserved=%t: node exporter must tolerate control-plane and monitoring taints", reserved)
 			}
 		}
+
 		wantSelector := map[string]any{}
 		wantTolerations := []any{}
+
 		if reserved {
 			wantSelector["monitoring"] = "true"
 			wantTolerations = []any{map[string]any{"key": "monitoring", "operator": "Exists", "effect": "NoSchedule"}}
 		}
+
 		operator := stack["prometheusOperator"].(map[string]any)
+
 		webhooks := operator["admissionWebhooks"].(map[string]any)
 		for _, component := range []map[string]any{
 			stack["grafana"].(map[string]any),
