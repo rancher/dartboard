@@ -11,6 +11,7 @@ You may obtain a copy of the License at
 package subcommands
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -27,8 +28,8 @@ const (
 	ArgCPUDuration         = "cpu-duration"
 )
 
-func CollectProfiles(c *cli.Context) error {
-	tf, d, err := prepare(c)
+func CollectProfiles(ctx context.Context, cli *cli.Command) error {
+	tf, d, err := prepare(ctx, cli)
 	if err != nil {
 		return err
 	}
@@ -43,18 +44,18 @@ func CollectProfiles(c *cli.Context) error {
 		return fmt.Errorf("upstream cluster kubeconfig is empty; cannot reach Rancher pods")
 	}
 
-	cfg, err := profiles.ParseConfig(c.String(ArgDiagnosticsFor), c.String(ArgDiagnosticsInterval), c.String(ArgProfiles), c.String(ArgCPUDuration))
+	cfg, err := profiles.ParseConfig(cli.String(ArgDiagnosticsFor), cli.String(ArgDiagnosticsInterval), cli.String(ArgProfiles), cli.String(ArgCPUDuration))
 	if err != nil {
 		return err
 	}
 
-	outDir := resolveProfilesOutputDir(c, d.TofuWorkspace)
+	outDir := resolveProfilesOutputDir(cli, d.TofuWorkspace)
 
-	return profiles.Collect(upstream.Kubeconfig, c.String(ArgDart), d.TofuWorkspace, cfg, outDir)
+	return profiles.Collect(upstream.Kubeconfig, cli.String(ArgDart), d.TofuWorkspace, cfg, outDir)
 }
 
-func resolveProfilesOutputDir(c *cli.Context, workspace string) string {
-	if s := c.String(ArgDiagnosticsOutput); s != "" {
+func resolveProfilesOutputDir(cli *cli.Command, workspace string) string {
+	if s := cli.String(ArgDiagnosticsOutput); s != "" {
 		return s
 	}
 

@@ -11,6 +11,7 @@ You may obtain a copy of the License at
 package subcommands
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -23,8 +24,8 @@ const (
 	ArgApps = "apps"
 )
 
-func CollectLogs(c *cli.Context) error {
-	tf, d, err := prepare(c)
+func CollectLogs(ctx context.Context, cli *cli.Command) error {
+	tf, d, err := prepare(ctx, cli)
 	if err != nil {
 		return err
 	}
@@ -39,18 +40,18 @@ func CollectLogs(c *cli.Context) error {
 		return fmt.Errorf("upstream cluster kubeconfig is empty; cannot reach Rancher pods")
 	}
 
-	cfg, err := logs.ParseConfig(c.String(ArgDiagnosticsFor), c.String(ArgDiagnosticsInterval), c.String(ArgApps))
+	cfg, err := logs.ParseConfig(cli.String(ArgDiagnosticsFor), cli.String(ArgDiagnosticsInterval), cli.String(ArgApps))
 	if err != nil {
 		return err
 	}
 
-	outDir := resolveLogsOutputDir(c, d.TofuWorkspace)
+	outDir := resolveLogsOutputDir(cli, d.TofuWorkspace)
 
-	return logs.Collect(upstream.Kubeconfig, c.String(ArgDart), d.TofuWorkspace, cfg, outDir)
+	return logs.Collect(upstream.Kubeconfig, cli.String(ArgDart), d.TofuWorkspace, cfg, outDir)
 }
 
-func resolveLogsOutputDir(c *cli.Context, workspace string) string {
-	if s := c.String(ArgDiagnosticsOutput); s != "" {
+func resolveLogsOutputDir(cli *cli.Command, workspace string) string {
+	if s := cli.String(ArgDiagnosticsOutput); s != "" {
 		return s
 	}
 

@@ -17,14 +17,15 @@ limitations under the License.
 package subcommands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/rancher/dartboard/internal/actions"
 	cli "github.com/urfave/cli/v3"
 )
 
-func Destroy(cli *cli.Context) error {
-	tf, r, err := prepare(cli)
+func Destroy(ctx context.Context, cli *cli.Command) error {
+	tf, r, err := prepare(ctx, cli)
 	if err != nil {
 		return err
 	}

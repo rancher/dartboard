@@ -17,6 +17,7 @@ limitations under the License.
 package subcommands
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -24,8 +25,8 @@ import (
 	cli "github.com/urfave/cli/v3"
 )
 
-func GetAccess(cli *cli.Context) error {
-	tf, r, err := prepare(cli)
+func GetAccess(ctx context.Context, cli *cli.Command) error {
+	tf, r, err := prepare(ctx, cli)
 	if err != nil {
 		return err
 	}

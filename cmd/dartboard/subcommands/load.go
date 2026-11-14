@@ -17,6 +17,7 @@ limitations under the License.
 package subcommands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -41,8 +42,8 @@ func (e *thresholdsExitError) ExitCode() int { return e.code }
 // TODO: Make this command idempotent. Get count (# of resources) matching some unique identifier.
 // Then rerun the appropriate script, passing in the index to leave off on.
 // * Scripts need to support this type of idempotency, they currently do not
-func Load(cli *cli.Context) error {
-	tf, r, err := prepare(cli)
+func Load(ctx context.Context, cli *cli.Command) error {
+	tf, r, err := prepare(ctx, cli)
 	if err != nil {
 		return err
 	}

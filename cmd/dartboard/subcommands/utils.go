@@ -17,6 +17,7 @@ limitations under the License.
 package subcommands
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -50,7 +51,7 @@ type clusterAddresses struct {
 }
 
 // prepare prepares tofu for execution and parses a dart file from the command line context
-func prepare(cli *cli.Context) (*tofu.Tofu, *dart.Dart, error) {
+func prepare(ctx context.Context, cli *cli.Command) (*tofu.Tofu, *dart.Dart, error) {
 	dartPath := cli.String(ArgDart)
 
 	d, err := dart.Parse(dartPath)

@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"path/filepath"
@@ -215,7 +216,7 @@ func collectLogsCommand() *cli.Command {
 }
 
 func main() {
-	app := &cli.App{
+	app := &cli.Command{
 		Usage:     "setup and test Rancher (at scale if needed)",
 		Copyright: "(c) 2024 SUSE LLC",
 		Flags: []cli.Flag{
@@ -224,13 +225,13 @@ func main() {
 				Aliases: []string{"d"},
 				Value:   filepath.Join("darts", "k3d.yaml"),
 				Usage:   "dart to use",
-				EnvVars: []string{"DART"},
+				Sources: cli.EnvVars("DART"),
 			},
 		},
 		Commands: appCommands(),
 	}
-
-	if err := app.Run(os.Args); err != nil {
+	ctx := context.Background()
+	if err := app.Run(ctx, os.Args); err != nil {
 		if exitErr, ok := err.(cli.ExitCoder); ok {
 			log.Print(err)
 			os.Exit(exitErr.ExitCode())

@@ -17,6 +17,7 @@ limitations under the License.
 package subcommands
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -27,7 +28,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func handleTimeInputs(cli *cli.Context) (int64, int64, int64, error) {
+func handleTimeInputs(ctx context.Context, cli *cli.Command) (int64, int64, int64, error) {
 	// Handle time inputs
 	startTimeStr := cli.String("start-time")
 	endTimeStr := cli.String("end-time")
@@ -84,8 +85,8 @@ func handleTimeInputs(cli *cli.Context) (int64, int64, int64, error) {
 	return fromSeconds, toSeconds, offsetSeconds, nil
 }
 
-func Summarize(cli *cli.Context) error {
-	tf, _, err := prepare(cli)
+func Summarize(ctx context.Context, cli *cli.Command) error {
+	tf, _, err := prepare(ctx, cli)
 	if err != nil {
 		return err
 	}
@@ -130,8 +131,6 @@ func Summarize(cli *cli.Context) error {
 		}
 	}()
 
-	ctx := cli.Context
-
 	// Run Tools
 	if profiles {
 		fmt.Println(">>> Running collect-profile...")
@@ -166,7 +165,7 @@ func Summarize(cli *cli.Context) error {
 			Selector:   cli.String("query"),
 		}
 
-		from, to, offset, err := handleTimeInputs(cli)
+		from, to, offset, err := handleTimeInputs(ctx, cli)
 		if err != nil {
 			return err
 		}

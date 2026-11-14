@@ -16,13 +16,17 @@ limitations under the License.
 
 package subcommands
 
-import cli "github.com/urfave/cli/v3"
+import (
+	"context"
 
-func Reapply(c *cli.Context) error {
-	err := Destroy(c)
+	cli "github.com/urfave/cli/v3"
+)
+
+func Reapply(ctx context.Context, cli *cli.Command) error {
+	err := Destroy(ctx, cli)
 	if err != nil {
 		return err
 	}
 
-	return Apply(c)
+	return Apply(ctx, cli)
 }
