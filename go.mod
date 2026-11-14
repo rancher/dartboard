@@ -71,7 +71,7 @@ replace (
 )
 
 require (
-	al.essio.dev/pkg/shellescape v1.6.0
+	al.essio.dev/pkg/shellescape v1.6.1
 	github.com/qase-tms/qase-go/pkg/qase-go v1.2.0
 	github.com/qase-tms/qase-go/qase-api-client v1.2.10
 	github.com/qase-tms/qase-go/qase-api-v2-client v1.1.7
