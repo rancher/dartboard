@@ -17,13 +17,13 @@ replace (
 	github.com/rancher/tests/actions => github.com/git-ival/rancher-tests/actions v0.0.0-20251223194020-57770a8f364f
 	github.com/rancher/tests/interoperability => github.com/git-ival/rancher-tests/interoperability v0.0.0-20251223194020-57770a8f364f
 
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.70.0
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0
-	go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.45.0
-	go.opentelemetry.io/otel/metric => go.opentelemetry.io/otel/metric v1.45.0
-	go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.45.0
-	go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.45.0
-	go.opentelemetry.io/proto/otlp => go.opentelemetry.io/proto/otlp v1.3.1
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.72.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0
+	go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.47.0
+	go.opentelemetry.io/otel/metric => go.opentelemetry.io/otel/metric v1.47.0
+	go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.47.0
+	go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.47.0
+	go.opentelemetry.io/proto/otlp => go.opentelemetry.io/proto/otlp v1.11.1
 
 	helm.sh/helm/v3 => github.com/rancher/helm/v3 v3.16.1-rancher1
 	k8s.io/api => k8s.io/api v0.37.2
@@ -210,8 +210,8 @@ require (
 	go.etcd.io/etcd/client/v2 v2.305.21 // indirect
 	go.etcd.io/etcd/client/v3 v3.7.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	go.opentelemetry.io/otel v1.45.0 // indirect
-	go.opentelemetry.io/otel/trace v1.45.0 // indirect
+	go.opentelemetry.io/otel v1.47.0 // indirect
+	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
