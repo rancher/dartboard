@@ -47,6 +47,16 @@
       "extends": [
         "github>rancher/renovate-config//rancher-2.12#release"
       ]
+    },
+    {
+      "matchBaseBranches": [
+        "main",
+        "release/v2.15",
+        "release/v2.14",
+        "release/v2.13",
+        "release/v2.12"
+      ],
+      "extends": ["github>rancher/renovate-config//automerge#release"]
     }
   ]
 }
