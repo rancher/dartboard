@@ -81,7 +81,7 @@ require (
 	github.com/rancher/tests/interoperability v0.0.0-00010101000000-000000000000
 	github.com/sirupsen/logrus v1.9.4
 	github.com/urfave/cli/v3 v3.14.0
-	go.yaml.in/yaml/v3 v3.0.5
+	go.yaml.in/yaml/v3 v3.0.6
 	k8s.io/api v0.37.2
 	k8s.io/apimachinery v0.37.2
 	k8s.io/client-go v12.0.0+incompatible
