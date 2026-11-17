@@ -26,11 +26,11 @@ To recreate environments:
 There is some manual configuration required in order to use an existing AWS VPC instead of having the tofu modules create a full set of networking resources.
 
 1. Have an existing VPC with a DHCP options set configured so that DNS = "AmazonProvidedDNS".
-2. Create three subnets, requirements are as follows:
-   1. One subnet should contain the substring "public" (case-sensitive), and should be tagged with `Tier = Public` (case-sensitive)
-   2. One subnet should contain the substring "private" (case-sensitive), and should be tagged with `Tier = Private` (case-sensitive)
-   3. One subnet should contain the substring "secondary-private" (case-sensitive), and should be tagged with `Tier = SecondaryPrivate` (case-sensitive)
-   4. Each subnet should be assigned to the VPC you intend to use
+2. Create two subnets in the VPC, both in the `availability_zone` set in your Dart file. Tag keys and values are matched case-insensitively, and each subnet needs only ONE of the two tags:
+   1. Public subnet: a `Name` tag containing the substring "public", OR the tag `Tier = Public`
+   2. Private subnet: a `Name` tag containing the substring "private", OR the tag `Tier = Private`
+   3. Each subnet must have a single role. A subnet whose tags indicate both public and private (e.g. `Name = my-public-private` or `Name = private-a` with `Tier = Public`) is ignored, and so is a subnet whose `Name` contains "secondary" or that is tagged `Tier = SecondaryPrivate`
+   4. If several subnets match the same role, the first one by subnet ID (lexical order) is selected
 
 Once these resources are manually setup, you can set the `existing_vpc_name` tofu variable in your Dart file and deploy as you normally would.
 
