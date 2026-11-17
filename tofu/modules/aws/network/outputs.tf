@@ -1,4 +1,18 @@
 output "config" {
+  # Fail the plan with a clear message when an existing VPC lacks a matching subnet
+  precondition {
+    condition     = local.create_vpc || local.existing_public_subnet_id != null
+    error_message = "No public subnet found in VPC '${coalesce(var.existing_vpc_name, "<unset>")}', AZ '${var.availability_zone}': need a Name tag containing \"public\" or tag Tier = Public."
+  }
+  precondition {
+    condition     = local.create_vpc || local.existing_private_subnet_id != null
+    error_message = "No private subnet found in VPC '${coalesce(var.existing_vpc_name, "<unset>")}', AZ '${var.availability_zone}': need a Name tag containing \"private\" or tag Tier = Private."
+  }
+  precondition {
+    condition     = local.create_vpc || var.secondary_availability_zone == null || local.existing_secondary_private_subnet_id != null
+    error_message = "No secondary private subnet found in VPC '${coalesce(var.existing_vpc_name, "<unset>")}', AZ '${coalesce(var.secondary_availability_zone, "<unset>")}': need a Name tag containing \"secondary\" and \"private\" or tag Tier = SecondaryPrivate."
+  }
+
   value = {
     availability_zone : var.availability_zone,
     public_subnet_id : local.public_subnet_id,

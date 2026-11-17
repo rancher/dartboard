@@ -25,30 +25,31 @@ locals {
     }
   }
 
-  existing_public_subnet_id = one([
+  # Map keys iterate in lexical order, so each lookup picks the first matching subnet ID
+  existing_public_subnet_id = try([
     for subnet_id, subnet in local.existing_subnets : subnet_id
     if subnet.availability_zone == var.availability_zone &&
     (lookup(subnet.tags, "tier", "") == "public" ||
     strcontains(lookup(subnet.tags, "name", ""), "public"))
-  ])
-  existing_private_subnet_id = one([
+  ][0], null)
+  existing_private_subnet_id = try([
     for subnet_id, subnet in local.existing_subnets : subnet_id
     if subnet.availability_zone == var.availability_zone &&
     (lookup(subnet.tags, "tier", "") == "private" ||
     strcontains(lookup(subnet.tags, "name", ""), "private"))
-  ])
-  existing_secondary_private_subnet_id = one([
+  ][0], null)
+  existing_secondary_private_subnet_id = try([
     for subnet_id, subnet in local.existing_subnets : subnet_id
     if var.secondary_availability_zone != null &&
     subnet.availability_zone == var.secondary_availability_zone &&
     (lookup(subnet.tags, "tier", "") == "secondaryprivate" ||
       ((strcontains(lookup(subnet.tags, "name", ""), "secondary") &&
     strcontains(lookup(subnet.tags, "name", ""), "private"))))
-  ])
+  ][0], null)
 
-  public_subnet_id            = coalesce(one(aws_subnet.public[*].id), local.existing_public_subnet_id)
-  private_subnet_id           = coalesce(one(aws_subnet.private[*].id), local.existing_private_subnet_id)
-  secondary_private_subnet_id = (local.create_vpc && var.secondary_availability_zone != null) ? aws_subnet.secondary_private[0].id : (!local.create_vpc && var.secondary_availability_zone != null) ? local.existing_secondary_private_subnet_id : null
+  public_subnet_id            = local.create_vpc ? aws_subnet.public[0].id : local.existing_public_subnet_id
+  private_subnet_id           = local.create_vpc ? aws_subnet.private[0].id : local.existing_private_subnet_id
+  secondary_private_subnet_id = var.secondary_availability_zone == null ? null : local.create_vpc ? aws_subnet.secondary_private[0].id : local.existing_secondary_private_subnet_id
 
   create_vpc = var.existing_vpc_name == null
   myip       = "${chomp(data.http.myip.response_body)}/32"
