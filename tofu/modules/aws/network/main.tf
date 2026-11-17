@@ -34,11 +34,11 @@ locals {
     }
   }
 
-  # Subnets tagged as both public and private are ambiguous and never selected; secondary subnets never fill the private role.
+  # Subnets tagged as both public and private are ambiguous and never selected; secondary subnets never fill the public or private role.
   # Map keys iterate in lexical order, so each lookup picks the first matching subnet ID
   existing_public_subnet_id = try([
     for subnet_id, subnet in local.existing_subnet_roles : subnet_id
-    if subnet.availability_zone == var.availability_zone && subnet.public && !subnet.private
+    if subnet.availability_zone == var.availability_zone && subnet.public && !subnet.private && !subnet.secondary
   ][0], null)
   existing_private_subnet_id = try([
     for subnet_id, subnet in local.existing_subnet_roles : subnet_id
