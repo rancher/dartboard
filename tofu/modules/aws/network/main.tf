@@ -16,6 +16,7 @@ locals {
   vpc_cidr_block      = coalesce(one(aws_vpc.main[*].cidr_block), one(data.aws_vpc.existing[*].cidr_block))
   internet_gateway_id = coalesce(one(aws_internet_gateway.main[*].id), one(data.aws_internet_gateway.existing[*].id))
 
+  # Tag keys and values are normalized to lowercase. A subnet matches a role via its Tier tag OR its Name tag
   existing_subnets = {
     for subnet_id, subnet in data.aws_subnet.existing : subnet_id => {
       availability_zone = subnet.availability_zone
@@ -24,27 +25,29 @@ locals {
       }
     }
   }
+  existing_subnet_roles = {
+    for subnet_id, subnet in local.existing_subnets : subnet_id => {
+      availability_zone = subnet.availability_zone
+      public            = lookup(subnet.tags, "tier", "") == "public" || strcontains(lookup(subnet.tags, "name", ""), "public")
+      private           = contains(["private", "secondaryprivate"], lookup(subnet.tags, "tier", "")) || strcontains(lookup(subnet.tags, "name", ""), "private")
+      secondary         = lookup(subnet.tags, "tier", "") == "secondaryprivate" || strcontains(lookup(subnet.tags, "name", ""), "secondary")
+    }
+  }
 
+  # Subnets tagged as both public and private are ambiguous and never selected; secondary subnets never fill the private role.
   # Map keys iterate in lexical order, so each lookup picks the first matching subnet ID
   existing_public_subnet_id = try([
-    for subnet_id, subnet in local.existing_subnets : subnet_id
-    if subnet.availability_zone == var.availability_zone &&
-    (lookup(subnet.tags, "tier", "") == "public" ||
-    strcontains(lookup(subnet.tags, "name", ""), "public"))
+    for subnet_id, subnet in local.existing_subnet_roles : subnet_id
+    if subnet.availability_zone == var.availability_zone && subnet.public && !subnet.private
   ][0], null)
   existing_private_subnet_id = try([
-    for subnet_id, subnet in local.existing_subnets : subnet_id
-    if subnet.availability_zone == var.availability_zone &&
-    (lookup(subnet.tags, "tier", "") == "private" ||
-    strcontains(lookup(subnet.tags, "name", ""), "private"))
+    for subnet_id, subnet in local.existing_subnet_roles : subnet_id
+    if subnet.availability_zone == var.availability_zone && subnet.private && !subnet.public && !subnet.secondary
   ][0], null)
   existing_secondary_private_subnet_id = try([
-    for subnet_id, subnet in local.existing_subnets : subnet_id
-    if var.secondary_availability_zone != null &&
-    subnet.availability_zone == var.secondary_availability_zone &&
-    (lookup(subnet.tags, "tier", "") == "secondaryprivate" ||
-      ((strcontains(lookup(subnet.tags, "name", ""), "secondary") &&
-    strcontains(lookup(subnet.tags, "name", ""), "private"))))
+    for subnet_id, subnet in local.existing_subnet_roles : subnet_id
+    if var.secondary_availability_zone != null && subnet.availability_zone == var.secondary_availability_zone &&
+    subnet.secondary && subnet.private && !subnet.public
   ][0], null)
 
   public_subnet_id            = local.create_vpc ? aws_subnet.public[0].id : local.existing_public_subnet_id
