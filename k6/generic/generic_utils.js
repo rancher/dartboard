@@ -149,7 +149,6 @@ export function createDeployment(baseUrl, cookies, clusterId, namespace, iter) {
 
 }
 
-
 String.prototype.toPascalCase = function toPascalCase(useSpaces = false) {
   return this
     .match(/[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+/g)
@@ -179,8 +178,6 @@ export function getRandomElements(arr, count) {
   return shuffled.slice(0, count);
 }
 
-
-
 export function createStorageClass(baseUrl, cookies, clusterId, iter){
 
     const name = `test-storage-class-${iter}`
@@ -209,4 +206,13 @@ export function createStorageClass(baseUrl, cookies, clusterId, iter){
     check(res, {
         '/v1/storage.k8s.io.storageclasses returns status 201': (r) => r.status === 201,
     })
+}
+
+export function stringify(obj) {
+  try {
+    return JSON.stringify(obj, null, 2);
+  } catch (e) {
+    console.error("Failed to stringify object:", e);
+    return null;
+  }
 }
