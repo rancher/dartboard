@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/rancher/dartboard/internal/tofu"
-	yaml "go.yaml.in/yaml/v3"
+	yaml "go.yaml.in/yaml/v4"
 )
 
 // Dart is a "recipe" that encodes all parameters for a test run
