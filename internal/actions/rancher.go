@@ -117,7 +117,7 @@ func ProvisionClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, ran
 		}
 
 		// Create and run a batch runner for this batch of templates
-		batchRunner := NewSequencedBatchRunner[dart.ClusterTemplate](len(batchTemplates))
+		batchRunner := NewSequencedBatchRunner[dart.ClusterTemplate](len(batchTemplates), r.PodStatusTimeout)
 
 		err := batchRunner.Run(batchTemplates, statuses, clusterStatePath, rancherClient, nil)
 		if err != nil {
@@ -237,7 +237,7 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, rancherClien
 		j := min(i+r.ClusterBatchSize, len(clusters))
 		batch := clusters[i:j]
 
-		batchRunner := NewSequencedBatchRunner[tofu.Cluster](len(batch))
+		batchRunner := NewSequencedBatchRunner[tofu.Cluster](len(batch), r.PodStatusTimeout)
 
 		err := batchRunner.Run(batch, statuses, clusterStatePath, rancherClient, rancherConfig)
 		if err != nil {
@@ -367,7 +367,17 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 		return false, err
 	}
 
-	cs.Imported = true
+	// Verify pod health *before* recording the Imported stage.
+	podErrors := StatusPodsWithTimeout(rancherClient, updatedCluster.Status.ClusterName, br.PodStatusTimeout)
+	if len(podErrors) > 0 {
+		errorStrings := make([]string, len(podErrors))
+		for i, e := range podErrors {
+			errorStrings[i] = e.Error()
+		}
+
+		return false, fmt.Errorf("error while checking Status of Pods in Cluster %s after %s:\n%s",
+			updatedCluster.Status.ClusterName, br.PodStatusTimeout, strings.Join(errorStrings, "\n"))
+	}
 
 	<-br.seqCh
 
@@ -376,16 +386,6 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 	br.seqCh <- struct{}{}
 
 	logrus.Infof("Cluster named %s was imported.", updatedCluster.Name)
-
-	podErrors := StatusPodsWithTimeout(rancherClient, updatedCluster.Status.ClusterName, shepherddefaults.OneMinuteTimeout)
-	if len(podErrors) > 0 {
-		errorStrings := make([]string, len(podErrors))
-		for i, e := range podErrors {
-			errorStrings[i] = e.Error()
-		}
-
-		return false, fmt.Errorf("error while checking Status of Pods in Cluster %s:\n%s", updatedCluster.Status.ClusterName, strings.Join(errorStrings, "\n"))
-	}
 
 	return false, nil
 }
@@ -445,7 +445,7 @@ func RegisterCustomClustersInBatches(r *dart.Dart, template tofu.CustomCluster, 
 		endTemplate := min(startTemplate+r.ClusterBatchSize, len(custom_clusters))
 		batchTemplates := custom_clusters[startTemplate:endTemplate]
 
-		batchRunner := NewSequencedBatchRunner[tofu.CustomCluster](len(batchTemplates))
+		batchRunner := NewSequencedBatchRunner[tofu.CustomCluster](len(batchTemplates), r.PodStatusTimeout)
 
 		err := batchRunner.Run(batchTemplates, statuses, clusterStatePath, rancherClient, rancherConfig)
 		if err != nil {

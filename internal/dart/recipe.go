@@ -7,10 +7,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/rancher/dartboard/internal/tofu"
 	yaml "go.yaml.in/yaml/v3"
 )
+
+// DefaultPodStatusTimeout is the default value for Dart.PodStatusTimeout.
+const DefaultPodStatusTimeout = 5 * time.Minute
 
 // Dart is a "recipe" that encodes all parameters for a test run
 type Dart struct {
@@ -24,6 +28,11 @@ type Dart struct {
 	TestVariables          TestVariables     `yaml:"test_variables"`
 	TofuParallelism        int               `yaml:"tofu_parallelism"`
 	ClusterBatchSize       int               `yaml:"cluster_batch_size"`
+	// PodStatusTimeout bounds how long Dartboard waits, per imported cluster, for
+	// every pod to report Ready through Rancher's cluster proxy. Clusters reached
+	// over a tunnel or a slow link routinely need more than the previous
+	// hardcoded one minute.
+	PodStatusTimeout time.Duration `yaml:"pod_status_timeout"`
 }
 
 type ClusterTemplate struct {
@@ -70,8 +79,9 @@ type TestVariables struct {
 
 func defaultDart() Dart {
 	return Dart{
-		TofuParallelism: 10,
-		TofuVariables:   map[string]any{},
+		TofuParallelism:  10,
+		TofuVariables:    map[string]any{},
+		PodStatusTimeout: DefaultPodStatusTimeout,
 		ChartVariables: ChartVariables{
 			EnableIPv6:                  false,
 			RancherReplicas:             1,
@@ -122,6 +132,12 @@ func Parse(path string) (*Dart, error) {
 	result.ChartVariables.CertManagerVersion = normalizeVersion(result.ChartVariables.CertManagerVersion)
 	result.ChartVariables.TesterGrafanaVersion = normalizeVersion(result.ChartVariables.TesterGrafanaVersion)
 	result.ChartVariables.ForcePrimeRegistry = result.ChartVariables.ForcePrimeRegistry || needsPrime(result.ChartVariables.RancherVersion)
+
+	// A dart that omits pod_status_timeout, or sets it to a non-positive value,
+	// gets the default.
+	if result.PodStatusTimeout <= 0 {
+		result.PodStatusTimeout = DefaultPodStatusTimeout
+	}
 
 	return &result, nil
 }
