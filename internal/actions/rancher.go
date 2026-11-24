@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -28,9 +29,13 @@ import (
 
 	provv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const fleetNamespace = "fleet-default"
+
+// clusterImportTimeout bounds the wait for Ready+Connected so a cluster with a broken agent fails instead of hanging for hours.
+const clusterImportTimeout = 10 * time.Minute
 
 func NewRancherConfig(host, adminToken, adminPassword string, insecure bool) rancher.Config {
 	defaultBool := false
@@ -117,7 +122,7 @@ func ProvisionClustersInBatches(r *dart.Dart, template dart.ClusterTemplate, ran
 		}
 
 		// Create and run a batch runner for this batch of templates
-		batchRunner := NewSequencedBatchRunner[dart.ClusterTemplate](len(batchTemplates))
+		batchRunner := NewSequencedBatchRunner[dart.ClusterTemplate](len(batchTemplates), r.PodStatusTimeout)
 
 		err := batchRunner.Run(batchTemplates, statuses, clusterStatePath, rancherClient, nil)
 		if err != nil {
@@ -237,7 +242,7 @@ func ImportClustersInBatches(r *dart.Dart, clusters []tofu.Cluster, rancherClien
 		j := min(i+r.ClusterBatchSize, len(clusters))
 		batch := clusters[i:j]
 
-		batchRunner := NewSequencedBatchRunner[tofu.Cluster](len(batch))
+		batchRunner := NewSequencedBatchRunner[tofu.Cluster](len(batch), r.PodStatusTimeout)
 
 		err := batchRunner.Run(batch, statuses, clusterStatePath, rancherClient, rancherConfig)
 		if err != nil {
@@ -295,24 +300,61 @@ func performClusterImport(rancherClient *rancher.Client, cluster tofu.Cluster, i
 
 	logrus.Infof("Importing Cluster, ID:%s Name:%s", updatedCluster.Status.ClusterName, updatedCluster.Name)
 
-	err = shepherdclusters.ImportCluster(rancherClient, updatedCluster, restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("error while creating Job for importing Cluster %s:\n%w", updatedCluster.Name, err)
+	id := updatedCluster.Status.ClusterName
+	if id == "" {
+		return nil, fmt.Errorf("cluster %s has no management cluster ID yet", importCluster.Name)
 	}
 
-	err = BackoffWait(100, func() (finished bool, err error) {
+	mgmtCluster, err := rancherClient.Management.Cluster.ByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("error while getting management Cluster by ID %s:\n%w", id, err)
+	}
+
+	if mgmtConditionTrue(mgmtCluster, "AgentDeployed") {
+		logrus.Infof("Agent for Cluster %s was already deployed by Rancher; re-applying the bootstrap manifest would downgrade it, skipping import", id)
+	} else {
+		err = shepherdclusters.ImportCluster(rancherClient, updatedCluster, restConfig)
+		if err != nil {
+			return nil, fmt.Errorf("error while creating Job for importing Cluster %s:\n%w", updatedCluster.Name, err)
+		}
+	}
+
+	err = wait.PollUntilContextTimeout(context.Background(), 5*time.Second, clusterImportTimeout, true, func(ctx context.Context) (bool, error) {
 		updatedCluster, _, err = shepherdclusters.GetProvisioningClusterByName(rancherClient, importCluster.Name, importCluster.Namespace)
 		if err != nil {
 			return false, fmt.Errorf("error while getting Cluster by Name %s in Namespace %s:\n%w", importCluster.Name, importCluster.Namespace, err)
 		}
 
-		return updatedCluster.Status.Ready, nil
+		mc, mcErr := rancherClient.Management.Cluster.ByID(id)
+		if mcErr != nil {
+			logrus.Warnf("transient error while getting management Cluster by ID %s, will retry: %v", id, mcErr)
+
+			return false, nil
+		}
+
+		return updatedCluster.Status.Ready && mgmtConditionTrue(mc, "Connected"), nil
 	})
 	if err != nil {
-		return nil, err
+		if wait.Interrupted(err) {
+			return nil, fmt.Errorf("cluster %s did not become Ready with Connected=True within %s; to force Rancher to redeploy the agent run on the upstream cluster: "+
+				"kubectl annotate clusters.management.cattle.io %s io.cattle.agent.force.deploy=true --overwrite:\n%w", id, clusterImportTimeout, id, err)
+		}
+
+		return nil, fmt.Errorf("error while waiting for cluster %s to become Ready with Connected=True:\n%w", id, err)
 	}
 
 	return updatedCluster, nil
+}
+
+// mgmtConditionTrue reports whether the management cluster has condition condType with Status "True".
+func mgmtConditionTrue(c *management.Cluster, condType string) bool {
+	for _, cond := range c.Conditions {
+		if cond.Type == condType {
+			return cond.Status == "True"
+		}
+	}
+
+	return false
 }
 
 func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluster tofu.Cluster,
@@ -367,7 +409,17 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 		return false, err
 	}
 
-	cs.Imported = true
+	// Verify pod health *before* recording the Imported stage.
+	podErrors := StatusPodsWithTimeout(rancherClient, updatedCluster.Status.ClusterName, br.PodStatusTimeout)
+	if len(podErrors) > 0 {
+		errorStrings := make([]string, len(podErrors))
+		for i, e := range podErrors {
+			errorStrings[i] = e.Error()
+		}
+
+		return false, fmt.Errorf("error while checking Status of Pods in Cluster %s after %s:\n%s",
+			updatedCluster.Status.ClusterName, br.PodStatusTimeout, strings.Join(errorStrings, "\n"))
+	}
 
 	<-br.seqCh
 
@@ -376,16 +428,6 @@ func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluste
 	br.seqCh <- struct{}{}
 
 	logrus.Infof("Cluster named %s was imported.", updatedCluster.Name)
-
-	podErrors := StatusPodsWithTimeout(rancherClient, updatedCluster.Status.ClusterName, shepherddefaults.OneMinuteTimeout)
-	if len(podErrors) > 0 {
-		errorStrings := make([]string, len(podErrors))
-		for i, e := range podErrors {
-			errorStrings[i] = e.Error()
-		}
-
-		return false, fmt.Errorf("error while checking Status of Pods in Cluster %s:\n%s", updatedCluster.Status.ClusterName, strings.Join(errorStrings, "\n"))
-	}
 
 	return false, nil
 }
@@ -445,7 +487,7 @@ func RegisterCustomClustersInBatches(r *dart.Dart, template tofu.CustomCluster, 
 		endTemplate := min(startTemplate+r.ClusterBatchSize, len(custom_clusters))
 		batchTemplates := custom_clusters[startTemplate:endTemplate]
 
-		batchRunner := NewSequencedBatchRunner[tofu.CustomCluster](len(batchTemplates))
+		batchRunner := NewSequencedBatchRunner[tofu.CustomCluster](len(batchTemplates), r.PodStatusTimeout)
 
 		err := batchRunner.Run(batchTemplates, statuses, clusterStatePath, rancherClient, rancherConfig)
 		if err != nil {
