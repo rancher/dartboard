@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -28,9 +29,13 @@ import (
 
 	provv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const fleetNamespace = "fleet-default"
+
+// clusterImportTimeout bounds the wait for Ready+Connected so a cluster with a broken agent fails instead of hanging for hours.
+const clusterImportTimeout = 10 * time.Minute
 
 func NewRancherConfig(host, adminToken, adminPassword string, insecure bool) rancher.Config {
 	defaultBool := false
@@ -295,24 +300,61 @@ func performClusterImport(rancherClient *rancher.Client, cluster tofu.Cluster, i
 
 	logrus.Infof("Importing Cluster, ID:%s Name:%s", updatedCluster.Status.ClusterName, updatedCluster.Name)
 
-	err = shepherdclusters.ImportCluster(rancherClient, updatedCluster, restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("error while creating Job for importing Cluster %s:\n%w", updatedCluster.Name, err)
+	id := updatedCluster.Status.ClusterName
+	if id == "" {
+		return nil, fmt.Errorf("cluster %s has no management cluster ID yet", importCluster.Name)
 	}
 
-	err = BackoffWait(100, func() (finished bool, err error) {
+	mgmtCluster, err := rancherClient.Management.Cluster.ByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("error while getting management Cluster by ID %s:\n%w", id, err)
+	}
+
+	if mgmtConditionTrue(mgmtCluster, "AgentDeployed") {
+		logrus.Infof("Agent for Cluster %s was already deployed by Rancher; re-applying the bootstrap manifest would downgrade it, skipping import", id)
+	} else {
+		err = shepherdclusters.ImportCluster(rancherClient, updatedCluster, restConfig)
+		if err != nil {
+			return nil, fmt.Errorf("error while creating Job for importing Cluster %s:\n%w", updatedCluster.Name, err)
+		}
+	}
+
+	err = wait.PollUntilContextTimeout(context.Background(), 5*time.Second, clusterImportTimeout, true, func(ctx context.Context) (bool, error) {
 		updatedCluster, _, err = shepherdclusters.GetProvisioningClusterByName(rancherClient, importCluster.Name, importCluster.Namespace)
 		if err != nil {
 			return false, fmt.Errorf("error while getting Cluster by Name %s in Namespace %s:\n%w", importCluster.Name, importCluster.Namespace, err)
 		}
 
-		return updatedCluster.Status.Ready, nil
+		mc, mcErr := rancherClient.Management.Cluster.ByID(id)
+		if mcErr != nil {
+			logrus.Warnf("transient error while getting management Cluster by ID %s, will retry: %v", id, mcErr)
+
+			return false, nil
+		}
+
+		return updatedCluster.Status.Ready && mgmtConditionTrue(mc, "Connected"), nil
 	})
 	if err != nil {
-		return nil, err
+		if wait.Interrupted(err) {
+			return nil, fmt.Errorf("cluster %s did not become Ready with Connected=True within %s; to force Rancher to redeploy the agent run on the upstream cluster: "+
+				"kubectl annotate clusters.management.cattle.io %s io.cattle.agent.force.deploy=true --overwrite:\n%w", id, clusterImportTimeout, id, err)
+		}
+
+		return nil, fmt.Errorf("error while waiting for cluster %s to become Ready with Connected=True:\n%w", id, err)
 	}
 
 	return updatedCluster, nil
+}
+
+// mgmtConditionTrue reports whether the management cluster has condition condType with Status "True".
+func mgmtConditionTrue(c *management.Cluster, condType string) bool {
+	for _, cond := range c.Conditions {
+		if cond.Type == condType {
+			return cond.Status == "True"
+		}
+	}
+
+	return false
 }
 
 func importClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], cluster tofu.Cluster,
