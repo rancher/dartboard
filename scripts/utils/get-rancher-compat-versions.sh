@@ -38,6 +38,8 @@ RANCHER_VERSION=$1
 # Remove 'v' prefix if present for branch calculation
 VERSION_NUM=${RANCHER_VERSION#v}
 MAJOR_MINOR=$(echo "$VERSION_NUM" | cut -d. -f1-2)
+# Rancher git tags always carry the 'v' prefix
+RANCHER_VERSION="v${VERSION_NUM}"
 
 if [[ "$RANCHER_VERSION" =~ (rc|alpha|beta|dev) ]]; then
     DEV_MODE=true
@@ -147,6 +149,15 @@ else
     echo "$VERSIONS" | head -n 5
 fi
 
+# Print the body of a URL only on HTTP 200 (quiet, empty output otherwise).
+# Avoids GNU-only 'head -n -1'.
+fetch_ok_body() {
+    local response
+    response=$(curl -s -w "\n%{http_code}" "$1") || return 0
+    [ "$(echo "$response" | tail -n 1)" = "200" ] || return 0
+    echo "$response" | sed '$d'
+}
+
 # --- Helper function for Charts ---
 get_chart_versions() {
     local chart_name=$1
@@ -156,17 +167,9 @@ get_chart_versions() {
     # This avoids downloading the huge index.yaml
     local api_url="https://api.github.com/repos/rancher/charts/contents/charts/${chart_name}?ref=${RELEASE_BRANCH}"
     
-    # Fetch directory listing
-    local response
-    response=$(curl -s -w "\n%{http_code}" "$api_url")
-    local http_code
-    http_code=$(echo "$response" | tail -n 1)
     local body
-    body=$(echo "$response" | head -n -1)
-
-    if [ "$http_code" != "200" ]; then
-        return
-    fi
+    body=$(fetch_ok_body "$api_url")
+    [ -n "$body" ] || return 0
 
     local versions
     versions=$(echo "$body" | jq -r '.[] | select(.type=="dir") | .name')
@@ -184,14 +187,53 @@ echo "Fetching Chart Versions from rancher/charts ($RELEASE_BRANCH)..."
 echo "=================================================="
 
 # --- Rancher Monitoring ---
-echo ""
-echo "--- Rancher Monitoring Versions (Top 5 Stable) ---"
-MONITORING_VERSIONS=$(get_chart_versions "rancher-monitoring" 5)
+# Rancher >= 2.15 replaces rancher-monitoring with rancher-monitoring-dashboards on top of an
+# upstream kube-prometheus-stack (not shipped in rancher/charts, no version constraint published).
+USE_DASHBOARDS=false
+if [ "$(printf "%s\n2.15" "$MAJOR_MINOR" | sort -V | head -n 1)" = "2.15" ]; then
+    USE_DASHBOARDS=true
+fi
 
-if [ -z "$MONITORING_VERSIONS" ]; then
-    echo "No versions found for rancher-monitoring."
+if [ "$USE_DASHBOARDS" = true ]; then
+    echo ""
+    echo "--- Rancher Monitoring Dashboards Versions (Top 5 Stable) ---"
+    MONITORING_VERSIONS=$(get_chart_versions "rancher-monitoring-dashboards" 5)
+    if [ -z "$MONITORING_VERSIONS" ]; then
+        echo "No versions found for rancher-monitoring-dashboards."
+    else
+        echo "$MONITORING_VERSIONS"
+    fi
+
+    echo ""
+    echo "--- kube-prometheus-stack Versions (OCI ghcr.io/prometheus-community/charts, as used by dartboard, Top 5 Stable) ---"
+    # Same registry dartboard installs from; tags/list is capped at 1000 per page, so page with last=.
+    KPS_REPO="prometheus-community/charts/kube-prometheus-stack"
+    KPS_TOKEN=$(curl -s "https://ghcr.io/token?scope=repository:${KPS_REPO}:pull" | jq -r '.token // empty')
+    KPS_ALL=""
+    KPS_LAST=""
+    while [ -n "$KPS_TOKEN" ]; do
+        KPS_PAGE=$(curl -s -H "Authorization: Bearer $KPS_TOKEN" \
+            "https://ghcr.io/v2/${KPS_REPO}/tags/list?n=1000${KPS_LAST:+&last=$KPS_LAST}" | jq -r '.tags[]?' 2>/dev/null || true)
+        [ -z "$KPS_PAGE" ] && break
+        KPS_ALL+="$KPS_PAGE"$'\n'
+        KPS_LAST=$(echo "$KPS_PAGE" | tail -n 1)
+    done
+    KPS_VERSIONS=$(echo "$KPS_ALL" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V -r | head -n 5 || true)
+    if [ -z "$KPS_VERSIONS" ]; then
+        echo "No versions found for kube-prometheus-stack."
+    else
+        echo "$KPS_VERSIONS"
+    fi
 else
-    echo "$MONITORING_VERSIONS"
+    echo ""
+    echo "--- Rancher Monitoring Versions (Top 5 Stable) ---"
+    MONITORING_VERSIONS=$(get_chart_versions "rancher-monitoring" 5)
+
+    if [ -z "$MONITORING_VERSIONS" ]; then
+        echo "No versions found for rancher-monitoring."
+    else
+        echo "$MONITORING_VERSIONS"
+    fi
 fi
 
 # --- Cert Manager ---
@@ -202,16 +244,9 @@ get_upstream_cert_manager_versions() {
     local limit=$1
     local api_url="https://api.github.com/repos/cert-manager/cert-manager/releases"
     
-    local response
-    response=$(curl -s -w "\n%{http_code}" "$api_url")
-    local http_code
-    http_code=$(echo "$response" | tail -n 1)
     local body
-    body=$(echo "$response" | head -n -1)
-
-    if [ "$http_code" != "200" ]; then
-        return
-    fi
+    body=$(fetch_ok_body "$api_url")
+    [ -n "$body" ] || return 0
 
     local versions
     versions=$(echo "$body" | jq -r '.[].tag_name')
@@ -231,32 +266,48 @@ else
     echo "$CERT_MANAGER_VERSIONS"
 fi
 
-# --- Grafana (Sub-chart of Monitoring) ---
-echo ""
-echo "--- Grafana Versions (Based on Monitoring Versions) ---"
-
-if [ -n "$MONITORING_VERSIONS" ]; then
-    printf "%-35s | %-20s | %s\n" "Monitoring Ver" "Grafana App Ver" "Grafana Chart Ver"
-    printf "%-35s | %-20s | %s\n" "-----------------------------------" "--------------------" "-----------------"
-    
-    for m_ver in $MONITORING_VERSIONS; do
-        # Construct URL to the Grafana subchart Chart.yaml
-        # URL encoded + is %2B, but raw github handles + correctly usually.
-        
-        GRAFANA_CHART_URL="https://raw.githubusercontent.com/rancher/charts/${RELEASE_BRANCH}/charts/rancher-monitoring/${m_ver}/charts/grafana/Chart.yaml"
-        
-        CHART_YAML=$(curl -s "$GRAFANA_CHART_URL")
-        
-        if [[ "$CHART_YAML" == *"404: Not Found"* ]]; then
-             printf "%-35s | %-20s | %s\n" "$m_ver" "Not Found" "N/A"
-        else
-            APP_VER=$(echo "$CHART_YAML" | grep "^appVersion:" | head -n 1 | awk '{print $2}' | tr -d '"')
-            CHART_VER=$(echo "$CHART_YAML" | grep "^version:" | head -n 1 | awk '{print $2}' | tr -d '"')
-            printf "%-35s | %-20s | %s\n" "$m_ver" "$APP_VER" "$CHART_VER"
-        fi
-    done
+if [ "$USE_DASHBOARDS" = true ]; then
+    echo ""
+    echo "--- Grafana Versions (Based on kube-prometheus-stack Versions) ---"
+    if [ -n "$KPS_VERSIONS" ]; then
+        printf "%-35s | %s\n" "kube-prometheus-stack Ver" "Grafana Chart Ver"
+        printf "%-35s | %s\n" "-----------------------------------" "-----------------"
+        for k_ver in $KPS_VERSIONS; do
+            KPS_CHART_URL="https://raw.githubusercontent.com/prometheus-community/helm-charts/kube-prometheus-stack-${k_ver}/charts/kube-prometheus-stack/Chart.yaml"
+            GRAFANA_DEP_VER=$(curl -s "$KPS_CHART_URL" | grep -A1 -E '^[[:space:]]*- name: grafana$' | grep 'version:' | head -n 1 | awk '{print $2}' | tr -d '"')
+            printf "%-35s | %s\n" "$k_ver" "${GRAFANA_DEP_VER:-Not Found}"
+        done
+    else
+        echo "Skipping Grafana check (no kube-prometheus-stack versions found)."
+    fi
 else
-    echo "Skipping Grafana check (no monitoring versions found)."
+    # --- Grafana (Sub-chart of Monitoring) ---
+    echo ""
+    echo "--- Grafana Versions (Based on Monitoring Versions) ---"
+
+    if [ -n "$MONITORING_VERSIONS" ]; then
+        printf "%-35s | %-20s | %s\n" "Monitoring Ver" "Grafana App Ver" "Grafana Chart Ver"
+        printf "%-35s | %-20s | %s\n" "-----------------------------------" "--------------------" "-----------------"
+        
+        for m_ver in $MONITORING_VERSIONS; do
+            # Construct URL to the Grafana subchart Chart.yaml
+            # URL encoded + is %2B, but raw github handles + correctly usually.
+            
+            GRAFANA_CHART_URL="https://raw.githubusercontent.com/rancher/charts/${RELEASE_BRANCH}/charts/rancher-monitoring/${m_ver}/charts/grafana/Chart.yaml"
+            
+            CHART_YAML=$(curl -s "$GRAFANA_CHART_URL")
+            
+            if [[ "$CHART_YAML" == *"404: Not Found"* ]]; then
+                 printf "%-35s | %-20s | %s\n" "$m_ver" "Not Found" "N/A"
+            else
+                APP_VER=$(echo "$CHART_YAML" | grep "^appVersion:" | head -n 1 | awk '{print $2}' | tr -d '"')
+                CHART_VER=$(echo "$CHART_YAML" | grep "^version:" | head -n 1 | awk '{print $2}' | tr -d '"')
+                printf "%-35s | %-20s | %s\n" "$m_ver" "$APP_VER" "$CHART_VER"
+            fi
+        done
+    else
+        echo "Skipping Grafana check (no monitoring versions found)."
+    fi
 fi
 
 echo ""
