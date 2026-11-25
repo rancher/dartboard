@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -33,10 +34,12 @@ import (
 	"github.com/rancher/dartboard/internal/kubectl"
 	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/rancher/shepherd/clients/rancher"
+	shepherdclusters "github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/pkg/session"
 	cli "github.com/urfave/cli/v3"
 
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/rancher/dartboard/internal/actions"
 )
@@ -88,14 +91,44 @@ func Deploy(ctx context.Context, cli *cli.Command) error {
 
 	// Helm charts
 	tester := clusters["tester"]
-	if len(tester.Kubeconfig) > 0 && !cli.Bool(ArgSkipCharts) {
+
+	testerDeployed := len(tester.Kubeconfig) > 0
+	if testerDeployed && !cli.Bool(ArgSkipCharts) {
 		if err = installTesterCharts(tester, r); err != nil {
 			return err
 		}
 	}
 
+	// The Mimir remote_write endpoint is resolved once, from the tester
+	// cluster's own address (reachable from any other cluster's network),
+	// and reused for both upstream and downstream monitoring installs. When
+	// there is no tester cluster, this is left empty and remote_write is
+	// simply disabled in the monitoring chart values.
+	var testerMimirURL string
+
+	if testerDeployed {
+		testerAdd, err := getAppAddressFor(tester)
+		if err != nil {
+			return err
+		}
+
+		testerMimirURL = testerAdd.Public.HTTPURL + "/mimir/api/v1/push"
+	}
+
 	upstream := clusters["upstream"]
-	if upstream.Kubeconfig == "" {
+
+	upstreamDeployed := upstream.Kubeconfig != ""
+	if !upstreamDeployed && (len(custom_clusters) > 0 || len(r.ClusterTemplates) > 0) {
+		return fmt.Errorf("an upstream Rancher cluster is required for custom or provisioned downstream clusters")
+	}
+	// upstreamPreExisting is true only when the dart declares a top-level,
+	// pre-existing `upstream_cluster` passthrough (see injectPreExistingUpstream).
+	// It must NOT be used to decide whether upstream charts should be
+	// installed: a dart that lets OpenTofu create a fresh upstream cluster via
+	// `tofu_variables.upstream_cluster` never sets this field, yet still has a
+	// real, deployed upstream cluster that needs Rancher and monitoring.
+	upstreamPreExisting := r.UpstreamCluster != nil
+	if !upstreamDeployed && upstreamPreExisting {
 		return fmt.Errorf("upstream cluster output is empty")
 	}
 	// Keep the resolved output available to registration helpers regardless of
@@ -104,7 +137,7 @@ func Deploy(ctx context.Context, cli *cli.Command) error {
 	rancherVersion := r.ChartVariables.RancherVersion
 
 	rancherImageTag := "v" + rancherVersion
-	if r.ChartVariables.RancherImageTagOverride != "" {
+	if upstreamDeployed && r.ChartVariables.RancherImageTagOverride != "" {
 		rancherImageTag = r.ChartVariables.RancherImageTagOverride
 
 		image := "rancher/rancher"
@@ -118,16 +151,46 @@ func Deploy(ctx context.Context, cli *cli.Command) error {
 		}
 	}
 
-	if !cli.Bool(ArgSkipCharts) {
-		if err = installUpstreamCharts(r, rancherImageTag, &upstream); err != nil {
+	if !cli.Bool(ArgSkipCharts) && upstreamDeployed {
+		if err = installUpstreamCharts(r, rancherImageTag, &upstream, testerMimirURL); err != nil {
+			return err
+		}
+	}
+
+	// Install rancher-monitoring directly (via Helm) on every downstream
+	// cluster's kubeconfig. This is independent of whether an upstream/Rancher
+	// cluster exists at all: downstream clusters already have their own
+	// kubeconfig from OpenTofu's output, so monitoring can be installed on
+	// them standalone, without importing them into Rancher first.
+	if !cli.Bool(ArgSkipCharts) && r.ChartVariables.DownstreamRancherMonitoring {
+		if err = installDownstreamMonitoring(r, clusters, testerMimirURL); err != nil {
 			return err
 		}
 	}
 
 	// Setup rancher client
+	if upstreamDeployed {
+		rancherClient, err := setupRancher(r, upstream, clusters, custom_clusters)
+		if err != nil {
+			return err
+		}
+
+		if !cli.Bool(ArgSkipCharts) && r.ChartVariables.DownstreamRancherMonitoring {
+			if err = installRancherDownstreamMonitoring(r, upstream, rancherClient, custom_clusters, testerMimirURL); err != nil {
+				return err
+			}
+		}
+	}
+
+	return GetAccess(ctx, cli)
+}
+
+// setupRancher connects to the upstream Rancher and imports, registers or
+// provisions the downstream clusters through it.
+func setupRancher(r *dart.Dart, upstream tofu.Cluster, clusters map[string]tofu.Cluster, customClusters []tofu.CustomCluster) (*rancher.Client, error) {
 	upstreamAdd, err := getAppAddressFor(upstream)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	rancherSession := session.NewSession()
@@ -142,38 +205,176 @@ func Deploy(ctx context.Context, cli *cli.Command) error {
 
 	rancherClient, err := actions.SetupRancherClient(&rancherConfig, r.ChartVariables.AdminPassword, rancherSession)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(clusters) > 0 {
 		if err = importDownstreamClusters(r, clusters, rancherClient, &rancherConfig); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	logrus.Debugf("\nBEFORE CUSTOM CLUSTER LOGIC\n")
 
-	if len(custom_clusters) > 0 {
+	if len(customClusters) > 0 {
 		logrus.Debugf("\nIN CUSTOM CLUSTER LOGIC\n")
 
-		if err := actions.RegisterCustomClusters(r, custom_clusters, rancherClient, &rancherConfig); err != nil {
-			return err
+		if err := actions.RegisterCustomClusters(r, customClusters, rancherClient, &rancherConfig); err != nil {
+			return nil, err
 		}
 	}
 
 	if len(r.ClusterTemplates) > 0 {
 		if err = setupHarvesterAndProvision(r, rancherClient); err != nil {
-			return err
+			return nil, err
 		}
 
 		logrus.Info("Provisioning Downstream Clusters")
 
 		if err = actions.ProvisionDownstreamClusters(r, r.ClusterTemplates, rancherClient); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return GetAccess(ctx, cli)
+	return rancherClient, nil
+}
+
+// rancherDownstreamClusterNames lists the Rancher names of the custom clusters
+// (mirroring RegisterCustomClustersInBatches naming) followed by the provisioned
+// clusters' real names as recorded in the cluster state.
+func rancherDownstreamClusterNames(customClusters []tofu.CustomCluster, provisioned []string) []string {
+	names := []string{}
+
+	for _, c := range customClusters {
+		for i := range c.ClusterCount {
+			names = append(names, fmt.Sprintf("%s-%d", c.Name, i))
+		}
+	}
+
+	return append(names, provisioned...)
+}
+
+// installRancherDownstreamMonitoring installs rancher-monitoring on custom and
+// provisioned clusters, using kubeconfigs generated through Rancher. Both
+// creation paths already wait for the clusters to be ready/active.
+func installRancherDownstreamMonitoring(r *dart.Dart, upstream tofu.Cluster, rancherClient *rancher.Client, customClusters []tofu.CustomCluster, mimirURL string) error {
+	upstreamAdd, err := getAppAddressFor(upstream)
+	if err != nil {
+		return err
+	}
+
+	statuses, err := actions.LoadClusterState(fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, actions.ClustersStateFile))
+	if err != nil {
+		return err
+	}
+
+	for name, cs := range statuses {
+		if cs != nil && cs.Provisioned && cs.RancherName == "" {
+			logrus.Warnf("Cluster %q was provisioned before its Rancher name was recorded: no monitoring will be installed on it", name)
+		}
+	}
+
+	names := rancherDownstreamClusterNames(customClusters, actions.ProvisionedRancherNames(statuses))
+
+	for _, name := range names {
+		id, err := shepherdclusters.GetClusterIDByName(rancherClient, name)
+		if err == nil && id == "" {
+			err = fmt.Errorf("cluster %s not found in Rancher", name)
+		}
+
+		if err != nil {
+			return fmt.Errorf("cluster %s: %w", name, err)
+		}
+
+		if err = installMonitoringViaRancher(r, rancherClient, id, name, mimirURL, upstreamAdd.Public.HTTPSURL, upstreamAdd.Local.HTTPSURL); err != nil {
+			return fmt.Errorf("cluster %s: %w", name, err)
+		}
+	}
+
+	return nil
+}
+
+// installMonitoringViaRancher generates the cluster's kubeconfig through Rancher
+// into a temporary file and installs rancher-monitoring with it. Rancher embeds
+// its public URL in the kubeconfig, so it is rewritten to the locally reachable one.
+func installMonitoringViaRancher(r *dart.Dart, rancherClient *rancher.Client, id, name, mimirURL, publicURL, localURL string) error {
+	cluster, err := rancherClient.Management.Cluster.ByID(id)
+	if err != nil {
+		return fmt.Errorf("getting cluster by ID %s: %w", id, err)
+	}
+
+	output, err := rancherClient.Management.Cluster.ActionGenerateKubeconfig(cluster)
+	if err != nil {
+		return fmt.Errorf("generating kubeconfig for cluster %s: %w", id, err)
+	}
+
+	localKubeconfig, err := localizeKubeconfig(output.Config, publicURL, localURL)
+	if err != nil {
+		return fmt.Errorf("cluster %s: %w", id, err)
+	}
+
+	path, err := writeValuesFile(localKubeconfig)
+	if path != "" {
+		defer os.Remove(path)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	logrus.Infof("Installing rancher-monitoring on Rancher cluster %q (%s)", name, id)
+
+	return chartInstallRancherMonitoring(r, &tofu.Cluster{Name: name, Kubeconfig: path}, id, name, mimirURL)
+}
+
+// localizeKubeconfig points every cluster served at publicURL to localURL. When
+// the hostnames differ, TLSServerName keeps verification against the public
+// host, which is the one the served certificate is issued for.
+func localizeKubeconfig(cfg, publicURL, localURL string) (string, error) {
+	if publicURL == localURL {
+		return cfg, nil
+	}
+
+	kc, err := clientcmd.Load([]byte(cfg))
+	if err != nil {
+		return "", fmt.Errorf("parsing kubeconfig: %w", err)
+	}
+
+	pub, err := url.Parse(publicURL)
+	if err != nil {
+		return "", fmt.Errorf("parsing public URL: %w", err)
+	}
+
+	loc, err := url.Parse(localURL)
+	if err != nil {
+		return "", fmt.Errorf("parsing local URL: %w", err)
+	}
+
+	matched := false
+
+	for _, c := range kc.Clusters {
+		if !strings.HasPrefix(c.Server, publicURL) {
+			continue
+		}
+
+		matched = true
+		c.Server = localURL + strings.TrimPrefix(c.Server, publicURL)
+
+		if pub.Hostname() != loc.Hostname() {
+			c.TLSServerName = pub.Hostname()
+		}
+	}
+
+	if !matched {
+		return "", fmt.Errorf("no cluster in kubeconfig uses Rancher URL %s", publicURL)
+	}
+
+	out, err := clientcmd.Write(*kc)
+	if err != nil {
+		return "", fmt.Errorf("writing kubeconfig: %w", err)
+	}
+
+	return string(out), nil
 }
 
 // applyTofuChanges applies or outputs Terraform/Tofu changes
@@ -209,7 +410,7 @@ func installTesterCharts(tester tofu.Cluster, r *dart.Dart) error {
 }
 
 // installUpstreamCharts installs Rancher and related charts on the upstream cluster
-func installUpstreamCharts(r *dart.Dart, rancherImageTag string, upstream *tofu.Cluster) error {
+func installUpstreamCharts(r *dart.Dart, rancherImageTag string, upstream *tofu.Cluster, mimirURL string) error {
 	if err := chartInstallCertManager(r, upstream); err != nil {
 		return err
 	}
@@ -231,12 +432,53 @@ func installUpstreamCharts(r *dart.Dart, rancherImageTag string, upstream *tofu.
 		return err
 	}
 
-	if err := chartInstallRancherMonitoring(r, upstream); err != nil {
+	// "local" is the Rancher convention for the management (upstream) cluster's
+	// own identity in the monitoring stack.
+	if err := chartInstallRancherMonitoring(r, upstream, "local", "local", mimirURL); err != nil {
 		return err
 	}
 
 	if err := updateMonitoringProject(upstream); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// installDownstreamMonitoring installs rancher-monitoring directly, via Helm,
+// on every downstream cluster's kubeconfig. Unlike upstream monitoring, this
+// does not require Rancher or an upstream cluster to exist at all: it is
+// gated solely on chart_variables.downstream_rancher_monitoring.
+func installDownstreamMonitoring(r *dart.Dart, clusters map[string]tofu.Cluster, mimirURL string) error {
+	downstreamClusters := []tofu.Cluster{}
+
+	for k, v := range clusters {
+		if strings.HasPrefix(k, "downstream") {
+			v.Name = k
+			downstreamClusters = append(downstreamClusters, v)
+		}
+	}
+
+	SortItemsNaturally(downstreamClusters, func(c tofu.Cluster) string { return c.Name })
+
+	for i := range downstreamClusters {
+		cluster := downstreamClusters[i]
+
+		if cluster.Kubeconfig == "" {
+			logrus.Warnf("Downstream cluster %q has no kubeconfig output, skipping monitoring install", cluster.Name)
+
+			continue
+		}
+
+		logrus.Infof("Installing rancher-monitoring on downstream cluster %q", cluster.Name)
+
+		// Use the downstream cluster's own name as its monitoring identity,
+		// since there is no Rancher "local" management cluster convention to
+		// piggyback on, and each downstream cluster's metrics should be
+		// distinguishable from one another (and from upstream) in Mimir/Grafana.
+		if err := chartInstallRancherMonitoring(r, &cluster, cluster.Name, cluster.Name, mimirURL); err != nil {
+			return fmt.Errorf("downstream cluster %s: %w", cluster.Name, err)
+		}
 	}
 
 	return nil
@@ -470,7 +712,13 @@ func writeValuesFile(content string) (string, error) {
 		return "", err
 	}
 
-	if _, err := io.WriteString(p, content); err != nil {
+	_, err = io.WriteString(p, content)
+	if cerr := p.Close(); err == nil {
+		err = cerr
+	}
+
+	if err != nil {
+		os.Remove(p.Name())
 		return "", err
 	}
 
@@ -517,20 +765,47 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartRancherIngress, chartVals)
 }
 
-func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
-	rancherMajorVersion, _, _ := strings.Cut(r.ChartVariables.RancherVersion, ".")
-	major, _ := strconv.Atoi(rancherMajorVersion)
-	rancherMinorVersion := strings.Join(strings.Split(r.ChartVariables.RancherVersion, ".")[0:2], ".")
+// chartInstallRancherMonitoring installs the rancher-monitoring-crd and
+// rancher-monitoring charts on the given cluster's kubeconfig. clusterID and
+// clusterName identify the cluster in the monitoring stack's global.cattle
+// values: pass "local" for the upstream/management cluster (matching
+// Rancher's own convention), or the cluster's own name for a standalone
+// downstream cluster. mimirURL is the (optional) Mimir remote_write push
+// endpoint; pass an empty string to disable remote_write, e.g. when no tester
+// cluster is deployed.
+func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster, clusterID, clusterName, mimirURL string) error {
+	if useLegacyRancherMonitoring(r) {
+		major, minor := parseRancherMajorMinor(r.ChartVariables.RancherVersion)
+		rancherMinorVersion := fmt.Sprintf("%d.%d", major, minor)
 
-	minor, _ := strconv.Atoi(strings.Split(rancherMinorVersion, ".")[1])
-	if !r.ChartVariables.ForceKubePrometheusStack && (major < 2 || (major == 2 && minor < 15)) {
-		return chartInstallLegacyRancherMonitoring(r, cluster, rancherMinorVersion)
+		return chartInstallLegacyRancherMonitoring(r, cluster, rancherMinorVersion, clusterID, clusterName, mimirURL)
 	}
 
-	return chartInstallKubePrometheusStack(r, cluster)
+	return chartInstallKubePrometheusStack(r, cluster, clusterID, clusterName, mimirURL)
 }
 
-func chartInstallLegacyRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster, rancherMinorVersion string) error {
+// useLegacyRancherMonitoring reports whether the legacy rancher-monitoring
+// chart (Rancher < 2.15) is installed instead of kube-prometheus-stack.
+func useLegacyRancherMonitoring(r *dart.Dart) bool {
+	major, minor := parseRancherMajorMinor(r.ChartVariables.RancherVersion)
+
+	return !r.ChartVariables.ForceKubePrometheusStack && (major < 2 || (major == 2 && minor < 15))
+}
+
+// parseRancherMajorMinor extracts the major and minor numbers from a version
+// such as "2.9.1" or "v2.15.0-alpha1". Missing or non-numeric parts are 0.
+func parseRancherMajorMinor(version string) (major, minor int) {
+	parts := strings.Split(strings.TrimPrefix(version, "v"), ".")
+	major, _ = strconv.Atoi(parts[0])
+
+	if len(parts) > 1 {
+		minor, _ = strconv.Atoi(parts[1])
+	}
+
+	return major, minor
+}
+
+func chartInstallLegacyRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster, rancherMinorVersion, clusterID, clusterName, mimirURL string) error {
 	const chartPrefix = "https://github.com/rancher/charts/raw/release-v"
 
 	chartPath := fmt.Sprintf("%s%s", chartPrefix, rancherMinorVersion)
@@ -547,13 +822,7 @@ func chartInstallLegacyRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster, ra
 	}
 
 	chartVals := map[string]any{
-		"global": map[string]any{
-			"cattle": map[string]any{
-				"clusterId":             "local",
-				"clusterName":           "local",
-				"systemDefaultRegistry": "",
-			},
-		},
+		"global":                getMonitoringGlobalVals(clusterID, clusterName, !r.ChartVariables.EnableIPv6),
 		"systemDefaultRegistry": "",
 	}
 
@@ -569,19 +838,12 @@ func chartInstallLegacyRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster, ra
 		path:      fmt.Sprintf("%s/%s-%s.tgz", chartPath, chartRancherMonitoringRoute, r.ChartVariables.RancherMonitoringVersion),
 	}
 
-	clusterAdd, err := getAppAddressFor(*cluster)
-	if err != nil {
-		return fmt.Errorf("chart %s: %w", chartRancherMonitoring.name, err)
-	}
-
-	mimirURL := clusterAdd.Public.HTTPURL + "/mimir/api/v1/push"
-
-	chartVals = getRancherMonitoringValsJSON(cluster.ReserveNodeForMonitoring, mimirURL)
+	chartVals = getRancherMonitoringValsJSON(cluster.ReserveNodeForMonitoring, mimirURL, clusterID, clusterName, !r.ChartVariables.EnableIPv6)
 
 	return chartInstall(cluster.Kubeconfig, chartRancherMonitoring, chartVals)
 }
 
-func chartInstallKubePrometheusStack(r *dart.Dart, cluster *tofu.Cluster) error {
+func chartInstallKubePrometheusStack(r *dart.Dart, cluster *tofu.Cluster, clusterID, clusterName, mimirURL string) error {
 	if err := helm.UninstallIfPresent(cluster.Kubeconfig, chartNameRancherMonitoring, nsCattleMonitoringSystem); err != nil {
 		return fmt.Errorf("uninstall legacy %s: %w", chartNameRancherMonitoring, err)
 	}
@@ -592,17 +854,12 @@ func chartInstallKubePrometheusStack(r *dart.Dart, cluster *tofu.Cluster) error 
 		path:      "oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack",
 	}
 
-	clusterAdd, err := getAppAddressFor(*cluster)
-	if err != nil {
-		return fmt.Errorf("chart %s: %w", kubePrometheusStack.name, err)
-	}
-
 	distro, err := kubectl.GetK8sDistro(cluster.Kubeconfig)
 	if err != nil {
 		return fmt.Errorf("failed to get Kubernetes distro: %w", err)
 	}
 
-	stackValues := getKubePrometheusStackVals(cluster.ReserveNodeForMonitoring, strings.Contains(distro, "k3s"), r.ChartVariables.EnableIPv6, r.ChartVariables.GrafanaAdminPassword, clusterAdd.Public.HTTPURL+"/mimir/api/v1/push")
+	stackValues := getKubePrometheusStackVals(cluster.ReserveNodeForMonitoring, strings.Contains(distro, "k3s"), r.ChartVariables.EnableIPv6, r.ChartVariables.GrafanaAdminPassword, mimirURL, clusterID, clusterName)
 	if err := chartInstall(cluster.Kubeconfig, kubePrometheusStack, stackValues, "--version="+r.ChartVariables.KubePrometheusStackVersion); err != nil {
 		return err
 	}
@@ -618,7 +875,7 @@ func chartInstallKubePrometheusStack(r *dart.Dart, cluster *tofu.Cluster) error 
 		path:      monitoringDashboardsChartPath(chartPath, r.ChartVariables.MonitoringDashboardsVersion),
 	}
 
-	dashboardValues := getMonitoringDashboardsValues(cluster.ReserveNodeForMonitoring, r.ChartVariables.EnableIPv6)
+	dashboardValues := getMonitoringDashboardsValues(cluster.ReserveNodeForMonitoring, r.ChartVariables.EnableIPv6, clusterID, clusterName)
 	if err := chartInstall(cluster.Kubeconfig, dashboards, dashboardValues); err != nil {
 		return err
 	}
@@ -632,9 +889,9 @@ func kubePrometheusStackGrafanaPasswordCommand() string {
 	return "kubectl -n cattle-monitoring-system get secret kube-prometheus-stack-grafana -o jsonpath='{.data.admin-password}' | openssl base64 -d -A; echo"
 }
 
-func getMonitoringDashboardsValues(reserveNodeForMonitoring, enableIPv6 bool) map[string]any {
+func getMonitoringDashboardsValues(reserveNodeForMonitoring, enableIPv6 bool, clusterID, clusterName string) map[string]any {
 	return map[string]any{
-		"global":            map[string]any{"clusterId": "local", "clusterName": "local", "systemDefaultRegistry": "", "disableProxyIPv6": !enableIPv6, "cattle": map[string]any{"clusterId": "local", "clusterName": "local", "systemDefaultRegistry": ""}},
+		"global":            map[string]any{"clusterId": clusterID, "clusterName": clusterName, "systemDefaultRegistry": "", "disableProxyIPv6": !enableIPv6, "cattle": map[string]any{"clusterId": clusterID, "clusterName": clusterName, "systemDefaultRegistry": ""}},
 		"monitoringProxy":   monitoringSchedulingValues(reserveNodeForMonitoring),
 		"alertmanagerProxy": map[string]any{"enabled": false},
 	}
@@ -642,6 +899,25 @@ func getMonitoringDashboardsValues(reserveNodeForMonitoring, enableIPv6 bool) ma
 
 func monitoringDashboardsChartPath(chartPath, version string) string {
 	return fmt.Sprintf("%s/assets/rancher-monitoring-dashboards/rancher-monitoring-dashboards-%s.tgz", chartPath, version)
+}
+
+// getMonitoringGlobalVals builds the `global` values shared by the
+// rancher-monitoring-crd and rancher-monitoring charts.
+//
+// disableProxyIPv6 maps to the chart's global.disableProxyIPv6, which controls
+// whether the nginx sidecars fronting Grafana (:8080) and Prometheus (:8081)
+// also bind `[::]`. On a node with IPv6 disabled in the kernel that bind fails
+// with EAFNOSUPPORT and nginx exits, so the sidecar (and therefore the pod)
+// never becomes ready.
+func getMonitoringGlobalVals(clusterID, clusterName string, disableProxyIPv6 bool) map[string]any {
+	return map[string]any{
+		"cattle": map[string]any{
+			"clusterId":             clusterID,
+			"clusterName":           clusterName,
+			"systemDefaultRegistry": "",
+		},
+		"disableProxyIPv6": disableProxyIPv6,
+	}
 }
 
 func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
@@ -662,7 +938,7 @@ func chartInstallCgroupsExporter(cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chart{chartNameCgroupsExporter, nsCattleMonitoringSystem, chartNameCgroupsExporter}, vals)
 }
 
-func getRancherMonitoringValsJSON(reserveNodeForMonitoring bool, mimirURL string) map[string]any {
+func getRancherMonitoringValsJSON(reserveNodeForMonitoring bool, mimirURL, clusterID, clusterName string, disableProxyIPv6 bool) map[string]any {
 	nodeSelector := map[string]any{}
 	tolerations := []any{}
 	monitoringRestrictions := map[string]any{}
@@ -704,6 +980,8 @@ func getRancherMonitoringValsJSON(reserveNodeForMonitoring bool, mimirURL string
 				"additionalScrapeConfigs": getCgroupsScrapeConfig(),
 
 				"remoteWrite": remoteWrite,
+
+				"externalLabels": monitoringExternalLabels(clusterID, clusterName),
 			},
 		},
 		"prometheus-adapter": monitoringRestrictions,
@@ -711,20 +989,14 @@ func getRancherMonitoringValsJSON(reserveNodeForMonitoring bool, mimirURL string
 			"nodeSelector": map[string]any{"kubernetes.io/os": "linux"},
 			"tolerations":  []any{map[string]any{"operator": "Exists"}},
 		},
-		"kube-state-metrics": monitoringRestrictions,
-		"prometheusOperator": monitoringRestrictions,
-		"global": map[string]any{
-			"cattle": map[string]any{
-				"clusterId":             "local",
-				"clusterName":           "local",
-				"systemDefaultRegistry": "",
-			},
-		},
+		"kube-state-metrics":    monitoringRestrictions,
+		"prometheusOperator":    monitoringRestrictions,
+		"global":                getMonitoringGlobalVals(clusterID, clusterName, disableProxyIPv6),
 		"systemDefaultRegistry": "",
 	}
 }
 
-func getKubePrometheusStackVals(reserveNodeForMonitoring, k3sServer, enableIPv6 bool, grafanaAdminPassword, mimirURL string) map[string]any {
+func getKubePrometheusStackVals(reserveNodeForMonitoring, k3sServer, enableIPv6 bool, grafanaAdminPassword, mimirURL, clusterID, clusterName string) map[string]any {
 	nodeSelector := map[string]any{}
 	tolerations := []any{}
 
@@ -781,6 +1053,7 @@ func getKubePrometheusStackVals(reserveNodeForMonitoring, k3sServer, enableIPv6 
 			"podMonitorSelectorNilUsesHelmValues":     false,
 			"additionalScrapeConfigs":                 getCgroupsScrapeConfig(),
 			"remoteWrite":                             remoteWrite,
+			"externalLabels":                          monitoringExternalLabels(clusterID, clusterName),
 		}, "service": map[string]any{"ipDualStack": serviceIPDualStack}, "servicePerReplica": map[string]any{"ipDualStack": serviceIPDualStack}, "thanosService": map[string]any{"ipDualStack": serviceIPDualStack}},
 		"kubeControllerManager": map[string]any{"enabled": false, "service": map[string]any{"ipDualStack": serviceIPDualStack}},
 		"coreDns":               map[string]any{"service": map[string]any{"ipDualStack": serviceIPDualStack}},
@@ -815,8 +1088,8 @@ func getKubePrometheusStackVals(reserveNodeForMonitoring, k3sServer, enableIPv6 
 		"thanosRuler": map[string]any{"service": map[string]any{"ipDualStack": serviceIPDualStack}},
 		"global": map[string]any{
 			"cattle": map[string]any{
-				"clusterId":             "local",
-				"clusterName":           "local",
+				"clusterId":             clusterID,
+				"clusterName":           clusterName,
 				"systemDefaultRegistry": "",
 			},
 		},
@@ -828,6 +1101,13 @@ func getKubePrometheusStackVals(reserveNodeForMonitoring, k3sServer, enableIPv6 
 	}
 
 	return values
+}
+
+// monitoringExternalLabels are attached to everything Prometheus remote-writes,
+// so series from different clusters stay distinguishable in a shared Mimir.
+// Both charts take them at prometheus.prometheusSpec.externalLabels.
+func monitoringExternalLabels(clusterID, clusterName string) map[string]any {
+	return map[string]any{"cluster_id": clusterID, "cluster_name": clusterName}
 }
 
 func monitoringSchedulingValues(reserveNodeForMonitoring bool) map[string]any {

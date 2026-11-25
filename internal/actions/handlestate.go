@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/sirupsen/logrus"
 	yaml "go.yaml.in/yaml/v3"
@@ -19,6 +20,25 @@ type ClusterStatus struct {
 	Provisioned bool   `yaml:"provisioned"`
 	Registered  bool   `yaml:"registered"`
 	Stage       Stage  `yaml:"stage"`
+	// RancherName is the real Rancher cluster name of a provisioned cluster
+	// (the Name key is only a local state key). Optional for old state files.
+	RancherName string `yaml:"rancher_name,omitempty"`
+}
+
+// ProvisionedRancherNames returns, sorted, the Rancher cluster names recorded
+// for clusters that finished provisioning.
+func ProvisionedRancherNames(statuses map[string]*ClusterStatus) []string {
+	names := []string{}
+
+	for _, cs := range statuses {
+		if cs != nil && cs.Provisioned && cs.RancherName != "" {
+			names = append(names, cs.RancherName)
+		}
+	}
+
+	sort.Strings(names)
+
+	return names
 }
 
 const ClustersStateFile = "clusters_state.yaml"

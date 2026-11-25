@@ -4,13 +4,15 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/rancher/dartboard/internal/tofu"
 )
 
 func TestMonitoringNodeExporterAndReservedNodeScheduling(t *testing.T) {
 	for _, reserved := range []bool{false, true} {
-		legacy := getRancherMonitoringValsJSON(reserved, "")
+		legacy := getRancherMonitoringValsJSON(reserved, "", "local", "local", true)
 
-		stack := getKubePrometheusStackVals(reserved, false, false, "", "")
+		stack := getKubePrometheusStackVals(reserved, false, false, "", "", "local", "local")
 		for _, values := range []map[string]any{legacy, stack} {
 			exporter := values["prometheus-node-exporter"].(map[string]any)
 			if !reflect.DeepEqual(exporter["nodeSelector"], map[string]any{"kubernetes.io/os": "linux"}) {
@@ -56,7 +58,7 @@ func TestMonitoringDashboardsChartPathUsesReleaseRepo(t *testing.T) {
 }
 
 func TestKubePrometheusStackValuesKeepMonitoringIntegration(t *testing.T) {
-	values := getKubePrometheusStackVals(true, false, false, "", "http://mimir.example/mimir/api/v1/push")
+	values := getKubePrometheusStackVals(true, false, false, "", "http://mimir.example/mimir/api/v1/push", "local", "local")
 
 	prometheus := values["prometheus"].(map[string]any)["prometheusSpec"].(map[string]any)
 	if prometheus["serviceMonitorSelectorNilUsesHelmValues"] != false || prometheus["podMonitorSelectorNilUsesHelmValues"] != false {
@@ -77,7 +79,7 @@ func TestKubePrometheusStackValuesKeepMonitoringIntegration(t *testing.T) {
 }
 
 func TestDashboardValuesDisableMissingAlertmanagerProxy(t *testing.T) {
-	values := getMonitoringDashboardsValues(true, false)
+	values := getMonitoringDashboardsValues(true, false, "local", "local")
 	if values["alertmanagerProxy"].(map[string]any)["enabled"] != false {
 		t.Fatal("dashboard chart must not proxy to disabled kube-prometheus-stack Alertmanager")
 	}
@@ -93,7 +95,7 @@ func TestDashboardValuesDisableMissingAlertmanagerProxy(t *testing.T) {
 }
 
 func TestMonitoringIPv6DefaultsOffAndCanBeEnabled(t *testing.T) {
-	values := getKubePrometheusStackVals(false, false, false, "", "")
+	values := getKubePrometheusStackVals(false, false, false, "", "", "local", "local")
 
 	service := values["prometheus"].(map[string]any)["service"].(map[string]any)["ipDualStack"].(map[string]any)
 	if service["enabled"] != false || service["ipFamilyPolicy"] != "SingleStack" {
@@ -104,14 +106,14 @@ func TestMonitoringIPv6DefaultsOffAndCanBeEnabled(t *testing.T) {
 		t.Fatal("node exporter dual-stack must be disabled by default")
 	}
 
-	values = getKubePrometheusStackVals(false, false, true, "", "")
+	values = getKubePrometheusStackVals(false, false, true, "", "", "local", "local")
 
 	service = values["prometheus"].(map[string]any)["service"].(map[string]any)["ipDualStack"].(map[string]any)
 	if service["enabled"] != true || service["ipFamilyPolicy"] != "PreferDualStack" {
 		t.Fatalf("IPv6-enabled service values = %#v", service)
 	}
 
-	dashboard := getMonitoringDashboardsValues(false, true)
+	dashboard := getMonitoringDashboardsValues(false, true, "local", "local")
 
 	global := dashboard["global"].(map[string]any)
 	if global["disableProxyIPv6"] != false {
@@ -120,12 +122,12 @@ func TestMonitoringIPv6DefaultsOffAndCanBeEnabled(t *testing.T) {
 }
 
 func TestGrafanaAdminPasswordIsOptional(t *testing.T) {
-	values := getKubePrometheusStackVals(false, false, false, "", "")
+	values := getKubePrometheusStackVals(false, false, false, "", "", "local", "local")
 	if _, exists := values["grafana"].(map[string]any)["adminPassword"]; exists {
 		t.Fatal("empty Grafana password must preserve kube-prometheus-stack chart default")
 	}
 
-	values = getKubePrometheusStackVals(false, false, false, "custom-secret-value", "")
+	values = getKubePrometheusStackVals(false, false, false, "custom-secret-value", "", "local", "local")
 	if got := values["grafana"].(map[string]any)["adminPassword"]; got != "custom-secret-value" {
 		t.Fatalf("grafana.adminPassword = %v, want configured value", got)
 	}
@@ -158,5 +160,76 @@ func TestCertManagerOCISupportMatchesDocumentedVersions(t *testing.T) {
 		if got := certManagerSupportsCRDsValue(tc.version); got != tc.crdsVal {
 			t.Errorf("certManagerSupportsCRDsValue(%q) = %t, want %t", tc.version, got, tc.crdsVal)
 		}
+	}
+}
+
+func TestMonitoringExternalLabelsIdentifyCluster(t *testing.T) {
+	want := map[string]any{"cluster_id": "downstream-0-0", "cluster_name": "downstream-0-0"}
+
+	for name, values := range map[string]map[string]any{
+		"legacy": getRancherMonitoringValsJSON(false, "", "downstream-0-0", "downstream-0-0", true),
+		"stack":  getKubePrometheusStackVals(false, false, false, "", "", "downstream-0-0", "downstream-0-0"),
+	} {
+		spec := values["prometheus"].(map[string]any)["prometheusSpec"].(map[string]any)
+		if !reflect.DeepEqual(spec["externalLabels"], want) {
+			t.Fatalf("%s: externalLabels = %#v, want %#v", name, spec["externalLabels"], want)
+		}
+	}
+}
+
+func TestRancherDownstreamClusterNames(t *testing.T) {
+	custom := []tofu.CustomCluster{{Name: "cust", ClusterCount: 2}}
+
+	got := rancherDownstreamClusterNames(custom, []string{"real-abc"})
+	want := []string{"cust-0", "cust-1", "real-abc"}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+}
+
+func TestLocalizeKubeconfig(t *testing.T) {
+	const cfg = `apiVersion: v1
+kind: Config
+clusters:
+- name: c1
+  cluster:
+    server: https://rancher.example.com/k8s/clusters/c-m-1
+- name: other
+  cluster:
+    server: https://other.example.com:6443
+`
+
+	tests := []struct {
+		name, pub, loc string
+		wantErr        bool
+		want           []string
+		notWant        []string
+	}{
+		{"different host", "https://rancher.example.com", "https://localhost:8443", false,
+			[]string{"https://localhost:8443/k8s/clusters/c-m-1", "tls-server-name: rancher.example.com", "https://other.example.com:6443"}, nil},
+		{"same url", "https://rancher.example.com", "https://rancher.example.com", false, nil, []string{"tls-server-name"}},
+		{"no match", "https://nope.example.com", "https://localhost:8443", true, nil, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := localizeKubeconfig(cfg, tt.pub, tt.loc)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("err = %v, wantErr %t", err, tt.wantErr)
+			}
+
+			for _, w := range tt.want {
+				if !strings.Contains(got, w) {
+					t.Errorf("missing %q in:\n%s", w, got)
+				}
+			}
+
+			for _, w := range tt.notWant {
+				if strings.Contains(got, w) {
+					t.Errorf("unexpected %q", w)
+				}
+			}
+		})
 	}
 }

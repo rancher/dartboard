@@ -165,6 +165,11 @@ func provisionClusterWithRunner[J JobDataTypes](br *SequencedBatchRunner[J], tem
 		return false, fmt.Errorf("error while provisioning cluster with ClusterConfig %v:\n%v", templateClusterConfig, err)
 	}
 
+	// The created cluster's real name differs from the state key; persist it with the next state write.
+	stateMutex.Lock()
+	cs.RancherName = clusterObject.Name
+	stateMutex.Unlock()
+
 	<-br.seqCh
 
 	br.Updates <- stateUpdate{Name: clusterName, Stage: StageCreated, Completed: time.Now()}
