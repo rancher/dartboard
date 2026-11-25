@@ -12,9 +12,6 @@ package subcommands
 
 import (
 	"context"
-	"fmt"
-	"path/filepath"
-	"time"
 
 	"github.com/rancher/dartboard/internal/logs"
 	cli "github.com/urfave/cli/v3"
@@ -22,43 +19,30 @@ import (
 
 const (
 	ArgApps = "apps"
+	// ArgK3KFocusNamespace names a virtual cluster whose pod is always
+	// collected, on top of the capped per-role selection.
+	ArgK3KFocusNamespace = "k3k-focus-namespace"
 )
 
 func CollectLogs(ctx context.Context, cli *cli.Command) error {
-	tf, d, err := prepare(ctx, cli)
+	// Validate flags before touching OpenTofu or the filesystem, so a typo
+	// fails fast instead of after a workspace refresh.
+	cfg, err := logs.ParseConfig(
+		cli.String(ArgDiagnosticsFor),
+		cli.String(ArgDiagnosticsInterval),
+		cli.String(ArgApps),
+		cli.String(ArgK3KFocusNamespace),
+	)
 	if err != nil {
 		return err
 	}
 
-	clusters, _, err := tf.ParseOutputs()
-	if err != nil {
-		return fmt.Errorf("parse tofu outputs: %w", err)
-	}
-
-	upstream, ok := clusters["upstream"]
-	if !ok || upstream.Kubeconfig == "" {
-		return fmt.Errorf("upstream cluster kubeconfig is empty; cannot reach Rancher pods")
-	}
-
-	cfg, err := logs.ParseConfig(cli.String(ArgDiagnosticsFor), cli.String(ArgDiagnosticsInterval), cli.String(ArgApps))
+	t, err := resolveTarget(ctx, cli)
 	if err != nil {
 		return err
 	}
 
-	outDir := resolveLogsOutputDir(cli, d.TofuWorkspace)
+	outDir := outputDir(cli.String(ArgDiagnosticsOutput), "logs", t)
 
-	return logs.Collect(upstream.Kubeconfig, cli.String(ArgDart), d.TofuWorkspace, cfg, outDir)
-}
-
-func resolveLogsOutputDir(cli *cli.Command, workspace string) string {
-	if s := cli.String(ArgDiagnosticsOutput); s != "" {
-		return s
-	}
-
-	suffix := time.Now().UTC().Format("20060102-150405")
-	if workspace == "" {
-		return filepath.Join(".", "logs-"+suffix)
-	}
-
-	return filepath.Join(".", "logs-"+workspace+"-"+suffix)
+	return logs.Collect(t.Kubeconfig, t.DartFile, t.Workspace, cfg, outDir)
 }

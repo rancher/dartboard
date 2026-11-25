@@ -13,7 +13,7 @@ package subcommands
 import (
 	"context"
 	"fmt"
-	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/rancher/dartboard/internal/kubectl"
@@ -29,25 +29,29 @@ const (
 	ArgMetricsStep   = "step"
 	ArgMetricsOutput = "output"
 
-	prometheusNamespace = "cattle-monitoring-system"
-	prometheusService   = "svc/rancher-monitoring-prometheus"
-	prometheusPort      = 9090
+	ArgPreset              = "preset"
+	ArgNamespaces          = "namespaces"
+	ArgK3KRunPrefix        = "k3k-run-prefix"
+	ArgK3KStartIndex       = "k3k-start-index"
+	ArgK3KCount            = "k3k-count"
+	ArgOperational         = "operational"
+	ArgPrometheusNamespace = "prometheus-namespace"
+	ArgPrometheusService   = "prometheus-service"
+
+	// DefaultPrometheusNamespace is where both rancher-monitoring and
+	// kube-prometheus-stack are installed by dartboard deploy. Without
+	// --prometheus-service the Prometheus service is detected in it.
+	DefaultPrometheusNamespace = "cattle-monitoring-system"
+
+	prometheusPort = 9090
 )
 
 func CollectMetrics(ctx context.Context, cli *cli.Command) error {
-	tf, d, err := prepare(ctx, cli)
+	// Validate flags before touching OpenTofu or the filesystem, so a typo
+	// fails fast instead of after a workspace refresh.
+	catalogOpts, err := resolveCatalogOptions(cli)
 	if err != nil {
 		return err
-	}
-
-	clusters, _, err := tf.ParseOutputs()
-	if err != nil {
-		return fmt.Errorf("parse tofu outputs: %w", err)
-	}
-
-	upstream, ok := clusters["upstream"]
-	if !ok || upstream.Kubeconfig == "" {
-		return fmt.Errorf("upstream cluster kubeconfig is empty; cannot reach Prometheus")
 	}
 
 	start, end, step, err := resolveWindow(cli)
@@ -55,20 +59,84 @@ func CollectMetrics(ctx context.Context, cli *cli.Command) error {
 		return err
 	}
 
-	outDir := resolveOutputDir(cli, d.TofuWorkspace)
-
-	logrus.Infof("port-forwarding to %s/%s in upstream cluster", prometheusNamespace, prometheusService)
-
-	localPort, stop, err := kubectl.PortForward(ctx, upstream.Kubeconfig, prometheusNamespace, prometheusService, prometheusPort)
+	t, err := resolveTarget(ctx, cli)
 	if err != nil {
-		return fmt.Errorf("port-forward to upstream Prometheus: %w", err)
+		return err
+	}
+
+	outDir := outputDir(cli.String(ArgMetricsOutput), "metrics", t)
+
+	promNamespace := cli.String(ArgPrometheusNamespace)
+
+	promService, err := prometheusServiceTarget(ctx, t.Kubeconfig, promNamespace, cli.String(ArgPrometheusService))
+	if err != nil {
+		return err
+	}
+
+	logrus.Infof("port-forwarding to %s/%s in cluster %q", promNamespace, promService, t.Name)
+
+	localPort, stop, err := kubectl.PortForward(ctx, t.Kubeconfig, promNamespace, promService, prometheusPort)
+	if err != nil {
+		return fmt.Errorf("port-forward to Prometheus in cluster %q: %w", t.Name, err)
 	}
 	defer stop()
 
 	promURL := fmt.Sprintf("http://127.0.0.1:%d", localPort)
-	logrus.Infof("collecting metrics from %s for window %s..%s (step %s)", promURL, start.Format(time.RFC3339), end.Format(time.RFC3339), step)
+	logrus.Infof("collecting %s metrics from %s for window %s..%s (step %s)",
+		catalogOpts.Preset, promURL, start.Format(time.RFC3339), end.Format(time.RFC3339), step)
 
-	return metrics.Collect(ctx, promURL, cli.String(ArgDart), d.TofuWorkspace, start, end, step, outDir)
+	return metrics.Collect(ctx, promURL, t.DartFile, t.Workspace, start, end, step, outDir, catalogOpts)
+}
+
+// resolveCatalogOptions turns the --preset and --namespaces flags into the
+// options that select which PromQL catalog is collected.
+func resolveCatalogOptions(cli *cli.Command) (metrics.CatalogOptions, error) {
+	preset, err := metrics.ParsePreset(cli.String(ArgPreset))
+	if err != nil {
+		return metrics.CatalogOptions{}, err
+	}
+
+	opts := metrics.CatalogOptions{
+		Preset:         preset,
+		Namespaces:     cli.String(ArgNamespaces),
+		FocusNamespace: cli.String(ArgK3KFocusNamespace),
+		K3KRunPrefix:   cli.String(ArgK3KRunPrefix),
+		K3KStartIndex:  cli.Int(ArgK3KStartIndex),
+		K3KCount:       cli.Int(ArgK3KCount),
+		Operational:    cli.Bool(ArgOperational),
+	}
+	if err := opts.Validate(); err != nil {
+		return metrics.CatalogOptions{}, err
+	}
+
+	return opts, nil
+}
+
+// prometheusServiceTarget returns the port-forward target for Prometheus: the
+// explicit --prometheus-service value, or else whichever of rancher-monitoring
+// or kube-prometheus-stack is installed in the namespace.
+func prometheusServiceTarget(ctx context.Context, kubeconfig, namespace, flagValue string) (string, error) {
+	if flagValue != "" {
+		return flagValue, nil
+	}
+
+	name, err := kubectl.DetectPrometheusService(ctx, kubeconfig, namespace)
+	if err != nil {
+		return "", err
+	}
+
+	return "svc/" + name, nil
+}
+
+// prometheusServiceName strips the resource-type prefix from a port-forward
+// target such as "svc/rancher-monitoring-prometheus", yielding the bare service
+// name that in-cluster clients dial.
+func prometheusServiceName(target string) string {
+	if _, name, found := strings.Cut(target, "/"); found {
+		return name
+	}
+
+	return target
 }
 
 func resolveWindow(cli *cli.Command) (time.Time, time.Time, time.Duration, error) {
@@ -107,17 +175,4 @@ func resolveWindow(cli *cli.Command) (time.Time, time.Time, time.Duration, error
 	}
 
 	return start, end, step, nil
-}
-
-func resolveOutputDir(cli *cli.Command, workspace string) string {
-	if s := cli.String(ArgMetricsOutput); s != "" {
-		return s
-	}
-
-	suffix := time.Now().UTC().Format("20060102-150405")
-	if workspace == "" {
-		return filepath.Join(".", "metrics-"+suffix)
-	}
-
-	return filepath.Join(".", "metrics-"+workspace+"-"+suffix)
 }

@@ -19,17 +19,18 @@ import (
 
 // Manifest captures the run metadata written to manifest.json.
 type Manifest struct {
-	GeneratedAt time.Time           `json:"generated_at"`
-	Start       time.Time           `json:"start"`
-	End         time.Time           `json:"end"`
-	Pods        map[string][]string `json:"pods"`
-	DartFile    string              `json:"dart_file,omitempty"`
-	Workspace   string              `json:"tofu_workspace,omitempty"`
-	Kubeconfig  string              `json:"kubeconfig,omitempty"`
-	Apps        []string            `json:"apps"`
-	For         time.Duration       `json:"for_seconds"`
-	Interval    time.Duration       `json:"interval_seconds"`
-	Snapshots   int                 `json:"snapshots"`
+	GeneratedAt    time.Time           `json:"generated_at"`
+	Start          time.Time           `json:"start"`
+	End            time.Time           `json:"end"`
+	Pods           map[string][]string `json:"pods"`
+	FocusNamespace string              `json:"focus_namespace,omitempty"`
+	DartFile       string              `json:"dart_file,omitempty"`
+	Workspace      string              `json:"tofu_workspace,omitempty"`
+	Kubeconfig     string              `json:"kubeconfig,omitempty"`
+	Apps           []string            `json:"apps"`
+	For            time.Duration       `json:"for_seconds"`
+	Interval       time.Duration       `json:"interval_seconds"`
+	Snapshots      int                 `json:"snapshots"`
 }
 
 // WriteManifest writes the run-level manifest.

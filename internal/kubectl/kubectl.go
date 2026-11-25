@@ -295,6 +295,39 @@ func PortForward(ctx context.Context, kubeconfig, namespace, target string, remo
 	}
 }
 
+// prometheusServiceCandidates are the Prometheus service names created by the
+// rancher-monitoring chart and by kube-prometheus-stack, in preference order.
+var prometheusServiceCandidates = []string{"rancher-monitoring-prometheus", "kube-prometheus-stack-prometheus"}
+
+// pickPrometheusService returns the first candidate present in the output of
+// `kubectl get svc -o name`.
+func pickPrometheusService(kubectlOutput string) (string, bool) {
+	for _, name := range prometheusServiceCandidates {
+		if strings.Contains(kubectlOutput, "service/"+name+"\n") {
+			return name, true
+		}
+	}
+
+	return "", false
+}
+
+// DetectPrometheusService returns the name of whichever known Prometheus
+// service (rancher-monitoring or kube-prometheus-stack) exists in namespace.
+func DetectPrometheusService(ctx context.Context, kubeconfig, namespace string) (string, error) {
+	args := append([]string{"--kubeconfig=" + kubeconfig, "get", "svc", "--namespace=" + namespace, "-o", "name", "--ignore-not-found"}, prometheusServiceCandidates...)
+
+	out, err := vendored.CommandContext(ctx, "kubectl", args...).Output()
+	if err != nil {
+		return "", fmt.Errorf("listing Prometheus services in namespace %q: %w", namespace, err)
+	}
+
+	if name, ok := pickPrometheusService(string(out)); ok {
+		return name, nil
+	}
+
+	return "", fmt.Errorf("no Prometheus service (%s) found in namespace %q; pass --prometheus-service", strings.Join(prometheusServiceCandidates, ", "), namespace)
+}
+
 func Version(kubePath string, out any) error {
 	output := new(bytes.Buffer)
 

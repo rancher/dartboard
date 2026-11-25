@@ -12,9 +12,6 @@ package subcommands
 
 import (
 	"context"
-	"fmt"
-	"path/filepath"
-	"time"
 
 	"github.com/rancher/dartboard/internal/profiles"
 	cli "github.com/urfave/cli/v3"
@@ -28,41 +25,27 @@ const (
 	ArgCPUDuration         = "cpu-duration"
 )
 
+// CollectProfiles snapshots pprof profiles from the Rancher pods of the
+// selected cluster.
+//
+// Note that this only works for Rancher: k3k does not expose a pprof endpoint
+// (its controller builds a controller-runtime manager without setting
+// PprofBindAddress), so pointing this at a k3k host cluster will find no pods
+// and produce an empty manifest.
 func CollectProfiles(ctx context.Context, cli *cli.Command) error {
-	tf, d, err := prepare(ctx, cli)
-	if err != nil {
-		return err
-	}
-
-	clusters, _, err := tf.ParseOutputs()
-	if err != nil {
-		return fmt.Errorf("parse tofu outputs: %w", err)
-	}
-
-	upstream, ok := clusters["upstream"]
-	if !ok || upstream.Kubeconfig == "" {
-		return fmt.Errorf("upstream cluster kubeconfig is empty; cannot reach Rancher pods")
-	}
-
+	// Validate flags before touching OpenTofu or the filesystem, so a typo
+	// fails fast instead of after a workspace refresh.
 	cfg, err := profiles.ParseConfig(cli.String(ArgDiagnosticsFor), cli.String(ArgDiagnosticsInterval), cli.String(ArgProfiles), cli.String(ArgCPUDuration))
 	if err != nil {
 		return err
 	}
 
-	outDir := resolveProfilesOutputDir(cli, d.TofuWorkspace)
-
-	return profiles.Collect(upstream.Kubeconfig, cli.String(ArgDart), d.TofuWorkspace, cfg, outDir)
-}
-
-func resolveProfilesOutputDir(cli *cli.Command, workspace string) string {
-	if s := cli.String(ArgDiagnosticsOutput); s != "" {
-		return s
+	t, err := resolveTarget(ctx, cli)
+	if err != nil {
+		return err
 	}
 
-	suffix := time.Now().UTC().Format("20060102-150405")
-	if workspace == "" {
-		return filepath.Join(".", "profiles-"+suffix)
-	}
+	outDir := outputDir(cli.String(ArgDiagnosticsOutput), "profiles", t)
 
-	return filepath.Join(".", "profiles-"+workspace+"-"+suffix)
+	return profiles.Collect(t.Kubeconfig, t.DartFile, t.Workspace, cfg, outDir)
 }

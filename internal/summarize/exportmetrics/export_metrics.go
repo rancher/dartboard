@@ -14,16 +14,44 @@ import (
 const (
 	PromTimeFormat     = "2006-01-02T15:04:05Z"
 	FilenameTimeFormat = "2006-01-02T15-04-05"
-	Namespace          = "cattle-monitoring-system"
-	PodName            = "mimirtool"
+	// Namespace is the default namespace of the rancher-monitoring stack. The
+	// same chart is installed on downstream clusters when
+	// chart_variables.downstream_rancher_monitoring is set, so this default
+	// also holds for a dartboard-managed k3k host.
+	Namespace = "cattle-monitoring-system"
+	PodName   = "mimirtool"
+
+	prometheusPort = 9090
 )
 
 type Config struct {
-	Kubeconfig    string
-	Selector      string
-	FromSeconds   int64
-	ToSeconds     int64
-	OffsetSeconds int64
+	Kubeconfig string
+	Selector   string
+	// PrometheusNamespace is where the mimirtool helper pod runs and where the
+	// Prometheus service is looked up. Empty means Namespace.
+	PrometheusNamespace string
+	// PrometheusService is the in-cluster service name mimirtool remote-reads
+	// from, e.g. rancher-monitoring-prometheus or
+	// kube-prometheus-stack-prometheus. Required.
+	PrometheusService string
+	FromSeconds       int64
+	ToSeconds         int64
+	OffsetSeconds     int64
+}
+
+// namespace returns the effective namespace, defaulting to the
+// rancher-monitoring one.
+func (c Config) namespace() string {
+	if c.PrometheusNamespace == "" {
+		return Namespace
+	}
+
+	return c.PrometheusNamespace
+}
+
+// promAddress returns the mimirtool --address for the configured Prometheus.
+func (c Config) promAddress() string {
+	return fmt.Sprintf("http://%s:%d", c.PrometheusService, prometheusPort)
 }
 
 func exportTimeRange(ctx context.Context, cfg Config, exportDir string, rangeStart, currentTo int64) error {
@@ -39,14 +67,14 @@ func exportTimeRange(ctx context.Context, cfg Config, exportDir string, rangeSta
 		if attempt > 1 {
 			fmt.Printf(" - Retrying... (Attempt %d/3)\n", attempt)
 			// Cleanup before retry
-			runCmd(ctx, "kubectl", "exec", "-n", Namespace, PodName, "--", "rm", "-rf", "prometheus-export")
+			runCmd(ctx, "kubectl", "exec", "-n", cfg.namespace(), PodName, "--", "rm", "-rf", "prometheus-export")
 			time.Sleep(2 * time.Second)
 		}
 
 		// Remote Read
-		err = runCmd(ctx, "kubectl", "exec", "-n", Namespace, PodName, "--", "mimirtool", "remote-read", "export",
+		err = runCmd(ctx, "kubectl", "exec", "-n", cfg.namespace(), PodName, "--", "mimirtool", "remote-read", "export",
 			"--tsdb-path", "./prometheus-export",
-			"--address", "http://rancher-monitoring-prometheus:9090",
+			"--address", cfg.promAddress(),
 			"--remote-read-path", "/api/v1/read",
 			"--to="+toStr, "--from="+fromStr, "--selector", cfg.Selector)
 		if err != nil {
@@ -55,7 +83,7 @@ func exportTimeRange(ctx context.Context, cfg Config, exportDir string, rangeSta
 		}
 
 		// Tar in pod
-		err = runCmd(ctx, "kubectl", "exec", "-n", Namespace, PodName, "--", "tar", "zcf", "/tmp/prometheus-export.tar.gz", "./prometheus-export")
+		err = runCmd(ctx, "kubectl", "exec", "-n", cfg.namespace(), PodName, "--", "tar", "zcf", "/tmp/prometheus-export.tar.gz", "./prometheus-export")
 		if err != nil {
 			fmt.Printf(" - Tar failed: %v\n", err)
 			continue
@@ -64,7 +92,7 @@ func exportTimeRange(ctx context.Context, cfg Config, exportDir string, rangeSta
 		// Copy locally
 		localTar := filepath.Join(exportDir, fmt.Sprintf("prometheus-export-%s.tar.gz", ts2))
 
-		err = runCmd(ctx, "kubectl", "-n", Namespace, "cp", PodName+":/tmp/prometheus-export.tar.gz", localTar)
+		err = runCmd(ctx, "kubectl", "-n", cfg.namespace(), "cp", PodName+":/tmp/prometheus-export.tar.gz", localTar)
 		if err != nil {
 			fmt.Printf(" - Copy failed: %v\n", err)
 			continue
@@ -119,7 +147,7 @@ func Run(ctx context.Context, cfg Config) error {
 	fmt.Printf(" Query end:   %s\n", time.Unix(cfg.ToSeconds, 0).UTC().Format(PromTimeFormat))
 	fmt.Print(map[bool]string{true: fmt.Sprintf(" OFFSET: %d\n\n", cfg.OffsetSeconds), false: "\n"}[cfg.OffsetSeconds > 3600])
 
-	if err := runMimirtool(ctx); err != nil {
+	if err := runMimirtool(ctx, cfg); err != nil {
 		return err
 	}
 
@@ -150,7 +178,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		// Cleanup pod files
-		runCmd(ctx, "kubectl", "exec", "-n", Namespace, PodName, "--", "rm", "-rf", "prometheus-export")
+		runCmd(ctx, "kubectl", "exec", "-n", cfg.namespace(), PodName, "--", "rm", "-rf", "prometheus-export")
 
 		currentTo -= offset
 		// Small pause between exports to reduce load and avoid potential issues with rapid queries
@@ -162,7 +190,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Cleanup
-	runCmd(ctx, "kubectl", "delete", "pod", "-n", Namespace, PodName)
+	runCmd(ctx, "kubectl", "delete", "pod", "-n", cfg.namespace(), PodName)
 
 	finalPath, _ := filepath.Abs(exportDir)
 
@@ -195,7 +223,7 @@ func parseConfig(ctx context.Context, cfg Config) Config {
 	if cfg.OffsetSeconds > 7200 {
 		cfg.OffsetSeconds = 7200
 
-		out, err := exec.CommandContext(ctx, "kubectl", "get", "statefulsets", "-n", Namespace, "prometheus-rancher-monitoring-prometheus", "-o", "jsonpath={.spec.template.spec.containers[0].resources.limits.memory}").Output()
+		out, err := exec.CommandContext(ctx, "kubectl", "get", "statefulsets", "-n", cfg.namespace(), "prometheus-"+cfg.PrometheusService, "-o", "jsonpath={.spec.template.spec.containers[0].resources.limits.memory}").Output()
 		if err == nil {
 			memStr := strings.TrimSuffix(string(out), "Mi")
 			if mem, err := strconv.Atoi(memStr); err == nil && mem < 3001 {
@@ -207,7 +235,7 @@ func parseConfig(ctx context.Context, cfg Config) Config {
 	return cfg
 }
 
-func runMimirtool(ctx context.Context) error {
+func runMimirtool(ctx context.Context, cfg Config) error {
 	// Confirm access
 	if err := runCmd(ctx, "kubectl", "get", "all", "-A"); err != nil {
 		return fmt.Errorf("failed to access cluster: %w", err)
@@ -216,12 +244,13 @@ func runMimirtool(ctx context.Context) error {
 	fmt.Println(" - Confirm kubeconfig access \033[32mPASS\033[0m")
 
 	// Cleanup old pod
-	runCmd(ctx, "kubectl", "delete", "pod", "-n", Namespace, PodName)
+	runCmd(ctx, "kubectl", "delete", "pod", "-n", cfg.namespace(), PodName)
 
-	// Apply mimirtool
+	// Apply mimirtool. The manifest deliberately omits metadata.namespace so
+	// the helper pod lands in whichever namespace hosts Prometheus.
 	yamlPath := "../summarize-tools/export-metrics/mimirtool.yaml"
 
-	if err := runCmd(ctx, "kubectl", "apply", "-f", yamlPath); err != nil {
+	if err := runCmd(ctx, "kubectl", "apply", "-n", cfg.namespace(), "-f", yamlPath); err != nil {
 		return fmt.Errorf("failed to apply mimirtool.yaml: %w", err)
 	}
 
@@ -229,7 +258,7 @@ func runMimirtool(ctx context.Context) error {
 	fmt.Println("Waiting for mimirtool pod to be ready...")
 	time.Sleep(10 * time.Second)
 
-	if err := runCmd(ctx, "kubectl", "wait", "--for=condition=Ready", "pod", "-n", Namespace, PodName, "--timeout=60s"); err != nil {
+	if err := runCmd(ctx, "kubectl", "wait", "--for=condition=Ready", "pod", "-n", cfg.namespace(), PodName, "--timeout=60s"); err != nil {
 		return fmt.Errorf("mimirtool pod not ready: %w", err)
 	}
 
