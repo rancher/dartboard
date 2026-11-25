@@ -58,6 +58,50 @@ echo "Rancher Version: $RANCHER_VERSION"
 echo "Dev Mode: $DEV_MODE"
 echo "=================================================="
 
+# --- Rancher Helm Repository ---
+# Mirrors dartboard's chartInstallRancher: "alpha" in the version -> rancher-alpha, else rancher-latest.
+echo ""
+echo "--- Rancher Helm Repository ---"
+CHART_BASE="https://releases.rancher.com/server-charts"
+if [[ "$VERSION_NUM" == *alpha* ]]; then DEFAULT_REPO="alpha"; else DEFAULT_REPO="latest"; fi
+echo "Dartboard default: rancher-$DEFAULT_REPO $CHART_BASE/$DEFAULT_REPO"
+echo "(dartboard uses prime https://charts.rancher.com/server-charts/prime when force_prime_registry is true;"
+echo " chart_variables.rancher_chart_repo_override takes precedence over everything)"
+
+# shortcut: HEAD on the tgz only; stable vs latest overlap, cannot be told apart from the version string.
+FOUND_REPOS=""
+for repo in stable latest alpha; do
+    if curl -sfI --max-time 10 -o /dev/null "$CHART_BASE/$repo/rancher-${VERSION_NUM}.tgz"; then
+        FOUND_REPOS="$FOUND_REPOS $repo"
+    fi
+done
+FOUND_REPOS=${FOUND_REPOS# }
+if [ -z "$FOUND_REPOS" ]; then
+    echo "Not verified: rancher-${VERSION_NUM}.tgz not found in stable/latest/alpha (or network check failed)."
+elif [[ " $FOUND_REPOS " == *" $DEFAULT_REPO "* ]]; then
+    echo "Verified: rancher-${VERSION_NUM}.tgz is available in: $FOUND_REPOS (includes default rancher-$DEFAULT_REPO)"
+else
+    FIRST_REPO=${FOUND_REPOS%% *}
+    echo "WARNING: rancher-${VERSION_NUM}.tgz is NOT in the dartboard default rancher-$DEFAULT_REPO."
+    echo "Available in: $FOUND_REPOS. Set chart_variables.rancher_chart_repo_override to $CHART_BASE/$FIRST_REPO/rancher-"
+fi
+
+# For -rc versions, also report the newest "<base>-<commit>-head" dev build of the same release (optimus staging repo).
+if [[ "$VERSION_NUM" == *-rc* ]]; then
+    HEAD_BASE="https://charts.optimus.rancher.io/server-charts/latest"
+    # created precedes version within each index entry; ISO timestamps sort lexically.
+    LATEST_HEAD=$(curl -sf --max-time 30 "$HEAD_BASE/index.yaml" \
+        | awk -v base="${VERSION_NUM%%-rc*}" '/^ +created:/ {c=$2} $1=="version:" && $2 ~ "^" base "-[0-9a-f]+-head$" {print c, $2}' \
+        | sort | tail -n 1 | cut -d' ' -f2 || true)
+    if [ -n "$LATEST_HEAD" ]; then
+        echo "Latest head build for ${VERSION_NUM%%-rc*}: $LATEST_HEAD"
+        echo "Set chart_variables.rancher_chart_repo_override to $HEAD_BASE/rancher- and rancher_version to $LATEST_HEAD"
+    else
+        echo "No ${VERSION_NUM%%-rc*}-<commit>-head chart found in $HEAD_BASE (or network check failed)."
+    fi
+fi
+echo ""
+
 # --- Kubernetes Versions (K3s & RKE2) ---
 echo "Fetching Kubernetes versions from Kontainer Driver Metadata (KDM)..."
 
