@@ -213,6 +213,8 @@ ssh remotehost -L 2375:localhost:2375 -L 8443:localhost:8443 $(for KUBEPORT in $
 
 When using `k3d`, change `RANCHER_IMAGE_TAG` and if an image with the same tag is found it will be added to relevant clusters.
 
+The default image is `rancher/rancher`, or `rancher/rancher-server` for Rancher >= 2.16 (renamed upstream); `rancher_image_override` takes precedence.
+
 This is useful during Rancher development to test Rancher changes on k3d clusters.
 
 ## Harvester: bypassing TLS verification

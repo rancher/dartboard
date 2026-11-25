@@ -113,7 +113,7 @@ chart_variables:
 #  rancher_monitoring_version: 103.1.1+up45.31.1 # see https://github.com/rancher/charts/tree/release-v2.8/assets/rancher-monitoring-crd
 
 # Add the following to set a custom image:
-#  rancher_image_override: rancher/rancher
+#  rancher_image_override: rancher/rancher # use rancher-server instead of rancher for Rancher >= 2.16
 #  rancher_image_tag_override: v2.8.6-debug-1
 
 # Set arbitrary helm values (in yaml format) for installing Rancher
