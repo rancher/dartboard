@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -33,10 +34,12 @@ import (
 	"github.com/rancher/dartboard/internal/kubectl"
 	"github.com/rancher/dartboard/internal/tofu"
 	"github.com/rancher/shepherd/clients/rancher"
+	shepherdclusters "github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/pkg/session"
 	cli "github.com/urfave/cli/v3"
 
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/rancher/dartboard/internal/actions"
 )
@@ -167,8 +170,15 @@ func Deploy(ctx context.Context, cli *cli.Command) error {
 
 	// Setup rancher client
 	if upstreamDeployed {
-		if err = setupRancher(r, upstream, clusters, custom_clusters); err != nil {
+		rancherClient, err := setupRancher(r, upstream, clusters, custom_clusters)
+		if err != nil {
 			return err
+		}
+
+		if !cli.Bool(ArgSkipCharts) && r.ChartVariables.DownstreamRancherMonitoring {
+			if err = installRancherDownstreamMonitoring(r, upstream, rancherClient, custom_clusters, testerMimirURL); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -177,10 +187,10 @@ func Deploy(ctx context.Context, cli *cli.Command) error {
 
 // setupRancher connects to the upstream Rancher and imports, registers or
 // provisions the downstream clusters through it.
-func setupRancher(r *dart.Dart, upstream tofu.Cluster, clusters map[string]tofu.Cluster, customClusters []tofu.CustomCluster) error {
+func setupRancher(r *dart.Dart, upstream tofu.Cluster, clusters map[string]tofu.Cluster, customClusters []tofu.CustomCluster) (*rancher.Client, error) {
 	upstreamAdd, err := getAppAddressFor(upstream)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	rancherSession := session.NewSession()
@@ -195,12 +205,12 @@ func setupRancher(r *dart.Dart, upstream tofu.Cluster, clusters map[string]tofu.
 
 	rancherClient, err := actions.SetupRancherClient(&rancherConfig, r.ChartVariables.AdminPassword, rancherSession)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(clusters) > 0 {
 		if err = importDownstreamClusters(r, clusters, rancherClient, &rancherConfig); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -210,23 +220,161 @@ func setupRancher(r *dart.Dart, upstream tofu.Cluster, clusters map[string]tofu.
 		logrus.Debugf("\nIN CUSTOM CLUSTER LOGIC\n")
 
 		if err := actions.RegisterCustomClusters(r, customClusters, rancherClient, &rancherConfig); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if len(r.ClusterTemplates) > 0 {
 		if err = setupHarvesterAndProvision(r, rancherClient); err != nil {
-			return err
+			return nil, err
 		}
 
 		logrus.Info("Provisioning Downstream Clusters")
 
 		if err = actions.ProvisionDownstreamClusters(r, r.ClusterTemplates, rancherClient); err != nil {
-			return err
+			return nil, err
+		}
+	}
+
+	return rancherClient, nil
+}
+
+// rancherDownstreamClusterNames lists the Rancher names of the custom clusters
+// (mirroring RegisterCustomClustersInBatches naming) followed by the provisioned
+// clusters' real names as recorded in the cluster state.
+func rancherDownstreamClusterNames(customClusters []tofu.CustomCluster, provisioned []string) []string {
+	names := []string{}
+
+	for _, c := range customClusters {
+		for i := range c.ClusterCount {
+			names = append(names, fmt.Sprintf("%s-%d", c.Name, i))
+		}
+	}
+
+	return append(names, provisioned...)
+}
+
+// installRancherDownstreamMonitoring installs rancher-monitoring on custom and
+// provisioned clusters, using kubeconfigs generated through Rancher. Both
+// creation paths already wait for the clusters to be ready/active.
+func installRancherDownstreamMonitoring(r *dart.Dart, upstream tofu.Cluster, rancherClient *rancher.Client, customClusters []tofu.CustomCluster, mimirURL string) error {
+	upstreamAdd, err := getAppAddressFor(upstream)
+	if err != nil {
+		return err
+	}
+
+	statuses, err := actions.LoadClusterState(fmt.Sprintf("%s/%s", r.TofuWorkspaceStatePath, actions.ClustersStateFile))
+	if err != nil {
+		return err
+	}
+
+	for name, cs := range statuses {
+		if cs != nil && cs.Provisioned && cs.RancherName == "" {
+			logrus.Warnf("Cluster %q was provisioned before its Rancher name was recorded: no monitoring will be installed on it", name)
+		}
+	}
+
+	names := rancherDownstreamClusterNames(customClusters, actions.ProvisionedRancherNames(statuses))
+
+	for _, name := range names {
+		id, err := shepherdclusters.GetClusterIDByName(rancherClient, name)
+		if err == nil && id == "" {
+			err = fmt.Errorf("cluster %s not found in Rancher", name)
+		}
+
+		if err != nil {
+			return fmt.Errorf("cluster %s: %w", name, err)
+		}
+
+		if err = installMonitoringViaRancher(r, rancherClient, id, name, mimirURL, upstreamAdd.Public.HTTPSURL, upstreamAdd.Local.HTTPSURL); err != nil {
+			return fmt.Errorf("cluster %s: %w", name, err)
 		}
 	}
 
 	return nil
+}
+
+// installMonitoringViaRancher generates the cluster's kubeconfig through Rancher
+// into a temporary file and installs rancher-monitoring with it. Rancher embeds
+// its public URL in the kubeconfig, so it is rewritten to the locally reachable one.
+func installMonitoringViaRancher(r *dart.Dart, rancherClient *rancher.Client, id, name, mimirURL, publicURL, localURL string) error {
+	cluster, err := rancherClient.Management.Cluster.ByID(id)
+	if err != nil {
+		return fmt.Errorf("getting cluster by ID %s: %w", id, err)
+	}
+
+	output, err := rancherClient.Management.Cluster.ActionGenerateKubeconfig(cluster)
+	if err != nil {
+		return fmt.Errorf("generating kubeconfig for cluster %s: %w", id, err)
+	}
+
+	localKubeconfig, err := localizeKubeconfig(output.Config, publicURL, localURL)
+	if err != nil {
+		return fmt.Errorf("cluster %s: %w", id, err)
+	}
+
+	path, err := writeValuesFile(localKubeconfig)
+	if path != "" {
+		defer os.Remove(path)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	logrus.Infof("Installing rancher-monitoring on Rancher cluster %q (%s)", name, id)
+
+	return chartInstallRancherMonitoring(r, &tofu.Cluster{Name: name, Kubeconfig: path}, id, name, mimirURL)
+}
+
+// localizeKubeconfig points every cluster served at publicURL to localURL. When
+// the hostnames differ, TLSServerName keeps verification against the public
+// host, which is the one the served certificate is issued for.
+func localizeKubeconfig(cfg, publicURL, localURL string) (string, error) {
+	if publicURL == localURL {
+		return cfg, nil
+	}
+
+	kc, err := clientcmd.Load([]byte(cfg))
+	if err != nil {
+		return "", fmt.Errorf("parsing kubeconfig: %w", err)
+	}
+
+	pub, err := url.Parse(publicURL)
+	if err != nil {
+		return "", fmt.Errorf("parsing public URL: %w", err)
+	}
+
+	loc, err := url.Parse(localURL)
+	if err != nil {
+		return "", fmt.Errorf("parsing local URL: %w", err)
+	}
+
+	matched := false
+
+	for _, c := range kc.Clusters {
+		if !strings.HasPrefix(c.Server, publicURL) {
+			continue
+		}
+
+		matched = true
+		c.Server = localURL + strings.TrimPrefix(c.Server, publicURL)
+
+		if pub.Hostname() != loc.Hostname() {
+			c.TLSServerName = pub.Hostname()
+		}
+	}
+
+	if !matched {
+		return "", fmt.Errorf("no cluster in kubeconfig uses Rancher URL %s", publicURL)
+	}
+
+	out, err := clientcmd.Write(*kc)
+	if err != nil {
+		return "", fmt.Errorf("writing kubeconfig: %w", err)
+	}
+
+	return string(out), nil
 }
 
 // applyTofuChanges applies or outputs Terraform/Tofu changes
@@ -564,7 +712,13 @@ func writeValuesFile(content string) (string, error) {
 		return "", err
 	}
 
-	if _, err := io.WriteString(p, content); err != nil {
+	_, err = io.WriteString(p, content)
+	if cerr := p.Close(); err == nil {
+		err = cerr
+	}
+
+	if err != nil {
+		os.Remove(p.Name())
 		return "", err
 	}
 

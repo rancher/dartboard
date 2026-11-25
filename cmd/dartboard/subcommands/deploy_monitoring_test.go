@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/rancher/dartboard/internal/tofu"
 )
 
 func TestMonitoringNodeExporterAndReservedNodeScheduling(t *testing.T) {
@@ -172,5 +174,62 @@ func TestMonitoringExternalLabelsIdentifyCluster(t *testing.T) {
 		if !reflect.DeepEqual(spec["externalLabels"], want) {
 			t.Fatalf("%s: externalLabels = %#v, want %#v", name, spec["externalLabels"], want)
 		}
+	}
+}
+
+func TestRancherDownstreamClusterNames(t *testing.T) {
+	custom := []tofu.CustomCluster{{Name: "cust", ClusterCount: 2}}
+
+	got := rancherDownstreamClusterNames(custom, []string{"real-abc"})
+	want := []string{"cust-0", "cust-1", "real-abc"}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+}
+
+func TestLocalizeKubeconfig(t *testing.T) {
+	const cfg = `apiVersion: v1
+kind: Config
+clusters:
+- name: c1
+  cluster:
+    server: https://rancher.example.com/k8s/clusters/c-m-1
+- name: other
+  cluster:
+    server: https://other.example.com:6443
+`
+
+	tests := []struct {
+		name, pub, loc string
+		wantErr        bool
+		want           []string
+		notWant        []string
+	}{
+		{"different host", "https://rancher.example.com", "https://localhost:8443", false,
+			[]string{"https://localhost:8443/k8s/clusters/c-m-1", "tls-server-name: rancher.example.com", "https://other.example.com:6443"}, nil},
+		{"same url", "https://rancher.example.com", "https://rancher.example.com", false, nil, []string{"tls-server-name"}},
+		{"no match", "https://nope.example.com", "https://localhost:8443", true, nil, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := localizeKubeconfig(cfg, tt.pub, tt.loc)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("err = %v, wantErr %t", err, tt.wantErr)
+			}
+
+			for _, w := range tt.want {
+				if !strings.Contains(got, w) {
+					t.Errorf("missing %q in:\n%s", w, got)
+				}
+			}
+
+			for _, w := range tt.notWant {
+				if strings.Contains(got, w) {
+					t.Errorf("unexpected %q", w)
+				}
+			}
+		})
 	}
 }
