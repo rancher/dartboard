@@ -86,18 +86,35 @@ else
     echo "Available in: $FOUND_REPOS. Set chart_variables.rancher_chart_repo_override to $CHART_BASE/$FIRST_REPO/rancher-"
 fi
 
-# For -rc versions, also report the newest "<base>-<commit>-head" dev build of the same release (optimus staging repo).
+# For -rc versions, also report the head dev builds ("<base>-<commit>-head", optimus staging repo) of the same release.
 if [[ "$VERSION_NUM" == *-rc* ]]; then
     HEAD_BASE="https://charts.optimus.rancher.io/server-charts/latest"
-    # created precedes version within each index entry; ISO timestamps sort lexically.
-    LATEST_HEAD=$(curl -sf --max-time 30 "$HEAD_BASE/index.yaml" \
-        | awk -v base="${VERSION_NUM%%-rc*}" '/^ +created:/ {c=$2} $1=="version:" && $2 ~ "^" base "-[0-9a-f]+-head$" {print c, $2}' \
-        | sort | tail -n 1 | cut -d' ' -f2 || true)
-    if [ -n "$LATEST_HEAD" ]; then
-        echo "Latest head build for ${VERSION_NUM%%-rc*}: $LATEST_HEAD"
-        echo "Set chart_variables.rancher_chart_repo_override to $HEAD_BASE/rancher- and rancher_version to $LATEST_HEAD"
+    RC_BASE=${VERSION_NUM%%-rc*}
+    HEAD_INDEX=$(curl -sf --max-time 30 "$HEAD_BASE/index.yaml" || true)
+    # Commit the rc tag points at: prefer the peeled (annotated tag) line, else the plain ref.
+    RC_COMMIT=$(git ls-remote https://github.com/rancher/rancher "refs/tags/v${VERSION_NUM}" "refs/tags/v${VERSION_NUM}^{}" 2>/dev/null \
+        | awk '{c=$1} END {print c}' || true)
+    # head_for <commit-prefix-or-empty>: newest matching version; created precedes version in each index entry, ISO timestamps sort lexically.
+    head_for() {
+        echo "$HEAD_INDEX" \
+            | awk -v base="$RC_BASE" -v c="$1" '/^ +created:/ {t=$2} $1=="version:" && index($2, base "-" c)==1 && $2 ~ "-head$" {print t, $2}' \
+            | sort | tail -n 1 | cut -d' ' -f2
+    }
+    TAGGED_HEAD=""
+    [ -n "$RC_COMMIT" ] && TAGGED_HEAD=$(head_for "${RC_COMMIT:0:7}")
+    LATEST_HEAD=$(head_for "")
+    if [ -n "$TAGGED_HEAD" ]; then
+        echo "Head build of the commit $VERSION_NUM was tagged on (${RC_COMMIT:0:7}): $TAGGED_HEAD"
+    elif [ -n "$RC_COMMIT" ]; then
+        echo "No head chart found for the commit $VERSION_NUM was tagged on (${RC_COMMIT:0:7})."
     else
-        echo "No ${VERSION_NUM%%-rc*}-<commit>-head chart found in $HEAD_BASE (or network check failed)."
+        echo "Could not resolve the commit for tag v$VERSION_NUM (offline or tag missing)."
+    fi
+    if [ -n "$LATEST_HEAD" ]; then
+        echo "Latest head build for $RC_BASE: $LATEST_HEAD"
+        echo "Set chart_variables.rancher_chart_repo_override to $HEAD_BASE/rancher- and rancher_version to the desired head version"
+    else
+        echo "No $RC_BASE-<commit>-head chart found in $HEAD_BASE (or network check failed)."
     fi
 fi
 echo ""
