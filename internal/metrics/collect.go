@@ -20,10 +20,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Collect runs every query in Catalog() against promURL over [start, end] at
-// step resolution and writes CSVs + summary.json + manifest.json under outDir.
-// dartFile and workspace are recorded in the manifest for traceability.
-func Collect(ctx context.Context, promURL, dartFile, workspace string, start, end time.Time, step time.Duration, outDir string) error {
+// Collect runs every query selected by opts against promURL over [start, end]
+// at step resolution and writes CSVs + summary.json + manifest.json under
+// outDir. dartFile and workspace are recorded in the manifest for traceability
+// and may be empty when the run targeted a kubeconfig directly.
+func Collect(ctx context.Context, promURL, dartFile, workspace string, start, end time.Time, step time.Duration, outDir string, opts CatalogOptions) error {
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return fmt.Errorf("create output dir %s: %w", outDir, err)
 	}
@@ -40,16 +41,34 @@ func Collect(ctx context.Context, promURL, dartFile, workspace string, start, en
 	}
 
 	client := NewClient(promURL)
-	queries := Catalog()
+
+	queries := Catalog(opts)
+	if err := WriteQueryCatalog(outDir, queries); err != nil {
+		return fmt.Errorf("write query catalog: %w", err)
+	}
+
 	all := make(map[string]QuerySummary, len(queries))
+
+	var collectionErr error
 
 	for _, q := range queries {
 		logrus.Infof("collecting %s/%s", q.Group, q.Name)
 
 		series, err := client.QueryRangeContext(ctx, q.PromQL, start, end, step)
 		if err != nil {
+			if opts.preset() == PresetK3K && isRequiredK3KQuery(q.Name) {
+				collectionErr = fmt.Errorf("required k3k query %s failed: %w", q.Name, err)
+				break
+			}
+
 			logrus.Warnf("query %s failed: %v", q.Name, err)
+
 			continue
+		}
+
+		if opts.preset() == PresetK3K && isRequiredK3KQuery(q.Name) && len(series) == 0 {
+			collectionErr = fmt.Errorf("required k3k query %s returned no series for namespace scope %q", q.Name, opts.namespaces())
+			break
 		}
 
 		summary, err := WriteSeriesCSV(outDir, q, series)
@@ -57,7 +76,9 @@ func Collect(ctx context.Context, promURL, dartFile, workspace string, start, en
 			return fmt.Errorf("write %s csv: %w", q.Name, err)
 		}
 
-		all[q.Name] = summary
+		if len(summary) > 0 {
+			all[q.Name] = summary
+		}
 	}
 
 	if err := WriteSummary(outDir, all); err != nil {
@@ -65,19 +86,37 @@ func Collect(ctx context.Context, promURL, dartFile, workspace string, start, en
 	}
 
 	if err := WriteManifest(outDir, Manifest{
-		GeneratedAt: time.Now().UTC(),
-		PromURL:     promURL,
-		Start:       start.UTC(),
-		End:         end.UTC(),
-		Step:        step,
-		DartFile:    dartFile,
-		Workspace:   workspace,
-		Queries:     len(queries),
+		GeneratedAt:    time.Now().UTC(),
+		PromURL:        promURL,
+		Start:          start.UTC(),
+		End:            end.UTC(),
+		Step:           step,
+		DartFile:       dartFile,
+		Workspace:      workspace,
+		Preset:         string(opts.preset()),
+		Namespaces:     opts.namespaces(),
+		Operational:    opts.Operational,
+		FocusNamespace: opts.FocusNamespace,
+		Queries:        len(queries),
 	}); err != nil {
 		return fmt.Errorf("write manifest: %w", err)
+	}
+
+	if collectionErr != nil {
+		return collectionErr
 	}
 
 	logrus.Infof("metrics collected to %s", outDir)
 
 	return nil
+}
+
+func isRequiredK3KQuery(name string) bool {
+	switch name {
+	case "k3k_server_cpu_per_active_pod_millicores",
+		"k3k_server_memory_per_active_pod_mb":
+		return true
+	default:
+		return false
+	}
 }

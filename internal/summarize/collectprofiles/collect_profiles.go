@@ -13,6 +13,11 @@ import (
 )
 
 type Config struct {
+	// Kubeconfig selects the cluster to profile. This package shells out to
+	// bare `kubectl`, so the path is exported through the environment rather
+	// than passed per-invocation; leaving it empty falls back to the ambient
+	// KUBECONFIG, which is almost never what a caller wants.
+	Kubeconfig   string
 	App          string
 	Profiles     string
 	LogLevel     string
@@ -26,6 +31,12 @@ type Config struct {
 }
 
 func Run(ctx context.Context, cfg Config) error {
+	// Ensure kubeconfig is set for subprocesses, matching the sibling
+	// countresources and exportmetrics tools.
+	if cfg.Kubeconfig != "" {
+		os.Setenv("KUBECONFIG", cfg.Kubeconfig)
+	}
+
 	// Validate App choice
 	validApps := map[string]bool{
 		"rancher":              true,

@@ -128,16 +128,43 @@ func redeployCommand() *cli.Command {
 func collectMetricsCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "collect-metrics",
-		Usage:       "Collect scaling metrics from upstream Prometheus",
-		Description: "port-forwards to rancher-monitoring Prometheus and exports curated range queries as CSV and JSON",
+		Usage:       "Collect scaling metrics from a cluster's Prometheus",
+		Description: "port-forwards to the cluster's Prometheus and exports curated range queries as CSV and JSON",
 		Action:      subcommands.CollectMetrics,
-		Flags: []cli.Flag{
+		Flags: append(subcommands.TargetFlags(),
 			&cli.StringFlag{Name: subcommands.ArgMetricsStart, Usage: "RFC3339 start (default: end minus last)"},
 			&cli.StringFlag{Name: subcommands.ArgMetricsEnd, Usage: "RFC3339 end (default: now)"},
 			&cli.StringFlag{Name: subcommands.ArgMetricsLast, Value: "1h", Usage: "lookback when start is omitted"},
 			&cli.StringFlag{Name: subcommands.ArgMetricsStep, Value: "30s", Usage: "Prometheus query_range step"},
 			&cli.StringFlag{Name: subcommands.ArgMetricsOutput, Usage: "output directory"},
-		},
+			&cli.StringFlag{
+				Name:  subcommands.ArgPreset,
+				Value: "rancher",
+				Usage: "curated query set to collect: \"rancher\" or \"k3k\"",
+			},
+			&cli.StringFlag{
+				Name:  subcommands.ArgNamespaces,
+				Usage: "namespace regex for per-pod queries (default: preset-specific)",
+			},
+			&cli.StringFlag{Name: subcommands.ArgK3KRunPrefix, Usage: "k3k bulk run name prefix (requires k3k-start-index and k3k-count)"},
+			&cli.IntFlag{Name: subcommands.ArgK3KStartIndex, Usage: "first numeric index in the k3k bulk run"},
+			&cli.IntFlag{Name: subcommands.ArgK3KCount, Usage: "number of clusters in the k3k bulk run"},
+			&cli.BoolFlag{Name: subcommands.ArgOperational, Usage: "include optional health, lifecycle, placement, and controller-runtime metrics"},
+			&cli.StringFlag{
+				Name:  subcommands.ArgPrometheusNamespace,
+				Value: subcommands.DefaultPrometheusNamespace,
+				Usage: "namespace hosting Prometheus",
+			},
+			&cli.StringFlag{
+				Name:  subcommands.ArgPrometheusService,
+				Usage: "Prometheus port-forward target, e.g. svc/my-prometheus (default: detect rancher-monitoring or kube-prometheus-stack)",
+			},
+			&cli.StringFlag{
+				Name: subcommands.ArgK3KFocusNamespace,
+				Usage: "k3k preset only: give this virtual cluster's namespace its own " +
+					"unbounded per-pod series, so it is never crowded out of the bounded ones",
+			},
+		),
 	}
 }
 
@@ -147,7 +174,7 @@ func summarizeCommand() *cli.Command {
 		Usage:       "Summarize the current deployment by capturing metrics, profiles, and resource counts",
 		Description: "runs `export-metrics`, `collect-profile`, and `resource-counts` against the deployed clusters",
 		Action:      subcommands.Summarize,
-		Flags: []cli.Flag{
+		Flags: append(subcommands.TargetFlags(),
 			&cli.BoolFlag{
 				Name:    "metrics",
 				Aliases: []string{"m"},
@@ -186,32 +213,51 @@ func summarizeCommand() *cli.Command {
 				Value:   false,
 				Usage:   "only include current profiles in summary",
 			},
-		},
+			&cli.StringFlag{
+				Name:  subcommands.ArgPrometheusNamespace,
+				Value: subcommands.DefaultPrometheusNamespace,
+				Usage: "namespace hosting Prometheus",
+			},
+			&cli.StringFlag{
+				Name:  subcommands.ArgPrometheusService,
+				Usage: "Prometheus service to remote-read from (default: detect rancher-monitoring or kube-prometheus-stack)",
+			},
+		),
 	}
 }
 
 func collectProfilesCommand() *cli.Command {
 	return &cli.Command{
 		Name: "collect-profiles", Usage: "Collect Rancher pprof profiles over time", Action: subcommands.CollectProfiles,
-		Flags: []cli.Flag{
+		Flags: append(subcommands.TargetFlags(),
 			&cli.StringFlag{Name: subcommands.ArgDiagnosticsFor, Value: "10m"},
 			&cli.StringFlag{Name: subcommands.ArgDiagnosticsInterval, Value: "120s"},
 			&cli.StringFlag{Name: subcommands.ArgProfiles, Value: "goroutine,heap,profile"},
 			&cli.StringFlag{Name: subcommands.ArgCPUDuration, Value: "30s"},
 			&cli.StringFlag{Name: subcommands.ArgDiagnosticsOutput},
-		},
+		),
 	}
 }
 
 func collectLogsCommand() *cli.Command {
 	return &cli.Command{
-		Name: "collect-logs", Usage: "Collect Rancher-family logs over time", Action: subcommands.CollectLogs,
-		Flags: []cli.Flag{
+		Name: "collect-logs", Usage: "Collect Rancher-family or k3k logs over time", Action: subcommands.CollectLogs,
+		Flags: append(subcommands.TargetFlags(),
 			&cli.StringFlag{Name: subcommands.ArgDiagnosticsFor, Value: "10m"},
 			&cli.StringFlag{Name: subcommands.ArgDiagnosticsInterval, Value: "60s"},
-			&cli.StringFlag{Name: subcommands.ArgApps, Value: "rancher"},
+			&cli.StringFlag{
+				Name:  subcommands.ArgApps,
+				Value: "rancher",
+				Usage: "comma-separated apps to collect: rancher, cattle-cluster-agent, " +
+					"fleet-controller, fleet-agent, k3k, k3k-server, k3k-agent",
+			},
+			&cli.StringFlag{
+				Name: subcommands.ArgK3KFocusNamespace,
+				Usage: "always collect this virtual cluster's namespace, in addition to the " +
+					"first 5 pods per k3k role",
+			},
 			&cli.StringFlag{Name: subcommands.ArgDiagnosticsOutput},
-		},
+		),
 	}
 }
 

@@ -86,18 +86,10 @@ func handleTimeInputs(ctx context.Context, cli *cli.Command) (int64, int64, int6
 }
 
 func Summarize(ctx context.Context, cli *cli.Command) error {
-	tf, _, err := prepare(ctx, cli)
+	t, err := resolveTarget(ctx, cli)
 	if err != nil {
 		return err
 	}
-
-	clusters, _, err := tf.ParseOutputs()
-	if err != nil {
-		return err
-	}
-
-	// Select upstream cluster configuration
-	upstream := clusters["upstream"]
 
 	// Read flags; allow shorthand via Aliases set in main.go
 	metrics := cli.Bool("metrics")
@@ -136,10 +128,11 @@ func Summarize(ctx context.Context, cli *cli.Command) error {
 		fmt.Println(">>> Running collect-profile...")
 		// Defaults match original flags
 		cfg := collectprofile.Config{
-			App:      "rancher",
-			Profiles: "goroutine,heap,profile",
-			Duration: 30,
-			LogLevel: "debug",
+			Kubeconfig: t.Kubeconfig,
+			App:        "rancher",
+			Profiles:   "goroutine,heap,profile",
+			Duration:   30,
+			LogLevel:   "debug",
 		}
 		if err := collectprofile.Run(ctx, cfg); err != nil {
 			fmt.Printf("Error running collect-profile: %v\n", err)
@@ -150,7 +143,7 @@ func Summarize(ctx context.Context, cli *cli.Command) error {
 		fmt.Println(">>> Running resource-counts...")
 
 		cfg := countresources.Config{
-			Kubeconfig: upstream.Kubeconfig,
+			Kubeconfig: t.Kubeconfig,
 		}
 		if err := countresources.Run(ctx, cfg); err != nil {
 			fmt.Printf("Error running resource-counts: %v\n", err)
@@ -160,9 +153,19 @@ func Summarize(ctx context.Context, cli *cli.Command) error {
 	if metrics {
 		fmt.Println(">>> Running export-metrics...")
 
+		promTarget, err := prometheusServiceTarget(ctx, t.Kubeconfig, cli.String(ArgPrometheusNamespace), cli.String(ArgPrometheusService))
+		if err != nil {
+			// Last step, so skipping it is just returning.
+			fmt.Printf("Error running export-metrics: %v\n", err)
+
+			return nil
+		}
+
 		cfg := exportmetrics.Config{
-			Kubeconfig: upstream.Kubeconfig,
-			Selector:   cli.String("query"),
+			Kubeconfig:          t.Kubeconfig,
+			Selector:            cli.String("query"),
+			PrometheusNamespace: cli.String(ArgPrometheusNamespace),
+			PrometheusService:   prometheusServiceName(promTarget),
 		}
 
 		from, to, offset, err := handleTimeInputs(ctx, cli)

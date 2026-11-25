@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/rancher/dartboard/internal/kubectl"
 	"github.com/rancher/dartboard/internal/summarize/exportmetrics"
 )
 
@@ -68,6 +69,14 @@ func main() {
 		ToSeconds:     toSeconds,
 		OffsetSeconds: offset,
 	}
+
+	// The default Prometheus service was removed, so detect it like collect-metrics does.
+	svc, err := kubectl.DetectPrometheusService(ctx, kubeconfigPath, exportmetrics.Namespace)
+	if err != nil {
+		log.Fatalf("export-metrics: %v", err)
+	}
+
+	cfg.PrometheusService = svc
 
 	if err := exportmetrics.Run(ctx, cfg); err != nil {
 		log.Fatalf("export-metrics: %v", err)

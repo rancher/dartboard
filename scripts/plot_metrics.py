@@ -11,6 +11,7 @@ By default writes <metrics_dir>/charts/<group>/*.png and <metrics_dir>/report.md
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 import matplotlib.dates as mdates
@@ -21,7 +22,6 @@ import pandas as pd
 # Display unit per query (matches internal/metrics/catalog.go).
 UNITS = {
     "node_cpu_utilization":        "ratio",
-    "node_load1":                  "load",
     "rancher_pod_cpu":             "cores",
     "node_mem_used_bytes":         "bytes",
     "rancher_pod_workingset":      "bytes",
@@ -30,16 +30,24 @@ UNITS = {
     "node_disk_iops":              "iops",
     "node_filesystem_utilization": "ratio",
     "node_net_throughput":         "bytes/sec",
-    "node_net_errors":             "events/sec",
-    "pod_resource_requests":       "mixed",
-    "pod_resource_limits":         "mixed",
+    "pod_cpu_requests":            "cores",
+    "pod_cpu_limits":              "cores",
+    "pod_memory_requests":         "bytes",
+    "pod_memory_limits":           "bytes",
+    "k3k_server_cpu_per_active_pod_millicores": "millicores",
+    "k3k_server_memory_per_active_pod_mb":       "MB",
+    "k3k_kubelet_cpu_per_active_pod_millicores": "millicores",
+    "k3k_kubelet_memory_per_active_pod_mb":       "MB",
+    "k3k_agent_cpu_per_active_pod_millicores": "millicores",
+    "k3k_agent_memory_per_active_pod_mb":       "MB",
+    "k3k_controller_cpu_per_active_pod_millicores": "millicores",
+    "k3k_controller_memory_per_active_pod_mb":       "MB",
 }
 
 # Which label columns identify a "series" for legend purposes. Anything not
 # listed falls back to all non-(timestamp,value) columns.
 SERIES_LABEL = {
     "node_cpu_utilization":        ["instance"],
-    "node_load1":                  ["instance"],
     "rancher_pod_cpu":             ["namespace", "pod"],
     "node_mem_used_bytes":         ["instance"],
     "rancher_pod_workingset":      ["namespace", "pod"],
@@ -48,12 +56,83 @@ SERIES_LABEL = {
     "node_disk_iops":              ["instance", "device"],
     "node_filesystem_utilization": ["instance", "mountpoint"],
     "node_net_throughput":         ["instance", "device"],
-    "node_net_errors":             ["instance", "device"],
-    "pod_resource_requests":       ["namespace", "pod", "resource"],
-    "pod_resource_limits":         ["namespace", "pod", "resource"],
+    "pod_cpu_requests":            ["namespace", "pod"],
+    "pod_cpu_limits":              ["namespace", "pod"],
+    "pod_memory_requests":         ["namespace", "pod"],
+    "pod_memory_limits":           ["namespace", "pod"],
 }
 
 MAX_LEGEND_LINES = 12
+
+
+def recover_collection_metadata(metrics_dir: Path):
+    """Recover metadata for older/partial collections that have CSVs only."""
+    summary_path = metrics_dir / "summary.json"
+    manifest_path = metrics_dir / "manifest.json"
+    if summary_path.exists() and manifest_path.exists():
+        return json.loads(summary_path.read_text()), json.loads(manifest_path.read_text())
+
+    summary = {}
+    all_timestamps = []
+    for csv_path in metrics_dir.glob("*/*.csv"):
+        df = pd.read_csv(csv_path)
+        if df.empty:
+            continue
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+        all_timestamps.extend(df["timestamp"].tolist())
+        label_cols = sorted(c for c in df.columns if c not in ("timestamp", "value"))
+        grouped = [("aggregate", df)]
+        if label_cols:
+            grouped = list(df.groupby(label_cols, dropna=False, sort=True))
+        query_summary = {}
+        for labels, rows in grouped:
+            values = rows[["timestamp", "value"]].dropna().sort_values("timestamp")
+            if values.empty:
+                continue
+            numeric = values["value"].astype(float).sort_values().tolist()
+            first = float(values.iloc[0]["value"])
+            last = float(values.iloc[-1]["value"])
+            change = last - first
+            x = pd.Series(
+                ((values["timestamp"] - values.iloc[0]["timestamp"]).dt.total_seconds() / 3600).to_numpy(),
+                dtype=float,
+            )
+            y = pd.Series(values["value"].to_numpy(), dtype=float)
+            variance = x.var()
+            slope = None if pd.isna(variance) or variance <= 0 else float(y.cov(x) / variance)
+            percentile = lambda p: numeric[max(0, math.ceil(p * len(numeric)) - 1)]
+            if label_cols:
+                label_values = labels if isinstance(labels, tuple) else (labels,)
+                key = ",".join(f"{column}={value}" for column, value in zip(label_cols, label_values))
+            else:
+                key = "aggregate"
+            query_summary[key] = {
+                "count": len(numeric), "min": numeric[0], "p50": percentile(.5),
+                "p95": percentile(.95), "p99": percentile(.99), "max": numeric[-1],
+                "mean": sum(numeric) / len(numeric), "first": first, "last": last,
+                "change": change, "slope_per_hour": slope,
+            }
+            if first != 0:
+                query_summary[key]["change_percent"] = change / abs(first) * 100
+        if query_summary:
+            summary[csv_path.stem] = query_summary
+
+    if not all_timestamps:
+        raise ValueError(f"no metric samples found under {metrics_dir}")
+    timestamps = sorted(set(all_timestamps))
+    steps = [(b - a).total_seconds() for a, b in zip(timestamps, timestamps[1:]) if b > a]
+    queries_path = metrics_dir / "queries.json"
+    query_count = len(json.loads(queries_path.read_text())) if queries_path.exists() else len(summary)
+    manifest = {
+        "generated_at": pd.Timestamp.now(tz="UTC").isoformat(),
+        "start": timestamps[0].isoformat().replace("+00:00", "Z"),
+        "end": timestamps[-1].isoformat().replace("+00:00", "Z"),
+        "step_seconds": int((min(steps) if steps else 0) * 1_000_000_000),
+        "preset": "k3k", "queries": query_count, "recovered_from_csv": True,
+    }
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n")
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    return summary, manifest
 
 
 def human_bytes(n):
@@ -99,6 +178,16 @@ def y_formatter(unit):
     return lambda x, _: human_value(x, unit)
 
 
+def query_unit(query_name):
+    if query_name in UNITS:
+        return UNITS[query_name]
+    if query_name.endswith(("_pod_cpu", "_cpu_total", "_cpu_max", "_focus_server_cpu", "_focus_kubelet_cpu")):
+        return "cores"
+    if "workingset" in query_name or query_name.endswith("_used_bytes"):
+        return "bytes"
+    return ""
+
+
 def plot_csv(csv_path: Path, out_path: Path, query_name: str) -> bool:
     df = pd.read_csv(csv_path)
     if df.empty:
@@ -128,8 +217,29 @@ def plot_csv(csv_path: Path, out_path: Path, query_name: str) -> bool:
         ax.plot(pivot.index, pivot[s], color="lightgray", linewidth=0.6, alpha=0.6)
     for s in top:
         ax.plot(pivot.index, pivot[s], linewidth=1.2, label=s)
+        values = pivot[s].dropna()
+        if len(values) >= 2:
+            # Convert the DatetimeIndex-derived values to Series explicitly.
+            # Older pandas releases do not implement Index.mean(), and using
+            # Series also guarantees aligned RangeIndexes for cov/var.
+            x = pd.Series(
+                ((values.index - values.index[0]).total_seconds() / 3600).to_numpy(),
+                dtype=float,
+            )
+            y = pd.Series(values.to_numpy(), dtype=float)
+            variance = x.var()
+            if pd.notna(variance) and variance > 0:
+                slope = y.cov(x) / variance
+                intercept = y.mean() - slope * x.mean()
+                ax.plot(
+                    values.index,
+                    intercept + slope * x.to_numpy(),
+                    linestyle="--",
+                    linewidth=1,
+                    alpha=0.7,
+                )
 
-    unit = UNITS.get(query_name, "")
+    unit = query_unit(query_name)
     ax.set_title(query_name)
     ax.set_xlabel("time (UTC)")
     ax.set_ylabel(unit)
@@ -158,17 +268,63 @@ def stats_table(stats_for_query: dict, query_name: str, top_n: int = 10) -> str:
     if not stats_for_query:
         return "_(no series)_"
     rows = sorted(stats_for_query.items(), key=lambda kv: kv[1].get("p95", 0), reverse=True)[:top_n]
-    unit = UNITS.get(query_name, "")
+    unit = query_unit(query_name)
     out = [
-        "| series | min | p50 | p95 | p99 | max | mean |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
+        "| series | samples | first | last | change | change % | slope/hour | mean | p95 | max |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for series, s in rows:
-        cols = [series] + [human_value(s.get(k, 0), unit, series) for k in ("min", "p50", "p95", "p99", "max", "mean")]
+        display_series = "aggregate" if series in ("(no_labels)", "aggregate") else series
+        percent = "—" if s.get("change_percent") is None else f"{s['change_percent']:.1f}%"
+        slope = "—" if s.get("slope_per_hour") is None else human_value(s["slope_per_hour"], unit, series)
+        cols = [display_series, str(s.get("count", 0))]
+        cols += [human_value(s.get(k, 0), unit, series) for k in ("first", "last", "change")]
+        cols += [percent, slope]
+        cols += [human_value(s.get(k, 0), unit, series) for k in ("mean", "p95", "max")]
         out.append("| " + " | ".join(cols) + " |")
     if len(stats_for_query) > top_n:
         out.append(f"\n_(showing top {top_n} of {len(stats_for_query)} series by p95)_")
     return "\n".join(out)
+
+
+def k3k_role_summary(summary: dict) -> str:
+    queries = (
+        ("server", "CPU", "k3k_server_cpu_per_active_pod_millicores", "mCPU"),
+        ("server", "Memory", "k3k_server_memory_per_active_pod_mb", "MB"),
+        ("shared kubelet", "CPU", "k3k_kubelet_cpu_per_active_pod_millicores", "mCPU"),
+        ("shared kubelet", "Memory", "k3k_kubelet_memory_per_active_pod_mb", "MB"),
+        ("virtual agent", "CPU", "k3k_agent_cpu_per_active_pod_millicores", "mCPU"),
+        ("virtual agent", "Memory", "k3k_agent_memory_per_active_pod_mb", "MB"),
+        ("controller", "CPU", "k3k_controller_cpu_per_active_pod_millicores", "mCPU"),
+        ("controller", "Memory", "k3k_controller_memory_per_active_pod_mb", "MB"),
+    )
+    rows = []
+    for role, resource, query, unit in queries:
+        series = summary.get(query, {})
+        if not series:
+            continue
+        stats = next(iter(series.values()))
+        change_percent = "—" if stats.get("change_percent") is None else f"{stats['change_percent']:.1f}%"
+        slope = "—" if stats.get("slope_per_hour") is None else f"{stats['slope_per_hour']:.3f}"
+        rows.append(
+            f"| {role} | {resource} | {stats.get('count', 0)} | {stats.get('first', 0):.3f} | "
+            f"{stats.get('last', 0):.3f} | {stats.get('change', 0):.3f} | {change_percent} | {slope} | "
+            f"{stats.get('mean', 0):.3f} | {stats.get('p95', 0):.3f} | {stats.get('max', 0):.3f} | {unit} |"
+        )
+    if not rows:
+        return "_(no normalized k3k role metrics)_"
+    return "\n".join([
+        "| role | resource | samples | first | last | change | change % | slope/hour | mean | p95 | max | unit |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+        *rows,
+    ])
+
+
+def load_query_catalog(metrics_dir: Path) -> dict:
+    path = metrics_dir / "queries.json"
+    if not path.exists():
+        return {}
+    return {query["name"]: query for query in json.loads(path.read_text())}
 
 
 def main():
@@ -180,8 +336,8 @@ def main():
     metrics_dir = args.metrics_dir.resolve()
     out_dir = (args.out or metrics_dir).resolve()
 
-    summary = json.loads((metrics_dir / "summary.json").read_text())
-    manifest = json.loads((metrics_dir / "manifest.json").read_text())
+    summary, manifest = recover_collection_metadata(metrics_dir)
+    query_catalog = load_query_catalog(metrics_dir)
 
     md = [
         "# Metrics report",
@@ -190,10 +346,21 @@ def main():
         f"- **step:** {manifest['step_seconds'] / 1e9:g}s",
         f"- **dart:** `{manifest.get('dart_file', '?')}`",
         f"- **workspace:** `{manifest.get('tofu_workspace', '?')}`",
+        f"- **operational metrics:** `{manifest.get('operational', False)}`",
+        "- **trend lines:** dashed lines are least-squares trends; table slopes are per hour",
+        "- **Prometheus queries:** [queries.md](queries.md)" if (metrics_dir / "queries.md").exists() else "",
         "",
     ]
 
-    for group in ("cpu", "memory", "disk", "network", "pod"):
+    if any(name.startswith("k3k_") for name in summary):
+        md.extend([
+            "## k3k role usage per active pod",
+            "",
+            k3k_role_summary(summary),
+            "",
+        ])
+
+    for group in ("cpu", "memory", "disk", "network", "k3k", "operational"):
         group_dir = metrics_dir / group
         if not group_dir.is_dir():
             continue
@@ -203,9 +370,18 @@ def main():
             query_name = csv_path.stem
             png_rel = Path("charts") / group / f"{query_name}.png"
             ok = plot_csv(csv_path, out_dir / png_rel, query_name)
+            if not ok:
+                continue
             md.append(f"### {query_name}")
             md.append("")
-            md.append(f"![{query_name}]({png_rel.as_posix()})" if ok else "_(no data in this window)_")
+            metadata = query_catalog.get(query_name, {})
+            if metadata:
+                md.append(metadata.get("description", ""))
+                md.append("")
+                md.append(f"- **Unit:** `{metadata.get('unit', '')}`")
+                md.append(f"- **Query:** [view PromQL](queries.md#{query_name.replace('_', '-')})")
+                md.append("")
+            md.append(f"![{query_name}]({png_rel.as_posix()})")
             md.append("")
             md.append(stats_table(summary.get(query_name, {}), query_name))
             md.append("")

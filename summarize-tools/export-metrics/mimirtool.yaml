@@ -3,7 +3,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: mimirtool
-  namespace: cattle-monitoring-system
+  # Namespace is intentionally omitted so callers can place the helper pod in
+  # whichever namespace hosts Prometheus, via `kubectl apply -n <namespace>`.
   labels:
     app: mimirtool
 spec:
