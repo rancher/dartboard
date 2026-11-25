@@ -23,7 +23,7 @@ RUN apk add --no-cache \
     # renovate: datasource=repology depName=alpine_3_24/wget versioning=loose
     wget~=1.25.0-r3 \
     # renovate: datasource=repology depName=alpine_3_24/curl versioning=loose
-    curl~=8.22.0-r0 \
+    curl~=8.23.0-r0 \
     # renovate: datasource=repology depName=alpine_3_24/make versioning=loose
     make~=4.4.1-r4
 
@@ -50,7 +50,7 @@ USER root
 RUN apk update && \
     apk add --no-cache \
     # renovate: datasource=repology depName=alpine_3_24/openssh-client versioning=loose
-    openssh-client~=10.3_p1-r1 \
+    openssh-client~=10.3_p1-r2 \
     # renovate: datasource=repology depName=alpine_3_24/netcat-openbsd versioning=loose
     netcat-openbsd~=1.234.1-r0 \
     # renovate: datasource=repology depName=alpine_3_24/bash versioning=loose
@@ -62,7 +62,7 @@ RUN apk update && \
     # renovate: datasource=repology depName=alpine_3_24/unzip versioning=loose
     unzip~=6.0-r16 \
     # renovate: datasource=repology depName=alpine_3_24/yq-go versioning=loose
-    yq-go~=4.53.3-r1
+    yq-go~=4.53.3-r2
 
 # switch back to the non-root user
 USER k6

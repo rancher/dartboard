@@ -58,16 +58,18 @@ upstream_cluster:
 
 Download and unpack a [release](https://github.com/rancher/dartboard/releases/), it's a self-contained binary.
 
-### Usage with Docker
+### Usage with a container runtime
 
-Alternatively, you can use the provided `Dockerfile` to build a container image that includes `dartboard`, `k6`, and all necessary dependencies. This is a great way to ensure a consistent environment while testing changes.
+Alternatively, you can use the provided `Containerfile` to build a container image that includes `dartboard`, `k6`, and all necessary dependencies. This is a great way to ensure a consistent environment while testing changes.
 
-#### 1. Build the Docker Image
+#### 1. Build the container image
+
+Any OCI-compatible runtime works. Free, open-source options include [Rancher Desktop](https://rancherdesktop.io/), [Podman](https://podman.io/), and [nerdctl](https://github.com/containerd/nerdctl) with containerd. The examples below use `podman`; `nerdctl` accepts the same arguments (and `docker`, if you already have it, works too).
 
 From the root of the repository, run:
 
 ```bash
-docker build -t dartboard:latest .
+podman build -t dartboard:latest -f Containerfile .
 ```
 
 #### 2. Running `dartboard` Commands
@@ -76,7 +78,7 @@ The container's entrypoint is set to `dartboard`, so you can run subcommands dir
 
 **Example: Deploy an environment**
 ```bash
-docker run --rm -it \
+podman run --rm -it \
   -v "$(pwd):/dartboard" \
   --workdir /dartboard \
   -e AWS_ACCESS_KEY_ID \
@@ -98,7 +100,7 @@ Since the image is based on `grafana/k6`, you can also use it to run `k6` tests 
 **Example: Run a k6 test script**
 ```bash
 cd k6
-docker run --rm -it \
+podman run --rm -it \
   --entrypoint k6 \
   -v "$(pwd)/k6:/home/k6" \
   -e BASE_URL="https://your-rancher-url" \
@@ -141,7 +143,7 @@ If you get this error from `tofu apply`:
 Error: Failed Cluster Start: Failed to add one or more agents: Node k3d-... failed to get ready: error waiting for log line `successfully registered node` from node 'k3d-st-upstream-agent-0': stopped returning log lines: node k3d-... is running=true in status=restarting
 ```
 
-And `docker logs` on the node container end with:
+And `podman logs` (or `docker logs`) on the node container end with:
 ```
 kubelet.go:1361] "Failed to start cAdvisor" err="inotify_init: too many open files"
 ```

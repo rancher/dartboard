@@ -70,7 +70,7 @@ pipeline {
               if (params.EXTRA_ENV_VARS) {
                 sh "echo \"${params.EXTRA_ENV_VARS}\" >> ${env.envFile}"
               }
-              sh "docker build -t ${env.imageName}:latest ."
+              sh "docker build -f Containerfile -t ${env.imageName}:latest ."
             }
           }
         }

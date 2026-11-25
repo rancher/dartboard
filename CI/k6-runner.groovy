@@ -113,7 +113,7 @@ pipeline {
     stage('Build Dartboard Image') {
       steps {
         dir('dartboard') {
-          sh "docker build -t ${env.IMAGE_NAME}:latest ."
+          sh "docker build -f Containerfile -t ${env.IMAGE_NAME}:latest ."
         }
       }
     }
