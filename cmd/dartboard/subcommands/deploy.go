@@ -107,7 +107,7 @@ func Deploy(ctx context.Context, cli *cli.Command) error {
 	if r.ChartVariables.RancherImageTagOverride != "" {
 		rancherImageTag = r.ChartVariables.RancherImageTagOverride
 
-		image := "rancher/rancher"
+		image := rancherImageRepository(rancherVersion)
 		if r.ChartVariables.RancherImageOverride != "" {
 			image = r.ChartVariables.RancherImageOverride
 		}
@@ -441,7 +441,7 @@ func chartInstallRancher(r *dart.Dart, rancherImageTag string, cluster *tofu.Clu
 	}
 	extraEnv = append(extraEnv, r.ChartVariables.ExtraEnvironmentVariables...)
 
-	chartVals := getRancherValsJSON(r.ChartVariables.RancherImageOverride, rancherImageTag, r.ChartVariables.AdminPassword, rancherClusterName, extraEnv, r.ChartVariables.RancherReplicas)
+	chartVals := getRancherValsJSON(r.ChartVariables.RancherVersion, r.ChartVariables.RancherImageOverride, rancherImageTag, r.ChartVariables.AdminPassword, rancherClusterName, extraEnv, r.ChartVariables.RancherReplicas)
 
 	var extraArgs []string
 
@@ -517,12 +517,38 @@ func chartInstallRancherIngress(cluster *tofu.Cluster) error {
 	return chartInstall(cluster.Kubeconfig, chartRancherIngress, chartVals)
 }
 
-func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
-	rancherMajorVersion, _, _ := strings.Cut(r.ChartVariables.RancherVersion, ".")
-	major, _ := strconv.Atoi(rancherMajorVersion)
-	rancherMinorVersion := strings.Join(strings.Split(r.ChartVariables.RancherVersion, ".")[0:2], ".")
+// rancherMajorMinor parses "[v]MAJOR.MINOR[...]"; malformed or short versions yield 0, 0.
+func rancherMajorMinor(version string) (major, minor int) {
+	parts := strings.SplitN(strings.TrimPrefix(version, "v"), ".", 3)
+	if len(parts) < 2 {
+		return 0, 0
+	}
 
-	minor, _ := strconv.Atoi(strings.Split(rancherMinorVersion, ".")[1])
+	major, _ = strconv.Atoi(parts[0])
+	// leading digits only, so "2.16-head" yields 16
+	digits := parts[1]
+	if end := strings.IndexFunc(digits, func(r rune) bool { return r < '0' || r > '9' }); end >= 0 {
+		digits = digits[:end]
+	}
+
+	minor, _ = strconv.Atoi(digits)
+
+	return major, minor
+}
+
+// rancherImageRepository returns the server image repository: renamed to rancher-server from 2.16.
+func rancherImageRepository(version string) string {
+	if major, minor := rancherMajorMinor(version); major > 2 || (major == 2 && minor >= 16) {
+		return "rancher/rancher-server"
+	}
+
+	return "rancher/rancher"
+}
+
+func chartInstallRancherMonitoring(r *dart.Dart, cluster *tofu.Cluster) error {
+	major, minor := rancherMajorMinor(r.ChartVariables.RancherVersion)
+	rancherMinorVersion := fmt.Sprintf("%d.%d", major, minor)
+
 	if !r.ChartVariables.ForceKubePrometheusStack && (major < 2 || (major == 2 && minor < 15)) {
 		return chartInstallLegacyRancherMonitoring(r, cluster, rancherMinorVersion)
 	}
@@ -900,7 +926,7 @@ func getGrafanaValsJSON(r *dart.Dart, name, url, ingressClass string) map[string
 	}
 }
 
-func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname string, extraEnv []map[string]any, replicas int) map[string]any {
+func getRancherValsJSON(rancherVersion, rancherImageOverride, rancherImageTag, bootPwd, hostname string, extraEnv []map[string]any, replicas int) map[string]any {
 	result := map[string]any{
 		"bootstrapPassword": bootPwd,
 		"hostname":          hostname,
@@ -917,6 +943,8 @@ func getRancherValsJSON(rancherImageOverride, rancherImageTag, bootPwd, hostname
 
 	if rancherImageOverride != "" {
 		result["rancherImage"] = rancherImageOverride
+	} else if repo := rancherImageRepository(rancherVersion); repo != "rancher/rancher" {
+		result["image"].(map[string]any)["repository"] = repo
 	}
 
 	return result
