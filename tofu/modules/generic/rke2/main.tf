@@ -152,8 +152,15 @@ resource "ssh_resource" "additional_server_installation" {
     permissions = "0700"
   }
 
+  file {
+    content     = file("${path.module}/wait_for_k8s.sh")
+    destination = "/tmp/wait_for_k8s.sh"
+    permissions = "0700"
+  }
+
   commands = [
-    "sudo /tmp/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)"
+    "sudo /tmp/install_rke2.sh > >(tee install_rke2.log) 2> >(tee install_rke2.err >&2)",
+    "sudo /tmp/wait_for_k8s.sh",
   ]
 }
 

@@ -3,6 +3,10 @@
 tofu_main_directory: ./tofu/main/azure
 #tofu_parallelism: 10
 cluster_batch_size: 1
+# Per-cluster budget for all pods to report Ready through Rancher's cluster
+# proxy after an import. Raise this when downstream clusters are reached over a
+# tunnel or a slow link.
+pod_status_timeout: 5m
 
 tofu_variables:
   project_name: st

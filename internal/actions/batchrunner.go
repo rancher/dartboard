@@ -49,18 +49,27 @@ type SequencedBatchRunner[J JobDataTypes] struct {
 	// Channel for each individual job's results/error output
 	Results chan jobResult
 
+	// PodStatusTimeout bounds how long each job waits for a freshly imported
+	// cluster's pods to become Ready.
+	PodStatusTimeout time.Duration
+
 	// WaitGroups for Job workers and the Updates channel which sequences writes to the ClustarStatus state file
 	wgWorkers sync.WaitGroup
 	wgWriter  sync.WaitGroup
 }
 
 // NewSequencedBatchRunner constructs a new runner for one batch
-func NewSequencedBatchRunner[J JobDataTypes](batchSize int) *SequencedBatchRunner[J] {
+func NewSequencedBatchRunner[J JobDataTypes](batchSize int, podStatusTimeout time.Duration) *SequencedBatchRunner[J] {
+	if podStatusTimeout <= 0 {
+		podStatusTimeout = dart.DefaultPodStatusTimeout
+	}
+
 	br := &SequencedBatchRunner[J]{
-		Updates: make(chan stateUpdate, batchSize*3),
-		seqCh:   make(chan struct{}, 1),
-		Jobs:    make(chan J, batchSize),
-		Results: make(chan jobResult, batchSize),
+		Updates:          make(chan stateUpdate, batchSize*3),
+		seqCh:            make(chan struct{}, 1),
+		Jobs:             make(chan J, batchSize),
+		Results:          make(chan jobResult, batchSize),
+		PodStatusTimeout: podStatusTimeout,
 	}
 	// seed the sequencer
 	br.seqCh <- struct{}{}

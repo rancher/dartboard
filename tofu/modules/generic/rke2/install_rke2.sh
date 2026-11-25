@@ -243,3 +243,58 @@ if ! systemctl is-active --quiet rke2-${type}; then
   journalctl -u rke2-${type} --no-pager -n 200 || true
   exit 1
 fi
+
+%{ if type == "server" && server_url != null ~}
+# A server joining an existing cluster is registered as an etcd learner, and
+# etcd allows only one unpromoted learner at a time. OpenTofu installs every
+# additional server concurrently, so all but one lose that race. A lost race
+# can also leave a half-initialised etcd data directory behind, which stops
+# every later attempt from succeeding.
+#
+# `systemctl is-active` above is not evidence of a join: rke2 reports active
+# while it is still trying to reach etcd. Without the check below a server that
+# never joins still exits 0, and `tofu apply` reports success for a cluster
+# that silently has one control-plane node instead of N.
+JOIN_ATTEMPTS=$${JOIN_ATTEMPTS:-5}
+JOIN_WAIT=$${JOIN_WAIT:-45}
+NODE_NAME="$(hostname)"
+KUBECTL_BIN=/var/lib/rancher/rke2/bin/kubectl
+KUBECONFIG_PATH=/etc/rancher/rke2/rke2.yaml
+
+node_registered() {
+  [ -s "$KUBECONFIG_PATH" ] || return 1
+  [ -x "$KUBECTL_BIN" ] || return 1
+  "$KUBECTL_BIN" --kubeconfig "$KUBECONFIG_PATH" \
+    get node "$NODE_NAME" --request-timeout=5s -o name >/dev/null 2>&1
+}
+
+for (( join=1; join<=JOIN_ATTEMPTS; join++ )); do
+  waited=0
+  while [ "$waited" -lt "$JOIN_WAIT" ]; do
+    if node_registered; then
+      echo "Node $NODE_NAME joined the cluster after $join attempt(s)."
+      exit 0
+    fi
+    sleep 5
+    waited=$(( waited + 5 ))
+  done
+
+  echo "Node $NODE_NAME has not joined after $${JOIN_WAIT}s (attempt $join/$JOIN_ATTEMPTS)."
+  journalctl -u rke2-${type} --no-pager -n 50 || true
+
+  if [ "$join" -lt "$JOIN_ATTEMPTS" ]; then
+    # Clear the partial etcd state and back off by a jittered interval so that
+    # concurrently joining servers serialise themselves instead of colliding
+    # on the single learner slot again.
+    echo "Resetting etcd state and retrying..."
+    systemctl stop rke2-${type} || true
+    rm -rf /var/lib/rancher/rke2/server/db/etcd
+    sleep $(( (RANDOM % 15) + 5 ))
+    systemctl start rke2-${type} || true
+  fi
+done
+
+echo "ERROR: node $NODE_NAME failed to join the cluster at ${server_url} after $JOIN_ATTEMPTS attempts"
+journalctl -u rke2-${type} --no-pager -n 200 || true
+exit 1
+%{ endif ~}
