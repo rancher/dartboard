@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/rancher/tests/actions/machinepools"
-	yaml "go.yaml.in/yaml/v3"
+	yaml "go.yaml.in/yaml/v4"
 )
 
 var (
